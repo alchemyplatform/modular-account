@@ -1,0 +1,46 @@
+[profile.default]
+solc = '0.8.21'
+via_ir = true
+src = 'src'
+out = 'out'
+test = 'test'
+libs = ['lib']
+optimizer = true
+optimizer_runs = 100
+ignored_error_codes = []
+
+[fuzz]
+runs = 500
+
+[invariant]
+runs=500
+fail_on_revert = true
+depth = 10
+
+[profile.lite]
+solc = '0.8.21'
+via_ir = false
+optimizer = true
+optimizer_runs = 10_000
+ignored_error_codes = []
+
+[profile.deep.fuzz]
+runs = 10000
+
+[profile.deep.invariant]
+runs = 5000
+depth = 32
+
+[fmt]
+line_length = 115
+wrap_comments = true
+
+[rpc_endpoints]
+mainnet = "${RPC_URL_MAINNET}"
+goerli = "${RPC_URL_GOERLI}"
+
+[etherscan]
+mainnet = { key = "${ETHERSCAN_API_KEY}" }
+goerli = { key = "${ETHERSCAN_API_KEY}" }
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config

@@ -1,0 +1,8 @@
+# Foundry build and cache directories
+out/
+cache/
+node_modules/
+
+# coverage
+report/
+lcov.info
