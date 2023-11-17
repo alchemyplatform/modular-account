@@ -1,0 +1,110 @@
+name: account-contracts Test CI
+
+on: [pull_request, workflow_dispatch]
+
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: true
+
+# Runs linter, tests, and inspection checker in parallel
+jobs:
+  lint:
+    name: Run Linters
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly-5be158ba6dc7c798a6f032026fe60fc01686b33b
+      - run: forge install
+
+      - run: forge fmt --check
+
+      - name: "Check out the repo"
+        uses: "actions/checkout@v3"
+        with:
+          submodules: "recursive"
+
+      - name: "Install Foundry"
+        uses: "foundry-rs/foundry-toolchain@v1"
+
+      - name: "Install Pnpm"
+        uses: "pnpm/action-setup@v2"
+        with:
+          version: "8"
+
+      - name: "Install Node.js"
+        uses: "actions/setup-node@v3"
+        with:
+          cache: "pnpm"
+          node-version: "lts/*"
+
+      - name: "Install the Node.js dependencies"
+        run: "pnpm install"
+
+      - name: "Lint the contracts"
+        run: "pnpm lint"
+        
+  # check-inspect:
+  #   name: Verify Inspections
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Install Foundry
+  #       uses: foundry-rs/foundry-toolchain@v1
+  #       with:
+  #         version: nightly
+
+  #     - run: forge install
+  #     - run: bash ./utils/inspect.sh
+
+  #     - run: git status --untracked-files=no --porcelain
+  #     - run: git --no-pager diff
+
+  #     - name: Check Inspections
+  #       run: if [[ -n "$(git status --untracked-files=no --porcelain)" ]]; then echo "Inspection difference detected, verify tests are passing and run \`bash ./utils/inspect.sh\` to fix." && exit 1; fi
+
+  test:
+    name: Run Forge Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly-5be158ba6dc7c798a6f032026fe60fc01686b33b
+
+      - name: Install forge dependencies
+        run: forge install
+
+      - name: Build project
+        run: forge build --sizes
+
+      - name: Run tests
+        run: FOUNDRY_PROFILE=deep forge test -vvv
+
+  test-lite:
+    name: Run Forge Tests [lite build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly-5be158ba6dc7c798a6f032026fe60fc01686b33b
+
+      - name: Install forge dependencies
+        run: forge install
+
+      - name: Build project
+        run: FOUNDRY_PROFILE=lite forge build
+
+      - name: Run tests
+        run: FOUNDRY_PROFILE=lite forge test -vvv
