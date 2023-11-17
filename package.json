@@ -1,0 +1,11 @@
+{
+  "devDependencies": {
+    "pnpm": "^8.7.5",
+    "solhint": "^3.6.2"
+  },
+  "scripts": {
+    "lint": "pnpm lint:src && pnpm lint:test",
+    "lint:src": "solhint -c .solhint-src.json ./src/**/*.sol",
+    "lint:test": "solhint -c .solhint-test.json ./test/**/*.sol"
+  }
+}
