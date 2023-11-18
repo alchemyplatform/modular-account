@@ -25,7 +25,7 @@ import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol
 import {ComprehensivePlugin} from "../mocks/plugins/ComprehensivePlugin.sol";
 import {MockPlugin} from "../mocks/MockPlugin.sol";
 
-contract ModularAccountLoupeTest is Test {
+contract AccountLoupeTest is Test {
     IEntryPoint public entryPoint;
     MultiOwnerPlugin public multiOwnerPlugin;
     MultiOwnerMSCAFactory public factory;
