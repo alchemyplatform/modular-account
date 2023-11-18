@@ -2,7 +2,6 @@
 pragma solidity ^0.8.21;
 
 /// @title Plugin Executor Interface
-/// @author Alchemy
 interface IPluginExecutor {
     /// @notice Method from cals made from plugins to other plugin execution functions. Plugins are not allowed to
     /// call accounts native functions.

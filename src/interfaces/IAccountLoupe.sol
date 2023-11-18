@@ -4,7 +4,6 @@ pragma solidity ^0.8.21;
 import {FunctionReference} from "../libraries/FunctionReferenceLib.sol";
 
 /// @title Account Loupe Interface
-/// @author Alchemy
 interface IAccountLoupe {
     /// @notice Config for an execution function, given a selector
     struct ExecutionFunctionConfig {

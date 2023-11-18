@@ -4,7 +4,6 @@ pragma solidity ^0.8.21;
 import {IEntryPoint} from "./erc4337/IEntryPoint.sol";
 
 /// @title Account View Interface
-/// @author Alchemy
 interface IAccountView {
     /// @notice Gets the entry point for this account
     /// @return entryPoint The entry point for this account

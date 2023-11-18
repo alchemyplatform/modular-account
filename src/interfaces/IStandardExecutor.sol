@@ -11,7 +11,6 @@ struct Call {
 }
 
 /// @title Standard Executor Interface
-/// @author Alchemy
 interface IStandardExecutor {
     /// @notice Standard execute method.
     /// @dev If the target is a plugin, the call SHOULD revert.

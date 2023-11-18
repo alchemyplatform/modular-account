@@ -4,7 +4,6 @@ pragma solidity ^0.8.21;
 import {FunctionReference} from "../libraries/FunctionReferenceLib.sol";
 
 /// @title Plugin Manager Interface
-/// @author Alchemy
 interface IPluginManager {
     /// @dev Pre/post exec hooks added by the user to limit the scope of a plugin. These hooks are injected at
     /// plugin install time

@@ -99,7 +99,6 @@ struct SelectorPermission {
 }
 
 /// @title Plugin Interface
-/// @author Alchemy
 interface IPlugin {
     /// @notice Initialize plugin data for the modular account.
     /// @dev Called by the modular account during `installPlugin`.
