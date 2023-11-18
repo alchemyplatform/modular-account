@@ -28,7 +28,7 @@ import {UUPSUpgradeable} from "../../ext/UUPSUpgradeable.sol";
 
 /// @title Upgradeable Modular Account
 /// @author Alchemy
-/// @notice An ERC-6900 compatible modular smart contract account that supports upgradeability and plugins.
+/// @notice An ERC-6900 compatible modular smart contract account (MSCA) that supports upgradeability and plugins.
 contract UpgradeableModularAccount is
     AccountExecutor,
     AccountLoupe,

@@ -3,7 +3,6 @@ pragma solidity ^0.8.21;
 
 import {Test} from "forge-std/Test.sol";
 
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {LightAccount} from "@alchemy/light-account/src/LightAccount.sol";
 import {LightAccountFactory} from "@alchemy/light-account/src/LightAccountFactory.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
@@ -16,8 +15,6 @@ import {IEntryPoint as IMSCAEntryPoint} from "../../src/interfaces/erc4337/IEntr
 import {MockERC20} from "../mocks/tokens/MockERC20.sol";
 
 contract LightAccountToMSCATest is Test {
-    using ECDSA for bytes32;
-
     IEntryPoint public entryPoint;
     IMSCAEntryPoint public mscaEntryPoint;
 
