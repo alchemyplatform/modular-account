@@ -38,9 +38,7 @@ abstract contract AccountLoupe is IAccountLoupe, AccountStorageV1 {
 
     /// @inheritdoc IAccountLoupe
     function getExecutionHooks(bytes4 selector) external view returns (ExecutionHooks[] memory execHooks) {
-        SelectorData storage selectorData = _getAccountStorage().selectorData[selector];
-
-        execHooks = _getHooks(selectorData.executionHooks);
+        execHooks = _getHooks(_getAccountStorage().selectorData[selector];.executionHooks);
     }
 
     /// @inheritdoc IAccountLoupe
@@ -49,8 +47,7 @@ abstract contract AccountLoupe is IAccountLoupe, AccountStorageV1 {
         view
         returns (ExecutionHooks[] memory execHooks)
     {
-        bytes24 key = _getPermittedCallKey(callingPlugin, selector);
-        PermittedCallData storage permittedCallData = _getAccountStorage().permittedCalls[key];
+        PermittedCallData storage permittedCallData = _getAccountStorage().permittedCalls[_getPermittedCallKey(callingPlugin, selector)];
 
         execHooks = _getHooks(permittedCallData.permittedCallHooks);
     }
@@ -64,11 +61,12 @@ abstract contract AccountLoupe is IAccountLoupe, AccountStorageV1 {
             FunctionReference[] memory preRuntimeValidationHooks
         )
     {
+        SelectorData storage selectorData = _getAccountStorage().selectorData[selector];
         preUserOpValidationHooks = CastLib.toFunctionReferenceArray(
-            _getAccountStorage().selectorData[selector].preUserOpValidationHooks.getAll()
+            selectorData.preUserOpValidationHooks.getAll()
         );
         preRuntimeValidationHooks = CastLib.toFunctionReferenceArray(
-            _getAccountStorage().selectorData[selector].preRuntimeValidationHooks.getAll()
+            selectorData.preRuntimeValidationHooks.getAll()
         );
     }
 
