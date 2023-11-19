@@ -176,6 +176,26 @@ contract UpgradeableModularAccountExecHooksTest is Test {
         vm.stopPrank();
     }
 
+    function test_preExecHook_revertAlwaysDeny() public {
+        vm.startPrank(owner1);
+
+        _installPlugin1WithHooks(
+            _EXEC_SELECTOR,
+            ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY,
+                functionId: 0,
+                dependencyIndex: 0
+            }),
+            ManifestFunction({functionType: ManifestAssociatedFunctionType.NONE, functionId: 0, dependencyIndex: 0})
+        );
+
+        (bool success, bytes memory returnData) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
+        assertFalse(success);
+        assertEq(returnData, abi.encodeWithSelector(UpgradeableModularAccount.AlwaysDenyRule.selector));
+
+        vm.stopPrank();
+    }
+
     /// @dev Plugin 1 hook pair: [1, 2]
     ///      Expected execution: [1, 2]
     function test_execHookPair_install() public {

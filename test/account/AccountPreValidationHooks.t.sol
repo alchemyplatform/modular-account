@@ -181,6 +181,25 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
         vm.stopPrank();
     }
 
+    function test_preRuntimeValidationHooks_revertAlwaysDeny() public {
+        vm.startPrank(owner1);
+
+        _installPlugin1WithPreRuntimeValidationHook(
+            _EXEC_SELECTOR,
+            ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY,
+                functionId: 0,
+                dependencyIndex: 0
+            })
+        );
+
+        (bool success, bytes memory returnData) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
+        assertFalse(success);
+        assertEq(returnData, abi.encodeWithSelector(UpgradeableModularAccount.AlwaysDenyRule.selector));
+
+        vm.stopPrank();
+    }
+
     /// @dev Plugin 1 hook: 1
     ///      Plugin 2 hook: 2
     ///      Expected execution: [1, 2]
@@ -435,6 +454,43 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
         // Uninstall the first plugin.
         _uninstallPlugin(mockPlugin1);
 
+        vm.stopPrank();
+    }
+
+    function test_preUserOpValidationHooks_revertAlwaysDeny() public {
+        vm.startPrank(owner1);
+
+        _installPlugin1WithPreUserOpValidationHook(
+            _EXEC_SELECTOR,
+            ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY,
+                functionId: 0,
+                dependencyIndex: 0
+            })
+        );
+
+        vm.stopPrank();
+
+        UserOperation memory userOp = UserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: abi.encodeWithSelector(_EXEC_SELECTOR),
+            callGasLimit: CALL_GAS_LIMIT,
+            verificationGasLimit: VERIFICATION_GAS_LIMIT,
+            preVerificationGas: 0,
+            maxFeePerGas: 2,
+            maxPriorityFeePerGas: 1,
+            paymasterAndData: "",
+            signature: ""
+        });
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        userOp.signature = abi.encodePacked(r, s, v);
+
+        vm.startPrank(address(entryPoint));
+        vm.expectRevert(UpgradeableModularAccount.AlwaysDenyRule.selector);
+        account1.validateUserOp(userOp, userOpHash, 0);
         vm.stopPrank();
     }
 
