@@ -19,8 +19,9 @@ import {ResultCreatorPlugin} from "../mocks/plugins/ReturnDataPluginMocks.sol";
 import {
     EFPCallerPlugin,
     EFPCallerPluginAnyExternal,
-    EFPPermittedCallHookPlugin,
-    EFPExternalPermittedCallHookPlugin
+    EFPCallerPluginAnyExternalCanSpendNativeToken,
+    EFPExternalPermittedCallHookPlugin,
+    EFPPermittedCallHookPlugin
 } from "../mocks/plugins/ExecFromPluginPermissionsMocks.sol";
 
 contract ExecuteFromPluginPermissionsTest is Test {
@@ -36,6 +37,7 @@ contract ExecuteFromPluginPermissionsTest is Test {
 
     EFPCallerPlugin public efpCallerPlugin;
     EFPCallerPluginAnyExternal public efpCallerPluginAnyExternal;
+    EFPCallerPluginAnyExternalCanSpendNativeToken public efpCallerPluginAnyExternalCanSpendNativeToken;
     EFPPermittedCallHookPlugin public efpPermittedCallHookPlugin;
     EFPExternalPermittedCallHookPlugin public efpExternalPermittedCallHookPlugin;
 
@@ -62,6 +64,7 @@ contract ExecuteFromPluginPermissionsTest is Test {
         // Initialize the EFP caller plugins, which will attempt to use the permissions system to authorize calls.
         efpCallerPlugin = new EFPCallerPlugin();
         efpCallerPluginAnyExternal = new EFPCallerPluginAnyExternal();
+        efpCallerPluginAnyExternalCanSpendNativeToken = new EFPCallerPluginAnyExternalCanSpendNativeToken();
         efpPermittedCallHookPlugin = new EFPPermittedCallHookPlugin();
         efpExternalPermittedCallHookPlugin = new EFPExternalPermittedCallHookPlugin();
 
@@ -96,6 +99,17 @@ contract ExecuteFromPluginPermissionsTest is Test {
         account.installPlugin({
             plugin: address(efpCallerPluginAnyExternal),
             manifestHash: efpCallerAnyExternalManifestHash,
+            pluginInitData: "",
+            dependencies: new FunctionReference[](0),
+            injectedHooks: new IPluginManager.InjectedHook[](0)
+        });
+
+        // Add the EFP caller plugin with any external permissions and native token spend permission to the account
+        bytes32 efpCallerAnyExternalCanSpendNativeTokenManifestHash =
+            keccak256(abi.encode(efpCallerPluginAnyExternalCanSpendNativeToken.pluginManifest()));
+        account.installPlugin({
+            plugin: address(efpCallerPluginAnyExternalCanSpendNativeToken),
+            manifestHash: efpCallerAnyExternalCanSpendNativeTokenManifestHash,
             pluginInitData: "",
             dependencies: new FunctionReference[](0),
             injectedHooks: new IPluginManager.InjectedHook[](0)
@@ -150,6 +164,24 @@ contract ExecuteFromPluginPermissionsTest is Test {
             )
         );
         EFPCallerPlugin(address(account)).useEFPPermissionNotAllowed();
+    }
+
+    function test_executeFromPluginUnrecognizedFunction() public {
+        // Permitted but uninstalled selector
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                UpgradeableModularAccount.UnrecognizedFunction.selector, bytes4(keccak256("baz()"))
+            )
+        );
+        EFPCallerPlugin(address(account)).passthroughExecuteFromPlugin(
+            abi.encodeWithSelector(bytes4(keccak256("baz()")))
+        );
+
+        // Invalid selector < 4 bytes
+        vm.expectRevert(
+            abi.encodeWithSelector(UpgradeableModularAccount.UnrecognizedFunction.selector, bytes4(hex"11"))
+        );
+        EFPCallerPlugin(address(account)).passthroughExecuteFromPlugin(hex"11");
     }
 
     function test_executeFromPluginExternal_Allowed_IndividualSelectors() public {
@@ -266,6 +298,45 @@ contract ExecuteFromPluginPermissionsTest is Test {
         );
         retrievedNumber = abi.decode(result, (uint256));
         assertEq(retrievedNumber, 18);
+    }
+
+    function test_executeFromPluginExternal_NotAllowed_NativeTokenSpending() public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                UpgradeableModularAccount.NativeTokenSpendingNotPermitted.selector,
+                address(efpCallerPluginAnyExternal)
+            )
+        );
+        EFPCallerPluginAnyExternal(address(account)).passthroughExecute(address(counter1), 1 ether, "");
+
+        address recipient = makeAddr("recipient");
+        vm.deal(address(efpCallerPluginAnyExternal), 1 ether);
+        // This function forwards 1 eth from the plugin to the account and tries to send 2 eth to the recipient.
+        // This is not allowed because there would be a net decrease of the balance on the account.
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                UpgradeableModularAccount.NativeTokenSpendingNotPermitted.selector,
+                address(efpCallerPluginAnyExternal)
+            )
+        );
+        EFPCallerPluginAnyExternal(address(account)).passthroughExecuteWith1Eth(address(recipient), 2 ether, "");
+    }
+
+    function test_executeFromPluginExternal_Allowed_NativeTokenSpending() public {
+        address recipient = makeAddr("recipient");
+
+        vm.deal(address(efpCallerPluginAnyExternal), 1 ether);
+        assertEq(address(recipient).balance, 0);
+        // This function forwards 1 eth from the plugin to the account and sends 1 eth to the recipient. This is
+        // allowed because there is no net change to the balance on the account.
+        EFPCallerPluginAnyExternal(address(account)).passthroughExecuteWith1Eth(address(recipient), 1 ether, "");
+        assertEq(address(efpCallerPluginAnyExternal).balance, 0);
+        assertEq(address(recipient).balance, 1 ether);
+
+        vm.deal(address(account), 1 ether);
+        EFPCallerPluginAnyExternalCanSpendNativeToken(address(account))
+            .passthroughExecuteWithNativeTokenSpendPermission(address(recipient), 1 ether, "");
+        assertEq(address(recipient).balance, 2 ether);
     }
 
     function test_executeFromPlugin_PermittedCallHooks() public {
