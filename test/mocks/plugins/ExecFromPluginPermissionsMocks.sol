@@ -32,20 +32,21 @@ contract EFPCallerPlugin is BaseTestPlugin {
     function pluginManifest() external pure override returns (PluginManifest memory) {
         PluginManifest memory manifest;
 
-        manifest.executionFunctions = new bytes4[](11);
+        manifest.executionFunctions = new bytes4[](12);
         manifest.executionFunctions[0] = this.useEFPPermissionAllowed.selector;
         manifest.executionFunctions[1] = this.useEFPPermissionNotAllowed.selector;
-        manifest.executionFunctions[2] = this.setNumberCounter1.selector;
-        manifest.executionFunctions[3] = this.getNumberCounter1.selector;
-        manifest.executionFunctions[4] = this.incrementCounter1.selector;
-        manifest.executionFunctions[5] = this.setNumberCounter2.selector;
-        manifest.executionFunctions[6] = this.getNumberCounter2.selector;
-        manifest.executionFunctions[7] = this.incrementCounter2.selector;
-        manifest.executionFunctions[8] = this.setNumberCounter3.selector;
-        manifest.executionFunctions[9] = this.getNumberCounter3.selector;
-        manifest.executionFunctions[10] = this.incrementCounter3.selector;
+        manifest.executionFunctions[2] = this.passthroughExecuteFromPlugin.selector;
+        manifest.executionFunctions[3] = this.setNumberCounter1.selector;
+        manifest.executionFunctions[4] = this.getNumberCounter1.selector;
+        manifest.executionFunctions[5] = this.incrementCounter1.selector;
+        manifest.executionFunctions[6] = this.setNumberCounter2.selector;
+        manifest.executionFunctions[7] = this.getNumberCounter2.selector;
+        manifest.executionFunctions[8] = this.incrementCounter2.selector;
+        manifest.executionFunctions[9] = this.setNumberCounter3.selector;
+        manifest.executionFunctions[10] = this.getNumberCounter3.selector;
+        manifest.executionFunctions[11] = this.incrementCounter3.selector;
 
-        manifest.runtimeValidationFunctions = new ManifestAssociatedFunction[](11);
+        manifest.runtimeValidationFunctions = new ManifestAssociatedFunction[](12);
 
         ManifestFunction memory alwaysAllowValidationFunction = ManifestFunction({
             functionType: ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW,
@@ -60,9 +61,11 @@ contract EFPCallerPlugin is BaseTestPlugin {
             });
         }
 
-        // Request permission only for "foo", but not "bar", from ResultCreatorPlugin
-        manifest.permittedExecutionSelectors = new bytes4[](1);
+        // Request permission for "foo" and the non-existent selector "baz", but not "bar", from
+        // ResultCreatorPlugin
+        manifest.permittedExecutionSelectors = new bytes4[](2);
         manifest.permittedExecutionSelectors[0] = ResultCreatorPlugin.foo.selector;
+        manifest.permittedExecutionSelectors[1] = bytes4(keccak256("baz()"));
 
         // Request permission for:
         // - `setNumber` and `number` on counter 1
@@ -98,6 +101,10 @@ contract EFPCallerPlugin is BaseTestPlugin {
     // The manifest has not requested access to use the plugin-defined method "bar", so this should revert.
     function useEFPPermissionNotAllowed() external returns (bytes memory) {
         return IPluginExecutor(msg.sender).executeFromPlugin(abi.encodeCall(ResultCreatorPlugin.bar, ()));
+    }
+
+    function passthroughExecuteFromPlugin(bytes calldata data) external returns (bytes memory) {
+        return IPluginExecutor(msg.sender).executeFromPlugin(data);
     }
 
     // Should be allowed
@@ -178,12 +185,21 @@ contract EFPCallerPluginAnyExternal is BaseTestPlugin {
     function pluginManifest() external pure override returns (PluginManifest memory) {
         PluginManifest memory manifest;
 
-        manifest.executionFunctions = new bytes4[](1);
+        manifest.executionFunctions = new bytes4[](2);
         manifest.executionFunctions[0] = this.passthroughExecute.selector;
+        manifest.executionFunctions[1] = this.passthroughExecuteWith1Eth.selector;
 
-        manifest.runtimeValidationFunctions = new ManifestAssociatedFunction[](1);
+        manifest.runtimeValidationFunctions = new ManifestAssociatedFunction[](2);
         manifest.runtimeValidationFunctions[0] = ManifestAssociatedFunction({
             executionSelector: this.passthroughExecute.selector,
+            associatedFunction: ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW,
+                functionId: 0,
+                dependencyIndex: 0
+            })
+        });
+        manifest.runtimeValidationFunctions[1] = ManifestAssociatedFunction({
+            executionSelector: this.passthroughExecuteWith1Eth.selector,
             associatedFunction: ManifestFunction({
                 functionType: ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW,
                 functionId: 0,
@@ -197,6 +213,50 @@ contract EFPCallerPluginAnyExternal is BaseTestPlugin {
     }
 
     function passthroughExecute(address target, uint256 value, bytes calldata data)
+        external
+        payable
+        returns (bytes memory)
+    {
+        return IPluginExecutor(msg.sender).executeFromPluginExternal(target, value, data);
+    }
+
+    function passthroughExecuteWith1Eth(address target, uint256 value, bytes calldata data)
+        external
+        payable
+        returns (bytes memory)
+    {
+        return IPluginExecutor(msg.sender).executeFromPluginExternal{value: 1 ether}(target, value, data);
+    }
+}
+
+contract EFPCallerPluginAnyExternalCanSpendNativeToken is BaseTestPlugin {
+    function onInstall(bytes calldata) external override {}
+
+    function onUninstall(bytes calldata) external override {}
+
+    function pluginManifest() external pure override returns (PluginManifest memory) {
+        PluginManifest memory manifest;
+
+        manifest.executionFunctions = new bytes4[](1);
+        manifest.executionFunctions[0] = this.passthroughExecuteWithNativeTokenSpendPermission.selector;
+
+        manifest.runtimeValidationFunctions = new ManifestAssociatedFunction[](1);
+        manifest.runtimeValidationFunctions[0] = ManifestAssociatedFunction({
+            executionSelector: this.passthroughExecuteWithNativeTokenSpendPermission.selector,
+            associatedFunction: ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW,
+                functionId: 0,
+                dependencyIndex: 0
+            })
+        });
+
+        manifest.canSpendNativeToken = true;
+        manifest.permitAnyExternalAddress = true;
+
+        return manifest;
+    }
+
+    function passthroughExecuteWithNativeTokenSpendPermission(address target, uint256 value, bytes calldata data)
         external
         payable
         returns (bytes memory)
