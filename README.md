@@ -1,6 +1,6 @@
 # Alchemy Modular Smart Contract Account (MSCA)
 
-Contracts for an upgradeable modular smart contract account that is compatible with ERC-4337 and ERC-6900, along with a set of plugins.
+Contracts for an upgradeable modular smart contract account that is compatible with ERC-4337, along with a set of plugins.
 
 ## Development
 
