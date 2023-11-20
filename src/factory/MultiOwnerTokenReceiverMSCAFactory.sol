@@ -12,8 +12,7 @@ import {IEntryPoint} from "../interfaces/erc4337/IEntryPoint.sol";
 
 /// @title Multi Owner Plugin + Token Receiver MSCA (Modular Smart Contract Account) Factory
 /// @author Alchemy
-/// @notice Factory for ERC-6900 compatible upgradeable modular accounts with MultiOwnerPlugin and TokenReceiver
-/// installed.
+/// @notice Factory for upgradeable modular accounts with MultiOwnerPlugin and TokenReceiver installed.
 /// @dev There is a reliance on the assumption that the plugin manifest will remain static, following ERC-6900. If
 /// this assumption is broken then account deployments would be bricked.
 contract MultiOwnerTokenReceiverMSCAFactory is Ownable {
