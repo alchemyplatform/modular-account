@@ -616,17 +616,22 @@ contract UpgradeableModularAccount is
             if (runtimeValidationFunction.isEmptyOrMagicValue()) {
                 if (
                     runtimeValidationFunction == FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE
-                        && (msg.sig != IPluginManager.installPlugin.selector || msg.sender != address(this))
+                        && (
+                            (
+                                msg.sig != IPluginManager.installPlugin.selector
+                                    || msg.sig != UUPSUpgradeable.upgradeToAndCall.selector
+                            ) && msg.sender != address(this)
+                        )
                 ) {
                     // Runtime calls cannot be made against functions with no
                     // validator, except in the special case of self-calls to
-                    // `installPlugin`, to enable removing the plugin protecting
+                    // `installPlugin` and `upgradeToAndCall`, to enable removing the plugin protecting
                     // `installPlugin` and installing a different one as part of
-                    // a single batch execution.
+                    // a single batch execution, and/or to enable upgrading the account implementation.
                     revert RuntimeValidationFunctionMissing(msg.sig);
                 }
                 // If _RUNTIME_VALIDATION_ALWAYS_ALLOW, or we're in the
-                // `installPlugin` special case,just let the function finish,
+                // `installPlugin` and `upgradeToAndCall` special case,just let the function finish,
                 // without the else branch.
             } else {
                 _updatePluginCallBufferSelector(callBuffer, IPlugin.runtimeValidationFunction.selector);
