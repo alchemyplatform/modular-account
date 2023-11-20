@@ -244,6 +244,52 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         );
     }
 
+    function test_sessionKeyNativeTokenSpendLimits_overflowState() public {
+        // Set the limit to 1 ether
+        bytes[] memory updates = new bytes[](1);
+        updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 0));
+        vm.prank(owner1);
+        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+
+        // Run a user op that spends 1 wei, should succeed
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({target: recipient1, value: 1 wei, data: ""});
+        _runSessionKeyUserOp(calls, sessionKey1Private, "");
+
+        // Attempt to run a user op that spends type(uint256).max (causing an overflow). Should fail.
+        calls[0] = Call({target: recipient1, value: type(uint256).max, data: ""});
+
+        // Assert that the failure happens during validation.
+        // We would like to assert here that the pre user op validation hook itself does not revert, but since the
+        // account catches those reverts internally and returns SIG_FAIL, we can't assert it from here easily.
+        _runSessionKeyUserOp(
+            calls,
+            sessionKey1Private,
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+        );
+    }
+
+    function test_sessionKeyNativeTokenSpendLimits_overflowBatch() public {
+        // NOTE: overflows that happen within a single batch are not gracefully caught and returned as `SIG_FAIL`,
+        // instead the pre exec hook reverts. However, the modular account will catch that revert.
+
+        // Set the limit to 1 ether
+        bytes[] memory updates = new bytes[](1);
+        updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 0));
+        vm.prank(owner1);
+        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+
+        // Attempt to run a user op that spends > type(uint256).max (causing an overflow). Should fail.
+        Call[] memory calls = new Call[](2);
+        calls[0] = Call({target: recipient1, value: 1 wei, data: ""});
+        calls[1] = Call({target: recipient1, value: type(uint256).max, data: ""});
+        _runSessionKeyUserOp(
+            calls,
+            sessionKey1Private,
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+        );
+    }
+
     function test_sessionKeyNativeTokenSpendLimits_exceedLimit_single() public {
         // Set the limit to 1 ether
         bytes[] memory updates = new bytes[](1);
@@ -629,6 +675,53 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         assertEq(spendLimitInfo.lastUsedTime, 0);
     }
 
+    function test_sessionKeyNativeTokenSpendLimits_refreshInterval_exceedNewInterval() public {
+        // Set the time to the current unix timestamp as of writing
+        uint256 time0 = 1698708080;
+        vm.warp(time0);
+
+        // Set the limit to 1 ether
+        bytes[] memory updates = new bytes[](1);
+        updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 1 days));
+        vm.prank(owner1);
+        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+
+        // Run a user op that spends 1 wei, should succeed
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({target: recipient1, value: 1 wei, data: ""});
+
+        _runSessionKeyUserOp(calls, sessionKey1Private, "");
+
+        // Assert that the limit is now updated and the last used timestamp is set.
+        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+
+        assertTrue(spendLimitInfo.hasLimit);
+        assertEq(spendLimitInfo.limit, 1 ether);
+        assertEq(spendLimitInfo.limitUsed, 1 wei);
+        assertEq(spendLimitInfo.refreshInterval, 1 days);
+        assertEq(spendLimitInfo.lastUsedTime, time0);
+
+        skip(1 days + 1 minutes);
+
+        // Attempt to run a user op that spends 1.1 ether, should fail.
+        calls[0] = Call({target: recipient1, value: 1.1 ether, data: ""});
+        _runSessionKeyUserOp(
+            calls,
+            sessionKey1Private,
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+        );
+
+        // Assert that limits are NOT updated
+        spendLimitInfo = sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+
+        assertTrue(spendLimitInfo.hasLimit);
+        assertEq(spendLimitInfo.limit, 1 ether);
+        assertEq(spendLimitInfo.limitUsed, 1 wei);
+        assertEq(spendLimitInfo.refreshInterval, 1 days);
+        assertEq(spendLimitInfo.lastUsedTime, time0);
+    }
+
     // There's an additional pre exec revert that I haven't been able to trigger in a real example, when a
     // usage of a session key with a native token spend limit reaches the "new time interval" section, but the
     // amount being spent exceeds the new limit. This seems to be impossible to reach because any prior usage would
@@ -639,6 +732,9 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
     // want to remove it for now, since it's a fairly cheap check that may prevent a dangerous issue.
     //
     // function test_sessionKeyNativeTokenSpendLimits_multiUserOpBundle_check_interval()
+    //
+    // Updated note since the addition of ERC-20 spend limits: this code branch is reachable from there, and was
+    // handled correctly. However, I still cannot reach it from the native token spend limit checking.
 
     function _runSessionKeyUserOp(Call[] memory calls, uint256 sessionKeyPrivate, bytes memory expectedError)
         internal
