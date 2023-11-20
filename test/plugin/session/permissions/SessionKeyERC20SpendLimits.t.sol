@@ -885,7 +885,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         // Give the account a starting balance
         token1.mint(address(account1), 100 ether);
 
-        // Set the limit to 1 ether
+        // Set the limit to 1 ether over 1 day
         bytes[] memory updates = new bytes[](1);
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 1 days));
@@ -1034,6 +1034,60 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         assertEq(spendLimitInfo2.limit, 1 ether);
         assertEq(spendLimitInfo2.limitUsed, 1 ether);
         assertEq(spendLimitInfo2.lastUsedTime, time0 + 10 days);
+    }
+
+    function test_sessionKeyERC20Limits_refreshInterval_failWithExceedNextLimit() public {
+        // Set the time to the a unix timestamp
+        uint256 time0 = 1698708080;
+        vm.warp(time0);
+
+        // Give the account a starting balance
+        token1.mint(address(account1), 100 ether);
+
+        // Set the limit to 1 ether over 1 day
+        bytes[] memory updates = new bytes[](1);
+        updates[0] =
+            abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 1 days));
+        vm.prank(owner1);
+        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+
+        // Run a user op that spends 0.5 ether, should succeed
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({
+            target: address(token1),
+            data: abi.encodeCall(token1.transfer, (recipient1, 0.5 ether)),
+            value: 0
+        });
+        vm.expectCall(address(token1), 0 wei, calls[0].data, 1);
+        _runSessionKeyUserOp(calls, sessionKey1Private, "");
+
+        // Assert that the limit and last used time is updated
+        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        assertEq(spendLimitInfo.limit, 1 ether);
+        assertEq(spendLimitInfo.limitUsed, 0.5 ether);
+        assertEq(spendLimitInfo.refreshInterval, 1 days);
+        assertEq(spendLimitInfo.lastUsedTime, time0);
+
+        // Skip forward to the next interval
+        skip(1 days + 1 minutes);
+
+        // Attempt a user operation that spends 1.5 ether (Exceeds limit, should fail).
+        calls[0] = Call({
+            target: address(token1),
+            data: abi.encodeCall(token1.transfer, (recipient1, 1.5 ether)),
+            value: 0
+        });
+        vm.expectCall(address(token1), 0 wei, calls[0].data, 0);
+        _runSessionKeyUserOp(calls, sessionKey1Private, "");
+
+        // Assert that limits are not updated
+        spendLimitInfo =
+            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        assertEq(spendLimitInfo.limit, 1 ether);
+        assertEq(spendLimitInfo.limitUsed, 0.5 ether);
+        assertEq(spendLimitInfo.refreshInterval, 1 days);
+        assertEq(spendLimitInfo.lastUsedTime, time0);
     }
 
     function _runSessionKeyUserOp(Call[] memory calls, uint256 sessionKeyPrivate, bytes memory expectedError)

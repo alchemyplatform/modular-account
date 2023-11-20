@@ -222,6 +222,23 @@ contract SessionKeyGasLimitsTest is Test {
         );
     }
 
+    function testFuzz_sessionKeyGasLimits_requireNonceAsAddress(uint192 nonceKey) public {
+        vm.assume(uint192(uint160(sessionKey1)) != nonceKey);
+
+        bytes[] memory updates = new bytes[](1);
+        updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (1 ether, 0 days));
+        vm.prank(owner1);
+        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+
+        UserOperation[] memory userOps = new UserOperation[](2);
+        userOps[0] = _generateAndSignUserOp(
+            100_000, 300_000, 1_000 gwei, 0.4 ether, sessionKey1Private, uint256(nonceKey << 64)
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error"));
+        entryPoint.handleOps(userOps, beneficiary);
+    }
+
     function test_sessionKeyGasLimits_exceedLimit_single() public {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (1 ether, 0 days));

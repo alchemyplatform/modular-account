@@ -561,17 +561,17 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
 
             // Must re-check the limits to handle changes due to other user ops.
             // We manually check for overflows here to give a more informative error message.
-            uint256 sum;
+            uint256 newTotalUsage;
             unchecked {
-                sum = newUsage + currentUsage;
+                newTotalUsage = newUsage + currentUsage;
             }
-            if (sum < newUsage || sum > spendLimit) {
+            if (newTotalUsage < newUsage || newTotalUsage > spendLimit) {
                 // If we overflow, or if the limit is exceeded, fail here and revert in the parent context.
                 return false;
             }
 
             // We won't update the refresh interval last used variable now, so just update the spend limit.
-            limit.limitUsed += newUsage;
+            limit.limitUsed = newTotalUsage;
         } else {
             // We have a interval active that is currently resetting.
             // Must re-check the amount to handle changes due to other user ops.

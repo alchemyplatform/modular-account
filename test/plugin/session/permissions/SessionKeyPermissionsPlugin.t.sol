@@ -134,6 +134,14 @@ contract SessionKeyPermissionsPluginTest is Test {
         );
     }
 
+    function test_sessionPerms_duplicateRegister() public {
+        vm.prank(owner1);
+        vm.expectRevert(
+            abi.encodeWithSelector(ISessionKeyPermissionsPlugin.KeyAlreadyRegistered.selector, sessionKey1)
+        );
+        SessionKeyPermissionsPlugin(address(account1)).registerKey(sessionKey1, 0);
+    }
+
     function test_sessionPerms_contractDefaultAllowList() public {
         _runSessionKeyExecUserOp(
             address(counter1),
@@ -165,6 +173,13 @@ contract SessionKeyPermissionsPluginTest is Test {
     }
 
     function test_sessionPerms_contractAllowList() public {
+        // Assert the contracts to be added are not already on the allowlist
+        (bool isOnList, bool checkSelectors) =
+            sessionKeyPermissionsPlugin.getAccessControlEntry(address(account1), sessionKey1, address(counter1));
+
+        assertFalse(isOnList, "Address should not start on the list");
+        assertFalse(checkSelectors, "Address should not start with selectors checked");
+
         // Add the allowlist
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
@@ -172,6 +187,12 @@ contract SessionKeyPermissionsPluginTest is Test {
         );
         vm.prank(owner1);
         SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+
+        // Plugin should report the entry as on the list
+        (isOnList, checkSelectors) =
+            sessionKeyPermissionsPlugin.getAccessControlEntry(address(account1), sessionKey1, address(counter1));
+        assertTrue(isOnList);
+        assertFalse(checkSelectors);
 
         // Call should succeed after adding the allowlist
         _runSessionKeyExecUserOp(
@@ -227,6 +248,16 @@ contract SessionKeyPermissionsPluginTest is Test {
     }
 
     function test_sessionPerms_selectorAllowList() public {
+        // Validate that the address and the selector do not start out enabled.
+        (bool addressOnList, bool checkSelectors) =
+            sessionKeyPermissionsPlugin.getAccessControlEntry(address(account1), sessionKey1, address(counter1));
+        assertFalse(addressOnList);
+        assertFalse(checkSelectors);
+        bool selectorOnList = sessionKeyPermissionsPlugin.isSelectorOnAccessControlList(
+            address(account1), sessionKey1, address(counter1), Counter.increment.selector
+        );
+        assertFalse(selectorOnList);
+
         // Add the allowlist
         bytes[] memory updates = new bytes[](2);
         updates[0] = abi.encodeCall(
@@ -239,6 +270,16 @@ contract SessionKeyPermissionsPluginTest is Test {
 
         vm.prank(owner1);
         SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+
+        // Validate that the address and the selector are now enabled
+        (addressOnList, checkSelectors) =
+            sessionKeyPermissionsPlugin.getAccessControlEntry(address(account1), sessionKey1, address(counter1));
+        assertTrue(addressOnList);
+        assertTrue(checkSelectors);
+        selectorOnList = sessionKeyPermissionsPlugin.isSelectorOnAccessControlList(
+            address(account1), sessionKey1, address(counter1), Counter.increment.selector
+        );
+        assertTrue(selectorOnList);
 
         // Call should succeed after adding the allowlist
         _runSessionKeyExecUserOp(
@@ -531,6 +572,18 @@ contract SessionKeyPermissionsPluginTest is Test {
 
         vm.expectRevert("AA93 invalid paymasterAndData");
         entryPoint.handleOps(userOps, beneficiary);
+    }
+
+    function test_sessionKeyPerms_updatePermissions_invalidUpdates() public {
+        vm.startPrank(owner1);
+        bytes[] memory updates = new bytes[](1);
+        updates[0] = hex"112233"; // < 4 byte update
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPermissionsPlugin.InvalidPermissionsUpdate.selector));
+        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+
+        updates[0] = hex"11223344"; // Invalid selector
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPermissionsPlugin.InvalidPermissionsUpdate.selector));
+        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
     }
 
     function _runSessionKeyExecUserOp(
