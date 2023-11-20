@@ -616,7 +616,12 @@ contract UpgradeableModularAccount is
             if (runtimeValidationFunction.isEmptyOrMagicValue()) {
                 if (
                     runtimeValidationFunction == FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE
-                        && (msg.sig != IPluginManager.installPlugin.selector || msg.sender != address(this))
+                        && (
+                            (
+                                msg.sig != IPluginManager.installPlugin.selector
+                                    || msg.sig != UUPSUpgradeable.upgradeToAndCall.selector
+                            ) && msg.sender != address(this)
+                        )
                 ) {
                     // Runtime calls cannot be made against functions with no
                     // validator, except in the special case of self-calls to

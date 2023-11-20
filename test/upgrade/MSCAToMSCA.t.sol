@@ -10,6 +10,7 @@ import {MultiOwnerTokenReceiverMSCAFactory} from "../../src/factory/MultiOwnerTo
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {TokenReceiverPlugin} from "../../src/plugins/TokenReceiverPlugin.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
+import {Call} from "../../src/interfaces/IStandardExecutor.sol";
 
 import {Utils} from "../Utils.sol";
 import {MockERC20} from "../mocks/tokens/MockERC20.sol";
@@ -76,5 +77,28 @@ contract MSCAToMSCATest is Test {
         assertEq(payable(owners[0]).balance, 1 ether);
 
         vm.stopPrank();
+    }
+
+    function test_sameStorageSlot_reinstallUpgradeToAndCall() public {
+        vm.startPrank(owners[0]);
+
+        Call[] memory calls = new Call[](2);
+        calls[0] = Call(
+            address(msca),
+            0,
+            abi.encodeCall(
+                UpgradeableModularAccount.uninstallPlugin,
+                (address(multiOwnerPlugin), bytes(""), bytes(""), new bytes[](0))
+            )
+        );
+
+        calls[1] =
+            Call(address(msca), 0, abi.encodeCall(UpgradeableModularAccount.upgradeToAndCall, (mscaImpl2, "")));
+
+        emit Upgraded(mscaImpl2);
+        // In practice, you would want upgradeToAndCall to call `initialize`.
+        // But that fails when we use the same storage slot for both MSCAs
+        // This test is still useful in proving that `upgradeToAndCall` succeeded with no installed plugins
+        msca.executeBatch(calls);
     }
 }
