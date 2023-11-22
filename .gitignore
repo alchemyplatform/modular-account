@@ -9,6 +9,3 @@ lcov.info
 
 # secret
 .env
-
-# deployment
-broadcast/

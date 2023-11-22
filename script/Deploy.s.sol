@@ -20,36 +20,36 @@ import {SessionKeyPlugin} from "../src/plugins/session/SessionKeyPlugin.sol";
 import {SessionKeyPermissionsPlugin} from "../src/plugins/session/permissions/SessionKeyPermissionsPlugin.sol";
 
 contract Deploy is Script {
+    // Load entrypoint from env
+    address public entryPointAddr = vm.envAddress("ENTRYPOINT");
+    IMSCAEntryPoint public entryPoint = IMSCAEntryPoint(payable(entryPointAddr));
+
+    // Load factory owner from env
+    address public owner = vm.envAddress("OWNER");
+
+    // Load core contract, if not in env, deploy new contract
+    address public mscaImpl = vm.envOr("MSCA_IMPL", address(0));
+    address public ownerFactoryAddr = vm.envOr("OWNER_FACTORY", address(0));
+    address public ownerAndTokenReceiverFactoryAddr = vm.envOr("OWNER_TOKEN_RECEIVER_FACTORY", address(0));
+    MultiOwnerMSCAFactory ownerFactory;
+    MultiOwnerTokenReceiverMSCAFactory ownerAndTokenReceiverFactory;
+
+    // Load plugins contract, if not in env, deploy new contract
+    address public multiOwnerPlugin = vm.envOr("OWNER_PLUGIN", address(0));
+    bytes32 public multiOwnerPluginManifestHash;
+    address public tokenReceiverPlugin = vm.envOr("TOKEN_RECEIVER_PLUGIN", address(0));
+    bytes32 public tokenReceiverPluginManifestHash;
+    address public sessionKeyPlugin = vm.envOr("SESSION_KEY_PLUGIN", address(0));
+    address public sessionKeyPermissionsPlugin = vm.envOr("SESSION_KEY_PERMS_PLUGIN", address(0));
+
     function run() public {
         console.log("******** Deploying *********");
         console.log("Chain: ", block.chainid);
+        console.log("EP: ", entryPointAddr);
+        console.log("Factory owner: ", owner);
 
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
-
-        // Load entrypoint from env
-        address entryPointAddr = vm.envAddress("ENTRYPOINT");
-        console.log("EP: ", entryPointAddr);
-        IMSCAEntryPoint entryPoint = IMSCAEntryPoint(payable(entryPointAddr));
-
-        // Load factory owner from env
-        address owner = vm.envAddress("OWNER");
-        console.log("Factory owner: ", owner);
-
-        // Load core contract, if not in env, deploy new contract
-        address mscaImpl = vm.envOr("MSCA_IMPL", address(0));
-        address ownerFactoryAddr = vm.envOr("OWNER_FACTORY", address(0));
-        address ownerAndTokenReceiverFactoryAddr = vm.envOr("OWNER_TOKEN_RECEIVER_FACTORY", address(0));
-        MultiOwnerMSCAFactory ownerFactory;
-        MultiOwnerTokenReceiverMSCAFactory ownerAndTokenReceiverFactory;
-
-        // Load plugins contract, if not in env, deploy new contract
-        address multiOwnerPlugin = vm.envOr("OWNER_PLUGIN", address(0));
-        bytes32 multiOwnerPluginManifestHash;
-        address tokenReceiverPlugin = vm.envOr("TOKEN_RECEIVER_PLUGIN", address(0));
-        bytes32 tokenReceiverPluginManifestHash;
-        address sessionKeyPlugin = vm.envOr("SESSION_KEY_PLUGIN", address(0));
-        address sessionKeyPermissionsPlugin = vm.envOr("SESSION_KEY_PERMS_PLUGIN", address(0));
 
         // Deploy msca impl
         if (mscaImpl == address(0)) {
@@ -81,16 +81,18 @@ contract Deploy is Script {
         tokenReceiverPluginManifestHash = keccak256(abi.encode(BasePlugin(tokenReceiverPlugin).pluginManifest()));
 
         // Deploy MultiOwnerMSCAFactory, and add stake with EP
-        if (ownerFactoryAddr == address(0)) {
-            ownerFactory =
-            new MultiOwnerMSCAFactory(owner, multiOwnerPlugin, mscaImpl, multiOwnerPluginManifestHash, entryPoint);
+        {
+            if (ownerFactoryAddr == address(0)) {
+                ownerFactory =
+                new MultiOwnerMSCAFactory(owner, multiOwnerPlugin, mscaImpl, multiOwnerPluginManifestHash, entryPoint);
 
-            ownerFactoryAddr = address(ownerFactory);
-            console.log("New MultiOwnerMSCAFactory: ", ownerFactoryAddr);
-        } else {
-            console.log("Exist MultiOwnerMSCAFactory: ", ownerFactoryAddr);
+                ownerFactoryAddr = address(ownerFactory);
+                console.log("New MultiOwnerMSCAFactory: ", ownerFactoryAddr);
+            } else {
+                console.log("Exist MultiOwnerMSCAFactory: ", ownerFactoryAddr);
+            }
+            _addStakeForFactory(ownerFactoryAddr, entryPoint);
         }
-        _addStakeForFactory(ownerFactoryAddr, entryPoint);
 
         // Deploy MultiOwnerTokenReceiverMSCAFactory, and add stake with EP
         if (ownerAndTokenReceiverFactoryAddr == address(0)) {
