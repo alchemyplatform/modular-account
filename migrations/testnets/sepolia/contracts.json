@@ -1,0 +1,25 @@
+{
+  "EntryPoint": "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789",
+  "Prod": {
+    "MSCA Impl": "",
+    "MultiOwnerPlugin": "",
+    "TokenReceiverPlugin": "",
+    "MultiOwnerMSCAFactory": "",
+    "MultiOwnerTokenReceiverMSCAFactory": "",
+    "SessionKeyPlugin": "",
+    "SessionKeyPermissionsPlugin:": "",
+    "MultiOwnerMSCAFactory Owner": "",
+    "MultiOwnerTokenReceiverMSCAFactory Owner": ""
+  },
+  "Staging": {
+    "MSCA Impl": "0xb2b748c2557c552B8636862E41aB3649319dD045",
+    "MultiOwnerPlugin": "0x56bC629F342821FBe91C5273880792dFECBE7920",
+    "TokenReceiverPlugin": "0xa81C0AEaB22b21b4da8d8728063f6570384b48C9",
+    "MultiOwnerMSCAFactory": "0xFD14c78640d72f73CC88238E2f7Df3273Ee84043",
+    "MultiOwnerTokenReceiverMSCAFactory": "0x22322E35c1850F26DD54Ed8F59a27C1c79847A15",
+    "SessionKeyPlugin": "0x588dCE36DdeB0e40320AD1d9909a1f86053D7Df1",
+    "SessionKeyPermissionsPlugin:": "0x78462720341714Dcab90C6d5B9a47fAAA6fdADC6",
+    "MultiOwnerMSCAFactory Owner": "0x7f89Ed1F3F0d52d303904101305471bca3cde710",
+    "MultiOwnerTokenReceiverMSCAFactory Owner": "0x7f89Ed1F3F0d52d303904101305471bca3cde710"
+  }
+}
