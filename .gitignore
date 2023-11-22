@@ -6,3 +6,6 @@ node_modules/
 # coverage
 report/
 lcov.info
+
+# secret
+.env
