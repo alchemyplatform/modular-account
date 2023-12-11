@@ -37,11 +37,7 @@ contract MultiOwnerMSCAFactoryTest is Test {
         multiOwnerPlugin = new MultiOwnerPlugin();
         bytes32 manifestHash = keccak256(abi.encode(multiOwnerPlugin.pluginManifest()));
         factory = new MultiOwnerMSCAFactory(
-            address(this), 
-            address(multiOwnerPlugin), 
-            impl, 
-            manifestHash, 
-            IEntryPoint(address(entryPoint))
+            address(this), address(multiOwnerPlugin), impl, manifestHash, IEntryPoint(address(entryPoint))
         );
         vm.deal(address(this), 100 ether);
     }

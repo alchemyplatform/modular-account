@@ -99,7 +99,7 @@ contract UpgradeableModularAccountTest is Test {
     }
 
     function test_initialize_revertArrayLengthMismatch() public {
-        ERC1967Proxy account = new ERC1967Proxy{salt : ""}(accountImplementation, "");
+        ERC1967Proxy account = new ERC1967Proxy{salt: ""}(accountImplementation, "");
         address[] memory plugins = new address[](2);
         bytes memory pluginInitData = abi.encode(new bytes32[](1), new bytes[](1));
         vm.expectRevert(PluginManagerInternals.ArrayLengthMismatch.selector);

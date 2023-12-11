@@ -44,10 +44,10 @@ contract AccountLoupeTest is Test {
         multiOwnerPlugin = new MultiOwnerPlugin();
         address impl = address(new UpgradeableModularAccount(entryPoint));
         factory = new MultiOwnerMSCAFactory(
-            address(this), 
-            address(multiOwnerPlugin), 
-            impl, 
-            keccak256(abi.encode(multiOwnerPlugin.pluginManifest())), 
+            address(this),
+            address(multiOwnerPlugin),
+            impl,
+            keccak256(abi.encode(multiOwnerPlugin.pluginManifest())),
             entryPoint
         );
         comprehensivePlugin = new ComprehensivePlugin();
