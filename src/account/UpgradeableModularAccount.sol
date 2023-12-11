@@ -320,7 +320,7 @@ contract UpgradeableModularAccount is
         //
         // 1. Check that the target is permitted at all, and if so check that any one of the following is true:
         //   a. Is any selector permitted?
-        //   b. Is the calldata is empty? (allow empty data calls by default if the target address is permitted)
+        //   b. Is the calldata empty? (allow empty data calls by default if the target address is permitted)
         //   c. Is the selector in the call permitted?
         // 2. If the target is not permitted, instead check whether all external calls are permitted.
         //
@@ -345,7 +345,7 @@ contract UpgradeableModularAccount is
             revert ExecFromPluginExternalNotPermitted(callingPlugin, target, value, data);
         }
 
-        // Run permitted call hooks and execution hooks. `execfuteFromPluginExternal` doesn't use PermittedCallData
+        // Run permitted call hooks and execution hooks. `executeFromPluginExternal` doesn't use PermittedCallData
         // to check call permissions, nor do they have an address entry in SelectorData, so it doesn't make sense
         // to use cached booleans (hasPreExecHooks, hasPostOnlyExecHooks, etc.) to conditionally bypass certain
         // steps, as it would just be an added `sload` in the nonzero hooks case.
@@ -743,7 +743,7 @@ contract UpgradeableModularAccount is
         }
 
         // "Trim" the associated post hook arrays to the actual length, since we may have overallocated. This
-        // allows for exeuction of post hooks in reverse order.
+        // allows for execution of post hooks in reverse order.
         assembly ("memory-safe") {
             mstore(postHooks, actualPostHooksToRunLength)
             mstore(postHookArgs, actualPostHooksToRunLength)

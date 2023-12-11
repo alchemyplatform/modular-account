@@ -280,7 +280,7 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
             // Multiplier for the verification gas limit is 3 if there is a paymaster, 1 otherwise.
             // This is defined in EntryPoint v0.6.0, which uses the limit for the user op validation + paymaster
             // validation, then again for up to two more calls of `postOp`. Later versions of the EntryPoint may
-            // change this scale factor or the usage of the verificaiton gas limit, so this value should be checked
+            // change this scale factor or the usage of the verification gas limit, so this value should be checked
             // and updated if porting this plugin to a newer version of 4337.
             uint256 multiplier = userOp.paymasterAndData.length > 0 ? 3 : 1;
             uint256 maxGasFee = (
@@ -668,7 +668,7 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
             // previous amount by more than the spending limit, then back up to the previous amount plus the
             // spending limit.
         }
-        // Unrecognzied function selector
+        // Unrecognized function selector
         return 0;
     }
 

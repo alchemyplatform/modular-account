@@ -162,7 +162,7 @@ abstract contract AccountExecutor {
                 // - (32 bytes) Sender
                 // - (32 bytes) Value
                 // - (32 bytes) data offset
-                // Totoal: 164 bytes
+                // Total: 164 bytes
                 execCallBuffer := add(runtimeCallBuffer, 164)
             }
         }

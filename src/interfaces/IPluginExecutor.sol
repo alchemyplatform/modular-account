@@ -3,7 +3,7 @@ pragma solidity ^0.8.21;
 
 /// @title Plugin Executor Interface
 interface IPluginExecutor {
-    /// @notice Method from cals made from plugins to other plugin execution functions. Plugins are not allowed to
+    /// @notice Method from calls made from plugins to other plugin execution functions. Plugins are not allowed to
     /// call accounts native functions.
     /// @dev Permissions must be granted to the calling plugin for the call to go through
     /// @param data The call data for the call.
