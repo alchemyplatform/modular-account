@@ -49,3 +49,9 @@ slither .
 ## External Libraries
 
 We use Solady's highly optimized [UUPSUpgradeable](https://github.com/Vectorized/solady/blob/a061f38f27cd7ae330a86d42d3f15b4e7237f064/src/utils/UUPSUpgradeable.sol) in our contracts
+
+## Deployment
+
+```bash
+forge script script/Deploy.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast
+```
