@@ -40,9 +40,9 @@ contract ValidationIntersectionTest is Test {
         address impl = address(new UpgradeableModularAccount(entryPoint));
 
         MultiOwnerMSCAFactory factory = new MultiOwnerMSCAFactory(
-            address(this), 
-            address(multiOwnerPlugin), 
-            impl, 
+            address(this),
+            address(multiOwnerPlugin),
+            impl,
             keccak256(abi.encode(multiOwnerPlugin.pluginManifest())),
             entryPoint
         );

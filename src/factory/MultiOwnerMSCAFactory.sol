@@ -55,7 +55,7 @@ contract MultiOwnerMSCAFactory is Ownable {
         // short circuit if exists
         if (addr.code.length == 0) {
             // not necessary to check return addr of this arg since next call fails if so
-            new ERC1967Proxy{salt : combinedSalt}(IMPL, "");
+            new ERC1967Proxy{salt: combinedSalt}(IMPL, "");
 
             address[] memory plugins = new address[](1);
             plugins[0] = MULTI_OWNER_PLUGIN;

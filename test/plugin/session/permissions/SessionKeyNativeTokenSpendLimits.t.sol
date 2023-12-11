@@ -60,8 +60,13 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
 
         multiOwnerPlugin = new MultiOwnerPlugin();
         bytes32 multiOwnerPluginManifestHash = keccak256(abi.encode(multiOwnerPlugin.pluginManifest()));
-        factory =
-        new MultiOwnerMSCAFactory(address(this), address(multiOwnerPlugin), address(new UpgradeableModularAccount(entryPoint)), multiOwnerPluginManifestHash, entryPoint);
+        factory = new MultiOwnerMSCAFactory(
+            address(this),
+            address(multiOwnerPlugin),
+            address(new UpgradeableModularAccount(entryPoint)),
+            multiOwnerPluginManifestHash,
+            entryPoint
+        );
 
         sessionKeyPlugin = new SessionKeyPlugin();
         sessionKeyPermissionsPlugin = new SessionKeyPermissionsPlugin();
