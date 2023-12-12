@@ -83,8 +83,9 @@ contract Deploy is Script {
         // Deploy MultiOwnerMSCAFactory, and add stake with EP
         {
             if (ownerFactoryAddr == address(0)) {
-                ownerFactory =
-                new MultiOwnerMSCAFactory(owner, multiOwnerPlugin, mscaImpl, multiOwnerPluginManifestHash, entryPoint);
+                ownerFactory = new MultiOwnerMSCAFactory(
+                    owner, multiOwnerPlugin, mscaImpl, multiOwnerPluginManifestHash, entryPoint
+                );
 
                 ownerFactoryAddr = address(ownerFactory);
                 console.log("New MultiOwnerMSCAFactory: ", ownerFactoryAddr);
@@ -96,8 +97,15 @@ contract Deploy is Script {
 
         // Deploy MultiOwnerTokenReceiverMSCAFactory, and add stake with EP
         if (ownerAndTokenReceiverFactoryAddr == address(0)) {
-            ownerAndTokenReceiverFactory =
-            new MultiOwnerTokenReceiverMSCAFactory(owner, multiOwnerPlugin, tokenReceiverPlugin, mscaImpl, multiOwnerPluginManifestHash, tokenReceiverPluginManifestHash, entryPoint);
+            ownerAndTokenReceiverFactory = new MultiOwnerTokenReceiverMSCAFactory(
+                owner,
+                multiOwnerPlugin,
+                tokenReceiverPlugin,
+                mscaImpl,
+                multiOwnerPluginManifestHash,
+                tokenReceiverPluginManifestHash,
+                entryPoint
+            );
 
             ownerAndTokenReceiverFactoryAddr = address(ownerAndTokenReceiverFactory);
             console.log("New MultiOwnerTokenReceiverMSCAFactory: ", ownerAndTokenReceiverFactoryAddr);
@@ -128,19 +136,19 @@ contract Deploy is Script {
         vm.stopBroadcast();
     }
 
-    function _addStakeForFactory(address factoryAddr, IMSCAEntryPoint entryPoint) internal {
+    function _addStakeForFactory(address factoryAddr, IMSCAEntryPoint anEntryPoint) internal {
         uint32 unstakeDelaySec = uint32(vm.envOr("UNSTAKE_DELAY_SEC", uint32(60)));
         uint256 requiredStakeAmount = vm.envUint("REQUIRED_STAKE_AMOUNT") * 1 ether;
-        uint256 currentStakedAmount = IEntryPoint(address(entryPoint)).getDepositInfo(factoryAddr).stake;
+        uint256 currentStakedAmount = IEntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake;
         uint256 stakeAmount = requiredStakeAmount - currentStakedAmount;
         // since all factory share the same addStake method, it does not matter which contract we use to cast the
         // address
         MultiOwnerMSCAFactory(payable(factoryAddr)).addStake{value: stakeAmount}(unstakeDelaySec, stakeAmount);
         console.log("******** Add Stake Verify *********");
         console.log("Staked factory: ", factoryAddr);
-        console.log("Stake amount: ", IEntryPoint(address(entryPoint)).getDepositInfo(factoryAddr).stake);
+        console.log("Stake amount: ", IEntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake);
         console.log(
-            "Unstake delay: ", IEntryPoint(address(entryPoint)).getDepositInfo(factoryAddr).unstakeDelaySec
+            "Unstake delay: ", IEntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).unstakeDelaySec
         );
         console.log("******** Stake Verify Done *********");
     }
