@@ -42,7 +42,7 @@ contract AccountStorageV1 {
         StoredInjectedHook[] injectedHooks;
     }
 
-    /// @dev A version of IPliginManager.InjectedHook used to track injected hooks in storage. Omits the
+    /// @dev A version of IPluginManager.InjectedHook used to track injected hooks in storage. Omits the
     /// hookApplyData field, which is not needed for storage, and flattens the struct.
     struct StoredInjectedHook {
         // The plugin that provides the hook

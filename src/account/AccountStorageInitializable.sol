@@ -8,7 +8,7 @@ import {AccountStorageV1} from "../libraries/AccountStorageV1.sol";
 /// @title Account Storage Initializable
 /// @author Alchemy
 /// @notice This enables functions that can be called only once per implementation with the same storage layout
-/// @dev Adapted from OpenZeppelin's Initialiazble and modified to use a diamond storage pattern. Removed
+/// @dev Adapted from OpenZeppelin's Initializable and modified to use a diamond storage pattern. Removed
 /// Initialized() event since the account already emits an event on initialization.
 abstract contract AccountStorageInitializable is AccountStorageV1 {
     error AlreadyInitialized();
