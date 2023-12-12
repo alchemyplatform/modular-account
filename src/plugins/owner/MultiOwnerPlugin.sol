@@ -207,7 +207,7 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
     {
         if (functionId == uint8(FunctionId.USER_OP_VALIDATION_OWNER)) {
             (address signer, ECDSA.RecoverError error) =
-                (userOpHash.toEthSignedMessageHash()).tryRecover(userOp.signature);
+                userOpHash.toEthSignedMessageHash().tryRecover(userOp.signature);
             if (error == ECDSA.RecoverError.NoError && isOwnerOf(msg.sender, signer)) {
                 return _SIG_VALIDATION_PASSED;
             }

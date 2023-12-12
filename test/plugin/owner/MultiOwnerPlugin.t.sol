@@ -182,7 +182,6 @@ contract MultiOwnerPluginTest is Test {
 
         bytes32 messageDigest = plugin.getMessageHash(address(accountA), abi.encode(digest));
         // owner3 is the EOA Owner of the contractOwner
-        // bytes memory signature = owner3.sign(messageDigest);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerofContractOwnerKey, messageDigest);
         bytes memory signature = abi.encodePacked(r, s, v);
         assertEq(_1271_MAGIC_VALUE, plugin.isValidSignature(digest, signature));

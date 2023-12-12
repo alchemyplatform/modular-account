@@ -19,8 +19,10 @@ contract ContractOwner is IERC1271 {
 
     function isValidSignature(bytes32 digest, bytes memory signature) public view override returns (bytes4) {
         if (keccak256(signature) == keccak256(sign(digest))) {
+            // simple owner sig validation path
             return _1271_MAGIC_VALUE;
         } else {
+            // EOA owner of this contractOwner path
             (address signer,) = ECDSA.tryRecover(digest, signature);
             if (signer == owner) {
                 return _1271_MAGIC_VALUE;
