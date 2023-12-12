@@ -78,7 +78,7 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPermissionsPlugin {
 
     // ContractData (128 bytes)
     // 12 padding zeros || associated address || CONTRACT_DATA_PREFIX || batch index || sessionKeyId
-    // || 12 padding zero bytes || contractAddress
+    // || contractAddress  || 12 padding zero bytes
 
     // FunctionData (128 bytes)
     // 12 padding zeros || associated address || FUNCTION_DATA_PREFIX || batch index || sessionKeyId || selector
