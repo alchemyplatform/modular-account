@@ -136,18 +136,15 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
     function isValidSignature(bytes32 digest, bytes memory signature) public view override returns (bytes4) {
         bytes memory messageData = encodeMessageData(msg.sender, abi.encode(digest));
         bytes32 messageHash = keccak256(messageData);
+
         // try to recover through ECDSA
         (address signer, ECDSA.RecoverError error) = ECDSA.tryRecover(messageHash, signature);
-        if (error == ECDSA.RecoverError.NoError) {
-            if (_owners.contains(msg.sender, CastLib.toSetValue(signer))) {
-                return _1271_MAGIC_VALUE;
-            } else {
-                return _1271_MAGIC_VALUE_FAILURE;
-            }
-        } else {
-            if (_isValidERC1271OwnerTypeSignature(msg.sender, messageHash, signature)) {
-                return _1271_MAGIC_VALUE;
-            }
+        if (error == ECDSA.RecoverError.NoError && _owners.contains(msg.sender, CastLib.toSetValue(signer))) {
+            return _1271_MAGIC_VALUE;
+        }
+
+        if (_isValidERC1271OwnerTypeSignature(msg.sender, messageHash, signature)) {
+            return _1271_MAGIC_VALUE;
         }
 
         return _1271_MAGIC_VALUE_FAILURE;
@@ -208,20 +205,20 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
         override
         returns (uint256)
     {
-        (address signer, ECDSA.RecoverError error) =
-            (userOpHash.toEthSignedMessageHash()).tryRecover(userOp.signature);
         if (functionId == uint8(FunctionId.USER_OP_VALIDATION_OWNER)) {
-            if (error == ECDSA.RecoverError.NoError) {
-                if (isOwnerOf(msg.sender, signer)) {
-                    return _SIG_VALIDATION_PASSED;
-                }
-            } else {
-                if (_isValidERC1271OwnerTypeSignature(msg.sender, userOpHash, userOp.signature)) {
-                    return _SIG_VALIDATION_PASSED;
-                }
+            (address signer, ECDSA.RecoverError error) =
+                userOpHash.toEthSignedMessageHash().tryRecover(userOp.signature);
+            if (error == ECDSA.RecoverError.NoError && isOwnerOf(msg.sender, signer)) {
+                return _SIG_VALIDATION_PASSED;
             }
+
+            if (_isValidERC1271OwnerTypeSignature(msg.sender, userOpHash, userOp.signature)) {
+                return _SIG_VALIDATION_PASSED;
+            }
+
             return _SIG_VALIDATION_FAILED;
         }
+
         revert NotImplemented();
     }
 
