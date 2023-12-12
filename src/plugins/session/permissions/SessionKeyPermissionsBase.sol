@@ -54,12 +54,6 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPermissionsPlugin {
         uint256 limitUsed;
     }
 
-    // PluginStorageLib KEY DEFINITIONS
-    // When adding a new permission type, you must:
-    // 1. Add new prefixes here for all stored structs
-    // 2. Define the key derivation and checking functions in a new file
-    // 3. Use the checking function in PermissionsCheckerPlugin
-
     // Prefixes:
     bytes4 internal constant SESSION_KEY_ID_PREFIX = bytes4(0x1a01dae4); // bytes4(keccak256("SessionKeyId"))
     bytes4 internal constant SESSION_KEY_DATA_PREFIX = bytes4(0x16bff296); // bytes4(keccak256("SessionKeyData"))
@@ -84,7 +78,7 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPermissionsPlugin {
 
     // ContractData (128 bytes)
     // 12 padding zeros || associated address || CONTRACT_DATA_PREFIX || batch index || sessionKeyId
-    // || 12 padding zero bytes || contractAddress
+    // || contractAddress  || 12 padding zero bytes
 
     // FunctionData (128 bytes)
     // 12 padding zeros || associated address || FUNCTION_DATA_PREFIX || batch index || sessionKeyId || selector
@@ -130,7 +124,7 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPermissionsPlugin {
         bytes memory associatedStorageKey =
             PluginStorageLib.allocateAssociatedStorageKey(associated, prefixAndBatchIndex, 1);
 
-        bytes32 sessionKeyDataKey = bytes32(abi.encodePacked(SESSION_KEY_DATA_PREFIX, SessionKeyId.unwrap(id)));
+        bytes32 sessionKeyDataKey = SessionKeyId.unwrap(id);
         return _toSessionKeyData(PluginStorageLib.associatedStorageLookup(associatedStorageKey, sessionKeyDataKey));
     }
 

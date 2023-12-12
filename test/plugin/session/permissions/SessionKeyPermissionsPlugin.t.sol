@@ -591,6 +591,59 @@ contract SessionKeyPermissionsPluginTest is Test {
         SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
     }
 
+    function test_sessionKeyPerms_independentKeyStorage() public {
+        address sessionKey2 = makeAddr("sessionKey2");
+
+        address[] memory sessionKeysToAdd = new address[](1);
+        sessionKeysToAdd[0] = sessionKey2;
+
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).updateSessionKeys(
+            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
+        );
+        vm.prank(owner1);
+        SessionKeyPermissionsPlugin(address(account1)).registerKey(sessionKey2, 0);
+
+        ISessionKeyPermissionsPlugin.ContractAccessControlType accessControlType1;
+        ISessionKeyPermissionsPlugin.ContractAccessControlType accessControlType2;
+
+        accessControlType1 = sessionKeyPermissionsPlugin.getAccessControlType(address(account1), sessionKey1);
+        accessControlType2 = sessionKeyPermissionsPlugin.getAccessControlType(address(account1), sessionKey2);
+
+        assertEq(
+            uint8(accessControlType1),
+            uint8(ISessionKeyPermissionsPlugin.ContractAccessControlType.ALLOWLIST),
+            "sessionKey1 should start with an allowlist"
+        );
+        assertEq(
+            uint8(accessControlType2),
+            uint8(ISessionKeyPermissionsPlugin.ContractAccessControlType.ALLOWLIST),
+            "sessionKey2 should start with an allowlist"
+        );
+
+        bytes[] memory updates = new bytes[](1);
+        updates[0] = abi.encodeCall(
+            ISessionKeyPermissionsUpdates.setAccessListType,
+            (ISessionKeyPermissionsPlugin.ContractAccessControlType.NONE)
+        );
+        vm.prank(owner1);
+        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+
+        accessControlType1 = sessionKeyPermissionsPlugin.getAccessControlType(address(account1), sessionKey1);
+        accessControlType2 = sessionKeyPermissionsPlugin.getAccessControlType(address(account1), sessionKey2);
+
+        assertEq(
+            uint8(accessControlType1),
+            uint8(ISessionKeyPermissionsPlugin.ContractAccessControlType.NONE),
+            "sessionKey1 should now have no allowlist"
+        );
+        assertEq(
+            uint8(accessControlType2),
+            uint8(ISessionKeyPermissionsPlugin.ContractAccessControlType.ALLOWLIST),
+            "sessionKey2 should still have an allowlist"
+        );
+    }
+
     function _runSessionKeyExecUserOp(
         address target,
         address sessionKey,
