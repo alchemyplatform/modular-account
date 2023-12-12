@@ -29,6 +29,8 @@ contract MultiOwnerPluginTest is Test {
     address public owner1;
     address public owner2;
     address public owner3;
+    address public ownerofContractOwner;
+    uint256 public ownerofContractOwnerKey;
     ContractOwner public contractOwner;
     address[] public ownerArray;
 
@@ -41,7 +43,8 @@ contract MultiOwnerPluginTest is Test {
         owner1 = makeAddr("owner1");
         owner2 = makeAddr("owner2");
         owner3 = makeAddr("owner3");
-        contractOwner = new ContractOwner();
+        (ownerofContractOwner, ownerofContractOwnerKey) = makeAddrAndKey("ownerofContractOwner");
+        contractOwner = new ContractOwner(ownerofContractOwner);
 
         // set up owners for accountA
         ownerArray = new address[](3);
@@ -172,6 +175,19 @@ contract MultiOwnerPluginTest is Test {
         assertEq(_1271_MAGIC_VALUE, plugin.isValidSignature(digest, signature));
     }
 
+    function testFuzz_isValidSignature_ContractOwnerWithEOAOwner(bytes32 digest) public {
+        address[] memory ownersToAdd = new address[](1);
+        ownersToAdd[0] = address(contractOwner);
+        plugin.updateOwners(ownersToAdd, new address[](0));
+
+        bytes32 messageDigest = plugin.getMessageHash(address(accountA), abi.encode(digest));
+        // owner3 is the EOA Owner of the contractOwner
+        // bytes memory signature = owner3.sign(messageDigest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerofContractOwnerKey, messageDigest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+        assertEq(_1271_MAGIC_VALUE, plugin.isValidSignature(digest, signature));
+    }
+
     function test_runtimeValidationFunction_OwnerOrSelf() public {
         // should pass with owner as sender
         plugin.runtimeValidationFunction(
@@ -192,6 +208,30 @@ contract MultiOwnerPluginTest is Test {
     function testFuzz_userOpValidationFunction_ContractOwner(UserOperation memory userOp) public {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         userOp.signature = contractOwner.sign(userOpHash);
+
+        // should fail without owner access
+        uint256 resFail = plugin.userOpValidationFunction(
+            uint8(IMultiOwnerPlugin.FunctionId.USER_OP_VALIDATION_OWNER), userOp, userOpHash
+        );
+        assertEq(resFail, 1);
+
+        address[] memory ownersToAdd = new address[](1);
+        ownersToAdd[0] = address(contractOwner);
+        plugin.updateOwners(ownersToAdd, new address[](0));
+
+        // should pass with owner access
+        uint256 resSuccess = plugin.userOpValidationFunction(
+            uint8(IMultiOwnerPlugin.FunctionId.USER_OP_VALIDATION_OWNER), userOp, userOpHash
+        );
+        assertEq(resSuccess, 0);
+    }
+
+    function testFuzz_userOpValidationFunction_ContractOwnerWithEOAOwner(UserOperation memory userOp) public {
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerofContractOwnerKey, userOpHash);
+
+        // sig cannot cover the whole userop struct since userop struct has sig field
+        userOp.signature = abi.encodePacked(r, s, v);
 
         // should fail without owner access
         uint256 resFail = plugin.userOpValidationFunction(
