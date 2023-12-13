@@ -448,6 +448,35 @@ contract SessionKeyPermissionsPluginTest is Test {
         assertEq(returnedEndTime, endTime);
     }
 
+    function test_rotateKey_invalid_alreadyRegistered() public {
+        // Attempt to rotate the key to itself
+        vm.expectRevert(
+            abi.encodeWithSelector(ISessionKeyPermissionsPlugin.KeyAlreadyRegistered.selector, sessionKey1)
+        );
+        vm.prank(owner1);
+        SessionKeyPermissionsPlugin(address(account1)).rotateKey(sessionKey1, sessionKey1);
+
+        // Add a second session key
+        address sessionKey2 = makeAddr("sessionKey2");
+        address[] memory keysToAdd = new address[](1);
+        keysToAdd[0] = sessionKey2;
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).updateSessionKeys(
+            keysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
+        );
+
+        // Register the second session key
+        vm.prank(owner1);
+        SessionKeyPermissionsPlugin(address(account1)).registerKey(sessionKey2, 0);
+
+        // Attempt to rotate the key to the second session key
+        vm.expectRevert(
+            abi.encodeWithSelector(ISessionKeyPermissionsPlugin.KeyAlreadyRegistered.selector, sessionKey2)
+        );
+        vm.prank(owner1);
+        SessionKeyPermissionsPlugin(address(account1)).rotateKey(sessionKey1, sessionKey2);
+    }
+
     function testFuzz_sessionKeyPermissions_setRequiredPaymaster(address requiredPaymaster) public {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setRequiredPaymaster, (requiredPaymaster));
