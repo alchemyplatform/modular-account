@@ -96,7 +96,7 @@ contract UpgradeableModularAccount is
     // EXTERNAL FUNCTIONS
 
     /// @inheritdoc IAccountInitializable
-    function initialize(address[] memory plugins, bytes calldata pluginInitData) external initializer {
+    function initialize(address[] calldata plugins, bytes calldata pluginInitData) external initializer {
         (bytes32[] memory manifestHashes, bytes[] memory pluginInstallDatas) =
             abi.decode(pluginInitData, (bytes32[], bytes[]));
 
