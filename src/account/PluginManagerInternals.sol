@@ -50,6 +50,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
     error Erc4337FunctionNotAllowed(bytes4 selector);
     error ExecutionFunctionAlreadySet(bytes4 selector);
     error ExecutionFunctionNotSet(bytes4 selector);
+    error IPluginFunctionNotAllowed(bytes4 selector);
     error InvalidDependenciesProvided();
     error InvalidPluginManifest();
     error MissingPluginDependency(address dependency);
@@ -75,11 +76,17 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
             revert ExecutionFunctionAlreadySet(selector);
         }
 
-        // make sure incoming execution function does not collide with any native functions (data are stored on the
+        // Make sure incoming execution function does not collide with any native functions (data are stored on the
         // account implementation contract)
         if (KnownSelectors.isNativeFunction(selector)) {
             revert NativeFunctionNotAllowed(selector);
         }
+
+        // Make sure incoming execution function is not a function in IPlugin
+        if (KnownSelectors.isIPluginFunction(selector)) {
+            revert IPluginFunctionNotAllowed(selector);
+        }
+
         // Also make sure it doesn't collide with functions defined by ERC-4337
         // and called by the entry point. This prevents a malicious plugin from
         // sneaking in a function with the same selector as e.g.

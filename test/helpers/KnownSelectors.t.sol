@@ -12,9 +12,10 @@ import {IPaymaster} from "@eth-infinitism/account-abstraction/interfaces/IPaymas
 import {KnownSelectors} from "../../src/helpers/KnownSelectors.sol";
 import {IAccountLoupe} from "../../src/interfaces/IAccountLoupe.sol";
 import {IAccountInitializable} from "../../src/interfaces/IAccountInitializable.sol";
-import {IStandardExecutor} from "../../src/interfaces/IStandardExecutor.sol";
+import {IPlugin} from "../../src/interfaces/IPlugin.sol";
 import {IPluginExecutor} from "../../src/interfaces/IPluginExecutor.sol";
 import {IPluginManager} from "../../src/interfaces/IPluginManager.sol";
+import {IStandardExecutor} from "../../src/interfaces/IStandardExecutor.sol";
 
 contract KnownSelectorsTest is Test {
     function test_isNativeFunction() public {
@@ -63,5 +64,22 @@ contract KnownSelectorsTest is Test {
         assertTrue(KnownSelectors.isErc4337Function(IPaymaster.postOp.selector));
 
         assertFalse(KnownSelectors.isErc4337Function(BaseAccount.validateUserOp.selector));
+    }
+
+    function test_isIPluginFunction() public {
+        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.onInstall.selector));
+        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.onUninstall.selector));
+        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.preUserOpValidationHook.selector));
+        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.userOpValidationFunction.selector));
+        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.preRuntimeValidationHook.selector));
+        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.runtimeValidationFunction.selector));
+        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.preExecutionHook.selector));
+        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.postExecutionHook.selector));
+        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.onHookApply.selector));
+        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.onHookUnapply.selector));
+        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.pluginManifest.selector));
+        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.pluginMetadata.selector));
+
+        assertFalse(KnownSelectors.isIPluginFunction(IPaymaster.postOp.selector));
     }
 }

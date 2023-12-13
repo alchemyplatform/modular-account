@@ -10,6 +10,7 @@ import {IAccountLoupe} from "../../src/interfaces/IAccountLoupe.sol";
 import {IAccountView} from "../../src/interfaces/IAccountView.sol";
 import {IAggregator} from "../../src/interfaces/erc4337/IAggregator.sol";
 import {IPaymaster} from "../../src/interfaces/erc4337/IPaymaster.sol";
+import {IPlugin} from "../interfaces/IPlugin.sol";
 import {IPluginExecutor} from "../interfaces/IPluginExecutor.sol";
 import {IPluginManager} from "../../src/interfaces/IPluginManager.sol";
 import {IStandardExecutor} from "../interfaces/IStandardExecutor.sol";
@@ -52,5 +53,16 @@ library KnownSelectors {
             || selector == IAggregator.validateUserOpSignature.selector
             || selector == IAggregator.aggregateSignatures.selector
             || selector == IPaymaster.validatePaymasterUserOp.selector || selector == IPaymaster.postOp.selector;
+    }
+
+    function isIPluginFunction(bytes4 selector) internal pure returns (bool) {
+        return selector == IPlugin.onInstall.selector || selector == IPlugin.onUninstall.selector
+            || selector == IPlugin.preUserOpValidationHook.selector
+            || selector == IPlugin.userOpValidationFunction.selector
+            || selector == IPlugin.preRuntimeValidationHook.selector
+            || selector == IPlugin.runtimeValidationFunction.selector || selector == IPlugin.preExecutionHook.selector
+            || selector == IPlugin.postExecutionHook.selector || selector == IPlugin.onHookApply.selector
+            || selector == IPlugin.onHookUnapply.selector || selector == IPlugin.pluginManifest.selector
+            || selector == IPlugin.pluginMetadata.selector;
     }
 }
