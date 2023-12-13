@@ -82,7 +82,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
             revert NativeFunctionNotAllowed(selector);
         }
 
-        // Make sure incoming execution function is not any IPlugin functions
+        // Make sure incoming execution function is not a function in IPlugin
         if (KnownSelectors.isIPluginFunction(selector)) {
             revert IPluginFunctionNotAllowed(selector);
         }
