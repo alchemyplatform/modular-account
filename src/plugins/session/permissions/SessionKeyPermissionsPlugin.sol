@@ -57,7 +57,7 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
     function rotateKey(address oldSessionKey, address newSessionKey) external override {
         // Assert that the new key is not already registered
         SessionKeyId newKeyId = _sessionKeyIdOf(msg.sender, newSessionKey);
-        if (SessionKeyId.unwrap(newKeyId) != 0) {
+        if (SessionKeyId.unwrap(newKeyId) != bytes32(0)) {
             revert KeyAlreadyRegistered(newSessionKey);
         }
         // Assert that the old key is registered
