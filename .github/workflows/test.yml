@@ -17,9 +17,6 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly-5be158ba6dc7c798a6f032026fe60fc01686b33b
-      - run: forge install
-
-      - run: forge fmt --check
 
       - name: "Check out the repo"
         uses: "actions/checkout@v3"
@@ -42,6 +39,10 @@ jobs:
 
       - name: "Install the Node.js dependencies"
         run: "pnpm install"
+
+      - run: forge install
+
+      - run: forge fmt --check
 
       - name: "Lint the contracts"
         run: "pnpm lint"
