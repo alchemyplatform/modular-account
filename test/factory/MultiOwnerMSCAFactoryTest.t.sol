@@ -85,18 +85,18 @@ contract MultiOwnerMSCAFactoryTest is Test {
 
     function test_badOwnersArray() public {
         vm.expectRevert(MultiOwnerMSCAFactory.OwnersArrayEmpty.selector);
-        factory.createAccount(0, new address[](0));
+        factory.getAddress(0, new address[](0));
 
         address[] memory badOwners = new address[](2);
 
         vm.expectRevert(MultiOwnerMSCAFactory.ZeroAddressOwner.selector);
-        factory.createAccount(0, badOwners);
+        factory.getAddress(0, badOwners);
 
         badOwners[0] = address(1);
         badOwners[1] = address(1);
 
         vm.expectRevert(MultiOwnerMSCAFactory.DuplicateOwner.selector);
-        factory.createAccount(0, badOwners);
+        factory.getAddress(0, badOwners);
     }
 
     function test_addStake() public {

@@ -58,13 +58,15 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable {
         bytes[] memory pluginInitBytes = new bytes[](2); // empty bytes for TokenReceiverPlugin init
         pluginInitBytes[0] = abi.encode(owners);
 
-        // getAddress checks and reverts if owners array is invalid in MultiOwnerPlugin
-        addr = getAddress(salt, owners);
+        bytes32 combinedSalt = _getSalt(salt, pluginInitBytes[0]);
+        addr = Create2.computeAddress(
+            combinedSalt, keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(IMPL, "")))
+        );
 
         // short circuit if exists
         if (addr.code.length == 0) {
             // not necessary to check return addr of this arg since next call fails if so
-            new ERC1967Proxy{salt : _getSalt(salt, pluginInitBytes[0])}(IMPL, "");
+            new ERC1967Proxy{salt: combinedSalt}(IMPL, "");
 
             address[] memory plugins = new address[](2);
             plugins[0] = MULTI_OWNER_PLUGIN;

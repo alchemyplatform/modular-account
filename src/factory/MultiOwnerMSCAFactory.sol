@@ -45,20 +45,22 @@ contract MultiOwnerMSCAFactory is Ownable {
 
     /// @notice Create a modular smart contract account
     /// @dev Account address depends on salt, impl addr, plugins and plugin init data
-    /// @dev Owner array must be valid. See getAddress below
+    /// @dev Owner array must be valid else the plugin installation step would revert. See getAddress below
     /// @param salt salt for additional entropy for create2
     /// @param owners address array of the owners
     function createAccount(uint256 salt, address[] calldata owners) external returns (address addr) {
         bytes[] memory pluginInitBytes = new bytes[](1);
         pluginInitBytes[0] = abi.encode(owners);
 
-        // getAddress checks and reverts if owners array is invalid in MultiOwnerPlugin
-        addr = getAddress(salt, owners);
+        bytes32 combinedSalt = _getSalt(salt, pluginInitBytes[0]);
+        addr = Create2.computeAddress(
+            combinedSalt, keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(IMPL, "")))
+        );
 
         // short circuit if exists
         if (addr.code.length == 0) {
             // not necessary to check return addr of this arg since next call fails if so
-            new ERC1967Proxy{salt : _getSalt(salt, pluginInitBytes[0])}(IMPL, "");
+            new ERC1967Proxy{salt: combinedSalt}(IMPL, "");
 
             address[] memory plugins = new address[](1);
             plugins[0] = MULTI_OWNER_PLUGIN;
