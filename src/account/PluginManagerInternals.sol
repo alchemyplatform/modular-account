@@ -132,9 +132,8 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
         if (preExecHook != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
             selectorData.hasPreExecHooks = true;
-        }
-
-        if (postExecHook != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+        } else if (postExecHook != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+            // Only set this flag if the pre hook is empty and the post hook is non-empty.
             selectorData.hasPostOnlyExecHooks = true;
         }
     }
@@ -178,9 +177,8 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
         if (preExecHook != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
             permittedCallData.hasPrePermittedCallHooks = true;
-        }
-
-        if (postExecHook != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+        } else if (postExecHook != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+            // Only set this flag if the pre hook is empty and the post hook is non-empty.
             permittedCallData.hasPostOnlyPermittedCallHooks = true;
         }
     }
