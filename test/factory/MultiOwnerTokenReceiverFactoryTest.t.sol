@@ -54,11 +54,11 @@ contract MultiOwnerTokenReceiverMSCAFactoryTest is Test {
         bytes32 ownerManifestHash = keccak256(abi.encode(multiOwnerPlugin.pluginManifest()));
         bytes32 tokenReceiverManifestHash = keccak256(abi.encode(tokenReceiverPlugin.pluginManifest()));
         factory = new MultiOwnerTokenReceiverMSCAFactory(
-            address(this), 
-            address(multiOwnerPlugin), 
+            address(this),
+            address(multiOwnerPlugin),
             address(tokenReceiverPlugin),
-            impl, 
-            ownerManifestHash, 
+            impl,
+            ownerManifestHash,
             tokenReceiverManifestHash,
             IEntryPoint(address(entryPoint))
         );
