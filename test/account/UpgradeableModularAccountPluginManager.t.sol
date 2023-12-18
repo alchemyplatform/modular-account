@@ -858,6 +858,36 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IStandardExecutor(account2).executeBatch(calls);
     }
 
+    function test_uninstallAndInstallInBatch_failwithOtherCalls() external {
+        // Test fail case for a special use case in `installPlugin`:
+        // We can uninstall the `MultiOwnerPlugin`, leaving no validator on `installPlugin`, and then install a
+        // different plugin immediately after as part of the same batch execution. This is a special case: normally
+        // an execution function with no runtime validator cannot be runtime-called.
+        // Here we test only the above is allowed, any other self-call is blocked
+
+        vm.startPrank(owner2);
+
+        Call[] memory calls = new Call[](2);
+        calls[0] = Call({
+            target: address(account2),
+            value: 0,
+            data: abi.encodeCall(IPluginManager.uninstallPlugin, (address(multiOwnerPlugin), "", "", new bytes[](0)))
+        });
+        calls[1] = Call({
+            target: address(account2),
+            value: 0,
+            data: abi.encodeCall(UpgradeableModularAccount.execute, (ethRecipient, 1 wei, ""))
+        });
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                UpgradeableModularAccount.RuntimeValidationFunctionMissing.selector,
+                UpgradeableModularAccount.execute.selector
+            )
+        );
+        IStandardExecutor(account2).executeBatch(calls);
+    }
+
     function test_noNonSelfInstallAfterUninstall() external {
         // A companion to the previous test, ensuring that `installPlugin` can't
         // be called directly (e.g. not via `execute` or `executeBatch`) if it

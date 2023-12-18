@@ -619,8 +619,8 @@ contract UpgradeableModularAccount is
                         && (
                             (
                                 msg.sig != IPluginManager.installPlugin.selector
-                                    || msg.sig != UUPSUpgradeable.upgradeToAndCall.selector
-                            ) && msg.sender != address(this)
+                                    && msg.sig != UUPSUpgradeable.upgradeToAndCall.selector
+                            ) || msg.sender != address(this)
                         )
                 ) {
                     // Runtime calls cannot be made against functions with no
