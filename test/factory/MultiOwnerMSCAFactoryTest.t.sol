@@ -130,6 +130,15 @@ contract MultiOwnerMSCAFactoryTest is Test {
         assertEq(address(factory).balance, 0);
     }
 
+    function test_2StepOwnershipTransfer() public {
+        assertEq(factory.owner(), address(this));
+        factory.transferOwnership(owner1);
+        assertEq(factory.owner(), address(this));
+        vm.prank(owner1);
+        factory.acceptOwnership();
+        assertEq(factory.owner(), owner1);
+    }
+
     // to receive funds from withdraw
     receive() external payable {}
 }
