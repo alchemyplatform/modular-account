@@ -110,7 +110,7 @@ contract MultiOwnerMSCAFactory is Ownable {
     /// @dev Owner array cannot be empty, cannot contain address(0), and cannot contain duplicates
     /// @param salt salt for additional entropy for create2
     /// @param owners array of addresses of the owner
-    function getAddress(uint256 salt, address[] calldata owners) public view returns (address) {
+    function getAddress(uint256 salt, address[] calldata owners) external view returns (address) {
         // array can't be empty
         if (owners.length == 0) {
             revert OwnersArrayEmpty();
