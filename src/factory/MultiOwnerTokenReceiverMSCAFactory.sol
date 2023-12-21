@@ -26,6 +26,7 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable {
     error OwnersArrayEmpty();
     error ZeroAddressOwner();
     error DuplicateOwner();
+    error TransferFailed();
 
     /// @notice Constructor for the factory
     constructor(
@@ -108,7 +109,10 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable {
     /// @param amount amount of the token to withdraw in case of rebasing tokens
     function withdraw(address payable to, address token, uint256 amount) external onlyOwner {
         if (token == address(0)) {
-            to.transfer(address(this).balance);
+            (bool success,) = to.call{value: address(this).balance}("");
+            if (!success) {
+                revert TransferFailed();
+            }
         } else {
             SafeERC20.safeTransfer(IERC20(token), to, amount);
         }
