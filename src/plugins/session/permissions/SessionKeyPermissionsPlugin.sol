@@ -380,7 +380,7 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
                 // Tally up the amount being spent in each call to an ERC-20 contract.
                 // Since this is a runtime-only check, we can interact with the stored limits after each call in
                 // the batch and can still enforce the limits correctly.
-                uint256 spendAmount = _getTokenSpendAmount(account, call.target, call.data);
+                uint256 spendAmount = _getTokenSpendAmount(call.data);
                 if (
                     !_runtimeUpdateSpendLimitUsage(
                         spendAmount, contractData.erc20SpendLimitTimeInfo, contractData.erc20SpendLimit
@@ -597,33 +597,29 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
 
     // ERC-20 decoding logic
 
-    /// @notice Decode the amount of a token a call is sending.
+    /// @notice Decode the amount of a token a call is sending/approving.
     /// @dev This only supports the following standard ERC-20 functions:
     /// - transfer(address,uint256)
-    /// - approve(address,uint256)
+    /// - approve(address,uint256), in this case, the approve amount is always counted towards spending limits even
+    /// if there are existing aprroval allowances
     /// When decoding the approve function, this will first check the existing allowance of the spender. This
     /// lookup is not necessarily in storage associated with the account, so this check should only be used during
     /// runtime, not user op validation.
-    /// @param account The account that is sending the transaction.
     /// @param callData The calldata of the transaction.
     /// @return The amount of the token being sent. Zero if the call is not recognized as a spend.
-    function _getTokenSpendAmount(address account, address token, bytes memory callData)
-        internal
-        view
-        returns (uint256)
-    {
+    function _getTokenSpendAmount(bytes memory callData) internal pure returns (uint256) {
         // Get the selector.
         // Right-padding with zeroes here is OK, because none of the selectors we're comparing this to have
         // trailing zero bytes.
         bytes4 selector = bytes4(callData);
 
-        if (selector == IERC20.transfer.selector) {
+        if (selector == IERC20.transfer.selector || selector == IERC20.approve.selector) {
             // Expected length: 68 bytes (4 selector + 32 address + 32 amount)
             if (callData.length < 68) {
                 return 0;
             }
 
-            // Load the amount being sent.
+            // Load the amount being sent/approved.
             // Solidity doesn't support access a whole word from a bytes memory at once, only a single byte, and
             // trying to use abi.decode would require copying the data to remove the selector, which is expensive.
             // Instead, we use inline assembly to load the amount directly. This is safe because we've checked the
@@ -634,46 +630,6 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
                 amount := mload(add(callData, 68))
             }
             return amount;
-        } else if (selector == IERC20.approve.selector) {
-            // Expected length: 68 bytes (4 selector + 32 address + 32 amount)
-            if (callData.length < 68) {
-                return 0;
-            }
-            // We must check the existing allowance of the spender.
-            address spender;
-            assembly ("memory-safe") {
-                // Jump 36 words forward: 32 for the length field and 4 for the selector.
-                spender := mload(add(callData, 36))
-                // Mask out the upper 12 bytes of the address, since we only care about the lower 20 bytes.
-                // If the upper bits are nonzero, typically the token contract should revert as the input is
-                // malformed. We mask it here only as a precaution for tokens that may not fully conform to the ABI
-                // standard.
-                spender := and(spender, shr(96, not(0)))
-            }
-            uint256 existingAllowance = IERC20(token).allowance(account, spender);
-            uint256 approveAmount;
-            assembly ("memory-safe") {
-                // Jump 68 words forward: 32 for the length field, 4 for the selector, and 32 for the spender
-                // address.
-                approveAmount := mload(add(callData, 68))
-            }
-            // We only consider this spending if the new allowance is greater than the existing allowance.
-            if (approveAmount <= existingAllowance) {
-                return 0;
-            }
-
-            // Return the difference between the new allowance and the existing allowance.
-            // Unchecked is OK here since we've asserted the new allowance is greater than the existing allowance.
-            unchecked {
-                return approveAmount - existingAllowance;
-            }
-
-            // There is an odd edge-case with the approval amount check. Since multiple approves may be batched, if
-            // the first approve lowers the allowance but the second one raises it by an amount that's allowed
-            // within the spend limits, the calls will be permitted. This won't let the session key actually spend
-            // more than expected, but the spender contract may experience their allowance going down from the
-            // previous amount by more than the spending limit, then back up to the previous amount plus the
-            // spending limit.
         }
         // Unrecognized function selector
         return 0;

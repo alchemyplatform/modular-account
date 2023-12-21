@@ -410,7 +410,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
             sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
-        assertEq(spendLimitInfo.limitUsed, 0.5 ether);
+        assertEq(spendLimitInfo.limitUsed, 1 ether);
         assertEq(spendLimitInfo.refreshInterval, 0);
         // Assert that the last used time is not updated when the interval is unset.
         assertEq(spendLimitInfo.lastUsedTime, 0);
@@ -821,7 +821,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         vm.prank(owner1);
         SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
-        // Run a user op that spends 1 wei, should succeed
+        // Run a user op that spends 1 wei and approve 1 wei, should succeed
         Call[] memory calls = new Call[](2);
         calls[0] =
             Call({target: address(token1), data: abi.encodeCall(token1.transfer, (recipient1, 1 wei)), value: 0});
@@ -857,13 +857,13 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         // Run a user op that spends 1 ether, should succeed
         calls[0] = Call({
             target: address(token1),
-            data: abi.encodeCall(token1.approve, (recipient1, 0.5 ether + 1 wei)),
+            data: abi.encodeCall(token1.approve, (recipient1, 0.5 ether)),
             value: 0
         });
         calls[1] = Call({
             target: address(token1),
-            // previous approved 1 wei is still effective
-            data: abi.encodeCall(token1.approve, (recipient1, 0.5 ether + 1 wei)),
+            // previous approved 1 wei should not matter to limitUsed
+            data: abi.encodeCall(token1.approve, (recipient1, 0.5 ether)),
             value: 0
         });
         vm.expectCall(address(token1), 0 wei, calls[0].data, 2);
