@@ -64,8 +64,13 @@ contract SessionKeyPermissionsPluginTest is Test {
         multiOwnerPlugin = new MultiOwnerPlugin();
         address impl = address(new UpgradeableModularAccount(entryPoint));
 
-        factory =
-        new MultiOwnerMSCAFactory(address(this), address(multiOwnerPlugin), impl, keccak256(abi.encode(multiOwnerPlugin.pluginManifest())), entryPoint);
+        factory = new MultiOwnerMSCAFactory(
+            address(this),
+            address(multiOwnerPlugin),
+            impl,
+            keccak256(abi.encode(multiOwnerPlugin.pluginManifest())),
+            entryPoint
+        );
 
         sessionKeyPlugin = new SessionKeyPlugin();
         sessionKeyPermissionsPlugin = new SessionKeyPermissionsPlugin();

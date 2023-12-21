@@ -37,10 +37,10 @@ contract ManifestValidityTest is Test {
         address impl = address(new UpgradeableModularAccount(entryPoint));
 
         factory = new MultiOwnerMSCAFactory(
-            address(this), 
-            address(multiOwnerPlugin), 
-            impl, 
-            keccak256(abi.encode(multiOwnerPlugin.pluginManifest())), 
+            address(this),
+            address(multiOwnerPlugin),
+            impl,
+            keccak256(abi.encode(multiOwnerPlugin.pluginManifest())),
             entryPoint
         );
 

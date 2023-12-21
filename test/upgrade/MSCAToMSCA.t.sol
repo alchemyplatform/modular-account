@@ -42,10 +42,10 @@ contract MSCAToMSCATest is Test {
         bytes32 tokenReceiverManifestHash = keccak256(abi.encode(tokenReceiverPlugin.pluginManifest()));
         MultiOwnerTokenReceiverMSCAFactory factory = new MultiOwnerTokenReceiverMSCAFactory(
             address(this),
-            address(multiOwnerPlugin), 
+            address(multiOwnerPlugin),
             address(tokenReceiverPlugin),
-            mscaImpl1, 
-            ownerManifestHash, 
+            mscaImpl1,
+            ownerManifestHash,
             tokenReceiverManifestHash,
             entryPoint
         );

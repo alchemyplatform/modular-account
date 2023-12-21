@@ -38,9 +38,9 @@ contract AccountReturnDataTest is Test {
 
         factory = new MultiOwnerMSCAFactory(
             address(this),
-            address(multiOwnerPlugin), 
-            impl, 
-            keccak256(abi.encode(multiOwnerPlugin.pluginManifest())),      
+            address(multiOwnerPlugin),
+            impl,
+            keccak256(abi.encode(multiOwnerPlugin.pluginManifest())),
             entryPoint
         );
 
