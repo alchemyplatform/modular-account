@@ -12,19 +12,15 @@ jobs:
     name: Run Linters
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly-5be158ba6dc7c798a6f032026fe60fc01686b33b
-
       - name: "Check out the repo"
         uses: "actions/checkout@v3"
         with:
           submodules: "recursive"
 
-      - name: "Install Foundry"
-        uses: "foundry-rs/foundry-toolchain@v1"
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly-5be158ba6dc7c798a6f032026fe60fc01686b33b
 
       - name: "Install Pnpm"
         uses: "pnpm/action-setup@v2"
@@ -37,16 +33,14 @@ jobs:
           cache: "pnpm"
           node-version: "lts/*"
 
-      - name: "Install the Node.js dependencies"
+      - name: "Install Node.js dependencies"
         run: "pnpm install"
-
-      - run: forge install
 
       - run: forge fmt --check
 
       - name: "Lint the contracts"
         run: "pnpm lint"
-        
+
   # check-inspect:
   #   name: Verify Inspections
   #   runs-on: ubuntu-latest
@@ -70,7 +64,8 @@ jobs:
     name: Run Forge Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: "Check out the repo"
+        uses: actions/checkout@v3
         with:
           submodules: recursive
 
@@ -92,7 +87,8 @@ jobs:
     name: Run Forge Tests [lite build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: "Check out the repo"
+        uses: actions/checkout@v3
         with:
           submodules: recursive
 
