@@ -651,18 +651,20 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
             revert PluginNotInstalled(args.plugin);
         }
 
+        PluginData memory pluginData = storage_.pluginData[args.plugin];
+
         // Check manifest hash.
-        if (!_isValidPluginManifest(args.manifest, storage_.pluginData[args.plugin].manifestHash)) {
+        if (!_isValidPluginManifest(args.manifest, pluginData.manifestHash)) {
             revert InvalidPluginManifest();
         }
 
         // Ensure that there are no dependent plugins.
-        if (storage_.pluginData[args.plugin].dependentCount != 0) {
+        if (pluginData.dependentCount != 0) {
             revert PluginDependencyViolation(args.plugin);
         }
 
         // Remove this plugin as a dependent from its dependencies.
-        FunctionReference[] memory dependencies = storage_.pluginData[args.plugin].dependencies;
+        FunctionReference[] memory dependencies = pluginData.dependencies;
         uint256 length = dependencies.length;
         for (uint256 i = 0; i < length;) {
             FunctionReference dependency = dependencies[i];
@@ -675,6 +677,9 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                 ++i;
             }
         }
+
+        // Remove the plugin metadata from the account.
+        delete storage_.pluginData[args.plugin];
 
         // Remove components according to the manifest, in reverse order (by component type) of their installation.
 
@@ -786,11 +791,9 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
             }
         }
 
-        // Remove permitted external call permissions
-        if (args.manifest.permitAnyExternalAddress) {
-            // Only clear if it was set during install time
-            storage_.pluginData[args.plugin].anyExternalAddressPermitted = false;
-        } else {
+        // Remove permitted external call permissions, anyExternalAddressPermitted is cleared when pluginData being
+        // deleted
+        if (!args.manifest.permitAnyExternalAddress) {
             // Only clear the specific permitted external calls if "permit any" flag was not set.
             length = args.manifest.permittedExternalCalls.length;
             for (uint256 i = 0; i < length;) {
@@ -823,9 +826,9 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         }
 
         // Remove injected hooks
-        length = storage_.pluginData[args.plugin].injectedHooks.length;
+        length = pluginData.injectedHooks.length;
         for (uint256 i = 0; i < length;) {
-            StoredInjectedHook memory hook = storage_.pluginData[args.plugin].injectedHooks[i];
+            StoredInjectedHook memory hook = pluginData.injectedHooks[i];
 
             // Decrement the dependent count for the plugin providing the hook.
             storage_.pluginData[hook.providingPlugin].dependentCount -= 1;
@@ -877,13 +880,13 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
         // Call onHookUnapply on all injected hooks
         bool callbacksSucceeded = true;
-        length = storage_.pluginData[args.plugin].injectedHooks.length;
+        length = pluginData.injectedHooks.length;
         bool hasUnapplyHookData = hookUnapplyData.length != 0;
         if (hasUnapplyHookData && hookUnapplyData.length != length) {
             revert ArrayLengthMismatch();
         }
         for (uint256 i = 0; i < length;) {
-            StoredInjectedHook memory hook = storage_.pluginData[args.plugin].injectedHooks[i];
+            StoredInjectedHook memory hook = pluginData.injectedHooks[i];
 
             /* solhint-disable no-empty-blocks */
             try IPlugin(hook.providingPlugin).onHookUnapply{gas: args.callbackGasLimit}(
@@ -907,9 +910,6 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                 ++i;
             }
         }
-
-        // Remove the plugin metadata from the account.
-        delete storage_.pluginData[args.plugin];
 
         // Clear the plugin storage for the account.
         // solhint-disable-next-line no-empty-blocks
