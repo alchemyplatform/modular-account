@@ -21,6 +21,10 @@ contract MultiOwnerMSCAFactory is Ownable {
     bytes32 internal immutable _MULTI_OWNER_PLUGIN_MANIFEST_HASH;
     IEntryPoint public immutable ENTRYPOINT;
 
+    error OwnersArrayEmpty();
+    error ZeroAddressOwner();
+    error DuplicateOwner();
+
     /// @notice Constructor for the factory
     constructor(
         address owner,
@@ -41,6 +45,7 @@ contract MultiOwnerMSCAFactory is Ownable {
 
     /// @notice Create a modular smart contract account
     /// @dev Account address depends on salt, impl addr, plugins and plugin init data
+    /// @dev Owner array must be valid else the plugin installation step would revert. See getAddress below
     /// @param salt salt for additional entropy for create2
     /// @param owners address array of the owners
     function createAccount(uint256 salt, address[] calldata owners) external returns (address addr) {
@@ -102,9 +107,35 @@ contract MultiOwnerMSCAFactory is Ownable {
     }
 
     /// @notice Getter for counterfactual address based on input params
+    /// @dev Owner array cannot be empty, cannot contain address(0), and cannot contain duplicates
     /// @param salt salt for additional entropy for create2
     /// @param owners array of addresses of the owner
     function getAddress(uint256 salt, address[] calldata owners) external view returns (address) {
+        // array can't be empty
+        if (owners.length == 0) {
+            revert OwnersArrayEmpty();
+        }
+
+        for (uint256 i = 0; i < owners.length;) {
+            // array can't contain address(0)
+            if (owners[i] == address(0)) {
+                revert ZeroAddressOwner();
+            }
+
+            for (uint256 j = i + 1; j < owners.length;) {
+                // array can't have matching elements
+                if (owners[i] == owners[j]) {
+                    revert DuplicateOwner();
+                }
+                unchecked {
+                    ++j;
+                }
+            }
+            unchecked {
+                ++i;
+            }
+        }
+
         return Create2.computeAddress(
             _getSalt(salt, abi.encode(owners)),
             keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(IMPL, "")))
