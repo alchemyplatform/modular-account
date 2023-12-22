@@ -316,6 +316,11 @@ contract UpgradeableModularAccount is
             revert NativeTokenSpendingNotPermitted(callingPlugin);
         }
 
+        // Target cannot be the account itself.
+        if (target == address(this)) {
+            revert ExecFromPluginExternalNotPermitted(callingPlugin, target, value, data);
+        }
+
         // Check the caller plugin's permission to make this call on the target address.
         //
         // 1. Check that the target is permitted at all, and if so check that any one of the following is true:
