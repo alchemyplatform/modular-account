@@ -4,7 +4,7 @@ pragma solidity ^0.8.21;
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {IAccountInitializable} from "../interfaces/IAccountInitializable.sol";
@@ -15,7 +15,7 @@ import {IEntryPoint} from "../interfaces/erc4337/IEntryPoint.sol";
 /// @notice Factory for upgradeable modular accounts with MultiOwnerPlugin installed.
 /// @dev There is a reliance on the assumption that the plugin manifest will remain static, following ERC-6900. If
 /// this assumption is broken then account deployments would be bricked.
-contract MultiOwnerMSCAFactory is Ownable {
+contract MultiOwnerMSCAFactory is Ownable2Step {
     address public immutable MULTI_OWNER_PLUGIN;
     address public immutable IMPL;
     bytes32 internal immutable _MULTI_OWNER_PLUGIN_MANIFEST_HASH;
