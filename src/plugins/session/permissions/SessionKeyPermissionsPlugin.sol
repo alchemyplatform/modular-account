@@ -505,7 +505,10 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
             // We don't have a refresh interval reset, so just check that the gas limits are not exceeded and
             // update their amounts.
             validationSuccess = newTotalUsage <= gasLimit;
-            keyData.gasLimit.limitUsed += newUsage;
+            if (validationSuccess) {
+                // Conditionally update as a gas optimization for the failure case.
+                keyData.gasLimit.limitUsed += newUsage;
+            }
         }
         // RefreshInterval != 0, meaning we have a time period over which the gas limit resets.
         else if (newTotalUsage <= gasLimit) {
