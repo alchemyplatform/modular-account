@@ -314,6 +314,42 @@ contract ExecuteFromPluginPermissionsTest is Test {
         assertEq(retrievedNumber, 18);
     }
 
+    function test_executeFromPluginExternal_Allowed_AnyContractButSelf() public {
+        // Run full workflow for counter 1
+
+        EFPCallerPluginAnyExternal(address(account)).passthroughExecute(
+            address(counter1), 0, abi.encodeCall(Counter.setNumber, (17))
+        );
+        uint256 retrievedNumber = counter1.number();
+        assertEq(retrievedNumber, 17);
+
+        EFPCallerPluginAnyExternal(address(account)).passthroughExecute(
+            address(counter1), 0, abi.encodeCall(Counter.increment, ())
+        );
+        retrievedNumber = counter1.number();
+        assertEq(retrievedNumber, 18);
+
+        bytes memory result = EFPCallerPluginAnyExternal(address(account)).passthroughExecute(
+            address(counter1), 0, abi.encodePacked(bytes4(keccak256("number()")))
+        );
+        retrievedNumber = abi.decode(result, (uint256));
+        assertEq(retrievedNumber, 18);
+
+        // Should fail to call account self
+        bytes memory encodedCall =
+            abi.encodeCall(UpgradeableModularAccount.upgradeToAndCall, (address(efpCallerPlugin), ""));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                UpgradeableModularAccount.ExecFromPluginExternalNotPermitted.selector,
+                address(efpCallerPluginAnyExternal),
+                address(account),
+                0,
+                encodedCall
+            )
+        );
+        EFPCallerPluginAnyExternal(address(account)).passthroughExecute(address(account), 0, encodedCall);
+    }
+
     function test_executeFromPluginExternal_NotAllowed_NativeTokenSpending() public {
         vm.expectRevert(
             abi.encodeWithSelector(
