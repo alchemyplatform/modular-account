@@ -379,7 +379,7 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
             if (contractData.isERC20WithSpendLimit) {
                 // Tally up the amount being spent in each call to an ERC-20 contract.
                 // Since this is a runtime-only check, we can interact with the stored limits after each call in
-                // the batch and can still enforce the limits correctly.
+                // the batch and can still enforce the limits as intended.
                 uint256 spendAmount = _getTokenSpendAmount(call.data);
                 if (
                     !_runtimeUpdateSpendLimitUsage(
@@ -605,9 +605,6 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
     /// - transfer(address,uint256)
     /// - approve(address,uint256), in this case, the approve amount is always counted towards spending limits even
     /// if there are existing aprroval allowances
-    /// When decoding the approve function, this will first check the existing allowance of the spender. This
-    /// lookup is not necessarily in storage associated with the account, so this check should only be used during
-    /// runtime, not user op validation.
     /// @param callData The calldata of the transaction.
     /// @return The amount of the token being sent. Zero if the call is not recognized as a spend.
     function _getTokenSpendAmount(bytes memory callData) internal pure returns (uint256) {
