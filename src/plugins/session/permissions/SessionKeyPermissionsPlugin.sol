@@ -507,7 +507,7 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
             validationSuccess = newTotalUsage <= gasLimit;
             if (validationSuccess) {
                 // Conditionally update as a gas optimization for the failure case.
-                keyData.gasLimit.limitUsed += newUsage;
+                keyData.gasLimit.limitUsed = newTotalUsage;
             }
         }
         // RefreshInterval != 0, meaning we have a time period over which the gas limit resets.
