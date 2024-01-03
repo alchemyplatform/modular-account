@@ -240,6 +240,28 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         });
     }
 
+    function test_installPlugin_invalidDependency() external {
+        manifest.dependencyInterfaceIds.push(type(IPlugin).interfaceId);
+        MockPlugin newPlugin = new MockPlugin(manifest);
+
+        bytes32 manifestHash = keccak256(abi.encode(newPlugin.pluginManifest()));
+        // Add invalid function reference that points to the plugin being installed, rather than
+        // an existing dependency.
+        FunctionReference[] memory dependencies = new FunctionReference[](1);
+        dependencies[0] = FunctionReferenceLib.pack(address(newPlugin), 0);
+
+        vm.prank(owner2);
+
+        vm.expectRevert(PluginManagerInternals.InvalidDependenciesProvided.selector);
+        IPluginManager(account2).installPlugin({
+            plugin: address(newPlugin),
+            manifestHash: manifestHash,
+            pluginInitData: "",
+            dependencies: dependencies,
+            injectedHooks: new IPluginManager.InjectedHook[](0)
+        });
+    }
+
     function test_installPlugin_failWithNativeFunctionSelector() public {
         vm.startPrank(owner2);
 
@@ -750,6 +772,29 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
             abi.encodeWithSelector(PluginManagerInternals.MissingPluginDependency.selector, address(hooksPlugin))
         );
         vm.prank(owner2);
+        IPluginManager(account2).installPlugin({
+            plugin: address(newPlugin),
+            manifestHash: manifestHash,
+            pluginInitData: "",
+            dependencies: new FunctionReference[](0),
+            injectedHooks: hooks
+        });
+    }
+
+    function test_injectHooksInvalidDependency() external {
+        MockPlugin newPlugin = new MockPlugin(manifest);
+        bytes32 manifestHash = keccak256(abi.encode(newPlugin.pluginManifest()));
+
+        // Add invalid injected hook that points to the plugin being installed, rather than
+        // an existing dependency.
+        IPluginManager.InjectedHook[] memory hooks = new IPluginManager.InjectedHook[](1);
+        hooks[0] = IPluginManager.InjectedHook(
+            address(newPlugin), IPluginExecutor.executeFromPluginExternal.selector, injectedHooksInfo, ""
+        );
+
+        vm.prank(owner2);
+
+        vm.expectRevert(PluginManagerInternals.InvalidDependenciesProvided.selector);
         IPluginManager(account2).installPlugin({
             plugin: address(newPlugin),
             manifestHash: manifestHash,

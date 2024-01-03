@@ -361,6 +361,9 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
             // Check that the dependency is installed.
             if (storage_.pluginData[dependencyAddr].manifestHash == bytes32(0)) {
+                if (plugin == dependencyAddr) {
+                    revert InvalidDependenciesProvided();
+                }
                 revert MissingPluginDependency(dependencyAddr);
             }
 
@@ -452,7 +455,11 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         for (uint256 i = 0; i < length;) {
             InjectedHook memory hook = injectedHooks[i];
 
-            storage_.pluginData[plugin].injectedHooks[i] = StoredInjectedHook({
+            if (plugin == hook.providingPlugin) {
+                revert InvalidDependenciesProvided();
+            }
+
+            injectedHooksArray[i] = StoredInjectedHook({
                 providingPlugin: hook.providingPlugin,
                 selector: hook.selector,
                 preExecHookFunctionId: hook.injectedHooksInfo.preExecHookFunctionId,
