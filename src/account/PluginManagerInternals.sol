@@ -143,14 +143,14 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
     {
         SelectorData storage selectorData = _getAccountStorage().selectorData[selector];
 
-        (bool shouldClearHasPreHooks, bool shouldClearHasPostHooks) =
+        (bool shouldClearHasPreHooks, bool shouldClearHasPostOnlyHooks) =
             _removeHooks(selectorData.executionHooks, preExecHook, postExecHook);
 
         if (shouldClearHasPreHooks) {
             selectorData.hasPreExecHooks = false;
         }
 
-        if (shouldClearHasPostHooks) {
+        if (shouldClearHasPostOnlyHooks) {
             selectorData.hasPostOnlyExecHooks = false;
         }
     }
@@ -192,14 +192,14 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         PermittedCallData storage permittedCallData =
             _getAccountStorage().permittedCalls[_getPermittedCallKey(plugin, selector)];
 
-        (bool shouldClearHasPreHooks, bool shouldClearHasPostHooks) =
+        (bool shouldClearHasPreHooks, bool shouldClearHasPostOnlyHooks) =
             _removeHooks(permittedCallData.permittedCallHooks, preExecHook, postExecHook);
 
         if (shouldClearHasPreHooks) {
             permittedCallData.hasPrePermittedCallHooks = false;
         }
 
-        if (shouldClearHasPostHooks) {
+        if (shouldClearHasPostOnlyHooks) {
             permittedCallData.hasPostOnlyPermittedCallHooks = false;
         }
     }
@@ -237,7 +237,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
     function _removeHooks(HookGroup storage hooks, FunctionReference preExecHook, FunctionReference postExecHook)
         internal
-        returns (bool shouldClearHasPreHooks, bool shouldClearHasPostHooks)
+        returns (bool shouldClearHasPreHooks, bool shouldClearHasPostOnlyHooks)
     {
         if (preExecHook != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
             // If decrementing results in removal, this also clears the flag _PRE_EXEC_HOOK_HAS_POST_FLAG.
@@ -271,7 +271,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
             // Update the cached flag value for the post-only exec hooks, as it may change with a removal.
             if (hooks.postOnlyHooks.isEmpty()) {
                 // The "has post only hooks" flag should be disabled
-                shouldClearHasPostHooks = true;
+                shouldClearHasPostOnlyHooks = true;
             }
         }
     }
