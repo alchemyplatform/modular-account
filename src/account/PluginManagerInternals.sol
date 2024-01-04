@@ -359,11 +359,8 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
             // Check the dependency interface id over the address of the dependency.
             (address dependencyAddr,) = dependencies[i].unpack();
 
-            // Check that the dependency is installed.
+            // Check that the dependency is installed. This also blocks self-dependencies.
             if (storage_.pluginData[dependencyAddr].manifestHash == bytes32(0)) {
-                if (plugin == dependencyAddr) {
-                    revert InvalidDependenciesProvided();
-                }
                 revert MissingPluginDependency(dependencyAddr);
             }
 
@@ -380,17 +377,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
             }
         }
 
-        // Add the plugin metadata to the account
-        storage_.pluginData[plugin].manifestHash = manifestHash;
-        storage_.pluginData[plugin].dependencies = dependencies;
-
         // Update components according to the manifest.
-        // All conflicts should revert.
-
-        // Mark whether or not this plugin may spend native token amounts
-        if (manifest.canSpendNativeToken) {
-            storage_.pluginData[plugin].canSpendNativeToken = true;
-        }
 
         // Install execution functions
         length = manifest.executionFunctions.length;
@@ -455,8 +442,9 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         for (uint256 i = 0; i < length;) {
             InjectedHook memory hook = injectedHooks[i];
 
-            if (plugin == hook.providingPlugin) {
-                revert InvalidDependenciesProvided();
+            // Check that the dependency is installed. This also blocks self-dependencies.
+            if (storage_.pluginData[hook.providingPlugin].manifestHash == bytes32(0)) {
+                revert MissingPluginDependency(hook.providingPlugin);
             }
 
             injectedHooksArray[i] = StoredInjectedHook({
@@ -469,10 +457,6 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
             // Increment the dependent count for the plugin providing the hook.
             storage_.pluginData[hook.providingPlugin].dependentCount += 1;
-
-            if (!storage_.plugins.contains(CastLib.toSetValue(hook.providingPlugin))) {
-                revert MissingPluginDependency(hook.providingPlugin);
-            }
 
             _addPermittedCallHooks(
                 hook.selector,
@@ -611,6 +595,15 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
             unchecked {
                 ++i;
             }
+        }
+
+        // Add the plugin metadata to the account
+        storage_.pluginData[plugin].manifestHash = manifestHash;
+        storage_.pluginData[plugin].dependencies = dependencies;
+
+        // Mark whether or not this plugin may spend native token amounts
+        if (manifest.canSpendNativeToken) {
+            storage_.pluginData[plugin].canSpendNativeToken = true;
         }
 
         // Call injected hooks' onHookApply after all setup, this is before calling plugin onInstall
