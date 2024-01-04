@@ -604,7 +604,7 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
     /// @dev This only supports the following standard ERC-20 functions:
     /// - transfer(address,uint256)
     /// - approve(address,uint256), in this case, the approve amount is always counted towards spending limits even
-    /// if there are existing aprroval allowances
+    /// if there are existing approval allowances
     /// @param callData The calldata of the transaction.
     /// @return The amount of the token being sent. Zero if the call is not recognized as a spend.
     function _getTokenSpendAmount(bytes memory callData) internal pure returns (uint256) {

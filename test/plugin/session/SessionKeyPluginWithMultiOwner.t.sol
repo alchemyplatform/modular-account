@@ -167,7 +167,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         (address sessionKey,) = makeAddrAndKey("sessionKey1");
         sessionKeysToAdd[0] = sessionKey;
 
-        vm.prank(owner1);
+        vm.startPrank(owner1);
         SessionKeyPlugin(address(account1)).updateSessionKeys(
             sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
         );
