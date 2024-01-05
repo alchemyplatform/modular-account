@@ -5,7 +5,9 @@ import {Call} from "../../interfaces/IStandardExecutor.sol";
 import {UserOperation} from "../../interfaces/erc4337/UserOperation.sol";
 
 interface ISessionKeyPlugin {
-    enum FunctionId {USER_OP_VALIDATION_SESSION_KEY}
+    enum FunctionId {
+        USER_OP_VALIDATION_SESSION_KEY
+    }
 
     error InvalidSessionKey(address sessionKey);
     error NotAuthorized(address caller);
