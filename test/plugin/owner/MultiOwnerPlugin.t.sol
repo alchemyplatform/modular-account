@@ -101,12 +101,12 @@ contract MultiOwnerPluginTest is Test {
             bytes32 salt,
             uint256[] memory extensions
         ) = plugin.eip712Domain();
-        assertEq(fields, hex"0f");
+        assertEq(fields, hex"1f");
         assertEq(name, "Multi Owner Plugin");
         assertEq(version, "1.0.0");
         assertEq(chainId, block.chainid);
         assertEq(verifyingContract, accountA);
-        assertEq(salt, bytes32(0));
+        assertEq(salt, bytes32(bytes20(address(plugin))));
         assertEq(extensions.length, 0);
     }
 

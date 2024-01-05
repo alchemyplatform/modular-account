@@ -53,12 +53,16 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
     string internal constant _VERSION = "1.0.0";
     string internal constant _AUTHOR = "Alchemy";
 
-    bytes32 private constant _TYPE_HASH =
-        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+    bytes32 private immutable _SALT;
+    bytes32 private constant _TYPE_HASH = keccak256(
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
+    );
     bytes32 private immutable _HASHED_NAME = keccak256(bytes(_NAME));
     bytes32 private immutable _HASHED_VERSION = keccak256(bytes(_VERSION));
 
-    constructor() EIP712(_NAME, _VERSION) {}
+    constructor() EIP712(_NAME, _VERSION) {
+        _SALT = bytes32(bytes20(address(this)));
+    }
 
     // ERC-4337 specific value: signature validation passed
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
@@ -123,7 +127,9 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
         )
     {
         (fields, name, version, chainId,, salt, extensions) = super.eip712Domain();
+        fields |= hex"10"; // 11111 (super is 01111), indicate salt field is also used
         verifyingContract = msg.sender;
+        salt = _SALT;
     }
 
     /// @inheritdoc IERC1271
@@ -373,7 +379,7 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
     // ┗━━━━━━━━━━━━━━━┛
 
     function _domainSeparator(address account) internal view returns (bytes32) {
-        return keccak256(abi.encode(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION, block.chainid, account));
+        return keccak256(abi.encode(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION, block.chainid, account, _SALT));
     }
 
     function _addOwnersOrRevert(
