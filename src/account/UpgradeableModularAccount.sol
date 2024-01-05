@@ -185,13 +185,11 @@ contract UpgradeableModularAccount is
             revert UserOpNotFromEntryPoint();
         }
 
-        bool hasPreValidationHooks;
-
         bytes4 selector = _selectorFromCallData(userOp.callData);
         SelectorData storage selectorData = _getAccountStorage().selectorData[selector];
 
         FunctionReference userOpValidationFunction = selectorData.userOpValidation;
-        hasPreValidationHooks = selectorData.hasPreUserOpValidationHooks;
+        bool hasPreValidationHooks = selectorData.hasPreUserOpValidationHooks;
 
         validationData =
             _doUserOpValidation(selector, userOpValidationFunction, userOp, userOpHash, hasPreValidationHooks);
