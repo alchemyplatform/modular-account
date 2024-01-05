@@ -2,7 +2,6 @@
 pragma solidity ^0.8.21;
 
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
@@ -45,7 +44,7 @@ import {SetValue} from "../../libraries/LinkedListSetUtils.sol";
 /// the account, violating storage access rules. This also means that the
 /// owner of a modular account may not be another modular account if you want to
 /// send user operations through a bundler.
-contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
+contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
     using AssociatedLinkedListSetLib for AssociatedLinkedListSet;
     using ECDSA for bytes32;
 
@@ -60,7 +59,7 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
     bytes32 private immutable _HASHED_NAME = keccak256(bytes(_NAME));
     bytes32 private immutable _HASHED_VERSION = keccak256(bytes(_VERSION));
 
-    constructor() EIP712(_NAME, _VERSION) {
+    constructor() {
         _SALT = bytes32(bytes20(address(this)));
     }
 
@@ -115,7 +114,7 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
     function eip712Domain()
         public
         view
-        override(IMultiOwnerPlugin, EIP712)
+        override
         returns (
             bytes1 fields,
             string memory name,
@@ -126,10 +125,15 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
             uint256[] memory extensions
         )
     {
-        (fields, name, version, chainId,, salt, extensions) = super.eip712Domain();
-        fields |= hex"10"; // 11111 (super is 01111), indicate salt field is also used
-        verifyingContract = msg.sender;
-        salt = _SALT;
+        return (
+            hex"1f", // 11111 indicate salt field is also used
+            _NAME,
+            _VERSION,
+            block.chainid,
+            msg.sender,
+            _SALT,
+            new uint256[](0)
+        );
     }
 
     /// @inheritdoc IERC1271
