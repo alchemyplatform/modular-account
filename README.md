@@ -17,6 +17,9 @@ forge build
 
 # or use the lite profile to reduce compilation time
 FOUNDRY_PROFILE=lite forge build
+
+# for faster IR builds (to check contract sizes)
+FOUNDRY_PROFILE=optimized-build forge build --sizes
 ```
 
 ## Syntax check

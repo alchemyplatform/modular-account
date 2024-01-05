@@ -17,6 +17,12 @@ runs=500
 fail_on_revert = true
 depth = 10
 
+[profile.optimized-build]
+via_ir = true
+script = 'src'
+test = 'src'
+out = 'out-optimized'
+
 [profile.lite]
 solc = '0.8.21'
 via_ir = false
