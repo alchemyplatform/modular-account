@@ -313,31 +313,36 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
     function test_installPlugin_missingDependency() public {
         vm.startPrank(owner2);
 
-        address[] memory guardians = new address[](1);
-        guardians[0] = address(1);
+        manifest.dependencyInterfaceIds.push(type(IPlugin).interfaceId);
+        MockPlugin newPlugin = new MockPlugin(manifest);
+        bytes32 manifestHash = keccak256(abi.encode(newPlugin.pluginManifest()));
 
-        bytes32 manifestHash = keccak256(abi.encode(sessionKeyPlugin.pluginManifest()));
-
-        // Create a duplicate MultiOwnerPlugin that isn't installed, and attempt to use that as a dependency
-        MultiOwnerPlugin multiOwnerPlugin2 = new MultiOwnerPlugin();
-
-        FunctionReference[] memory dependencies = new FunctionReference[](2);
-        dependencies[0] = FunctionReferenceLib.pack(
-            address(multiOwnerPlugin2), uint8(IMultiOwnerPlugin.FunctionId.USER_OP_VALIDATION_OWNER)
-        );
-        dependencies[1] = FunctionReferenceLib.pack(
-            address(multiOwnerPlugin2), uint8(IMultiOwnerPlugin.FunctionId.RUNTIME_VALIDATION_OWNER_OR_SELF)
-        );
-
+        // Add invalid function reference that points to the plugin being installed, rather than
+        // an existing dependency.
+        FunctionReference[] memory dependencies = new FunctionReference[](1);
+        dependencies[0] = FunctionReferenceLib.pack(address(newPlugin), 0);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                PluginManagerInternals.MissingPluginDependency.selector, address(multiOwnerPlugin2)
-            )
+            abi.encodeWithSelector(PluginManagerInternals.MissingPluginDependency.selector, address(newPlugin))
         );
         IPluginManager(account2).installPlugin({
-            plugin: address(sessionKeyPlugin),
+            plugin: address(newPlugin),
             manifestHash: manifestHash,
-            pluginInitData: abi.encode(uint48(1 days)),
+            pluginInitData: "",
+            dependencies: dependencies,
+            injectedHooks: new IPluginManager.InjectedHook[](0)
+        });
+
+        // Add invalid function reference that points to a plugin that is not yet installed (and also is not the
+        // one currently being installed).
+        MockPlugin newPlugin2 = new MockPlugin(manifest);
+        dependencies[0] = FunctionReferenceLib.pack(address(newPlugin2), 0);
+        vm.expectRevert(
+            abi.encodeWithSelector(PluginManagerInternals.MissingPluginDependency.selector, address(newPlugin2))
+        );
+        IPluginManager(account2).installPlugin({
+            plugin: address(newPlugin),
+            manifestHash: manifestHash,
+            pluginInitData: "",
             dependencies: dependencies,
             injectedHooks: new IPluginManager.InjectedHook[](0)
         });
@@ -750,6 +755,46 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
             abi.encodeWithSelector(PluginManagerInternals.MissingPluginDependency.selector, address(hooksPlugin))
         );
         vm.prank(owner2);
+        IPluginManager(account2).installPlugin({
+            plugin: address(newPlugin),
+            manifestHash: manifestHash,
+            pluginInitData: "",
+            dependencies: new FunctionReference[](0),
+            injectedHooks: hooks
+        });
+    }
+
+    function test_injectHooksMissingDependency() external {
+        vm.startPrank(owner2);
+
+        MockPlugin newPlugin = new MockPlugin(manifest);
+        bytes32 manifestHash = keccak256(abi.encode(newPlugin.pluginManifest()));
+
+        // Add invalid injected hook that points to the plugin being installed, rather than an existing dependency.
+        IPluginManager.InjectedHook[] memory hooks = new IPluginManager.InjectedHook[](1);
+        hooks[0] = IPluginManager.InjectedHook(
+            address(newPlugin), IPluginExecutor.executeFromPluginExternal.selector, injectedHooksInfo, ""
+        );
+        vm.expectRevert(
+            abi.encodeWithSelector(PluginManagerInternals.MissingPluginDependency.selector, address(newPlugin))
+        );
+        IPluginManager(account2).installPlugin({
+            plugin: address(newPlugin),
+            manifestHash: manifestHash,
+            pluginInitData: "",
+            dependencies: new FunctionReference[](0),
+            injectedHooks: hooks
+        });
+
+        // Add invalid injected hook that points to a plugin that is not yet installed (and also is not the one
+        // currently being installed).
+        MockPlugin newPlugin2 = new MockPlugin(manifest);
+        hooks[0] = IPluginManager.InjectedHook(
+            address(newPlugin2), IPluginExecutor.executeFromPluginExternal.selector, injectedHooksInfo, ""
+        );
+        vm.expectRevert(
+            abi.encodeWithSelector(PluginManagerInternals.MissingPluginDependency.selector, address(newPlugin2))
+        );
         IPluginManager(account2).installPlugin({
             plugin: address(newPlugin),
             manifestHash: manifestHash,
