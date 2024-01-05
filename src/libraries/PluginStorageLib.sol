@@ -31,6 +31,8 @@ library PluginStorageLib {
             mstore(0x40, add(add(key, totalSize), 32))
             mstore(key, totalSize)
 
+            // Clear any dirty upper bits of address
+            addr := and(addr, 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
             // Store the address and batch index in the key buffer
             mstore(add(key, 32), addr)
             mstore(add(key, 64), batchIndex)
