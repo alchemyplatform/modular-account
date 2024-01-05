@@ -52,16 +52,12 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
     string internal constant _VERSION = "1.0.0";
     string internal constant _AUTHOR = "Alchemy";
 
-    bytes32 private immutable _SALT;
     bytes32 private constant _TYPE_HASH = keccak256(
         "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
     );
-    bytes32 private immutable _HASHED_NAME = keccak256(bytes(_NAME));
-    bytes32 private immutable _HASHED_VERSION = keccak256(bytes(_VERSION));
-
-    constructor() {
-        _SALT = bytes32(bytes20(address(this)));
-    }
+    bytes32 private constant _HASHED_NAME = keccak256(bytes(_NAME));
+    bytes32 private constant _HASHED_VERSION = keccak256(bytes(_VERSION));
+    bytes32 private immutable _SALT = bytes32(bytes20(address(this)));
 
     // ERC-4337 specific value: signature validation passed
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
@@ -144,8 +140,7 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
     /// an "Ethereum Signed Message" envelope before checking the signature in
     /// the EOA-owner case.
     function isValidSignature(bytes32 digest, bytes memory signature) public view override returns (bytes4) {
-        bytes memory messageData = encodeMessageData(msg.sender, abi.encode(digest));
-        bytes32 messageHash = keccak256(messageData);
+        bytes32 messageHash = getMessageHash(msg.sender, abi.encode(digest));
 
         // try to recover through ECDSA
         (address signer, ECDSA.RecoverError error) = ECDSA.tryRecover(messageHash, signature);
