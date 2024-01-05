@@ -31,7 +31,6 @@ contract AccountStateMutatingPlugin is BaseTestPlugin {
     bool hasRTValidation;
     bool hasPreRTValidation;
     bool hasPreExec;
-    bool hasExec;
     bool hasPostExec;
 
     bytes UOValidationCallback;
@@ -49,7 +48,6 @@ contract AccountStateMutatingPlugin is BaseTestPlugin {
         bool setRTValidation,
         bool setPreRTValidation,
         bool setPreExec,
-        bool setExec,
         bool setPostExec
     ) public {
         hasUOValidation = setUOValidation;
@@ -57,7 +55,6 @@ contract AccountStateMutatingPlugin is BaseTestPlugin {
         hasRTValidation = setRTValidation;
         hasPreRTValidation = setPreRTValidation;
         hasPreExec = setPreExec;
-        hasExec = setExec;
         hasPostExec = setPostExec;
     }
 
@@ -205,6 +202,14 @@ contract AccountStateMutatingPlugin is BaseTestPlugin {
 
         return m;
     }
+
+    // Empty implementations of install/uninstall
+
+    function onInstall(bytes calldata) external override {}
+
+    function onUninstall(bytes calldata) external override {}
+
+    // Plugin functions
 
     function preUserOpValidationHook(uint8 functionId, UserOperation calldata, bytes32)
         external
