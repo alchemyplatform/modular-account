@@ -243,8 +243,7 @@ contract SessionKeyPlugin is BasePlugin, ISessionKeyPlugin {
         });
 
         // Session keys are only expected to be used for user op validation, so no runtime validation functions are
-        // set over
-        // executeWithSessionKey.
+        // set over executeWithSessionKey, and pre runtime hook will always deny.
         ManifestFunction memory alwaysAllowValidationFunction = ManifestFunction({
             functionType: ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW,
             functionId: 0, // Unused.
@@ -269,6 +268,16 @@ contract SessionKeyPlugin is BasePlugin, ISessionKeyPlugin {
         manifest.runtimeValidationFunctions[2] = ManifestAssociatedFunction({
             executionSelector: this.updateSessionKeys.selector,
             associatedFunction: ownerRuntimeValidationFunction
+        });
+
+        manifest.preRuntimeValidationHooks = new ManifestAssociatedFunction[](1);
+        manifest.preRuntimeValidationHooks[0] = ManifestAssociatedFunction({
+            executionSelector: this.executeWithSessionKey.selector,
+            associatedFunction: ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY,
+                functionId: 0,
+                dependencyIndex: 0
+            })
         });
 
         manifest.permitAnyExternalAddress = true;

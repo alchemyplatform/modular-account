@@ -162,6 +162,23 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         assertEq(recipient.balance, 2 wei);
     }
 
+    function test_sessionKey_useSessionKey_failInRuntime() public {
+        address[] memory sessionKeysToAdd = new address[](1);
+        (address sessionKey,) = makeAddrAndKey("sessionKey1");
+        sessionKeysToAdd[0] = sessionKey;
+
+        vm.startPrank(owner1);
+        SessionKeyPlugin(address(account1)).updateSessionKeys(
+            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
+        );
+
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({target: recipient, value: 1 wei, data: ""});
+
+        vm.expectRevert(abi.encodeWithSelector(UpgradeableModularAccount.AlwaysDenyRule.selector));
+        SessionKeyPlugin(address(account1)).executeWithSessionKey(calls, sessionKey);
+    }
+
     function testFuzz_sessionKey_userOpValidation_valid(uint16 seed) public {
         uint256[] memory privateKeys = _createSessionKeys(uint8(seed));
 
