@@ -2,7 +2,6 @@
 pragma solidity ^0.8.21;
 
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
@@ -45,7 +44,7 @@ import {SetValue} from "../../libraries/LinkedListSetUtils.sol";
 /// the account, violating storage access rules. This also means that the
 /// owner of a modular account may not be another modular account if you want to
 /// send user operations through a bundler.
-contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
+contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
     using AssociatedLinkedListSetLib for AssociatedLinkedListSet;
     using ECDSA for bytes32;
 
@@ -53,12 +52,12 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
     string internal constant _VERSION = "1.0.0";
     string internal constant _AUTHOR = "Alchemy";
 
-    bytes32 private constant _TYPE_HASH =
-        keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
-    bytes32 private immutable _HASHED_NAME = keccak256(bytes(_NAME));
-    bytes32 private immutable _HASHED_VERSION = keccak256(bytes(_VERSION));
-
-    constructor() EIP712(_NAME, _VERSION) {}
+    bytes32 private constant _TYPE_HASH = keccak256(
+        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract,bytes32 salt)"
+    );
+    bytes32 private constant _HASHED_NAME = keccak256(bytes(_NAME));
+    bytes32 private constant _HASHED_VERSION = keccak256(bytes(_VERSION));
+    bytes32 private immutable _SALT = bytes32(bytes20(address(this)));
 
     // ERC-4337 specific value: signature validation passed
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
@@ -111,7 +110,7 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
     function eip712Domain()
         public
         view
-        override(IMultiOwnerPlugin, EIP712)
+        override
         returns (
             bytes1 fields,
             string memory name,
@@ -122,8 +121,15 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
             uint256[] memory extensions
         )
     {
-        (fields, name, version, chainId,, salt, extensions) = super.eip712Domain();
-        verifyingContract = msg.sender;
+        return (
+            hex"1f", // 11111 indicate salt field is also used
+            _NAME,
+            _VERSION,
+            block.chainid,
+            msg.sender,
+            _SALT,
+            new uint256[](0)
+        );
     }
 
     /// @inheritdoc IERC1271
@@ -134,8 +140,7 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
     /// an "Ethereum Signed Message" envelope before checking the signature in
     /// the EOA-owner case.
     function isValidSignature(bytes32 digest, bytes memory signature) public view override returns (bytes4) {
-        bytes memory messageData = encodeMessageData(msg.sender, abi.encode(digest));
-        bytes32 messageHash = keccak256(messageData);
+        bytes32 messageHash = getMessageHash(msg.sender, abi.encode(digest));
 
         // try to recover through ECDSA
         (address signer, ECDSA.RecoverError error) = ECDSA.tryRecover(messageHash, signature);
@@ -373,7 +378,7 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271, EIP712 {
     // ┗━━━━━━━━━━━━━━━┛
 
     function _domainSeparator(address account) internal view returns (bytes32) {
-        return keccak256(abi.encode(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION, block.chainid, account));
+        return keccak256(abi.encode(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION, block.chainid, account, _SALT));
     }
 
     function _addOwnersOrRevert(
