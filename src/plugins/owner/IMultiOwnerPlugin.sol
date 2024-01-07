@@ -7,6 +7,7 @@ interface IMultiOwnerPlugin {
     enum FunctionId {
         RUNTIME_VALIDATION_OWNER_OR_SELF, // require owner or self access
         USER_OP_VALIDATION_OWNER // require owner access
+
     }
 
     /// @notice This event is emitted when owners of the account are updated.
