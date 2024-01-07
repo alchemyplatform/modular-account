@@ -1,5 +1,6 @@
 # Foundry build and cache directories
 out/
+out-optimized/
 cache/
 node_modules/
 
