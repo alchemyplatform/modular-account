@@ -97,6 +97,24 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         assertEq(sessionKeys[0], sessionKeysToAdd[0]);
     }
 
+    function test_sessionKey_addKeyFailure() public {
+        vm.startPrank(owner1);
+
+        address[] memory sessionKeysToAdd = new address[](1);
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidSessionKey.selector, address(0)));
+        SessionKeyPlugin(address(account1)).updateSessionKeys(
+            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
+        );
+
+        sessionKeysToAdd = new address[](2);
+        sessionKeysToAdd[0] = makeAddr("sessionKey1");
+        sessionKeysToAdd[1] = sessionKeysToAdd[0];
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidSessionKey.selector, sessionKeysToAdd[0]));
+        SessionKeyPlugin(address(account1)).updateSessionKeys(
+            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
+        );
+    }
+
     function test_sessionKey_addAndRemoveKeys() public {
         address[] memory sessionKeysToAdd = new address[](2);
         sessionKeysToAdd[0] = makeAddr("sessionKey1");

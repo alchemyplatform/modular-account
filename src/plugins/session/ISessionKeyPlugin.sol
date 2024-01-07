@@ -11,7 +11,6 @@ interface ISessionKeyPlugin {
 
     error InvalidSessionKey(address sessionKey);
     error NotAuthorized(address caller);
-    error SessionKeyAlreadyExists(address sessionKey);
     error SessionKeyNotFound(address sessionKey);
     error UnableToRemove(address sessionKey);
 
