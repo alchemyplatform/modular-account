@@ -105,8 +105,9 @@ contract SessionKeyPlugin is BasePlugin, ISessionKeyPlugin {
 
         length = sessionKeysToAdd.length;
         for (uint256 i = 0; i < length;) {
+            // This also checks that sessionKeysToAdd[i] is not zero.
             if (!_sessionKeys.tryAdd(msg.sender, CastLib.toSetValue(sessionKeysToAdd[i]))) {
-                revert SessionKeyAlreadyExists(sessionKeysToAdd[i]);
+                revert InvalidSessionKey(sessionKeysToAdd[i]);
             }
 
             unchecked {
@@ -184,14 +185,9 @@ contract SessionKeyPlugin is BasePlugin, ISessionKeyPlugin {
 
         uint256 length = sessionKeysToAdd.length;
         for (uint256 i = 0; i < length;) {
-            address sessionKey = sessionKeysToAdd[i];
-
-            if (sessionKey == address(0)) {
-                revert InvalidSessionKey(sessionKey);
-            }
-
-            if (!_sessionKeys.tryAdd(msg.sender, CastLib.toSetValue(sessionKey))) {
-                revert SessionKeyAlreadyExists(sessionKeysToAdd[i]);
+            // This also checks that sessionKeysToAdd[i] is not zero.
+            if (!_sessionKeys.tryAdd(msg.sender, CastLib.toSetValue(sessionKeysToAdd[i]))) {
+                revert InvalidSessionKey(sessionKeysToAdd[i]);
             }
 
             unchecked {
