@@ -20,7 +20,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-6fc74638b797b8e109452d3df8e26758f86f31fe
+          version: nightly-02292f2d2caa547968bd039c06dc53d98b72bf39
 
       - name: "Install Pnpm"
         uses: "pnpm/action-setup@v2"
@@ -72,7 +72,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-6fc74638b797b8e109452d3df8e26758f86f31fe
+          version: nightly-02292f2d2caa547968bd039c06dc53d98b72bf39
 
       - name: Install forge dependencies
         run: forge install
@@ -95,7 +95,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-6fc74638b797b8e109452d3df8e26758f86f31fe
+          version: nightly-02292f2d2caa547968bd039c06dc53d98b72bf39
 
       - name: Install forge dependencies
         run: forge install
