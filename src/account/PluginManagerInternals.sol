@@ -350,11 +350,11 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         }
 
         // Check that the dependencies match the manifest.
-        if (dependencies.length != manifest.dependencyInterfaceIds.length) {
+        uint256 length = dependencies.length;
+        if (length != manifest.dependencyInterfaceIds.length) {
             revert InvalidDependenciesProvided();
         }
 
-        uint256 length = dependencies.length;
         for (uint256 i = 0; i < length;) {
             // Check the dependency interface id over the address of the dependency.
             (address dependencyAddr,) = dependencies[i].unpack();
