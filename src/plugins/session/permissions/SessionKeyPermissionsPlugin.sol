@@ -259,17 +259,18 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
 
         uint256 callsLength = calls.length;
         // Only return validation success when there is at least one call
-        bool validationSuccess = calls.length > 0;
-        for (uint256 i = 0; i < callsLength;) {
-            Call memory call = calls[i];
-            nativeTokenSpend += call.value;
-            validationSuccess = validationSuccess
-                && _checkCallPermissions(
-                    sessionKeyData.contractAccessControlType, keyId, call.target, call.value, call.data
-                );
+        bool validationSuccess = callsLength > 0;
+        {
+            ContractAccessControlType accessControlType = sessionKeyData.contractAccessControlType;
+            for (uint256 i = 0; i < callsLength;) {
+                Call memory call = calls[i];
+                nativeTokenSpend += call.value;
+                validationSuccess = validationSuccess
+                    && _checkCallPermissions(accessControlType, keyId, call.target, call.value, call.data);
 
-            unchecked {
-                ++i;
+                unchecked {
+                    ++i;
+                }
             }
         }
 
