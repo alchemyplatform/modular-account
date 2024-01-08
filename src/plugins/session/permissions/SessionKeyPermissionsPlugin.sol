@@ -265,8 +265,8 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
             for (uint256 i = 0; i < callsLength;) {
                 Call memory call = calls[i];
                 nativeTokenSpend += call.value;
-                validationSuccess = validationSuccess
-                    && _checkCallPermissions(accessControlType, keyId, call.target, call.value, call.data);
+                validationSuccess =
+                    validationSuccess && _checkCallPermissions(accessControlType, keyId, call.target, call.data);
 
                 unchecked {
                     ++i;
@@ -336,7 +336,6 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
         ContractAccessControlType accessControlType,
         SessionKeyId keyId,
         address target,
-        uint256, /*value*/
         bytes memory callData
     ) internal view returns (bool validationSuccess) {
         validationSuccess = true;
