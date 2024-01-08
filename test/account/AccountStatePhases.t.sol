@@ -50,7 +50,7 @@ contract AccountStatePhasesTest is Test {
     uint8 internal constant _PRE_HOOK_FUNCTION_ID_1 = 1;
     uint8 internal constant _POST_HOOK_FUNCTION_ID_2 = 2;
     uint8 internal constant _PRE_UO_VALIDATION_HOOK_FUNCTION_ID_3 = 3;
-    uint8 internal constant _PRE_RUNTIME_VALIDATION_HOOK_FUNCTION_ID_4 = 4;
+    uint8 internal constant _PRE_RT_VALIDATION_HOOK_FUNCTION_ID_4 = 4;
     uint8 internal constant _UO_VALIDATION_FUNCTION_ID_5 = 5;
     uint8 internal constant _RT_VALIDATION_FUNCTION_ID_6 = 6;
 
@@ -1569,102 +1569,733 @@ contract AccountStatePhasesTest is Test {
         // Source: pre-Runtime-Validation
         // Target: pre-Runtime-Validation (same phase)
         // Addition: adding a hook should not result in that hook running.
+
+        // Set up the mock plugin with a pre-Runtime-Validation hook, which will be added and should not run.
+        _initMockPluginPreRuntimeValidationHook();
+
+        // Install the ASM plugin with a pre runtime validation hook that will add a pre runtime validation
+        // hook.
+        // Runtime validation is also needed to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM
+        // plugin's pre runtime validation function to install the mock plugin's pre runtime validation hook.
+        // Per the 6900 spec, because this is in the same phase, the state change should not be applied and the
+        // mock
+        // plugin's hook should not run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(AccountStateMutatingPlugin.preRuntimeValidationHook.selector),
+            0 // Should be called 0 times
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_remove_preRTValidation() public {
         // Source: pre-Runtime-Validation
         // Target: pre-Runtime-Validation (same phase)
         // Removal: removing a hook should still have the hook run.
+
+        // Set up the mock plugin with a pre-Runtime-Validation hook, which will be removed and should run.
+        _initMockPluginPreRuntimeValidationHook();
+
+        // Install the mock plugin as part of the starting state.
+        _installMockPlugin();
+
+        // Install the ASM plugin with a pre runtime validation hook that will remove the mock plugin's pre
+        // runtime validation hook.
+        // Runtime validation is also needed to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to remove the mock plugin's pre runtime validation hook.
+        // Per the 6900 spec, because this is in the same phase, the state change should not be applied and the
+        // mock plugin's hook should run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(AccountStateMutatingPlugin.preRuntimeValidationHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_replace_RTValidation() public {
         // Source: pre-Runtime-Validation
         // Target: Runtime-Validation (same phase)
         // Replace: original should run
+
+        // Set up the mock plugin with a Runtime-Validation function, which will replace the one defined by the
+        // ASM plugin and should not be run.
+        // To allow the call to complete as intended, we also add the execution function to the mock plugin.
+        m1.executionFunctions.push(AccountStateMutatingPlugin.executionFunction.selector);
+        _initMockPluginRuntimeValidationFunction();
+
+        // Install the ASM plugin with a pre runtime validation hook that will replace the runtime validation
+        // function.
+        // Runtime validation is also needed to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: false,
+            setPostExec: false
+        });
+        // Encode two self-calls: one to uninstall ASM plugin, one to install the mock plugin.
+        Call[] memory calls = _generateCallsUninstallASMInstallMock();
+        asmPlugin.setCallback(
+            abi.encodeCall(IStandardExecutor.executeBatch, (calls)),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to replace the runtime validation function with the mock
+        // plugin's runtime validation function. The original should run, not the replacement.
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(AccountStateMutatingPlugin.runtimeValidationFunction.selector),
+            1 // Should be called 1 time
+        );
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(AccountStateMutatingPlugin.runtimeValidationFunction.selector),
+            0 // Should be called 0 times
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_remove_RTValidation() public {
         // Source: pre-Runtime-Validation
         // Target: Runtime-Validation (same phase)
         // Removal: original should run
+
+        // Install the ASM plugin with a pre runtime validation hook that will remove the runtime validation
+        // function.
+        // Runtime validation is also needed to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(asmPlugin), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to remove the runtime validation function. The original
+        // runtime validation function should run.
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(AccountStateMutatingPlugin.runtimeValidationFunction.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_add_preExec_firstElement() public {
         // Source: pre-Runtime-Validation
         // Target: pre-Exec (different phase)
         // Addition (first element): should run
+
+        // Set up the mock plugin with a pre-Exec hook, which will be added and should run.
+        _initMockPluginPreExecutionHook();
+
+        // Install the ASM plugin with a pre runtime validation hook that will add a pre exec hook.
+        // It also needs a runtime validation function to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to install the mock plugin's pre exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.preExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_add_preExec_notFirstElement() public {
         // Source: pre-Runtime-Validation
         // Target: pre-Exec (different phase)
         // Addition (not first): should run
+
+        // Set up the mock plugin with a pre-Exec hook, which will be added and should run.
+        _initMockPluginPreExecutionHook();
+
+        // Install the ASM plugin with a pre runtime validation hook that will add a pre exec hook.
+        // It also needs a runtime validation function to allow the call to be performed, and a pre exec hook to
+        // ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: true,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to install the mock plugin's pre exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.preExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.preExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_remove_preExec() public {
         // Source: pre-Runtime-Validation
         // Target: pre-Exec (different phase)
         // Removal: should *not* run
+
+        // Set up the mock plugin with a pre-Exec hook, which will be removed and should not run.
+        _initMockPluginPreExecutionHook();
+
+        // Install the mock plugin as part of the starting state.
+        _installMockPlugin();
+
+        // Install the ASM plugin with a pre runtime validation hook that will remove the mock plugin's pre exec
+        // hook.
+        // It also needs a runtime validation function to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to remove the mock plugin's pre exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should not run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.preExecutionHook.selector),
+            0 // Should be called 0 times
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_replace_exec() public {
         // Source: pre-Runtime-Validation
         // Target: Exec (different phase)
         // Replace: replacement should run
+
+        // Set up the mock plugin with an Exec function, which will replace the one defined by the ASM plugin
+        // and should be run.
+        _initMockPluginExecFunction();
+
+        // Install the ASM plugin with a pre runtime validation hook that will replace the exec function.
+        // Runtime validation is also needed to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: false,
+            setPostExec: false
+        });
+        // Encode two self-calls: one to uninstall ASM plugin, one to install the mock plugin.
+        Call[] memory calls = _generateCallsUninstallASMInstallMock();
+        asmPlugin.setCallback(
+            abi.encodeCall(IStandardExecutor.executeBatch, (calls)),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to replace the exec function with the mock plugin's exec
+        // function. The replacement should run, not the original.
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(AccountStateMutatingPlugin.executionFunction.selector),
+            0 // Should be called 0 times
+        );
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(AccountStateMutatingPlugin.executionFunction.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_remove_exec() public {
         // Source: pre-Runtime-Validation
         // Target: Exec (different phase)
         // Removal: should revert as empty
+
+        // Install the ASM plugin with a pre runtime validation hook that will remove the exec function.
+        // Runtime validation is also needed to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(asmPlugin), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to remove the exec function. This should cause the call to
+        // revert, but only after the ASM plugin's runtime validation function has run.
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.runtimeValidationFunction.selector),
+            1 // Should be called 1 time
+        );
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                UpgradeableModularAccount.UnrecognizedFunction.selector,
+                AccountStateMutatingPlugin.executionFunction.selector
+            )
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_add_postExec_associated_firstElement() public {
         // Source: pre-Runtime-Validation
         // Target: post-Exec (different phase)
         // Addition (associated, first pre-exec): should run
+
+        // Set up the mock plugin with an associated post-Exec hook, which will be added and should run.
+        _initMockPluginPreAndPostExecutionHook();
+
+        // Install the ASM plugin with a pre runtime validation hook that will add a post exec hook.
+        // It also needs a runtime validation function to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to install the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_add_postExec_associated_notFirstElement() public {
         // Source: pre-Runtime-Validation
         // Target: post-Exec (different phase)
         // Addition (associated, non-first pre-exec): should run
+
+        // Set up the mock plugin with an associated post-Exec hook, which will be added and should run.
+        _initMockPluginPreAndPostExecutionHook();
+
+        // Install the ASM plugin with a pre runtime validation hook that will add a post exec hook.
+        // It also needs a runtime validation function to allow the call to be performed, and a pre exec hook to
+        // ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: true,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to install the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_remove_postExec_associated_firstElement() public {
         // Source: pre-Runtime-Validation
         // Target: post-Exec (different phase)
         // Removal (associated, first pre-exec): should *not* run
+
+        // Set up the mock plugin with an associated post-Exec hook, which will be removed and should not run.
+        _initMockPluginPreAndPostExecutionHook();
+
+        // Install the mock plugin as part of the starting state.
+        _installMockPlugin();
+
+        // Install the ASM plugin with a pre runtime validation hook that will remove the mock plugin's post exec
+        // hook.
+        // It also needs a runtime validation function to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to remove the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should not run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            0 // Should be called 0 times
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_remove_postExec_associated_notFirstElement() public {
         // Source: pre-Runtime-Validation
         // Target: post-Exec (different phase)
         // Removal (associated, non-first pre-exec): should *not* run
+
+        // Set up the mock plugin with an associated post-Exec hook, which will be removed and should not run.
+        _initMockPluginPreAndPostExecutionHook();
+
+        // Install the mock plugin as part of the starting state.
+        _installMockPlugin();
+
+        // Install the ASM plugin with a pre runtime validation hook that will remove the mock plugin's post exec
+        // hook. It also needs a runtime validation function to allow the call to be performed, and a pre exec
+        // hook to ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: true,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to remove the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should not run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            0 // Should be called 0 times
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_add_postExec_firstElement() public {
         // Source: pre-Runtime-Validation
         // Target: post-Exec (different phase)
         // Addition (first post-only): should run
+
+        // Set up the mock plugin with a post-Exec hook, which will be added and should run.
+        _initMockPluginPostOnlyExecutionHook();
+
+        // Install the ASM plugin with a pre runtime validation hook that will add a post exec hook.
+        // It also needs a runtime validation function to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPostExec: false,
+            setPreExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to install the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_add_postExec_notFirstElement() public {
         // Source: pre-Runtime-Validation
         // Target: post-Exec (different phase)
         // Addition (non-first post-only): should run
+
+        // Set up the mock plugin with a post-Exec hook, which will be added and should run.
+        _initMockPluginPostOnlyExecutionHook();
+
+        // Install the ASM plugin with a pre runtime validation hook that will add a post exec hook.
+        // It also needs a runtime validation function to allow the call to be performed, and a post-only exec hook
+        // to ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPostExec: true,
+            setPreExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to install the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_remove_postExec_firstElement() public {
         // Source: pre-Runtime-Validation
         // Target: post-Exec (different phase)
         // Removal (first post-only): should *not* run
+
+        // Set up the mock plugin with a post-Exec hook, which will be removed and should not run.
+        _initMockPluginPostOnlyExecutionHook();
+
+        // Install the mock plugin as part of the starting state.
+        _installMockPlugin();
+
+        // Install the ASM plugin with a pre runtime validation hook that will remove the mock plugin's post exec
+        // hook.
+        // It also needs a runtime validation function to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to remove the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should not run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            0 // Should be called 0 times
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preRTValidation_remove_postExec_notFirstElement() public {
         // Source: pre-Runtime-Validation
         // Target: post-Exec (different phase)
         // Removal (non-first post-only): should *not* run
+
+        // Set up the mock plugin with a post-Exec hook, which will be removed and should not run.
+        _initMockPluginPostOnlyExecutionHook();
+
+        // Install the mock plugin as part of the starting state.
+        _installMockPlugin();
+
+        // Install the ASM plugin with a pre runtime validation hook that will remove the mock plugin's post exec
+        // hook. It also needs a runtime validation function to allow the call to be performed, and a post-only
+        // exec hook to ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: true,
+            setPostExec: true,
+            setPreExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // ASM plugin's pre runtime validation function to remove the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should not run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            0 // Should be called 0 times
+        );
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 0 times
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     // Source: Runtime-Validation
@@ -1687,78 +2318,553 @@ contract AccountStatePhasesTest is Test {
         // Source: Runtime-Validation
         // Target: pre-Exec (different phase)
         // Addition (first element): should run
+
+        // Set up the mock plugin with a pre-Exec hook, which will be added and should run.
+        _initMockPluginPreExecutionHook();
+
+        // Install the ASM plugin with a runtime validation function that will add a pre exec hook.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: false,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.RUNTIME_VALIDATION
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // mock plugin's runtime validation function to install the mock plugin's pre exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.preExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_RTValidation_add_preExec_notFirstElement() public {
         // Source: Runtime-Validation
         // Target: pre-Exec (different phase)
         // Addition (not first): should run
+
+        // Set up the mock plugin with a pre-Exec hook, which will be added and should run.
+        _initMockPluginPreExecutionHook();
+
+        // Install the ASM plugin with a runtime validation function that will add a pre exec hook.
+        // It also needs a pre exec hook to ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: false,
+            setPreExec: true,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.RUNTIME_VALIDATION
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // mock plugin's runtime validation function to install the mock plugin's pre exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.preExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.preExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_RTValidation_remove_preExec() public {
         // Source: Runtime-Validation
         // Target: pre-Exec (different phase)
         // Removal: should *not* run
+
+        // Set up the mock plugin with a pre-Exec hook, which will be removed and should not run.
+        _initMockPluginPreExecutionHook();
+
+        // Install the mock plugin as part of the starting state.
+        _installMockPlugin();
+
+        // Install the ASM plugin with a runtime validation function that will remove the mock plugin's pre exec
+        // hook.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: false,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.RUNTIME_VALIDATION
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger the
+        // mock plugin's runtime validation function to remove the mock plugin's pre exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should not run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.preExecutionHook.selector),
+            0 // Should be called 0 times
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_RTValidation_replace_exec() public {
         // Source: Runtime-Validation
         // Target: Exec (different phase)
         // Replace: replacement should run
+
+        // Set up the mock plugin with an Exec function, which will replace the one defined by the ASM plugin
+        // and should be run.
+        _initMockPluginExecFunction();
+
+        // Install the ASM plugin with a runtime validation function that will replace the exec function.
+        // Runtime validation is also needed to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: false,
+            setPreExec: false,
+            setPostExec: false
+        });
+        // Encode two self-calls: one to uninstall ASM plugin, one to install the mock plugin.
+        Call[] memory calls = _generateCallsUninstallASMInstallMock();
+        asmPlugin.setCallback(
+            abi.encodeCall(IStandardExecutor.executeBatch, (calls)),
+            AccountStateMutatingPlugin.FunctionId.RUNTIME_VALIDATION
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger
+        // the ASM plugin's runtime validation function to replace the exec function with the mock plugin's exec
+        // function. The replacement should run, not the original.
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(AccountStateMutatingPlugin.executionFunction.selector),
+            0 // Should be called 0 times
+        );
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(AccountStateMutatingPlugin.executionFunction.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_RTValidation_remove_exec() public {
         // Source: Runtime-Validation
         // Target: Exec (different phase)
         // Removal: should revert as empty
+
+        // Install the ASM plugin with a runtime validation function that will remove the exec function.
+        // Runtime validation is also needed to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: false,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(asmPlugin), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.RUNTIME_VALIDATION
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger
+        // the ASM plugin's runtime validation function to remove the exec function. This should cause the call to
+        // revert, but only after the ASM plugin's runtime validation function has run.
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.runtimeValidationFunction.selector),
+            1 // Should be called 1 time
+        );
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                UpgradeableModularAccount.UnrecognizedFunction.selector,
+                AccountStateMutatingPlugin.executionFunction.selector
+            )
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_RTValidation_add_postExec_associated_firstElement() public {
         // Source: Runtime-Validation
         // Target: post-Exec (different phase)
         // Addition (associated, first pre-exec): should run
+
+        // Set up the mock plugin with an associated post-Exec hook, which will be added and should run.
+        _initMockPluginPreAndPostExecutionHook();
+
+        // Install the ASM plugin with a runtime validation function that will add a post exec hook.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: false,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.RUNTIME_VALIDATION
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger
+        // the ASM plugin's runtime validation function to install the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_RTValidation_add_postExec_associated_notFirstElement() public {
         // Source: Runtime-Validation
         // Target: post-Exec (different phase)
         // Addition (associated, non-first pre-exec): should run
+
+        // Set up the mock plugin with an associated post-Exec hook, which will be added and should run.
+        _initMockPluginPreAndPostExecutionHook();
+
+        // Install the ASM plugin with a runtime validation function that will add a post exec hook.
+        // It also needs a pre exec hook to ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: false,
+            setPreExec: true,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.RUNTIME_VALIDATION
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger
+        // the ASM plugin's runtime validation function to install the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_RTValidation_remove_postExec_associated_firstElement() public {
         // Source: Runtime-Validation
         // Target: post-Exec (different phase)
         // Removal (associated, first pre-exec): should *not* run
+
+        // Set up the mock plugin with an associated post-Exec hook, which will be removed and should not run.
+        _initMockPluginPreAndPostExecutionHook();
+
+        // Install the mock plugin as part of the starting state.
+        _installMockPlugin();
+
+        // Install the ASM plugin with a runtime validation function that will remove the mock plugin's post exec
+        // hook.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: false,
+            setPreExec: false,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.RUNTIME_VALIDATION
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger
+        // the ASM plugin's runtime validation function to remove the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should not run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            0 // Should be called 0 times
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_RTValidation_remove_postExec_associated_notFirstElement() public {
         // Source: Runtime-Validation
         // Target: post-Exec (different phase)
         // Removal (associated, non-first pre-exec): should *not* run
+
+        // Set up the mock plugin with an associated post-Exec hook, which will be removed and should not run.
+        _initMockPluginPreAndPostExecutionHook();
+
+        // Install the mock plugin as part of the starting state.
+        _installMockPlugin();
+
+        // Install the ASM plugin with a runtime validation function that will remove the mock plugin's post exec
+        // hook. It also needs a pre exec hook to ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: false,
+            setPreExec: true,
+            setPostExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.RUNTIME_VALIDATION
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger
+        // the ASM plugin's runtime validation function to remove the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should not run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            0 // Should be called 0 times
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_RTValidation_add_postExec_firstElement() public {
         // Source: Runtime-Validation
         // Target: post-Exec (different phase)
         // Addition (first post-only): should run
+
+        // Set up the mock plugin with a post-Exec hook, which will be added and should run.
+        _initMockPluginPostOnlyExecutionHook();
+
+        // Install the ASM plugin with a runtime validation function that will add a post exec hook.
+        // It also needs a runtime validation function to allow the call to be performed.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: false,
+            setPostExec: false,
+            setPreExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.RUNTIME_VALIDATION
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger
+        // the ASM plugin's runtime validation function to install the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_RTValidation_add_postExec_notFirstElement() public {
         // Source: Runtime-Validation
         // Target: post-Exec (different phase)
         // Addition (non-first post-only): should run
+
+        // Set up the mock plugin with a post-Exec hook, which will be added and should run.
+        _initMockPluginPostOnlyExecutionHook();
+
+        // Install the ASM plugin with a runtime validation function that will add a post exec hook.
+        // It also needs a post-only exec hook to ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: false,
+            setPostExec: true,
+            setPreExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.RUNTIME_VALIDATION
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger
+        // the ASM plugin's runtime validation function to install the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_RTValidation_remove_postExec_firstElement() public {
         // Source: Runtime-Validation
         // Target: post-Exec (different phase)
         // Removal (first post-only): should *not* run
+
+        // Set up the mock plugin with a post-Exec hook, which will be removed and should not run.
+        _initMockPluginPostOnlyExecutionHook();
+
+        // Install the mock plugin as part of the starting state.
+        _installMockPlugin();
+
+        // Install the ASM plugin with a runtime validation function that will remove the mock plugin's post exec
+        // hook.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: false,
+            setPostExec: false,
+            setPreExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.RUNTIME_VALIDATION
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger
+        // the ASM plugin's runtime validation function to remove the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should not run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            0 // Should be called 0 times
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_RTValidation_remove_postExec_notFirstElement() public {
         // Source: Runtime-Validation
         // Target: post-Exec (different phase)
         // Removal (non-first post-only): should *not* run
+
+        // Set up the mock plugin with a post-Exec hook, which will be removed and should not run.
+        _initMockPluginPostOnlyExecutionHook();
+
+        // Install the mock plugin as part of the starting state.
+        _installMockPlugin();
+
+        // Install the ASM plugin with a runtime validation function that will remove the mock plugin's post exec
+        // hook. It also needs a post-only exec hook to ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setRTValidation: true,
+            setPreRTValidation: false,
+            setPostExec: true,
+            setPreExec: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.RUNTIME_VALIDATION
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account via a direct runtime call. This will trigger
+        // the ASM plugin's runtime validation function to remove the mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in a different phase, the state change should be applied and the
+        // mock plugin's hook should not run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            0 // Should be called 0 times
+        );
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 0 times
+        );
+        vm.prank(owner1);
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     // Source: pre-Exec
@@ -2034,9 +3140,33 @@ contract AccountStatePhasesTest is Test {
         _initMockPlugin();
     }
 
-    function _initMockPluginPreRuntimeValidationHook() internal {}
+    function _initMockPluginPreRuntimeValidationHook() internal {
+        m1.preRuntimeValidationHooks.push(
+            ManifestAssociatedFunction({
+                executionSelector: AccountStateMutatingPlugin.executionFunction.selector,
+                associatedFunction: ManifestFunction({
+                    functionType: ManifestAssociatedFunctionType.SELF,
+                    functionId: _PRE_RT_VALIDATION_HOOK_FUNCTION_ID_4,
+                    dependencyIndex: 0 // unused
+                })
+            })
+        );
+        _initMockPlugin();
+    }
 
-    function _initMockPluginRuntimeValidationFunction() internal {}
+    function _initMockPluginRuntimeValidationFunction() internal {
+        m1.runtimeValidationFunctions.push(
+            ManifestAssociatedFunction({
+                executionSelector: AccountStateMutatingPlugin.executionFunction.selector,
+                associatedFunction: ManifestFunction({
+                    functionType: ManifestAssociatedFunctionType.SELF,
+                    functionId: _RT_VALIDATION_FUNCTION_ID_6,
+                    dependencyIndex: 0 // unused
+                })
+            })
+        );
+        _initMockPlugin();
+    }
 
     function _initMockPluginPreExecutionHook() internal {
         m1.executionHooks.push(

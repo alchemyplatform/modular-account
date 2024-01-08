@@ -131,15 +131,17 @@ contract UpgradeableModularAccount is
     fallback(bytes calldata) external payable returns (bytes memory) {
         SelectorData storage selectorData = _getAccountStorage().selectorData[msg.sig];
 
-        address execPlugin = selectorData.plugin;
-        if (execPlugin == address(0)) {
-            revert UnrecognizedFunction(msg.sig);
-        }
-
         // Either reuse the call buffer from runtime validation, or allocate a new one. It may or may not be used
         // for pre exec hooks but it will be used for the plugin execution itself.
         bytes memory callBuffer =
             (msg.sender != address(_ENTRY_POINT)) ? _doRuntimeValidation() : _allocateRuntimeCallBuffer(msg.data);
+
+        // Defer loading in the execution phase data until runtime validation completes, to abide by the ERC-6900
+        // phase rules.
+        address execPlugin = selectorData.plugin;
+        if (execPlugin == address(0)) {
+            revert UnrecognizedFunction(msg.sig);
+        }
 
         bool hasPreExecHooks = selectorData.hasPreExecHooks;
         bool hasPostOnlyExecHooks = selectorData.hasPostOnlyExecHooks;
