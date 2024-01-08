@@ -286,6 +286,25 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         });
     }
 
+    function test_installPlugin_failIfAddingIPluginInterfaceId() public {
+        vm.startPrank(owner2);
+
+        PluginManifest memory manifestBad;
+        manifestBad.interfaceIds = new bytes4[](1);
+        manifestBad.interfaceIds[0] = type(IPlugin).interfaceId;
+        MockPlugin mockPluginBad = new MockPlugin(manifestBad);
+        bytes32 manifestHashBad = keccak256(abi.encode(mockPluginBad.pluginManifest()));
+
+        vm.expectRevert(PluginManagerInternals.IPluginInterfaceNotAllowed.selector);
+        IPluginManager(account2).installPlugin({
+            plugin: address(mockPluginBad),
+            manifestHash: manifestHashBad,
+            pluginInitData: bytes(""),
+            dependencies: new FunctionReference[](0),
+            injectedHooks: new IPluginManager.InjectedHook[](0)
+        });
+    }
+
     function test_installPlugin_failWtihErc4337FunctionSelector() public {
         vm.startPrank(owner2);
 
