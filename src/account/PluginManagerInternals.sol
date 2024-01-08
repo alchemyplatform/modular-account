@@ -51,6 +51,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
     error ExecutionFunctionAlreadySet(bytes4 selector);
     error ExecutionFunctionNotSet(bytes4 selector);
     error IPluginFunctionNotAllowed(bytes4 selector);
+    error IPluginInterfaceNotAllowed();
     error InvalidDependenciesProvided();
     error InvalidPluginManifest();
     error MissingPluginDependency(address dependency);
@@ -591,7 +592,11 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         // Add new interface ids the plugin enabled for the account
         length = manifest.interfaceIds.length;
         for (uint256 i = 0; i < length;) {
-            storage_.supportedInterfaces[manifest.interfaceIds[i]] += 1;
+            bytes4 interfaceId = manifest.interfaceIds[i];
+            if (interfaceId == type(IPlugin).interfaceId) {
+                revert IPluginInterfaceNotAllowed();
+            }
+            storage_.supportedInterfaces[interfaceId] += 1;
             unchecked {
                 ++i;
             }
