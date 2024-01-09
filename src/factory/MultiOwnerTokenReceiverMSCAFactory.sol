@@ -120,6 +120,8 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
 
     /// @notice Getter for counterfactual address based on input params
     /// @dev Owner array cannot be empty, cannot contain address(0), and cannot contain duplicates
+    /// Different order of valid owner addresses can produce different addresses. Highly recommend caller to sort
+    /// owners array before calling if that is not desired.
     /// @param salt salt for additional entropy for create2
     /// @param owners array of addresses of the owner
     function getAddress(uint256 salt, address[] calldata owners) external view returns (address) {
