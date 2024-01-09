@@ -28,6 +28,8 @@ import {MockPlugin} from "../mocks/MockPlugin.sol";
 
 // A test that verifies how the account caches the state of plugins. This is intended to ensure consistency of
 // execution flow when either hooks or plugins change installation state within a single call to the account.
+// NOTE: This test implicitly depends on hooks executionorder being latest-to-oldest. This is not guaranteed by
+// the spec, but is currently the case. If that changes, this test will need to be updated.
 contract AccountStatePhasesTest is Test {
     using ECDSA for bytes32;
 
@@ -2891,48 +2893,254 @@ contract AccountStatePhasesTest is Test {
         // Source: pre-Exec
         // Target: pre-Exec (same phase)
         // Addition (not first): should **not** run
+
+        // Set up the mock plugin with a pre-Exec hook, which will be added and should not run.
+        _initMockPluginPreExecutionHook();
+
+        // Install the ASM plugin with a pre exec hook that will add a pre exec hook.
+        // It also needs a pre exec hook to ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setPreExec: true,
+            setPostExec: false,
+            setRTValidation: false,
+            setPreRTValidation: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.PRE_EXECUTION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account by mocking a call from the EntryPoint, bypassing
+        // both user op and runtime validation. This will trigger the ASM plugin's pre exec hook to install the
+        // mock plugin's pre exec hook.
+        // Per the 6900 spec, because this is in the same phase, the state change should not be applied and the
+        // mock plugin's hook should not run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.preExecutionHook.selector),
+            0 // Should be called 0 times
+        );
+        vm.prank(address(entryPoint));
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preExec_remove_preExec() public {
         // Source: pre-Exec
         // Target: pre-Exec (same phase)
         // Removal: should still run
+
+        // Set up the mock plugin with a pre-Exec hook, which will be removed and should still run.
+        _initMockPluginPreExecutionHook();
+
+        // Install the mock plugin as part of the starting state.
+        _installMockPlugin();
+
+        // Install the ASM plugin with a pre exec hook that will remove the mock plugin's pre exec hook.
+        // It also needs a pre exec hook to ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setPreExec: true,
+            setPostExec: false,
+            setRTValidation: false,
+            setPreRTValidation: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.PRE_EXECUTION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account by mocking a call from the EntryPoint, bypassing
+        // both user op and runtime validation. This will trigger the ASM plugin's pre exec hook to remove the
+        // mock plugin's pre exec hook.
+        // Per the 6900 spec, because this is in the same phase, the state change should not be applied and the
+        // mock plugin's hook should still run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.preExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(address(entryPoint));
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preExec_replace_exec() public {
         // Source: pre-Exec
         // Target: Exec (same phase)
         // Replace: original should run
+
+        // Set up the mock plugin with an Exec function, which will replace the one defined by the ASM plugin
+        // and should not be run.
+        _initMockPluginExecFunction();
+
+        // Install the ASM plugin with a pre exec hook that will replace the exec function.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setPreExec: true,
+            setPostExec: false,
+            setRTValidation: false,
+            setPreRTValidation: false
+        });
+        // Encode two self-calls: one to uninstall ASM plugin, one to install the mock plugin.
+        Call[] memory calls = _generateCallsUninstallASMInstallMock();
+        asmPlugin.setCallback(
+            abi.encodeCall(IStandardExecutor.executeBatch, (calls)),
+            AccountStateMutatingPlugin.FunctionId.PRE_EXECUTION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account by mocking a call from the EntryPoint, bypassing
+        // both user op and runtime validation. This will trigger the ASM plugin's pre exec hook to replace the
+        // exec function with the mock plugin's exec function. The original should run, not the replacement.
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(AccountStateMutatingPlugin.executionFunction.selector),
+            1 // Should be called 1 time
+        );
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(AccountStateMutatingPlugin.executionFunction.selector),
+            0 // Should be called 0 times
+        );
+        vm.prank(address(entryPoint));
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preExec_remove_exec() public {
         // Source: pre-Exec
         // Target: Exec (same phase)
         // Removal: original should run
+
+        // Install the ASM plugin with a pre exec hook that will remove the exec function.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setPreExec: true,
+            setPostExec: false,
+            setRTValidation: false,
+            setPreRTValidation: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(asmPlugin), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.PRE_EXECUTION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account by mocking a call from the EntryPoint, bypassing
+        // both user op and runtime validation. This will trigger the ASM plugin's pre exec hook to remove the
+        // exec function. This NOT cause the call to revert, due to being in the same phase.
+        vm.expectCall(
+            address(asmPlugin),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(AccountStateMutatingPlugin.executionFunction.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(address(entryPoint));
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
-    function test_ASP_preExec_add_postExec_associated_firstElement() public {
-        // Source: pre-Exec
-        // Target: post-Exec (same phase)
-        // Addition (associated, first pre-exec): *impossible*
-    }
+    // Source: pre-Exec
+    // Target: post-Exec (same phase)
+    // Addition (associated, first pre-exec): *impossible*
 
     function test_ASP_preExec_add_postExec_associated_notFirstElement() public {
         // Source: pre-Exec
         // Target: post-Exec (same phase)
-        // Addition (associated, non-first pre-exec): should ****not**** run
+        // Addition (associated, non-first pre-exec): should *not* run
+
+        // Set up the mock plugin with an associated post-Exec hook, which will be added and should not run.
+        _initMockPluginPreAndPostExecutionHook();
+
+        // Install the ASM plugin with a pre exec hook that will add a post exec hook.
+        // It also needs a pre exec hook to ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setPreExec: true,
+            setPostExec: false,
+            setRTValidation: false,
+            setPreRTValidation: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(
+                IPluginManager.installPlugin,
+                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+            ),
+            AccountStateMutatingPlugin.FunctionId.PRE_EXECUTION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account by mocking a call from the EntryPoint, bypassing
+        // both user op and runtime validation. This will trigger the ASM plugin's pre exec hook to install the
+        // mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in the same phase, the state change should not be applied and the
+        // mock plugin's hook should not run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            0 // Should be called 0 times
+        );
+        vm.prank(address(entryPoint));
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
-    function test_ASP_preExec_remove_postExec_associated_firstElement() public {
-        // Source: pre-Exec
-        // Target: post-Exec (same phase)
-        // Removal (associated, first pre-exec): *impossible*
-    }
+    // Source: pre-Exec
+    // Target: post-Exec (same phase)
+    // Removal (associated, first pre-exec): *impossible*
 
     function test_ASP_preExec_remove_postExec_associated_notFirstElement() public {
         // Source: pre-Exec
         // Target: post-Exec (same phase)
         // Removal (associated, non-first pre-exec): should still run
+
+        // Set up the mock plugin with an associated post-Exec hook, which will be removed and should still run.
+        _initMockPluginPreAndPostExecutionHook();
+
+        // Install the mock plugin as part of the starting state.
+        _installMockPlugin();
+
+        // Install the ASM plugin with a pre exec hook that will remove the mock plugin's post exec hook.
+        // It also needs a pre exec hook to ensure that the mock plugin's hook is not the first one.
+        asmPlugin.configureInstall({
+            setUOValidation: false,
+            setPreUOValidation: false,
+            setPreExec: true,
+            setPostExec: false,
+            setRTValidation: false,
+            setPreRTValidation: false
+        });
+        asmPlugin.setCallback(
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            AccountStateMutatingPlugin.FunctionId.PRE_EXECUTION_HOOK
+        );
+        _installASMPlugin();
+
+        // Call the `executionFunction` function on the account by mocking a call from the EntryPoint, bypassing
+        // both user op and runtime validation. This will trigger the ASM plugin's pre exec hook to remove the
+        // mock plugin's post exec hook.
+        // Per the 6900 spec, because this is in the same phase, the state change should not be applied and the
+        // mock plugin's hook should still run.
+        vm.expectCall(
+            address(mockPlugin1),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 1 time
+        );
+        vm.prank(address(entryPoint));
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     function test_ASP_preExec_add_postExec_firstElement() public {

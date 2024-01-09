@@ -718,6 +718,8 @@ contract UpgradeableModularAccount is
 
             _updatePluginCallBufferFunctionId(callBuffer, functionId);
 
+            // TODO: this flags check re-checks storage, which we can't do, because we need to cache this prior to
+            // running any hooks.
             if (preHookSet.flagsEnabled(CastLib.toSetValue(preExecHook), _PRE_EXEC_HOOK_HAS_POST_FLAG)) {
                 FunctionReference[] memory associatedPostExecHooks =
                     CastLib.toFunctionReferenceArray(associatedPostHooks[preExecHook].getAll());
