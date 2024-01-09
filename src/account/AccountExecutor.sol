@@ -93,9 +93,8 @@ abstract contract AccountExecutor {
             )
             case 0 {
                 // Bubble up the revert if the call reverts.
-                let m := mload(0x40)
-                returndatacopy(m, 0x00, returndatasize())
-                revert(m, returndatasize())
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
             }
             default {
                 // Otherwise, we return the first word of the return data as the validation data

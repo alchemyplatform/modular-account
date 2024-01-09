@@ -205,7 +205,8 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
 
     /// @inheritdoc BasePlugin
     /// @dev Since owner can be an ERC-1271 compliant contract, we won't know the format of the signatures.
-    /// Therefore, any invalid signature are treated as mismatched signatures in the ERC-4337 context.
+    /// Therefore, any invalid signature are treated as mismatched signatures in the ERC-4337 context unless
+    /// reverted in ERC-1271 owner signature validation.
     function userOpValidationFunction(uint8 functionId, UserOperation calldata userOp, bytes32 userOpHash)
         external
         view
