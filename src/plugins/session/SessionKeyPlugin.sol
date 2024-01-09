@@ -168,13 +168,18 @@ contract SessionKeyPlugin is BasePlugin, ISessionKeyPlugin {
             (, address sessionKey) = abi.decode(userOp.callData[4:], (Call[], address));
             bytes32 hash = userOpHash.toEthSignedMessageHash();
 
-            if (_sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey))) {
-                (address recoveredSig, ECDSA.RecoverError err) = hash.tryRecover(userOp.signature);
-                if (err == ECDSA.RecoverError.NoError && sessionKey == recoveredSig) {
+            (address recoveredSig, ECDSA.RecoverError err) = hash.tryRecover(userOp.signature);
+            if (err == ECDSA.RecoverError.NoError) {
+                if (
+                    _sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey)) && sessionKey == recoveredSig
+                ) {
                     return _SIG_VALIDATION_PASSED;
+                } else {
+                    return _SIG_VALIDATION_FAILED;
                 }
+            } else {
+                revert InvalidSignature(sessionKey);
             }
-            return _SIG_VALIDATION_FAILED;
         }
         revert NotImplemented();
     }

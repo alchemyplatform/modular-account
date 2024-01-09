@@ -92,8 +92,9 @@ abstract contract AccountExecutor {
                 )
             )
             case 0 {
-                // If the call failed or did not return enough data, we return 1 (SIG_FAIL) as the validation data
-                validationData := 1
+                // Bubble up the revert if the call reverts.
+                returndatacopy(0, 0, returndatasize())
+                revert(0, returndatasize())
             }
             default {
                 // Otherwise, we return the first word of the return data as the validation data

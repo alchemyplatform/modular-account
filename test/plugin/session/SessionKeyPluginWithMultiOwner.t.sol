@@ -235,7 +235,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         assertEq(result, 0);
     }
 
-    function testFuzz_sessionKey_userOpValidation_invalid(uint8 sessionKeysSeed, uint64 signerSeed) public {
+    function testFuzz_sessionKey_userOpValidation_mismathcedSig(uint8 sessionKeysSeed, uint64 signerSeed) public {
         _createSessionKeys(sessionKeysSeed);
 
         (address signer, uint256 signerPrivate) =
@@ -274,6 +274,45 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         );
 
         assertEq(result, 1);
+    }
+
+    function testFuzz_sessionKey_userOpValidation_invalidSig(uint8 sessionKeysSeed, uint64 signerSeed) public {
+        _createSessionKeys(sessionKeysSeed);
+
+        (address signer, uint256 signerPrivate) =
+            makeAddrAndKey(string.concat("Signer", vm.toString(uint32(signerSeed))));
+
+        // The signer should not be a session key of the plugin - this is exceedingly unlikely but checking
+        // anyways.
+        vm.assume(!sessionKeyPlugin.isSessionKeyOf(address(account1), signer));
+
+        // Construct a user op to validate against
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({target: recipient, value: 1 wei, data: ""});
+        UserOperation memory userOp = UserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: abi.encodeCall(
+                ISessionKeyPlugin(address(sessionKeyPlugin)).executeWithSessionKey, (calls, signer)
+                ),
+            callGasLimit: CALL_GAS_LIMIT,
+            verificationGasLimit: VERIFICATION_GAS_LIMIT,
+            preVerificationGas: 0,
+            maxFeePerGas: 2,
+            maxPriorityFeePerGas: 1,
+            paymasterAndData: "",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        userOp.signature = "";
+
+        vm.prank(address(account1));
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidSignature.selector, signer));
+        uint256 result = sessionKeyPlugin.userOpValidationFunction(
+            uint8(ISessionKeyPlugin.FunctionId.USER_OP_VALIDATION_SESSION_KEY), userOp, userOpHash
+        );
     }
 
     function testFuzz_sessionKey_invalidFunctionId(uint8 functionId, UserOperation memory userOp) public {
