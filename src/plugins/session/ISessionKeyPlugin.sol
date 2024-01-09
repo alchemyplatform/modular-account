@@ -13,6 +13,7 @@ interface ISessionKeyPlugin {
     error NotAuthorized(address caller);
     error SessionKeyNotFound(address sessionKey);
     error UnableToRemove(address sessionKey);
+    error InvalidSignature(address sessionKey);
 
     struct SessionKeyToRemove {
         address sessionKey;

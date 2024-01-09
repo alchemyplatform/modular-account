@@ -414,7 +414,8 @@ contract SessionKeyPermissionsPluginTest is Test {
             sessionKey1Private,
             abi.encodeCall(Counter.increment, ()),
             0 wei,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            // Entrypoint wont recognize and bubble up KeyNotRegistered custom error in ver0.6.0
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
 
         // Attempting to use the new key should succeed
