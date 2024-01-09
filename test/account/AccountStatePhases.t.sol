@@ -1707,6 +1707,9 @@ contract AccountStatePhasesTest is Test {
         // Target: Runtime-Validation (same phase)
         // Removal: original should run
 
+        // To allow the exec call to not revert, we add the execution function to the mock plugin.
+        _initMockPluginExecFunction();
+
         // Install the ASM plugin with a pre runtime validation hook that will remove the runtime validation
         // function.
         // Runtime validation is also needed to allow the call to be performed.
@@ -1718,8 +1721,9 @@ contract AccountStatePhasesTest is Test {
             setPreExec: false,
             setPostExec: false
         });
+        Call[] memory calls = _generateCallsUninstallASMInstallMock();
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(asmPlugin), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IStandardExecutor.executeBatch, (calls)),
             AccountStateMutatingPlugin.FunctionId.PRE_RUNTIME_VALIDATION_HOOK
         );
         _installASMPlugin();

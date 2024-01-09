@@ -537,7 +537,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         // manifest for uninstallation despite being given the old one).
         vm.expectRevert(
             abi.encodeWithSelector(
-                UpgradeableModularAccount.UnrecognizedFunction.selector,
+                UpgradeableModularAccount.RuntimeValidationFunctionMissing.selector,
                 CanChangeManifestPlugin.someExecutionFunction.selector
             )
         );
