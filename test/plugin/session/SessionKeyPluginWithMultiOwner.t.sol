@@ -279,8 +279,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
     function testFuzz_sessionKey_userOpValidation_invalidSig(uint8 sessionKeysSeed, uint64 signerSeed) public {
         _createSessionKeys(sessionKeysSeed);
 
-        (address signer, uint256 signerPrivate) =
-            makeAddrAndKey(string.concat("Signer", vm.toString(uint32(signerSeed))));
+        (address signer,) = makeAddrAndKey(string.concat("Signer", vm.toString(uint32(signerSeed))));
 
         // The signer should not be a session key of the plugin - this is exceedingly unlikely but checking
         // anyways.
@@ -310,7 +309,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
 
         vm.prank(address(account1));
         vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidSignature.selector, signer));
-        uint256 result = sessionKeyPlugin.userOpValidationFunction(
+        sessionKeyPlugin.userOpValidationFunction(
             uint8(ISessionKeyPlugin.FunctionId.USER_OP_VALIDATION_SESSION_KEY), userOp, userOpHash
         );
     }
