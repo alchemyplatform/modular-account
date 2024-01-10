@@ -7,13 +7,11 @@ import {SetValue} from "./LinkedListSetUtils.sol";
 /// @title Countable Linked List Set Library
 /// @author Alchemy
 /// @notice This library adds the ability to count the number of occurrences of a value in a linked list set.
+/// @dev The counter is stored in the upper 8 bits of the the flag bytes, so the maximum value of the counter
+/// is 255. This means each value can be included a maximum of 256 times in the set, as the counter is 0 when
+/// the value is first added.
 library CountableLinkedListSetLib {
     using LinkedListSetLib for LinkedListSet;
-
-    /// @dev The counter is stored in the upper 8 bits of the the flag bytes, so the maximum value of the counter
-    /// is 255. This means each value can be included a maximum of 256 times in the set, as the counter is 0 when
-    /// the value is first added.
-    uint16 internal constant _MAX_COUNTER_VALUE = 255;
 
     /// @notice Increment an existing value in the set, or add it if it doesn't exist.
     /// @dev The counter is stored in the upper 8 bits of the the flag bytes. Because this library repurposes a
@@ -27,15 +25,14 @@ library CountableLinkedListSetLib {
             return set.tryAdd(value);
         }
         uint16 flags = set.getFlags(value);
-        // Use the upper 8 bits of the (16-bit) flag for the counter.
-        uint16 counter = flags >> 8;
-        if (counter == _MAX_COUNTER_VALUE) {
+        if (flags > 0xFEFF) {
+            // The counter is at its maximum value, so don't increment it.
             return false;
         }
         unchecked {
-            ++counter;
+            flags += 0x100;
         }
-        return set.trySetFlags(value, (counter << 8) | (flags & 0xFF));
+        return set.trySetFlags(value, flags);
     }
 
     /// @notice Decrement an existing value in the set, or remove it if the count has reached 0.
@@ -50,15 +47,14 @@ library CountableLinkedListSetLib {
             return false;
         }
         uint16 flags = set.getFlags(value);
-        // Use the upper 8 bits of the (16-bit) flag for the counter.
-        uint16 counter = flags >> 8;
-        if (counter == 0) {
+        if (flags < 0x100) {
+            // The counter is 0, so remove the value.
             return set.tryRemove(value);
         }
         unchecked {
-            --counter;
+            flags -= 0x100;
         }
-        return set.trySetFlags(value, (counter << 8) | (flags & 0xFF));
+        return set.trySetFlags(value, flags);
     }
 
     /// @notice Get the number of occurrences of a value in the set.
