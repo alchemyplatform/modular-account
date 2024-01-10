@@ -611,7 +611,7 @@ contract UpgradeableModularAccount is
         _cacheAssociatedPostHooks(preExecHooks, selectorData.executionHooks, postHooksToRun, currentIndex);
 
         // Run all pre-exec hooks and capture their outputs.
-        _doPreHooks(preExecHooks, callBuffer, postHookArgs, 0);
+        _doPreHooks(preExecHooks, callBuffer, postHooksToRun, postHookArgs, 0);
     }
 
     function _doPrePermittedCallHooks(
@@ -682,10 +682,12 @@ contract UpgradeableModularAccount is
         );
 
         // Run the permitted call hooks
-        _doPreHooks(prePermittedCallHooks, callBuffer, postHookArgs, currentIndex);
+        _doPreHooks(prePermittedCallHooks, callBuffer, postHooksToRun, postHookArgs, currentIndex);
 
         // Run the pre-exec hooks
-        _doPreHooks(preExecHooks, callBuffer, postHookArgs, currentIndex + prePermittedCallHooks.length);
+        _doPreHooks(
+            preExecHooks, callBuffer, postHooksToRun, postHookArgs, currentIndex + prePermittedCallHooks.length
+        );
     }
 
     function _cacheAssociatedPostHooks(
@@ -717,6 +719,7 @@ contract UpgradeableModularAccount is
     function _doPreHooks(
         FunctionReference[] memory preHooks,
         bytes memory callBuffer,
+        FunctionReference[][] memory postHooks, // Only used to check if any post hooks exist.
         bytes[] memory hookReturnData,
         uint256 startingIndex // Where to start writing into hookReturnData
     ) internal {
@@ -750,9 +753,15 @@ contract UpgradeableModularAccount is
 
             _executeRuntimePluginFunction(callBuffer, plugin, PreExecHookReverted.selector);
 
-            // TODO: Are we able to restrict collecting return data to only the cases where we have associated post
-            // hooks? Can't check storage, because that would break the phase rules.
-            hookReturnData[startingIndex + i] = abi.decode(_collectReturnData(), (bytes));
+            uint256 adjustedIndex;
+            unchecked {
+                adjustedIndex = startingIndex + i;
+            }
+
+            // Only collect the return data if there is at least one post-hook to consume it.
+            if (postHooks[adjustedIndex].length > 0) {
+                hookReturnData[adjustedIndex] = abi.decode(_collectReturnData(), (bytes));
+            }
 
             unchecked {
                 ++i;
