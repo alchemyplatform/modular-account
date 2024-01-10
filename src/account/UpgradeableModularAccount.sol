@@ -595,12 +595,11 @@ contract UpgradeableModularAccount is
             // Cache post-exec hooks in memory
             _cacheAssociatedPostHooks(
                 preExecHooks,
-                selectorData.executionHooks.preHooks,
+                selectorData.executionHooks,
                 postHooksToRun,
-                // Start writing into the postHooksToRun array at an that depends on whether or not we have
+                // Start writing into the postHooksToRun array at a location that depends on whether or not we have
                 // post-only hooks.
-                (hasPostOnlyExecHooks ? 1 : 0),
-                selectorData.executionHooks.associatedPostHooks
+                (hasPostOnlyExecHooks ? 1 : 0)
             );
 
             if (hasPostOnlyExecHooks) {
@@ -682,22 +681,14 @@ contract UpgradeableModularAccount is
 
         // Cache post-permitted-call hooks in memory
         _cacheAssociatedPostHooks(
-            prePermittedCallHooks,
-            permittedCallData.permittedCallHooks.preHooks,
-            postHooksToRun,
-            currentIndex,
-            permittedCallData.permittedCallHooks.associatedPostHooks
+            prePermittedCallHooks, permittedCallData.permittedCallHooks, postHooksToRun, currentIndex
         );
 
         // Cache post-exec hooks in memory
         // We use `currentIndex + prePermittedCallHooks.length` for the starting index but do not update it,
         // because its current value is useful for executing the hooks.
         _cacheAssociatedPostHooks(
-            preExecHooks,
-            selectorData.executionHooks.preHooks,
-            postHooksToRun,
-            currentIndex + prePermittedCallHooks.length,
-            selectorData.executionHooks.associatedPostHooks
+            preExecHooks, selectorData.executionHooks, postHooksToRun, currentIndex + prePermittedCallHooks.length
         );
 
         // Run the permitted call hooks
@@ -709,20 +700,19 @@ contract UpgradeableModularAccount is
 
     function _cacheAssociatedPostHooks(
         FunctionReference[] memory preExecHooks,
-        LinkedListSet storage preHookSet,
+        HookGroup storage hookGroup,
         FunctionReference[][] memory postHooks,
-        uint256 startingIndex,
-        mapping(FunctionReference => LinkedListSet) storage associatedPostHooks
-    ) internal {
+        uint256 startingIndex
+    ) internal view {
         uint256 preExecHooksLength = preExecHooks.length;
         for (uint256 i = 0; i < preExecHooksLength;) {
             FunctionReference preExecHook = preExecHooks[i];
 
             // If the pre-exec hook has associated post hooks, cache them in the postHooks array.
-            if (preHookSet.flagsEnabled(CastLib.toSetValue(preExecHook), _PRE_EXEC_HOOK_HAS_POST_FLAG)) {
+            if (hookGroup.preHooks.flagsEnabled(CastLib.toSetValue(preExecHook), _PRE_EXEC_HOOK_HAS_POST_FLAG)) {
                 // We start writing into the postHooks array starting at the `startingIndex` and counting up.
                 postHooks[startingIndex + i] =
-                    CastLib.toFunctionReferenceArray(associatedPostHooks[preExecHook].getAll());
+                    CastLib.toFunctionReferenceArray(hookGroup.associatedPostHooks[preExecHook].getAll());
             }
             // In no-associated-post-hooks case, we're OK returning the default value, which is an array of length
             // 0.
@@ -786,7 +776,13 @@ contract UpgradeableModularAccount is
         // Run post hooks in reverse order of their associated pre hooks.
         uint256 postHookArrsLength = postHooks.length;
         for (uint256 i = postHookArrsLength; i > 0;) {
-            FunctionReference[] memory postHooksToRun = postHooks[i];
+            uint256 index;
+            unchecked {
+                // i starts as the length of the array and goes to 1, not zero, to avoid underflowing.
+                // To use the index for array access, we need to subtract 1.
+                index = i - 1;
+            }
+            FunctionReference[] memory postHooksToRun = postHooks[index];
 
             // We don't need to run each associated post-hook in reverse order, because the associativity we want
             // to maintain is reverse order of associated pre-hooks.
@@ -796,7 +792,7 @@ contract UpgradeableModularAccount is
 
                 // Execute the post hook with the current post hook args
                 // solhint-disable-next-line no-empty-blocks
-                try IPlugin(plugin).postExecutionHook(functionId, postHookArgs[i]) {}
+                try IPlugin(plugin).postExecutionHook(functionId, postHookArgs[index]) {}
                 catch (bytes memory revertReason) {
                     revert PostExecHookReverted(plugin, functionId, revertReason);
                 }

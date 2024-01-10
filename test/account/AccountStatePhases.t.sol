@@ -3278,6 +3278,34 @@ contract AccountStatePhasesTest is Test {
         // Target: post-Exec (same phase)
         // Removal (non-first post-only): should still run
 
+        // Since the ASM plugin can't define a post-only hook due to using a pre exec hook for its action, we
+        // need to add another mock plugin to add the first post-only exec hook, in order to test this case.
+
+        PluginManifest memory m2;
+        m2.executionHooks = new ManifestExecutionHook[](1);
+        m2.executionHooks[0] = ManifestExecutionHook({
+            executionSelector: AccountStateMutatingPlugin.executionFunction.selector,
+            preExecHook: ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.NONE,
+                functionId: 0, // Unused
+                dependencyIndex: 0 // Unused
+            }),
+            postExecHook: ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.SELF,
+                functionId: _POST_HOOK_FUNCTION_ID_2,
+                dependencyIndex: 0 // Unused
+            })
+        });
+        bytes32 manifestHash2 = _manifestHashOf(m2);
+        MockPlugin mockPlugin2 = new MockPlugin(m2);
+
+        vm.expectEmit(true, true, true, true);
+        emit ReceivedCall(abi.encodeCall(IPlugin.onInstall, (bytes(""))), 0);
+        vm.expectEmit(true, true, true, true);
+        emit PluginInstalled(address(mockPlugin2), manifestHash2, _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS);
+        vm.prank(owner1);
+        account1.installPlugin(address(mockPlugin2), manifestHash2, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS);
+
         // Set up the mock plugin with a post-Exec hook, which will be removed and should still run.
         _initMockPluginPostOnlyExecutionHook();
 
@@ -3293,7 +3321,7 @@ contract AccountStatePhasesTest is Test {
             setUOValidation: false,
             setPreUOValidation: false,
             setPreExec: true,
-            setPostExec: true,
+            setPostExec: false,
             setRTValidation: false,
             setPreRTValidation: false
         });
@@ -3315,11 +3343,13 @@ contract AccountStatePhasesTest is Test {
             1 // Should be called 1 time
         );
         vm.expectCall(
-            address(asmPlugin),
+            address(mockPlugin2),
             // Partial calldata is provided to match against different parameters.
             abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
             1 // Should be called 1 time
         );
+        vm.prank(address(entryPoint));
+        AccountStateMutatingPlugin(address(account1)).executionFunction();
     }
 
     // Source: Exec
@@ -3598,13 +3628,11 @@ contract AccountStatePhasesTest is Test {
     // Installs the account state mutating plugin. Prior to calling this, the test should configure the desired
     // plugin functions and callbacks, since the manifest will mutate based on that.
     function _installASMPlugin() internal {
-        FunctionReference[] memory dependencies = new FunctionReference[](0);
-        IPluginManager.InjectedHook[] memory injectedHooks = new IPluginManager.InjectedHook[](0);
         bytes32 manifestHash = _manifestHashOf(asmPlugin.pluginManifest());
         vm.expectEmit(true, true, true, true);
-        emit PluginInstalled(address(asmPlugin), manifestHash, dependencies, injectedHooks);
+        emit PluginInstalled(address(asmPlugin), manifestHash, _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS);
         vm.prank(owner1);
-        account1.installPlugin(address(asmPlugin), manifestHash, "", dependencies, injectedHooks);
+        account1.installPlugin(address(asmPlugin), manifestHash, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS);
     }
 
     // Sets up the manifest hash variable and deploys the mock plugin.
@@ -3616,14 +3644,12 @@ contract AccountStatePhasesTest is Test {
     // Installs the mock plugin onto the account. Prior to calling this, the test should configure the desired
     // plugin functions, and call _initMockPlugin() to set up the mock plugin.
     function _installMockPlugin() internal {
-        FunctionReference[] memory dependencies = new FunctionReference[](0);
-        IPluginManager.InjectedHook[] memory injectedHooks = new IPluginManager.InjectedHook[](0);
         vm.expectEmit(true, true, true, true);
         emit ReceivedCall(abi.encodeCall(IPlugin.onInstall, (bytes(""))), 0);
         vm.expectEmit(true, true, true, true);
-        emit PluginInstalled(address(mockPlugin1), manifestHash1, dependencies, injectedHooks);
+        emit PluginInstalled(address(mockPlugin1), manifestHash1, _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS);
         vm.prank(owner1);
-        account1.installPlugin(address(mockPlugin1), manifestHash1, "", dependencies, injectedHooks);
+        account1.installPlugin(address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS);
     }
 
     function _manifestHashOf(PluginManifest memory manifest) internal pure returns (bytes32) {

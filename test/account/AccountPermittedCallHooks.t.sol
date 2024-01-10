@@ -537,7 +537,7 @@ contract UpgradeableModularAccountPermittedCallHooksTest is Test {
     }
 
     /// @dev Plugin hook pair(s): [1, 2], [1, 4]
-    ///      Expected execution: [1, 2], [1, 4]
+    ///      Expected execution: [1, 2], [null, 4]
     function test_overlappingPermittedCallHookPairsOnPre_run() public {
         test_overlappingPermittedCallHookPairsOnPre_install();
 
@@ -553,7 +553,7 @@ contract UpgradeableModularAccountPermittedCallHooksTest is Test {
                 0, // msg.value in call to account
                 abi.encodePacked(_EXEC_SELECTOR)
             ),
-            2
+            1
         );
 
         // Expect each post hook to be called once, with the expected data.
