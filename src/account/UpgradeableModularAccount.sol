@@ -234,6 +234,7 @@ contract UpgradeableModularAccount is
         bytes memory callBuffer = _allocateRuntimeCallBuffer(data);
 
         SelectorData storage selectorData = storage_.selectorData[selector];
+        // Load the plugin address from storage prior to running any hooks, to abide by the ERC-6900 phase rules.
         address execFunctionPlugin = selectorData.plugin;
 
         (FunctionReference[][] memory postHooksToRun, bytes[] memory postExecHookArgs) =
