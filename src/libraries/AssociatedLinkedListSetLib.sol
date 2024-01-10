@@ -164,9 +164,9 @@ library AssociatedLinkedListSetLib {
         }
 
         // Need to do:
-        // map[prev] = clearFlags(next) | getUserFlags(currentValue) | (next & HAS_NEXT_FLAG);
+        // map[prev] = clearUserFlags(next) | getUserFlags(currentValue);
         // map[unwrappedKey] = bytes32(0);
-        _store(prevSlot, clearFlags(next) | getUserFlags(currentValue) | (next & HAS_NEXT_FLAG));
+        _store(prevSlot, clearUserFlags(next) | getUserFlags(currentValue));
         _store(valueSlot, bytes32(0));
 
         return true;
