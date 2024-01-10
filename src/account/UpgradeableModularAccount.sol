@@ -305,12 +305,8 @@ contract UpgradeableModularAccount is
             revert ExecFromPluginExternalNotPermitted(callingPlugin, target, value, data);
         }
 
-        // Run permitted call hooks and execution hooks. `executeFromPluginExternal` doesn't use PermittedCallData
-        // to check call permissions, nor do they have an address entry in SelectorData, so it doesn't make sense
-        // to use cached booleans (hasPreExecHooks, hasPostOnlyExecHooks, etc.) to conditionally bypass certain
-        // steps, as it would just be an added `sload` in the nonzero hooks case.
-
-        // Run any pre permitted call hooks specific to this caller and the `executeFromPluginExternal` selector
+        // Run any pre permitted call hooks specific to this caller and the `executeFromPluginExternal` selector,
+        // then run any pre-exec hooks associated with the `executeFromPluginExternal` selector.
         PermittedCallData storage permittedCallData = storage_.permittedCalls[_getPermittedCallKey(
             callingPlugin, IPluginExecutor.executeFromPluginExternal.selector
         )];
@@ -318,7 +314,7 @@ contract UpgradeableModularAccount is
             storage_.selectorData[IPluginExecutor.executeFromPluginExternal.selector];
 
         (FunctionReference[][] memory postHooksToRun, bytes[] memory postHookArgs) =
-            _doPrePermittedCallHooks(selectorData, permittedCallData, ""); // TODO: No call buffer here, is that OK?
+            _doPrePermittedCallHooks(selectorData, permittedCallData, "");
 
         // Perform the external call
         bytes memory returnData = _exec(target, value, data);
@@ -574,6 +570,7 @@ contract UpgradeableModularAccount is
         }
     }
 
+    /// @dev Executes pre-exec hooks and returns the post-exec hooks to run and their associated args.
     function _doPreExecHooks(SelectorData storage selectorData, bytes memory callBuffer)
         internal
         returns (FunctionReference[][] memory postHooksToRun, bytes[] memory postHookArgs)
@@ -614,6 +611,8 @@ contract UpgradeableModularAccount is
         _doPreHooks(preExecHooks, callBuffer, postHooksToRun, postHookArgs, 0);
     }
 
+    /// @dev Executes pre-permitted call hooks and pre-exec hooks, and returns the post-exec hooks to run and
+    /// their associated args.
     function _doPrePermittedCallHooks(
         SelectorData storage selectorData,
         PermittedCallData storage permittedCallData,
@@ -627,6 +626,11 @@ contract UpgradeableModularAccount is
 
         bool hasPreExecHooks = selectorData.hasPreExecHooks;
         bool hasPostOnlyExecHooks = selectorData.hasPostOnlyExecHooks;
+
+        // If we have any type of pre hooks, we need to allocate memory for them to perform their call.
+        if (callBuffer.length == 0 && (hasPrePermittedCallHooks || hasPreExecHooks)) {
+            callBuffer = _allocateRuntimeCallBuffer(msg.data);
+        }
 
         if (hasPrePermittedCallHooks) {
             prePermittedCallHooks =
@@ -690,6 +694,11 @@ contract UpgradeableModularAccount is
         );
     }
 
+    /// @dev Loads the associated post hooks for the given pre-exec hooks in the `postHooks` array, starting at
+    /// `startingIndex`.
+    /// NOTE: The caller must ensure that:
+    /// - `postHooks` is allocated, and `startingIndex + preHooks.length` does not exceed the array bounds of
+    /// `postHooks`.
     function _cacheAssociatedPostHooks(
         FunctionReference[] memory preExecHooks,
         HookGroup storage hookGroup,
@@ -715,7 +724,14 @@ contract UpgradeableModularAccount is
         }
     }
 
-    //TODO: comment describing assumptions about allocation state of hookReturnData, and callbuffer
+    /// @dev Execute all pre hooks provided, using the call buffer if provided.
+    /// Outputs are captured into the `hookReturnData` array, in increasing index starting at `startingIndex`.
+    /// The `postHooks` array is used to determine whether or not to capture the return data.
+    /// NOTE: The caller must ensure that:
+    /// - `postHooks` is allocated, and `startingIndex + preHooks.length` does not exceed the array bounds of
+    /// `postHooks`.
+    /// - `hookReturnData` is allocated, and `startingIndex + preHooks.length` does not exceed the array bounds of
+    /// `hookReturnData`.
     function _doPreHooks(
         FunctionReference[] memory preHooks,
         bytes memory callBuffer,
@@ -770,7 +786,7 @@ contract UpgradeableModularAccount is
     }
 
     /// @dev Executes all post hooks in the nested array, using the corresponding args in the nested array.
-    /// Executes the elements in reverse order, so the caller should ensure the ordering correct before calling.
+    /// Executes the elements in reverse order, so the caller should ensure the correct ordering before calling.
     function _doCachedPostHooks(FunctionReference[][] memory postHooks, bytes[] memory postHookArgs) internal {
         // Run post hooks in reverse order of their associated pre hooks.
         uint256 postHookArrsLength = postHooks.length;

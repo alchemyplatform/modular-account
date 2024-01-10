@@ -417,10 +417,36 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         // Set up the mock plugin with a post-Exec hook, which will be added and should not run.
         _initMockPluginPostOnlyExecutionHook();
 
+        // Since the ASM plugin can't define a post-only hook due to using a pre exec hook for its action, we
+        // need to add another mock plugin to add the first post-only exec hook, in order to test this case.
+
+        PluginManifest memory m2;
+        m2.executionHooks = new ManifestExecutionHook[](1);
+        m2.executionHooks[0] = ManifestExecutionHook({
+            executionSelector: AccountStateMutatingPlugin.executionFunction.selector,
+            preExecHook: ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.NONE,
+                functionId: 0, // Unused
+                dependencyIndex: 0 // Unused
+            }),
+            postExecHook: ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.SELF,
+                functionId: _POST_HOOK_FUNCTION_ID_2,
+                dependencyIndex: 0 // Unused
+            })
+        });
+        bytes32 manifestHash2 = _manifestHashOf(m2);
+        MockPlugin mockPlugin2 = new MockPlugin(m2);
+
+        vm.expectEmit(true, true, true, true);
+        emit ReceivedCall(abi.encodeCall(IPlugin.onInstall, (bytes(""))), 0);
+        vm.expectEmit(true, true, true, true);
+        emit PluginInstalled(address(mockPlugin2), manifestHash2, _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS);
+        vm.prank(owner1);
+        account1.installPlugin(address(mockPlugin2), manifestHash2, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS);
+
         // Install the ASM plugin with a pre exec hook that will add a post exec hook.
         // It also needs a post-only exec hook to ensure that the mock plugin's hook is not the first one.
-        // TODO: The ASM plugin can't define a post-only hook, since it needs to perform its action via a pre-exec
-        // hook, which would make the post hook associated.
         asmPlugin.configureInstall({
             setUOValidation: false,
             setPreUOValidation: false,
@@ -448,6 +474,12 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             // Partial calldata is provided to match against different parameters.
             abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
             0 // Should be called 0 times
+        );
+        vm.expectCall(
+            address(mockPlugin2),
+            // Partial calldata is provided to match against different parameters.
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector),
+            1 // Should be called 1 time
         );
         vm.prank(address(entryPoint));
         AccountStateMutatingPlugin(address(account1)).executionFunction();
@@ -534,10 +566,6 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         _installMockPlugin();
 
         // Install the ASM plugin with a pre exec hook that will remove the mock plugin's post exec hook.
-        // It also needs a post-only exec hook to ensure that the mock plugin's hook is not the first one.
-        // TODO: This does not actually add a post-only exec hook, since the pre-exec hook defined here causes the
-        // post exec hook to be associated. We need to add another mock plugin to add the first post-only exec
-        // hook, in order to test this case.
         asmPlugin.configureInstall({
             setUOValidation: false,
             setPreUOValidation: false,
