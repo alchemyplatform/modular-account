@@ -107,7 +107,7 @@ library LinkedListSetLib {
             return false;
         }
 
-        map[prev] = clearFlags(next) | getUserFlags(currentValue) | (next & HAS_NEXT_FLAG);
+        map[prev] = clearUserFlags(next) | getUserFlags(currentValue);
         map[unwrappedKey] = bytes32(0);
         return true;
     }
