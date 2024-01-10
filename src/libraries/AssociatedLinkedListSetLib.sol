@@ -425,8 +425,7 @@ library AssociatedLinkedListSetLib {
     function _mapLookup(TempBytesMemory keyBuffer, bytes32 value) private pure returns (StoragePointer slot) {
         assembly ("memory-safe") {
             // Store the value in the last word.
-            let keyWord2 := value
-            mstore(add(keyBuffer, 0x60), keyWord2)
+            mstore(add(keyBuffer, 0x60), value)
             slot := keccak256(keyBuffer, 0x80)
         }
     }
