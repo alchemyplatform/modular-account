@@ -578,50 +578,40 @@ contract UpgradeableModularAccount is
         internal
         returns (FunctionReference[][] memory postHooksToRun, bytes[] memory postHookArgs)
     {
+        FunctionReference[] memory preExecHooks;
+
         bool hasPreExecHooks = selectorData.hasPreExecHooks;
         bool hasPostOnlyExecHooks = selectorData.hasPostOnlyExecHooks;
 
         if (hasPreExecHooks) {
-            // Allcoate an array for, and load, all pre-exec hooks into memory
-            FunctionReference[] memory preExecHooks =
-                CastLib.toFunctionReferenceArray(selectorData.executionHooks.preHooks.getAll());
-            // Allocate memory for the post hooks and post hook args.
-            // If we have post-only hooks, we allocate an extra FunctionReference[] for them, and one extra element
-            // in the args for their empty `bytes` argument.
-            uint256 postHooksToRunLength = preExecHooks.length + (hasPostOnlyExecHooks ? 1 : 0);
-            postHooksToRun = new FunctionReference[][](postHooksToRunLength);
-            postHookArgs = new bytes[](postHooksToRunLength);
+            preExecHooks = CastLib.toFunctionReferenceArray(selectorData.executionHooks.preHooks.getAll());
+        }
 
-            // Cache post-exec hooks in memory
-            _cacheAssociatedPostHooks(
-                preExecHooks,
-                selectorData.executionHooks,
-                postHooksToRun,
-                // Start writing into the postHooksToRun array at a location that depends on whether or not we have
-                // post-only hooks.
-                (hasPostOnlyExecHooks ? 1 : 0)
-            );
+        // Allocate memory for the post hooks and post hook args.
+        // If we have post-only hooks, we allocate an extra FunctionReference[] for them, and one extra element
+        // in the args for their empty `bytes` argument.
+        uint256 postHooksToRunLength = preExecHooks.length + (hasPostOnlyExecHooks ? 1 : 0);
+        postHooksToRun = new FunctionReference[][](postHooksToRunLength);
+        postHookArgs = new bytes[](postHooksToRunLength);
 
-            if (hasPostOnlyExecHooks) {
-                // If we have post-only hooks, we allocate an single FunctionReference[] for them, and one element
-                // in the args for their empty `bytes` argument. We put this into the first element of the post
-                // hooks in order to have it run last.
-                postHooksToRun[0] =
-                    CastLib.toFunctionReferenceArray(selectorData.executionHooks.postOnlyHooks.getAll());
-            }
+        uint256 currentIndex = 0;
 
-            // Run all pre-exec hooks and capture their outputs.
-            _doPreHooks(preExecHooks, callBuffer, postHookArgs, 0);
-        } else if (hasPostOnlyExecHooks) {
-            // If we have post-only hooks, we allocate an single FunctionReference[] for them, and one element in
-            // the args for their empty `bytes` argument.
-            postHooksToRun = new FunctionReference[][](1);
-            postHookArgs = new bytes[](1);
-
-            // Load in the post-exec hooks
+        if (hasPostOnlyExecHooks) {
+            // If we have post-only hooks, we allocate an single FunctionReference[] for them, and one element
+            // in the args for their empty `bytes` argument. We put this into the first element of the post
+            // hooks in order to have it run last.
             postHooksToRun[0] =
                 CastLib.toFunctionReferenceArray(selectorData.executionHooks.postOnlyHooks.getAll());
+            unchecked {
+                ++currentIndex;
+            }
         }
+
+        // If there are no pre exec hooks, this will short-circuit in the length check on `preExecHooks`.
+        _cacheAssociatedPostHooks(preExecHooks, selectorData.executionHooks, postHooksToRun, currentIndex);
+
+        // Run all pre-exec hooks and capture their outputs.
+        _doPreHooks(preExecHooks, callBuffer, postHookArgs, 0);
     }
 
     function _doPrePermittedCallHooks(
