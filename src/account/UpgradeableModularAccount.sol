@@ -187,9 +187,6 @@ contract UpgradeableModularAccount is
 
         bool hasPreValidationHooks;
 
-        if (userOp.callData.length < 4) {
-            revert UnrecognizedFunction(bytes4(userOp.callData));
-        }
         bytes4 selector = _selectorFromCallData(userOp.callData);
         SelectorData storage selectorData = _getAccountStorage().selectorData[selector];
 
