@@ -124,8 +124,6 @@ library LinkedListSetLib {
             map[cursor] = bytes32(0);
             cursor = next;
         } while (!isSentinel(cursor) && cursor != bytes32(0));
-
-        map[SENTINEL_VALUE] = bytes32(0);
     }
 
     /// @notice Set the flags on a value in the set.

@@ -188,9 +188,6 @@ library AssociatedLinkedListSetLib {
             _store(cursorSlot, bytes32(0));
             cursor = next;
         } while (!isSentinel(cursor) && cursor != bytes32(0));
-
-        StoragePointer sentinelSlot = _mapLookup(keyBuffer, SENTINEL_VALUE);
-        _store(sentinelSlot, bytes32(0));
     }
 
     /// @notice Set the flags on a value in the set.
