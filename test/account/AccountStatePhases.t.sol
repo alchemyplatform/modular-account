@@ -3200,8 +3200,6 @@ contract AccountStatePhasesTest is Test {
         // It also needs a post-only exec hook to ensure that the mock plugin's hook is not the first one.
         // TODO: The ASM plugin can't define a post-only hook, since it needs to perform its action via a pre-exec
         // hook, which would make the post hook associated.
-        // TODO: This test is also incorrectly failing due to a bug in the plugin manager, which incorrectly sets
-        // the "hasPostOnlyHooks" flag when any post-exec hook is set. Rebasing should fix this.
         asmPlugin.configureInstall({
             setUOValidation: false,
             setPreUOValidation: false,
