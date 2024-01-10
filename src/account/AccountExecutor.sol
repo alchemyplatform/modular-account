@@ -123,9 +123,9 @@ abstract contract AccountExecutor {
             // mask out the fist 4 bytes, then OR in the new selector.
             let existingWord := mload(add(buffer, 0x20))
             // Clear the upper 4 bytes of the existing word
-            existingWord := and(existingWord, shr(32, not(0)))
+            existingWord := shr(32, shl(32, existingWord))
             // Clear the lower 28 bytes of the selector
-            pluginSelector := and(pluginSelector, shl(224, 0xFFFFFFFF))
+            pluginSelector := shl(224, shr(224, pluginSelector))
             // OR in the new selector
             existingWord := or(existingWord, pluginSelector)
             mstore(add(buffer, 0x20), existingWord)
