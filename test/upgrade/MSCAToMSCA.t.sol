@@ -31,8 +31,8 @@ contract MSCAToMSCATest is Test {
     event Upgraded(address indexed implementation);
 
     function setUp() public {
-        owners.push(makeAddr("owner1"));
         owners.push(makeAddr("owner2"));
+        owners.push(makeAddr("owner1"));
         entryPoint = IEntryPoint(address(new EntryPoint()));
         mscaImpl1 = address(new UpgradeableModularAccount(entryPoint));
         mscaImpl2 = address(new UpgradeableModularAccount(entryPoint));

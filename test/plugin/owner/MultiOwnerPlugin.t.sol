@@ -48,9 +48,9 @@ contract MultiOwnerPluginTest is Test {
 
         // set up owners for accountA
         ownerArray = new address[](3);
-        ownerArray[0] = owner1;
-        ownerArray[1] = owner2;
-        ownerArray[2] = owner3;
+        ownerArray[0] = owner2;
+        ownerArray[1] = owner3;
+        ownerArray[2] = owner1;
 
         vm.startPrank(accountA);
         plugin.onInstall(abi.encode(ownerArray));

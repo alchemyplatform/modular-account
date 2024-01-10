@@ -68,8 +68,8 @@ contract MultiOwnerPluginIntegration is Test {
 
         // setup account with MultiOwnerMSCAFactory
         owners = new address[](2);
-        owners[0] = owner1;
-        owners[1] = owner2;
+        owners[0] = owner1 > owner2 ? owner2 : owner1;
+        owners[1] = owner2 > owner1 ? owner2 : owner1;
         account = UpgradeableModularAccount(payable(factory.getAddress(0, owners)));
         vm.deal(address(account), 100 ether);
         factory.createAccount(0, owners);

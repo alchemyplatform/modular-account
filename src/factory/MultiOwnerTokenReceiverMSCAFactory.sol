@@ -24,8 +24,7 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
     IEntryPoint public immutable ENTRYPOINT;
 
     error OwnersArrayEmpty();
-    error ZeroAddressOwner();
-    error DuplicateOwner();
+    error InvalidOwner();
     error TransferFailed();
 
     /// @notice Constructor for the factory
@@ -119,9 +118,7 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
     }
 
     /// @notice Getter for counterfactual address based on input params
-    /// @dev Owner array cannot be empty, cannot contain address(0), and cannot contain duplicates
-    /// Different order of valid owner addresses can produce different addresses. Highly recommend caller to sort
-    /// owners array before calling if that is not desired.
+    /// @dev The owner array must be sorted in ascending order. It cannot have 0 or duplicated addresses.
     /// @param salt salt for additional entropy for create2
     /// @param owners array of addresses of the owner
     function getAddress(uint256 salt, address[] calldata owners) external view returns (address) {
@@ -130,21 +127,13 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
             revert OwnersArrayEmpty();
         }
 
+        address currentOwnerValue = address(0);
         for (uint256 i = 0; i < owners.length;) {
-            // array can't contain address(0)
-            if (owners[i] == address(0)) {
-                revert ZeroAddressOwner();
+            if (owners[i] <= currentOwnerValue) {
+                revert InvalidOwner();
             }
+            currentOwnerValue = owners[i];
 
-            for (uint256 j = i + 1; j < owners.length;) {
-                // array can't have matching elements
-                if (owners[i] == owners[j]) {
-                    revert DuplicateOwner();
-                }
-                unchecked {
-                    ++j;
-                }
-            }
             unchecked {
                 ++i;
             }

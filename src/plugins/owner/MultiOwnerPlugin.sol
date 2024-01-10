@@ -78,7 +78,8 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @inheritdoc IMultiOwnerPlugin
-    /// @dev If an owner is present in both ownersToAdd and ownersToRemove, it will be added as owner
+    /// @dev The owner array must be sorted in ascending order. It cannot have 0 or duplicated addresses.
+    /// If an owner is present in both ownersToAdd and ownersToRemove, it will be added as owner
     function updateOwners(address[] memory ownersToAdd, address[] memory ownersToRemove)
         public
         isInitialized(msg.sender)
@@ -191,6 +192,7 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @inheritdoc BasePlugin
+    /// @dev The owner array must be sorted in ascending order. It cannot have 0 or duplicated addresses.
     function _onInstall(bytes calldata data) internal override isNotInitialized(msg.sender) {
         (address[] memory initialOwners) = abi.decode(data, (address[]));
         if (initialOwners.length == 0) {
@@ -391,10 +393,18 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
         address[] memory ownersToAdd
     ) private {
         uint256 length = ownersToAdd.length;
+
+        address currentOwnerValue = address(0);
         for (uint256 i = 0; i < length;) {
+            if (ownersToAdd[i] <= currentOwnerValue) {
+                revert InvalidOwner(ownersToAdd[i]);
+            }
+
             if (!ownerSet.tryAdd(associated, CastLib.toSetValue(ownersToAdd[i]))) {
                 revert InvalidOwner(ownersToAdd[i]);
             }
+
+            currentOwnerValue = ownersToAdd[i];
 
             unchecked {
                 ++i;
