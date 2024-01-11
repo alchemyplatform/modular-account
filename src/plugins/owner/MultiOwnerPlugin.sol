@@ -396,13 +396,12 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
 
         address currentOwnerValue = address(0);
         for (uint256 i = 0; i < length;) {
+            // Catches address(0), duplicated addresses
             if (ownersToAdd[i] <= currentOwnerValue) {
                 revert InvalidOwner(ownersToAdd[i]);
             }
 
-            if (!ownerSet.tryAdd(associated, CastLib.toSetValue(ownersToAdd[i]))) {
-                revert InvalidOwner(ownersToAdd[i]);
-            }
+            ownerSet.tryAdd(associated, CastLib.toSetValue(ownersToAdd[i]));
 
             currentOwnerValue = ownersToAdd[i];
 

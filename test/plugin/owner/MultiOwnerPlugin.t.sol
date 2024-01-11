@@ -115,6 +115,23 @@ contract MultiOwnerPluginTest is Test {
         plugin.updateOwners(new address[](0), ownerArray);
     }
 
+    function test_updateOwners_failWithZeroAddressOwner() public {
+        address[] memory ownersToAdd = new address[](2);
+        ownersToAdd[0] = address(0);
+
+        vm.expectRevert(abi.encodeWithSelector(IMultiOwnerPlugin.InvalidOwner.selector, address(0)));
+        plugin.updateOwners(ownersToAdd, new address[](0));
+    }
+
+    function test_updateOwners_failWithDuplicatedAddresses() public {
+        address[] memory ownersToAdd = new address[](2);
+        ownersToAdd[0] = ownerofContractOwner;
+        ownersToAdd[1] = ownerofContractOwner;
+
+        vm.expectRevert(abi.encodeWithSelector(IMultiOwnerPlugin.InvalidOwner.selector, ownerofContractOwner));
+        plugin.updateOwners(ownersToAdd, new address[](0));
+    }
+
     function test_updateOwners_success() public {
         (address[] memory owners) = plugin.ownersOf(accountA);
         assertEq(owners, plugin.owners());
