@@ -609,7 +609,7 @@ contract UpgradeableModularAccount is
         _cacheAssociatedPostHooks(preExecHooks, selectorData.executionHooks, postHooksToRun, currentIndex);
 
         // Run all pre-exec hooks and capture their outputs.
-        _doPreHooks(preExecHooks, callBuffer, postHooksToRun, postHookArgs, 0);
+        _doPreHooks(preExecHooks, callBuffer, postHooksToRun, postHookArgs, currentIndex);
     }
 
     /// @dev Executes pre-permitted call hooks and pre-exec hooks, and returns the post-exec hooks to run and
