@@ -4,30 +4,18 @@ pragma solidity ^0.8.21;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {Call} from "../../../interfaces/IStandardExecutor.sol";
-import {BasePlugin} from "../../BasePlugin.sol";
-import {ISessionKeyPermissionsPlugin} from "./ISessionKeyPermissionsPlugin.sol";
-import {ISessionKeyPermissionsUpdates} from "./ISessionKeyPermissionsUpdates.sol";
 import {ISessionKeyPlugin} from "../ISessionKeyPlugin.sol";
+import {ISessionKeyPermissionsUpdates} from "./ISessionKeyPermissionsUpdates.sol";
 import {SessionKeyPermissionsLoupe} from "./SessionKeyPermissionsLoupe.sol";
 
-import {
-    IPlugin,
-    ManifestAssociatedFunction,
-    ManifestAssociatedFunctionType,
-    ManifestExecutionHook,
-    ManifestFunction,
-    PluginManifest,
-    PluginMetadata,
-    SelectorPermission
-} from "../../../interfaces/IPlugin.sol";
 import {IStandardExecutor} from "../../../interfaces/IStandardExecutor.sol";
 import {UserOperation} from "../../../interfaces/erc4337/UserOperation.sol";
 
-/// @title Session Key Permissions Plugin
+/// @title Session Key Permissions
 /// @author Alchemy
 /// @notice This plugin allows users to configure and enforce permissions on session keys that have been
 /// added by SessionKeyPlugin.
-contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKeyPermissionsLoupe, BasePlugin {
+abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissionsLoupe {
     string internal constant _NAME = "Session Key Permissions Plugin";
     string internal constant _VERSION = "1.0.0";
     string internal constant _AUTHOR = "Alchemy";

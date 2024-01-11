@@ -28,9 +28,12 @@ import {SetValue, SENTINEL_VALUE} from "../../libraries/LinkedListSetUtils.sol";
 /// @title Session Key Plugin
 /// @author Alchemy
 /// @notice This plugin allows users to set session keys that can be used to validate user operations performing
-/// external calls. It does not enforce any permissions on what the keys can do, that must be configured via other
-/// plugins with hooks.
-contract SessionKeyPlugin is BasePlugin, ISessionKeyPlugin {
+/// external calls. It also implements customizable permissions for session keys, supporting:
+/// - Allowlist/denylist on addresses and function selectors.
+/// - Time range for when a session key may be used.
+/// - Spend limits on native token and ERC-20 tokens.
+/// - Gas spend limits, either from the account's balance or from a specified paymaster.
+contract SessionKeyPlugin is ISessionKeyPlugin, BasePlugin {
     using ECDSA for bytes32;
     using AssociatedLinkedListSetLib for AssociatedLinkedListSet;
 
