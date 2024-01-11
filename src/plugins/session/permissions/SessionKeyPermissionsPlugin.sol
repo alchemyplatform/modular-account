@@ -248,6 +248,9 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
 
     /// @dev A pre user op validation hook that checks the permissions of the key used to validate the user op.
     function _checkUserOpPermissions(UserOperation calldata userOp) internal returns (uint256) {
+        // If not calling executeWithSessionKey, nothing to do. Return 0 as validation success.
+        if (bytes4(userOp.callData) != ISessionKeyPlugin.executeWithSessionKey.selector) return 0;
+
         // Decode the executions array and the session key from the user op's calldata
         (Call[] memory calls, address sessionKey) = abi.decode(userOp.callData[4:], (Call[], address));
 
@@ -365,6 +368,9 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
 
     /// @dev Runs as a pre exec hook, and updates the spend limits of the session key in use
     function _updateLimitsPreExec(address account, bytes calldata callData) internal {
+        // If not calling executeWithSessionKey, nothing to do.
+        if (bytes4(callData) != ISessionKeyPlugin.executeWithSessionKey.selector) return;
+
         (Call[] memory calls, address sessionKey) = abi.decode(callData[4:], (Call[], address));
         uint256 callsLength = calls.length;
 
