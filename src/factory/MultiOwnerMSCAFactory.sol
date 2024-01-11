@@ -50,7 +50,7 @@ contract MultiOwnerMSCAFactory is Ownable2Step {
     /// @param salt salt for additional entropy for create2
     /// @param owners address array of the owners
     function createAccount(uint256 salt, address[] calldata owners) external returns (address addr) {
-        if (!FactoryHelpers.validateOwnerArray(owners)) {
+        if (!FactoryHelpers.isValidOwnerArray(owners)) {
             revert InvalidOwner();
         }
 
@@ -123,7 +123,7 @@ contract MultiOwnerMSCAFactory is Ownable2Step {
             revert OwnersArrayEmpty();
         }
 
-        if (!FactoryHelpers.validateOwnerArray(owners)) {
+        if (!FactoryHelpers.isValidOwnerArray(owners)) {
             revert InvalidOwner();
         }
 

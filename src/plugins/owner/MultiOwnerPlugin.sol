@@ -393,7 +393,6 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
         address[] memory ownersToAdd
     ) private {
         uint256 length = ownersToAdd.length;
-
         for (uint256 i = 0; i < length;) {
             // Catches address(0), duplicated addresses
             if (!ownerSet.tryAdd(associated, CastLib.toSetValue(ownersToAdd[i]))) {
