@@ -118,8 +118,9 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
     {
         if (functionId == uint8(FunctionId.PRE_EXECUTION_HOOK_UPDATE_LIMITS)) {
             _updateLimitsPreExec(msg.sender, data);
+        } else {
+            revert NotImplemented();
         }
-        return "";
     }
 
     /// @inheritdoc BasePlugin
