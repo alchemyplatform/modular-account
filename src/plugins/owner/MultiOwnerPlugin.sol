@@ -78,12 +78,13 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @inheritdoc IMultiOwnerPlugin
+    /// @dev If an owner is present in both ownersToAdd and ownersToRemove, it will be added as owner
     function updateOwners(address[] memory ownersToAdd, address[] memory ownersToRemove)
         public
         isInitialized(msg.sender)
     {
-        _addOwnersOrRevert(_owners, msg.sender, ownersToAdd);
         _removeOwnersOrRevert(_owners, msg.sender, ownersToRemove);
+        _addOwnersOrRevert(_owners, msg.sender, ownersToAdd);
 
         if (_owners.isEmpty(msg.sender)) {
             revert EmptyOwnersNotAllowed();
