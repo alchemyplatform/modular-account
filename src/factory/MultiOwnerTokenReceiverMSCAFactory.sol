@@ -9,6 +9,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 import {IAccountInitializable} from "../interfaces/IAccountInitializable.sol";
 import {IEntryPoint} from "../interfaces/erc4337/IEntryPoint.sol";
+import {FactoryHelpers} from "../helpers/FactoryHelpers.sol";
 
 /// @title Multi Owner Plugin + Token Receiver MSCA (Modular Smart Contract Account) Factory
 /// @author Alchemy
@@ -51,14 +52,18 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
 
     /// @notice Create a modular smart contract account
     /// @dev Account address depends on salt, impl addr, plugins and plugin init data
-    /// @dev Owner array must be valid. See getAddress below
+    /// @dev The owner array must be sorted in ascending order. It cannot have 0 or duplicated addresses.
     /// @param salt salt for additional entropy for create2
     /// @param owners address array of the owners
     function createAccount(uint256 salt, address[] calldata owners) external returns (address addr) {
+        if (!FactoryHelpers.validateOwnerArray(owners)) {
+            revert InvalidOwner();
+        }
+
         bytes[] memory pluginInitBytes = new bytes[](2); // empty bytes for TokenReceiverPlugin init
         pluginInitBytes[0] = abi.encode(owners);
 
-        bytes32 combinedSalt = _getSalt(salt, pluginInitBytes[0]);
+        bytes32 combinedSalt = FactoryHelpers.getSalt(salt, pluginInitBytes[0]);
         addr = Create2.computeAddress(
             combinedSalt, keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(IMPL, "")))
         );
@@ -127,28 +132,13 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
             revert OwnersArrayEmpty();
         }
 
-        address currentOwnerValue = address(0);
-        for (uint256 i = 0; i < owners.length;) {
-            if (owners[i] <= currentOwnerValue) {
-                revert InvalidOwner();
-            }
-            currentOwnerValue = owners[i];
-
-            unchecked {
-                ++i;
-            }
+        if (!FactoryHelpers.validateOwnerArray(owners)) {
+            revert InvalidOwner();
         }
 
         return Create2.computeAddress(
-            _getSalt(salt, abi.encode(owners)),
+            FactoryHelpers.getSalt(salt, abi.encode(owners)),
             keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(IMPL, "")))
         );
-    }
-
-    /// @notice Gets this factory's create2 salt based on the input params
-    /// @param salt additional entropy for create2
-    /// @param owners encoded bytes array of owner addresses
-    function _getSalt(uint256 salt, bytes memory owners) internal pure returns (bytes32) {
-        return keccak256(abi.encode(salt, owners));
     }
 }
