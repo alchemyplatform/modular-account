@@ -22,7 +22,7 @@ import {Call} from "../../../../src/interfaces/IStandardExecutor.sol";
 import {Counter} from "../../../mocks/Counter.sol";
 import {MultiOwnerMSCAFactory} from "../../../../src/factory/MultiOwnerMSCAFactory.sol";
 
-contract SessionKeyPermissionsPluginTest is Test {
+contract SessionKeyPermissionsTest is Test {
     using ECDSA for bytes32;
 
     IEntryPoint entryPoint;
@@ -361,7 +361,7 @@ contract SessionKeyPermissionsPluginTest is Test {
         keysToAdd[0] = sessionKey2;
 
         vm.startPrank(owner1);
-        SessionKeyPlugin(address(account1)).rotateKey(
+        SessionKeyPlugin(address(account1)).rotateSessionKey(
             sessionKey1, sessionKeyPlugin.findPredecessor(address(account1), sessionKey1), sessionKey2
         );
         vm.stopPrank();
@@ -397,7 +397,7 @@ contract SessionKeyPermissionsPluginTest is Test {
         address sessionKey2 = makeAddr("sessionKey2");
 
         vm.startPrank(owner1);
-        SessionKeyPlugin(address(account1)).rotateKey(
+        SessionKeyPlugin(address(account1)).rotateSessionKey(
             sessionKey1, sessionKeyPlugin.findPredecessor(address(account1), sessionKey1), sessionKey2
         );
         vm.stopPrank();

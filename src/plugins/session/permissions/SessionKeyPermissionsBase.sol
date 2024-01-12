@@ -91,7 +91,6 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPlugin {
 
     // Internal Functions
 
-    // todo: we can probably remove this, if we do the signature checking step first.
     function _assertKeyExists(SessionKeyId id, address sessionKey) internal pure {
         if (SessionKeyId.unwrap(id) == bytes32(0)) {
             revert InvalidSessionKey(sessionKey);

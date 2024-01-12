@@ -38,6 +38,7 @@ interface ISessionKeyPlugin {
     event SessionKeyRemoved(address indexed account, address indexed sessionKey);
 
     /// @notice Emitted when a session key is rotated, which replaces a key while keeping the same permissions.
+    /// @dev Rotating a key into itself is possible, and does not change the key's permissions.
     /// @param account The account that owns the session key.
     /// @param oldSessionKey The session key that was rotated away.
     /// @param newSessionKey The session key that was rotated to.
@@ -85,7 +86,7 @@ interface ISessionKeyPlugin {
     /// @param oldSessionKey The session key to move.
     /// @param predecessor The list predecessor of the old session key, as returned by `findPredecessor`.
     /// @param newSessionKey The session key to move to.
-    function rotateKey(address oldSessionKey, bytes32 predecessor, address newSessionKey) external;
+    function rotateSessionKey(address oldSessionKey, bytes32 predecessor, address newSessionKey) external;
 
     /// @notice Performs a sequence of updates to a session key's permissions. These updates are abi-encoded calls
     /// to the functions defined in `ISessionKeyPermissionsUpdates`, and are not external functions implemented by

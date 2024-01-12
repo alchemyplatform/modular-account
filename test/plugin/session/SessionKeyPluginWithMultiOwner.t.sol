@@ -41,6 +41,11 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
 
     address payable recipient;
 
+    // Event re-declarations for use with `vm.expectEmit()`
+    event SessionKeyAdded(address indexed account, address indexed sessionKey, bytes32 indexed tag);
+    event SessionKeyRemoved(address indexed account, address indexed sessionKey);
+    event SessionKeyRotated(address indexed account, address indexed oldSessionKey, address indexed newSessionKey);
+
     function setUp() public {
         entryPoint = IEntryPoint(address(new EntryPoint()));
         (owner1, owner1Key) = makeAddrAndKey("owner1");
@@ -88,8 +93,9 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
     function test_sessionKey_addKeySuccess() public {
         address sessionKeyToAdd = makeAddr("sessionKey1");
 
+        vm.expectEmit(true, true, true, true);
+        emit SessionKeyAdded(address(account1), sessionKeyToAdd, bytes32(0));
         vm.prank(owner1);
-        //todo: vm.expectEmit with tag
         SessionKeyPlugin(address(account1)).addSessionKey(sessionKeyToAdd, bytes32(0));
 
         // Check using all view methods
@@ -129,7 +135,6 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
     }
 
     function test_sessionKey_addAndRemoveKeys() public {
-        // todo: event emission checks.
         address sessionKey1 = makeAddr("sessionKey1");
         address sessionKey2 = makeAddr("sessionKey2");
 
@@ -150,6 +155,8 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         assertEq(sessionKeys[0], sessionKey2);
         assertEq(sessionKeys[1], sessionKey1);
 
+        vm.expectEmit(true, true, true, true);
+        emit SessionKeyRemoved(address(account1), sessionKey1);
         vm.startPrank(owner1);
         SessionKeyPlugin(address(account1)).removeSessionKey(
             sessionKey1, sessionKeyPlugin.findPredecessor(address(account1), sessionKey1)
@@ -169,11 +176,62 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey2));
     }
 
-    // todo: session key rotation tests here.
-    // - rotate to new key succeeds and old key is removed
-    // - rotate to existing key fails
-    // - rotate to itself fails (during existing session key validation)
-    // - rotate to invalid key fails
+    function test_sessionKey_rotate_valid() public {
+        // Add the first key
+        address sessionKey1 = makeAddr("sessionKey1");
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+
+        // Rotate to the second key
+        address sessionKey2 = makeAddr("sessionKey2");
+        bytes32 predecessor = sessionKeyPlugin.findPredecessor(address(account1), sessionKey1);
+        vm.expectEmit(true, true, true, true);
+        emit SessionKeyRotated(address(account1), sessionKey1, sessionKey2);
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).rotateSessionKey(sessionKey1, predecessor, sessionKey2);
+
+        // Check using all view methods
+        address[] memory sessionKeys = SessionKeyPlugin(address(account1)).getSessionKeys();
+        assertEq(sessionKeys.length, 1);
+        assertEq(sessionKeys[0], sessionKey2);
+        assertFalse(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKey1));
+        assertTrue(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKey2));
+        sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
+        assertEq(sessionKeys.length, 1);
+        assertEq(sessionKeys[0], sessionKey2);
+        assertFalse(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey1));
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey2));
+    }
+
+    function test_sessionKey_rotate_existing() public {
+        // Add the session keys 1 and 2
+        address sessionKey1 = makeAddr("sessionKey1");
+        address sessionKey2 = makeAddr("sessionKey2");
+        vm.startPrank(owner1);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey2, bytes32(0));
+        vm.stopPrank();
+
+        // Attempt to rotate key 1 to key 2
+        bytes32 predecessor = sessionKeyPlugin.findPredecessor(address(account1), sessionKey1);
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidSessionKey.selector, sessionKey2));
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).rotateSessionKey(sessionKey1, predecessor, sessionKey2);
+    }
+
+    function test_sessionKey_rotate_invalid() public {
+        // Add the first key
+        address sessionKey1 = makeAddr("sessionKey1");
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+
+        // Attempt to rotate to the zero address
+        address zeroAddr = address(0);
+        bytes32 predecessor = sessionKeyPlugin.findPredecessor(address(account1), sessionKey1);
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidSessionKey.selector, zeroAddr));
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).rotateSessionKey(sessionKey1, predecessor, zeroAddr);
+    }
 
     function test_sessionKey_useSessionKey() public {
         (address sessionKey1, uint256 sessionKeyPrivate) = makeAddrAndKey("sessionKey1");

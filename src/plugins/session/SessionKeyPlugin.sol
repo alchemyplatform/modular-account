@@ -160,7 +160,10 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
     }
 
     /// @inheritdoc ISessionKeyPlugin
-    function rotateKey(address oldSessionKey, bytes32 predecessor, address newSessionKey) external override {
+    function rotateSessionKey(address oldSessionKey, bytes32 predecessor, address newSessionKey)
+        external
+        override
+    {
         if (!_sessionKeys.tryRemoveKnown(msg.sender, CastLib.toSetValue(oldSessionKey), predecessor)) {
             revert InvalidSessionKey(oldSessionKey);
         }
@@ -255,7 +258,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
         manifest.executionFunctions[0] = this.executeWithSessionKey.selector;
         manifest.executionFunctions[1] = this.addSessionKey.selector;
         manifest.executionFunctions[2] = this.removeSessionKey.selector;
-        manifest.executionFunctions[3] = this.rotateKey.selector;
+        manifest.executionFunctions[3] = this.rotateSessionKey.selector;
         manifest.executionFunctions[4] = this.updateKeyPermissions.selector;
         manifest.executionFunctions[5] = this.getSessionKeys.selector;
         manifest.executionFunctions[6] = this.isSessionKey.selector;
@@ -285,7 +288,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
             associatedFunction: ownerUserOpValidationFunction
         });
         manifest.userOpValidationFunctions[3] = ManifestAssociatedFunction({
-            executionSelector: this.rotateKey.selector,
+            executionSelector: this.rotateSessionKey.selector,
             associatedFunction: ownerUserOpValidationFunction
         });
         manifest.userOpValidationFunctions[4] = ManifestAssociatedFunction({
@@ -325,7 +328,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
             associatedFunction: ownerRuntimeValidationFunction
         });
         manifest.runtimeValidationFunctions[4] = ManifestAssociatedFunction({
-            executionSelector: this.rotateKey.selector,
+            executionSelector: this.rotateSessionKey.selector,
             associatedFunction: ownerRuntimeValidationFunction
         });
         manifest.runtimeValidationFunctions[5] = ManifestAssociatedFunction({
@@ -371,7 +374,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
             permissionDescription: modifySessionKeys
         });
         metadata.permissionDescriptors[2] = SelectorPermission({
-            functionSelector: this.rotateKey.selector,
+            functionSelector: this.rotateSessionKey.selector,
             permissionDescription: modifySessionKeys
         });
         metadata.permissionDescriptors[3] = SelectorPermission({

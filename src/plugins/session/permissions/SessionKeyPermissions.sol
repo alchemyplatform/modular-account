@@ -55,11 +55,15 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         internal
         returns (uint256)
     {
-        (SessionKeyData storage sessionKeyData, SessionKeyId keyId) = _loadSessionKey(msg.sender, sessionKey);
+        // This step does not need to assert that the key id is nonzero, since the user op signature check implies
+        // that.
+        SessionKeyId keyId = _sessionKeyIdOf(msg.sender, sessionKey);
+        SessionKeyData storage sessionKeyData = _sessionKeyDataOf(msg.sender, keyId);
 
         // The session key's start time is the max of the key-specific validAfter and any time restrictions imposed
         // by spending limits.
         uint48 currentValidAfter = sessionKeyData.validAfter;
+        uint48 validUntil = sessionKeyData.validUntil;
         uint256 nativeTokenSpend;
 
         uint256 callsLength = calls.length;
@@ -90,6 +94,16 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         }
 
         if (sessionKeyData.hasGasLimit) {
+            // Gas limit checking is the only type of permissions checking that has state changes performed during
+            // validation. This can potentially cause reputation damage to staked accounts if multiple user
+            // operations are accepted into the same bundle, then validation for one of the later operations fails
+            // due to the state change from the first. To protect from this, we require session keys to use their
+            // own address as the key portion of the user operation nonce field, in order to guarantee that they
+            // are used sequentially.
+            if (uint192(userOp.nonce >> 64) != uint192(uint160(sessionKey))) {
+                validationSuccess = false;
+            }
+
             // Multiplier for the verification gas limit is 3 if there is a paymaster, 1 otherwise.
             // This is defined in EntryPoint v0.6.0, which uses the limit for the user op validation + paymaster
             // validation, then again for up to two more calls of `postOp`. Later versions of the EntryPoint may
@@ -103,16 +117,6 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
                 _checkAndUpdateGasLimitUsage(maxGasFee, sessionKeyData);
             validationSuccess = validationSuccess && gasLimitSuccess;
             currentValidAfter = _max(currentValidAfter, gasLimitValidAfter);
-
-            // Gas limit checking is the only type of permissions checking that has state changes performed during
-            // validation. This can potentially cause reputation damage to staked accounts if multiple user
-            // operations are accepted into the same bundle, then validation for one of the later operations fails
-            // due to the state change from the first. To protect from this, we require session keys to use their
-            // own address as the key portion of the user operation nonce field, in order to guarantee that they
-            // are used sequentially.
-            if (uint192(userOp.nonce >> 64) != uint192(uint160(sessionKey))) {
-                validationSuccess = false;
-            }
         }
 
         if (sessionKeyData.hasRequiredPaymaster) {
@@ -131,7 +135,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         // otherwise a packed struct of the aggregator address (0 here), and two
         // 6-byte timestamps indicating the start and end times at which the op
         // is valid.
-        return uint160(!validationSuccess ? 1 : 0) | (uint256(sessionKeyData.validUntil) << 160)
+        return uint160(!validationSuccess ? 1 : 0) | (uint256(validUntil) << 160)
             | (uint256(currentValidAfter) << (208));
     }
 
@@ -173,7 +177,10 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
 
         uint256 newNativeTokenUsage;
 
-        (SessionKeyData storage sessionKeyData, SessionKeyId keyId) = _loadSessionKey(account, sessionKey);
+        // This step does not need to assert that the key id is nonzero, since the user op signature check implies
+        // that.
+        SessionKeyId keyId = _sessionKeyIdOf(msg.sender, sessionKey);
+        SessionKeyData storage sessionKeyData = _sessionKeyDataOf(msg.sender, keyId);
 
         for (uint256 i = 0; i < callsLength;) {
             Call memory call = calls[i];
