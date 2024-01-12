@@ -52,7 +52,7 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
 
     /// @notice Create a modular smart contract account
     /// @dev Account address depends on salt, impl addr, plugins and plugin init data
-    /// @dev The owner array must be sorted in ascending order. It cannot have 0 or duplicated addresses.
+    /// @dev The owner array must be in strictly ascending order and not include the 0 address.
     /// @param salt salt for additional entropy for create2
     /// @param owners address array of the owners
     function createAccount(uint256 salt, address[] calldata owners) external returns (address addr) {
@@ -63,7 +63,7 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
         bytes[] memory pluginInitBytes = new bytes[](2); // empty bytes for TokenReceiverPlugin init
         pluginInitBytes[0] = abi.encode(owners);
 
-        bytes32 combinedSalt = FactoryHelpers.getSalt(salt, pluginInitBytes[0]);
+        bytes32 combinedSalt = FactoryHelpers.getCombinedSalt(salt, pluginInitBytes[0]);
         addr = Create2.computeAddress(
             combinedSalt, keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(IMPL, "")))
         );
@@ -123,7 +123,7 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
     }
 
     /// @notice Getter for counterfactual address based on input params
-    /// @dev The owner array must be sorted in ascending order. It cannot have 0 or duplicated addresses.
+    /// @dev The owner array must be in strictly ascending order and not include the 0 address.
     /// @param salt salt for additional entropy for create2
     /// @param owners array of addresses of the owner
     function getAddress(uint256 salt, address[] calldata owners) external view returns (address) {
@@ -137,7 +137,7 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
         }
 
         return Create2.computeAddress(
-            FactoryHelpers.getSalt(salt, abi.encode(owners)),
+            FactoryHelpers.getCombinedSalt(salt, abi.encode(owners)),
             keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(IMPL, "")))
         );
     }
