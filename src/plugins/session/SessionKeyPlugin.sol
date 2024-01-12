@@ -91,6 +91,8 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
         for (uint256 i = 0; i < length;) {
             _updateSessionKeyId(msg.sender, sessionKeys[i], SessionKeyId.wrap(bytes32(0)));
 
+            emit SessionKeyRemoved(msg.sender, sessionKeys[i]);
+
             unchecked {
                 ++i;
             }
@@ -98,7 +100,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
 
         _sessionKeys.clear(msg.sender);
         // Note that we do not reset the key id counter `_keyIdCounter` for the account, in order to prevent
-        // permissions configured from a previous installation to be re-used.
+        // permissions configured from a previous installation from being re-used.
     }
 
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -130,7 +132,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
     }
 
     /// @inheritdoc ISessionKeyPlugin
-    function addSessionKey(address sessionKey, bytes32 tag) external override {
+    function addSessionKey(address sessionKey, bytes32 tag) public override {
         if (!_sessionKeys.tryAdd(msg.sender, CastLib.toSetValue(sessionKey))) {
             // This check ensures no duplciate keys and that the session key is not the zero address.
             revert InvalidSessionKey(sessionKey);
@@ -404,10 +406,9 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
 
         uint256 length = sessionKeysToAdd.length;
         for (uint256 i = 0; i < length;) {
-            // This also checks that sessionKeysToAdd[i] is not zero.
-            if (!_sessionKeys.tryAdd(msg.sender, CastLib.toSetValue(sessionKeysToAdd[i]))) {
-                revert InvalidSessionKey(sessionKeysToAdd[i]);
-            }
+            // Use the public function to add the session key, set the key id, and emit the event.
+            // Note that no tags are set when adding keys with this method.
+            addSessionKey(sessionKeysToAdd[i], bytes32(0));
 
             unchecked {
                 ++i;

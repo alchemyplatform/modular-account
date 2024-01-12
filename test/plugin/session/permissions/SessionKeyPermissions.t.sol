@@ -30,6 +30,7 @@ contract SessionKeyPermissionsTest is Test {
     MultiOwnerPlugin multiOwnerPlugin;
     MultiOwnerMSCAFactory factory;
     SessionKeyPlugin sessionKeyPlugin;
+    FunctionReference[] dependencies;
 
     address owner1;
     uint256 owner1Key;
@@ -75,12 +76,15 @@ contract SessionKeyPermissionsTest is Test {
         vm.deal(address(account1), 100 ether);
 
         bytes32 manifestHash = keccak256(abi.encode(sessionKeyPlugin.pluginManifest()));
-        FunctionReference[] memory dependencies = new FunctionReference[](2);
-        dependencies[0] = FunctionReferenceLib.pack(
-            address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.USER_OP_VALIDATION_OWNER)
+        dependencies.push(
+            FunctionReferenceLib.pack(
+                address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.USER_OP_VALIDATION_OWNER)
+            )
         );
-        dependencies[1] = FunctionReferenceLib.pack(
-            address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.RUNTIME_VALIDATION_OWNER_OR_SELF)
+        dependencies.push(
+            FunctionReferenceLib.pack(
+                address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.RUNTIME_VALIDATION_OWNER_OR_SELF)
+            )
         );
         vm.prank(owner1);
         account1.installPlugin({
@@ -592,6 +596,48 @@ contract SessionKeyPermissionsTest is Test {
             uint8(ISessionKeyPlugin.ContractAccessControlType.ALLOWLIST),
             "sessionKey2 should still have an allowlist"
         );
+    }
+
+    function test_sessionKeyPerms_reinstallResets() public {
+        // Tests that reinstalling the plugin resets the permissions.
+
+        uint48 time1 = uint48(2000);
+        uint48 time2 = uint48(3000);
+        // Set the time range on the key
+        bytes[] memory updates = new bytes[](1);
+        updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.updateTimeRange, (time1, time2));
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+
+        // Assert that the time range is set
+        (uint48 returnedStartTime, uint48 returnedEndTime) =
+            sessionKeyPlugin.getKeyTimeRange(address(account1), sessionKey1);
+        assertEq(returnedStartTime, time1);
+        assertEq(returnedEndTime, time2);
+
+        // Uninstall the session key plugin
+        vm.prank(owner1);
+        account1.uninstallPlugin(address(sessionKeyPlugin), "", "", new bytes[](0));
+
+        // Reinstall the session key plugin.
+        vm.startPrank(owner1);
+        account1.installPlugin({
+            plugin: address(sessionKeyPlugin),
+            manifestHash: keccak256(abi.encode(sessionKeyPlugin.pluginManifest())),
+            pluginInitData: abi.encode(new address[](0)),
+            dependencies: dependencies,
+            injectedHooks: new IPluginManager.InjectedHook[](0)
+        });
+        vm.stopPrank();
+
+        // Re-add the session key
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+
+        // Assert that the time range is reset
+        (returnedStartTime, returnedEndTime) = sessionKeyPlugin.getKeyTimeRange(address(account1), sessionKey1);
+        assertEq(returnedStartTime, uint48(0));
+        assertEq(returnedEndTime, uint48(0));
     }
 
     function _runSessionKeyExecUserOp(
