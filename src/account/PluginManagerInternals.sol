@@ -49,7 +49,6 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
     error DuplicatePreUserOpValidationHookLimitExceeded(bytes4 selector, FunctionReference hook);
     error Erc4337FunctionNotAllowed(bytes4 selector);
     error ExecutionFunctionAlreadySet(bytes4 selector);
-    error ExecutionFunctionNotSet(bytes4 selector);
     error IPluginFunctionNotAllowed(bytes4 selector);
     error IPluginInterfaceNotAllowed();
     error InvalidDependenciesProvided();
