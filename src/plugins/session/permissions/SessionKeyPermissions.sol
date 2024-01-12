@@ -51,13 +51,10 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
 
     /// @dev A check to run during user op validation that checks the permissions of the session key used to
     /// validate the user op.
-    function _checkUserOpPermissions(UserOperation calldata userOp) internal returns (uint256) {
-        // If not calling executeWithSessionKey, nothing to do. Return 0 as validation success.
-        if (bytes4(userOp.callData) != ISessionKeyPlugin.executeWithSessionKey.selector) return 0;
-
-        // Decode the executions array and the session key from the user op's calldata
-        (Call[] memory calls, address sessionKey) = abi.decode(userOp.callData[4:], (Call[], address));
-
+    function _checkUserOpPermissions(UserOperation calldata userOp, Call[] memory calls, address sessionKey)
+        internal
+        returns (uint256)
+    {
         (SessionKeyData storage sessionKeyData, SessionKeyId keyId) = _loadSessionKey(msg.sender, sessionKey);
 
         // The session key's start time is the max of the key-specific validAfter and any time restrictions imposed
@@ -171,11 +168,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
     }
 
     /// @dev Runs during execution to re-check and update the spend limits of the session key in use.
-    function _updateLimitsPreExec(address account, bytes calldata callData) internal {
-        // If not calling executeWithSessionKey, nothing to do.
-        if (bytes4(callData) != ISessionKeyPlugin.executeWithSessionKey.selector) return;
-
-        (Call[] memory calls, address sessionKey) = abi.decode(callData[4:], (Call[], address));
+    function _updateLimitsPreExec(address account, Call[] calldata calls, address sessionKey) internal {
         uint256 callsLength = calls.length;
 
         uint256 newNativeTokenUsage;

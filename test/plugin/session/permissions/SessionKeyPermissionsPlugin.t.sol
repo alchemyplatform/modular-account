@@ -360,20 +360,20 @@ contract SessionKeyPermissionsPluginTest is Test {
         address[] memory keysToAdd = new address[](1);
         keysToAdd[0] = sessionKey2;
 
-        vm.prank(owner1);
+        vm.startPrank(owner1);
         SessionKeyPlugin(address(account1)).rotateKey(
             sessionKey1, sessionKeyPlugin.findPredecessor(address(account1), sessionKey1), sessionKey2
         );
+        vm.stopPrank();
 
-        // Attempting to use the previous key should fail
+        // Attempting to use the previous key should fail during the signature check
         _runSessionKeyExecUserOp(
             address(counter1),
             sessionKey1,
             sessionKey1Private,
             abi.encodeCall(Counter.increment, ()),
             0 wei,
-            // Entrypoint wont recognize and bubble up KeyNotRegistered custom error in ver0.6.0
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
         );
 
         // Attempting to use the new key should succeed
@@ -396,10 +396,11 @@ contract SessionKeyPermissionsPluginTest is Test {
         // Rotate the key
         address sessionKey2 = makeAddr("sessionKey2");
 
-        vm.prank(owner1);
+        vm.startPrank(owner1);
         SessionKeyPlugin(address(account1)).rotateKey(
             sessionKey1, sessionKeyPlugin.findPredecessor(address(account1), sessionKey1), sessionKey2
         );
+        vm.stopPrank();
 
         // Check the rotated key's time range
         (uint48 returnedStartTime, uint48 returnedEndTime) =

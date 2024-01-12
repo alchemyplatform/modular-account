@@ -64,9 +64,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
         returns (uint256)
     {
         if (functionId == uint8(FunctionId.USER_OP_VALIDATION_SESSION_KEY)) {
-            // todo: user op stage permissions checking here.
-
-            (, address sessionKey) = abi.decode(userOp.callData[4:], (Call[], address));
+            (Call[] memory calls, address sessionKey) = abi.decode(userOp.callData[4:], (Call[], address));
             bytes32 hash = userOpHash.toEthSignedMessageHash();
 
             (address recoveredSig, ECDSA.RecoverError err) = hash.tryRecover(userOp.signature);
@@ -74,7 +72,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
                 if (
                     _sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey)) && sessionKey == recoveredSig
                 ) {
-                    return _SIG_VALIDATION_PASSED;
+                    return _checkUserOpPermissions(userOp, calls, sessionKey);
                 } else {
                     return _SIG_VALIDATION_FAILED;
                 }
@@ -87,7 +85,20 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
 
     /// @inheritdoc BasePlugin
     function onUninstall(bytes calldata) external override {
+        // Unset the key id for all session keys.
+        address[] memory sessionKeys = CastLib.toAddressArray(_sessionKeys.getAll(msg.sender));
+        uint256 length = sessionKeys.length;
+        for (uint256 i = 0; i < length;) {
+            _updateSessionKeyId(msg.sender, sessionKeys[i], SessionKeyId.wrap(bytes32(0)));
+
+            unchecked {
+                ++i;
+            }
+        }
+
         _sessionKeys.clear(msg.sender);
+        // Note that we do not reset the key id counter `_keyIdCounter` for the account, in order to prevent
+        // permissions configured from a previous installation to be re-used.
     }
 
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -95,8 +106,12 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @inheritdoc ISessionKeyPlugin
-    function executeWithSessionKey(Call[] calldata calls, address) external override returns (bytes[] memory) {
-        // todo: runtime checking here
+    function executeWithSessionKey(Call[] calldata calls, address sessionKey)
+        external
+        override
+        returns (bytes[] memory)
+    {
+        _updateLimitsPreExec(msg.sender, calls, sessionKey);
 
         uint256 callsLength = calls.length;
         bytes[] memory results = new bytes[](callsLength);
@@ -121,6 +136,12 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
             revert InvalidSessionKey(sessionKey);
         }
 
+        // Register the key with a new ID, and update the ID counter
+        // We use pre increment to prevent the first id from being zero.
+        // We don't need to check whether or not the session key id exists, because we know it to be atomic with
+        // add/remove operations on the _sessionKeys storage variable, and therefore must not be registered.
+        _updateSessionKeyId(msg.sender, sessionKey, SessionKeyId.wrap(bytes32(++_keyIdCounter[msg.sender])));
+
         emit SessionKeyAdded(msg.sender, sessionKey, tag);
     }
 
@@ -129,6 +150,11 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
         if (!_sessionKeys.tryRemoveKnown(msg.sender, CastLib.toSetValue(sessionKey), predecessor)) {
             revert InvalidSessionKey(sessionKey);
         }
+
+        // Unset the key id for the session key.
+        // We don't need to check that the key exists, because we know it to be atomic with add/remove operations
+        // on the _sessionKeys storage variable, and therefore must be registered.
+        _updateSessionKeyId(msg.sender, sessionKey, SessionKeyId.wrap(bytes32(0)));
 
         emit SessionKeyRemoved(msg.sender, sessionKey);
     }
@@ -143,7 +169,9 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
             revert InvalidSessionKey(newSessionKey);
         }
 
-        // todo: key id transfer step here
+        SessionKeyId oldSessionKeyId = _sessionKeyIdOf(msg.sender, oldSessionKey);
+        _updateSessionKeyId(msg.sender, oldSessionKey, SessionKeyId.wrap(bytes32(0)));
+        _updateSessionKeyId(msg.sender, newSessionKey, oldSessionKeyId);
 
         emit SessionKeyRotated(msg.sender, oldSessionKey, newSessionKey);
     }
