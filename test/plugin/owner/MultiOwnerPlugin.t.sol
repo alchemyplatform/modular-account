@@ -117,7 +117,6 @@ contract MultiOwnerPluginTest is Test {
 
     function test_updateOwners_failWithZeroAddressOwner() public {
         address[] memory ownersToAdd = new address[](2);
-        ownersToAdd[0] = address(0);
 
         vm.expectRevert(abi.encodeWithSelector(IMultiOwnerPlugin.InvalidOwner.selector, address(0)));
         plugin.updateOwners(ownersToAdd, new address[](0));
