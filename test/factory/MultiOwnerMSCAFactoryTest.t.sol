@@ -89,13 +89,13 @@ contract MultiOwnerMSCAFactoryTest is Test {
 
         address[] memory badOwners = new address[](2);
 
-        vm.expectRevert(MultiOwnerMSCAFactory.ZeroAddressOwner.selector);
+        vm.expectRevert(MultiOwnerMSCAFactory.InvalidOwner.selector);
         factory.getAddress(0, badOwners);
 
         badOwners[0] = address(1);
         badOwners[1] = address(1);
 
-        vm.expectRevert(MultiOwnerMSCAFactory.DuplicateOwner.selector);
+        vm.expectRevert(MultiOwnerMSCAFactory.InvalidOwner.selector);
         factory.getAddress(0, badOwners);
     }
 
