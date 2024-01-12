@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.21;
 
-import {ISessionKeyPermissionsPlugin} from "./ISessionKeyPermissionsPlugin.sol";
+import {ISessionKeyPlugin} from "../ISessionKeyPlugin.sol";
 
 /// @notice This interface defines the functions that may be used to update a session key's permissions.
 /// The functions defined here are not actually implemented, but instead are abi-encoded as arguments to the
@@ -12,8 +12,7 @@ interface ISessionKeyPermissionsUpdates {
     /// previous elements from the list are not cleared, and instead reinterpretted as entries in the new list
     /// type.
     /// @param contractAccessControlType The new access control type.
-    function setAccessListType(ISessionKeyPermissionsPlugin.ContractAccessControlType contractAccessControlType)
-        external;
+    function setAccessListType(ISessionKeyPlugin.ContractAccessControlType contractAccessControlType) external;
 
     /// @notice Add or remove a contract address from the access list, optionally specifying whether to check
     /// selectors.

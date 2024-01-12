@@ -5,6 +5,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {BasePlugin} from "../BasePlugin.sol";
 import {ISessionKeyPlugin} from "./ISessionKeyPlugin.sol";
+import {SessionKeyPermissions} from "./permissions/SessionKeyPermissions.sol";
 
 import {IPlugin} from "../../interfaces/IPlugin.sol";
 import {IPluginExecutor} from "../../interfaces/IPluginExecutor.sol";
@@ -33,7 +34,7 @@ import {SetValue, SENTINEL_VALUE} from "../../libraries/LinkedListSetUtils.sol";
 /// - Time range for when a session key may be used.
 /// - Spend limits on native token and ERC-20 tokens.
 /// - Gas spend limits, either from the account's balance or from a specified paymaster.
-contract SessionKeyPlugin is ISessionKeyPlugin, BasePlugin {
+contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugin {
     using ECDSA for bytes32;
     using AssociatedLinkedListSetLib for AssociatedLinkedListSet;
 
@@ -48,14 +49,55 @@ contract SessionKeyPlugin is ISessionKeyPlugin, BasePlugin {
     uint256 internal constant _MANIFEST_DEPENDENCY_INDEX_OWNER_USER_OP_VALIDATION = 0;
     uint256 internal constant _MANIFEST_DEPENDENCY_INDEX_OWNER_RUNTIME_VALIDATION = 1;
 
+    // Storage fields
+
     AssociatedLinkedListSet internal _sessionKeys;
+
+    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃    Plugin interface functions    ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    /// @inheritdoc BasePlugin
+    function userOpValidationFunction(uint8 functionId, UserOperation calldata userOp, bytes32 userOpHash)
+        external
+        override
+        returns (uint256)
+    {
+        if (functionId == uint8(FunctionId.USER_OP_VALIDATION_SESSION_KEY)) {
+            // todo: user op stage permissions checking here.
+
+            (, address sessionKey) = abi.decode(userOp.callData[4:], (Call[], address));
+            bytes32 hash = userOpHash.toEthSignedMessageHash();
+
+            (address recoveredSig, ECDSA.RecoverError err) = hash.tryRecover(userOp.signature);
+            if (err == ECDSA.RecoverError.NoError) {
+                if (
+                    _sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey)) && sessionKey == recoveredSig
+                ) {
+                    return _SIG_VALIDATION_PASSED;
+                } else {
+                    return _SIG_VALIDATION_FAILED;
+                }
+            } else {
+                revert InvalidSignature(sessionKey);
+            }
+        }
+        revert NotImplemented();
+    }
+
+    /// @inheritdoc BasePlugin
+    function onUninstall(bytes calldata) external override {
+        _sessionKeys.clear(msg.sender);
+    }
 
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    Execution functions    ┃
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @inheritdoc ISessionKeyPlugin
-    function executeWithSessionKey(Call[] calldata calls, address) external returns (bytes[] memory) {
+    function executeWithSessionKey(Call[] calldata calls, address) external override returns (bytes[] memory) {
+        // todo: runtime checking here
+
         uint256 callsLength = calls.length;
         bytes[] memory results = new bytes[](callsLength);
 
@@ -73,6 +115,52 @@ contract SessionKeyPlugin is ISessionKeyPlugin, BasePlugin {
     }
 
     /// @inheritdoc ISessionKeyPlugin
+    function addSessionKey(address sessionKey, bytes32 tag) external override {
+        if (!_sessionKeys.tryAdd(msg.sender, CastLib.toSetValue(sessionKey))) {
+            // This check ensures no duplciate keys and that the session key is not the zero address.
+            revert InvalidSessionKey(sessionKey);
+        }
+
+        emit SessionKeyAdded(msg.sender, sessionKey, tag);
+    }
+
+    /// @inheritdoc ISessionKeyPlugin
+    function removeSessionKey(address sessionKey, bytes32 predecessor) external override {
+        if (!_sessionKeys.tryRemoveKnown(msg.sender, CastLib.toSetValue(sessionKey), predecessor)) {
+            revert InvalidSessionKey(sessionKey);
+        }
+
+        emit SessionKeyRemoved(msg.sender, sessionKey);
+    }
+
+    /// @inheritdoc ISessionKeyPlugin
+    function rotateKey(address oldSessionKey, bytes32 predecessor, address newSessionKey) external override {
+        if (!_sessionKeys.tryRemoveKnown(msg.sender, CastLib.toSetValue(oldSessionKey), predecessor)) {
+            revert InvalidSessionKey(oldSessionKey);
+        }
+
+        if (!_sessionKeys.tryAdd(msg.sender, CastLib.toSetValue(newSessionKey))) {
+            revert InvalidSessionKey(newSessionKey);
+        }
+
+        // todo: key id transfer step here
+
+        emit SessionKeyRotated(msg.sender, oldSessionKey, newSessionKey);
+    }
+
+    // The function `updateKeyPermissions` is implemented in `SessionKeyPermissions`.
+
+    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃    Plugin-only function    ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    // The function `resetSessionKeyGasLimitTimestamp` is implemented in `SessionKeyPermissions`.
+
+    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃  Execution view functions   ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    /// @inheritdoc ISessionKeyPlugin
     function getSessionKeys() external view returns (address[] memory) {
         SetValue[] memory values = _sessionKeys.getAll(msg.sender);
 
@@ -82,41 +170,6 @@ contract SessionKeyPlugin is ISessionKeyPlugin, BasePlugin {
     /// @inheritdoc ISessionKeyPlugin
     function isSessionKey(address sessionKey) external view returns (bool) {
         return _sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey));
-    }
-
-    /// @inheritdoc ISessionKeyPlugin
-    function updateSessionKeys(
-        address[] calldata sessionKeysToAdd,
-        SessionKeyToRemove[] calldata sessionKeysToRemove
-    ) external {
-        uint256 length = sessionKeysToRemove.length;
-        for (uint256 i = 0; i < length;) {
-            if (
-                !_sessionKeys.tryRemoveKnown(
-                    msg.sender,
-                    CastLib.toSetValue(sessionKeysToRemove[i].sessionKey),
-                    sessionKeysToRemove[i].predecessor
-                )
-            ) {
-                revert UnableToRemove(sessionKeysToRemove[i].sessionKey);
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        length = sessionKeysToAdd.length;
-        for (uint256 i = 0; i < length;) {
-            // This also checks that sessionKeysToAdd[i] is not zero.
-            if (!_sessionKeys.tryAdd(msg.sender, CastLib.toSetValue(sessionKeysToAdd[i]))) {
-                revert InvalidSessionKey(sessionKeysToAdd[i]);
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
     }
 
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -134,6 +187,10 @@ contract SessionKeyPlugin is ISessionKeyPlugin, BasePlugin {
     function isSessionKeyOf(address account, address sessionKey) external view returns (bool) {
         return _sessionKeys.contains(account, CastLib.toSetValue(sessionKey));
     }
+
+    // ┏━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃    View functions    ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @inheritdoc ISessionKeyPlugin
     function findPredecessor(address account, address sessionKey) external view returns (bytes32) {
@@ -156,59 +213,6 @@ contract SessionKeyPlugin is ISessionKeyPlugin, BasePlugin {
         revert SessionKeyNotFound(sessionKey);
     }
 
-    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    // ┃    Plugin interface functions    ┃
-    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-
-    /// @inheritdoc BasePlugin
-    function userOpValidationFunction(uint8 functionId, UserOperation calldata userOp, bytes32 userOpHash)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        if (functionId == uint8(FunctionId.USER_OP_VALIDATION_SESSION_KEY)) {
-            (, address sessionKey) = abi.decode(userOp.callData[4:], (Call[], address));
-            bytes32 hash = userOpHash.toEthSignedMessageHash();
-
-            (address recoveredSig, ECDSA.RecoverError err) = hash.tryRecover(userOp.signature);
-            if (err == ECDSA.RecoverError.NoError) {
-                if (
-                    _sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey)) && sessionKey == recoveredSig
-                ) {
-                    return _SIG_VALIDATION_PASSED;
-                } else {
-                    return _SIG_VALIDATION_FAILED;
-                }
-            } else {
-                revert InvalidSignature(sessionKey);
-            }
-        }
-        revert NotImplemented();
-    }
-
-    /// @inheritdoc BasePlugin
-    function _onInstall(bytes calldata data) internal override isNotInitialized(msg.sender) {
-        address[] memory sessionKeysToAdd = abi.decode(data, (address[]));
-
-        uint256 length = sessionKeysToAdd.length;
-        for (uint256 i = 0; i < length;) {
-            // This also checks that sessionKeysToAdd[i] is not zero.
-            if (!_sessionKeys.tryAdd(msg.sender, CastLib.toSetValue(sessionKeysToAdd[i]))) {
-                revert InvalidSessionKey(sessionKeysToAdd[i]);
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
-    /// @inheritdoc BasePlugin
-    function onUninstall(bytes calldata) external override {
-        _sessionKeys.clear(msg.sender);
-    }
-
     /// @inheritdoc BasePlugin
     function pluginManifest() external pure override returns (PluginManifest memory) {
         PluginManifest memory manifest;
@@ -219,11 +223,14 @@ contract SessionKeyPlugin is ISessionKeyPlugin, BasePlugin {
         manifest.dependencyInterfaceIds[_MANIFEST_DEPENDENCY_INDEX_OWNER_RUNTIME_VALIDATION] =
             type(IPlugin).interfaceId;
 
-        manifest.executionFunctions = new bytes4[](4);
+        manifest.executionFunctions = new bytes4[](7);
         manifest.executionFunctions[0] = this.executeWithSessionKey.selector;
-        manifest.executionFunctions[1] = this.getSessionKeys.selector;
-        manifest.executionFunctions[2] = this.isSessionKey.selector;
-        manifest.executionFunctions[3] = this.updateSessionKeys.selector;
+        manifest.executionFunctions[1] = this.addSessionKey.selector;
+        manifest.executionFunctions[2] = this.removeSessionKey.selector;
+        manifest.executionFunctions[3] = this.rotateKey.selector;
+        manifest.executionFunctions[4] = this.updateKeyPermissions.selector;
+        manifest.executionFunctions[5] = this.getSessionKeys.selector;
+        manifest.executionFunctions[6] = this.isSessionKey.selector;
 
         ManifestFunction memory sessionKeyUserOpValidationFunction = ManifestFunction({
             functionType: ManifestAssociatedFunctionType.SELF,
@@ -236,13 +243,25 @@ contract SessionKeyPlugin is ISessionKeyPlugin, BasePlugin {
             dependencyIndex: _MANIFEST_DEPENDENCY_INDEX_OWNER_USER_OP_VALIDATION
         });
 
-        manifest.userOpValidationFunctions = new ManifestAssociatedFunction[](2);
+        manifest.userOpValidationFunctions = new ManifestAssociatedFunction[](5);
         manifest.userOpValidationFunctions[0] = ManifestAssociatedFunction({
             executionSelector: this.executeWithSessionKey.selector,
             associatedFunction: sessionKeyUserOpValidationFunction
         });
         manifest.userOpValidationFunctions[1] = ManifestAssociatedFunction({
-            executionSelector: this.updateSessionKeys.selector,
+            executionSelector: this.addSessionKey.selector,
+            associatedFunction: ownerUserOpValidationFunction
+        });
+        manifest.userOpValidationFunctions[2] = ManifestAssociatedFunction({
+            executionSelector: this.removeSessionKey.selector,
+            associatedFunction: ownerUserOpValidationFunction
+        });
+        manifest.userOpValidationFunctions[3] = ManifestAssociatedFunction({
+            executionSelector: this.rotateKey.selector,
+            associatedFunction: ownerUserOpValidationFunction
+        });
+        manifest.userOpValidationFunctions[4] = ManifestAssociatedFunction({
+            executionSelector: this.updateKeyPermissions.selector,
             associatedFunction: ownerUserOpValidationFunction
         });
 
@@ -260,7 +279,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, BasePlugin {
             dependencyIndex: _MANIFEST_DEPENDENCY_INDEX_OWNER_RUNTIME_VALIDATION
         });
 
-        manifest.runtimeValidationFunctions = new ManifestAssociatedFunction[](3);
+        manifest.runtimeValidationFunctions = new ManifestAssociatedFunction[](6);
         manifest.runtimeValidationFunctions[0] = ManifestAssociatedFunction({
             executionSelector: this.getSessionKeys.selector,
             associatedFunction: alwaysAllowValidationFunction
@@ -270,7 +289,19 @@ contract SessionKeyPlugin is ISessionKeyPlugin, BasePlugin {
             associatedFunction: alwaysAllowValidationFunction
         });
         manifest.runtimeValidationFunctions[2] = ManifestAssociatedFunction({
-            executionSelector: this.updateSessionKeys.selector,
+            executionSelector: this.addSessionKey.selector,
+            associatedFunction: ownerRuntimeValidationFunction
+        });
+        manifest.runtimeValidationFunctions[3] = ManifestAssociatedFunction({
+            executionSelector: this.removeSessionKey.selector,
+            associatedFunction: ownerRuntimeValidationFunction
+        });
+        manifest.runtimeValidationFunctions[4] = ManifestAssociatedFunction({
+            executionSelector: this.rotateKey.selector,
+            associatedFunction: ownerRuntimeValidationFunction
+        });
+        manifest.runtimeValidationFunctions[5] = ManifestAssociatedFunction({
+            executionSelector: this.updateKeyPermissions.selector,
             associatedFunction: ownerRuntimeValidationFunction
         });
 
@@ -298,13 +329,26 @@ contract SessionKeyPlugin is ISessionKeyPlugin, BasePlugin {
         metadata.author = _AUTHOR;
 
         // Permission strings
-        string memory modifyOwnershipPermission = "Modify Session Keys";
+        string memory modifySessionKeys = "Modify Session Keys";
+        string memory modifySessionKeyPermissions = "Modify Session Key Permissions";
 
         // Permission descriptions
-        metadata.permissionDescriptors = new SelectorPermission[](1);
+        metadata.permissionDescriptors = new SelectorPermission[](4);
         metadata.permissionDescriptors[0] = SelectorPermission({
-            functionSelector: this.updateSessionKeys.selector,
-            permissionDescription: modifyOwnershipPermission
+            functionSelector: this.addSessionKey.selector,
+            permissionDescription: modifySessionKeys
+        });
+        metadata.permissionDescriptors[1] = SelectorPermission({
+            functionSelector: this.removeSessionKey.selector,
+            permissionDescription: modifySessionKeys
+        });
+        metadata.permissionDescriptors[2] = SelectorPermission({
+            functionSelector: this.rotateKey.selector,
+            permissionDescription: modifySessionKeys
+        });
+        metadata.permissionDescriptors[3] = SelectorPermission({
+            functionSelector: this.updateKeyPermissions.selector,
+            permissionDescription: modifySessionKeyPermissions
         });
 
         return metadata;
@@ -317,6 +361,27 @@ contract SessionKeyPlugin is ISessionKeyPlugin, BasePlugin {
     /// @inheritdoc BasePlugin
     function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
         return interfaceId == type(ISessionKeyPlugin).interfaceId || super.supportsInterface(interfaceId);
+    }
+
+    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃    Internal Functions    ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    /// @inheritdoc BasePlugin
+    function _onInstall(bytes calldata data) internal override isNotInitialized(msg.sender) {
+        address[] memory sessionKeysToAdd = abi.decode(data, (address[]));
+
+        uint256 length = sessionKeysToAdd.length;
+        for (uint256 i = 0; i < length;) {
+            // This also checks that sessionKeysToAdd[i] is not zero.
+            if (!_sessionKeys.tryAdd(msg.sender, CastLib.toSetValue(sessionKeysToAdd[i]))) {
+                revert InvalidSessionKey(sessionKeysToAdd[i]);
+            }
+
+            unchecked {
+                ++i;
+            }
+        }
     }
 
     /// @inheritdoc BasePlugin

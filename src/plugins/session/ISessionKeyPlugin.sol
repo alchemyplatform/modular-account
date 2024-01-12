@@ -54,6 +54,10 @@ interface ISessionKeyPlugin {
     error SessionKeyNotFound(address sessionKey);
     error UnableToRemove(address sessionKey);
     error InvalidSignature(address sessionKey);
+    error ERC20SpendLimitExceeded(address account, address sessionKey, address token);
+    error InvalidPermissionsUpdate();
+    error InvalidToken();
+    error NativeTokenSpendLimitExceeded(address account, address sessionKey);
 
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    Execution functions    ┃
@@ -79,8 +83,9 @@ interface ISessionKeyPlugin {
 
     /// @notice Move a session key's registration status and existing permissions to another session key.
     /// @param oldSessionKey The session key to move.
+    /// @param predecessor The list predecessor of the old session key, as returned by `findPredecessor`.
     /// @param newSessionKey The session key to move to.
-    function rotateKey(address oldSessionKey, address newSessionKey) external;
+    function rotateKey(address oldSessionKey, bytes32 predecessor, address newSessionKey) external;
 
     /// @notice Performs a sequence of updates to a session key's permissions. These updates are abi-encoded calls
     /// to the functions defined in `ISessionKeyPermissionsUpdates`, and are not external functions implemented by
@@ -88,6 +93,18 @@ interface ISessionKeyPlugin {
     /// @param sessionKey The session key for which to update permissions.
     /// @param updates The abi-encoded updates to perform.
     function updateKeyPermissions(address sessionKey, bytes[] calldata updates) external;
+
+    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃    Plugin-only function    ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    /// @notice An externally available function, callable by anyone, that resets the "last used" timestamp on a
+    /// session key. This helps a session key get "unstuck" if it was used in a setting where every call it made
+    /// while using a new interval's gas limit reverted. Since this plugin internally tracks when that reset should
+    /// happen, this function does not need other validation.
+    /// @param account The account that owns the session key.
+    /// @param sessionKey The session key to reset.
+    function resetSessionKeyGasLimitTimestamp(address account, address sessionKey) external;
 
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃  Execution view functions   ┃
@@ -101,18 +118,6 @@ interface ISessionKeyPlugin {
     /// @param sessionKey The session key to check.
     /// @return The boolean whether the session key is a session key of the account.
     function isSessionKey(address sessionKey) external view returns (bool);
-
-    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    // ┃    Plugin-only function    ┃
-    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-
-    /// @notice An externally available function, callable by anyone, that resets the "last used" timestamp on a
-    /// session key. This helps a session key get "unstuck" if it was used in a setting where every call it made
-    /// while using a new interval's gas limit reverted. Since this plugin internally tracks when that reset should
-    /// happen, this function does not need other validation.
-    /// @param account The account that owns the session key.
-    /// @param sessionKey The session key to reset.
-    function resetSessionKeyGasLimitTimestamp(address account, address sessionKey) external;
 
     // ┏━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    View functions    ┃

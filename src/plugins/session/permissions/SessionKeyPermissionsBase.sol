@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.21;
 
-import {ISessionKeyPermissionsPlugin} from "./ISessionKeyPermissionsPlugin.sol";
+import {ISessionKeyPlugin} from "../ISessionKeyPlugin.sol";
 
 import {PluginStorageLib, StoragePointer} from "../../../libraries/PluginStorageLib.sol";
 
-abstract contract SessionKeyPermissionsBase is ISessionKeyPermissionsPlugin {
+abstract contract SessionKeyPermissionsBase is ISessionKeyPlugin {
     type SessionKeyId is bytes32;
+
+    // Implementation-internal structs not exposed by the external interface.
 
     struct SessionKeyData {
         // Contract access control type
@@ -87,6 +89,14 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPermissionsPlugin {
     // Storage fields
     mapping(address => uint256) internal _keyIdCounter;
 
+    // Internal Functions
+
+    function _assertKeyExists(SessionKeyId id, address sessionKey) internal pure {
+        if (SessionKeyId.unwrap(id) == bytes32(0)) {
+            revert InvalidSessionKey(sessionKey);
+        }
+    }
+
     function _sessionKeyIdOf(address associated, address sessionKey) internal view returns (SessionKeyId keyId) {
         uint256 prefixAndBatchIndex = uint256(bytes32(SESSION_KEY_ID_PREFIX));
         bytes memory associatedStorageKey =
@@ -95,12 +105,6 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPermissionsPlugin {
             PluginStorageLib.associatedStorageLookup(associatedStorageKey, bytes32(uint256(uint160(sessionKey))));
         assembly ("memory-safe") {
             keyId := sload(ptr)
-        }
-    }
-
-    function _assertRegistered(SessionKeyId id, address sessionKey) internal pure {
-        if (SessionKeyId.unwrap(id) == bytes32(0)) {
-            revert KeyNotRegistered(sessionKey);
         }
     }
 
@@ -136,7 +140,7 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPermissionsPlugin {
         returns (SessionKeyData storage sessionKeyData, SessionKeyId keyId)
     {
         SessionKeyId id = _sessionKeyIdOf(associated, sessionKey);
-        _assertRegistered(id, sessionKey);
+        _assertKeyExists(id, sessionKey);
         return (_sessionKeyDataOf(associated, id), id);
     }
 
