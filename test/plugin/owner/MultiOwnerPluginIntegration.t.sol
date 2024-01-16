@@ -16,7 +16,6 @@ import {IMultiOwnerPlugin} from "../../../src/plugins/owner/IMultiOwnerPlugin.so
 import {Utils} from "../../Utils.sol";
 import {Call} from "../../../src/interfaces/IStandardExecutor.sol";
 import {FunctionReference} from "../../../src/libraries/FunctionReferenceLib.sol";
-import {IPluginManager} from "../../../src/interfaces/IPluginManager.sol";
 
 import {Counter} from "../../mocks/Counter.sol";
 import {MultiOwnerMSCAFactory} from "../../../src/factory/MultiOwnerMSCAFactory.sol";
