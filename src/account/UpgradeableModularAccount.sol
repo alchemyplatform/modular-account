@@ -215,9 +215,8 @@ contract UpgradeableModularAccount is
         bytes24 permittedCallKey = _getPermittedCallKey(msg.sender, selector);
 
         AccountStorage storage storage_ = _getAccountStorage();
-        PermittedCallData storage permittedCallData = storage_.permittedCalls[permittedCallKey];
 
-        if (!permittedCallData.callPermitted) {
+        if (!storage_.callPermitted[permittedCallKey]) {
             revert ExecFromPluginNotPermitted(msg.sender, selector);
         }
 

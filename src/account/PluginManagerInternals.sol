@@ -153,15 +153,6 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         }
     }
 
-    function _enableExecFromPlugin(bytes4 selector, address plugin, AccountStorage storage storage_) internal {
-        PermittedCallData storage permittedCallData =
-            storage_.permittedCalls[_getPermittedCallKey(plugin, selector)];
-
-        // If there are duplicates, this will just enable the flag again. This is not a problem, since the boolean
-        // will be set to false twice during uninstall, which is fine.
-        permittedCallData.callPermitted = true;
-    }
-
     function _addHooks(
         HookGroup storage hooks,
         bytes4 selector,
@@ -339,7 +330,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         // Add installed plugin and selectors this plugin can call
         length = manifest.permittedExecutionSelectors.length;
         for (uint256 i = 0; i < length; ++i) {
-            _enableExecFromPlugin(manifest.permittedExecutionSelectors[i], plugin, storage_);
+            storage_.callPermitted[_getPermittedCallKey(plugin, manifest.permittedExecutionSelectors[i])] = true;
         }
 
         // Add the permitted external calls to the account.
@@ -596,8 +587,8 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         // Remove permitted account execution function call permissions
         length = args.manifest.permittedExecutionSelectors.length;
         for (uint256 i = 0; i < length; ++i) {
-            storage_.permittedCalls[_getPermittedCallKey(args.plugin, args.manifest.permittedExecutionSelectors[i])]
-                .callPermitted = false;
+            storage_.callPermitted[_getPermittedCallKey(args.plugin, args.manifest.permittedExecutionSelectors[i])]
+            = false;
         }
 
         // Remove installed execution function

@@ -20,8 +20,7 @@ contract AccountStorageV1 {
         mapping(address => PluginData) pluginData;
         // Execution functions and their associated functions
         mapping(bytes4 => SelectorData) selectorData;
-        // bytes24 key = address(calling plugin) || bytes4(selector of execution function)
-        mapping(bytes24 => PermittedCallData) permittedCalls;
+        mapping(bytes24 => bool) callPermitted;
         // key = address(calling plugin) || target address
         mapping(IPlugin => mapping(address => PermittedExternalCallData)) permittedExternalCalls;
         // For ERC165 introspection, each count indicates support from account or an installed plugin
@@ -39,12 +38,6 @@ contract AccountStorageV1 {
         FunctionReference[] dependencies;
         // Tracks the number of times this plugin has been used as a dependency function
         uint256 dependentCount;
-    }
-
-    /// @dev Represents data associated with a plugin's permission to use `executeFromPlugin` to interact with
-    /// another plugin installed on the account.
-    struct PermittedCallData {
-        bool callPermitted;
     }
 
     /// @dev Represents data associated with a plugin's permission to use `executeFromPluginExternal` to interact
