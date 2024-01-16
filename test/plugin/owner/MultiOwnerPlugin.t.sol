@@ -58,18 +58,17 @@ contract MultiOwnerPluginTest is Test {
 
     function test_pluginManifest() public {
         PluginManifest memory manifest = plugin.pluginManifest();
-        // 5 execution functions
-        assertEq(5, manifest.executionFunctions.length);
+        // 3 execution functions
+        assertEq(3, manifest.executionFunctions.length);
         // 5 native + 1 plugin exec func
         assertEq(6, manifest.userOpValidationFunctions.length);
-        // 5 native + 1 plugin exec func + 4 plugin view func
-        assertEq(10, manifest.runtimeValidationFunctions.length);
+        // 5 native + 1 plugin exec func + 2 plugin view func
+        assertEq(8, manifest.runtimeValidationFunctions.length);
     }
 
     function test_onUninstall_success() public {
         plugin.onUninstall(abi.encode(""));
         address[] memory returnedOwners = plugin.ownersOf(accountA);
-        assertEq(returnedOwners, plugin.owners());
         assertEq(0, returnedOwners.length);
     }
 
@@ -80,7 +79,6 @@ contract MultiOwnerPluginTest is Test {
         vm.startPrank(address(contractOwner));
         plugin.onInstall(abi.encode(owners));
         address[] memory returnedOwners = plugin.ownersOf(address(contractOwner));
-        assertEq(returnedOwners, plugin.owners());
         assertEq(returnedOwners.length, 1);
         assertEq(returnedOwners[0], owner1);
         vm.stopPrank();
@@ -89,8 +87,6 @@ contract MultiOwnerPluginTest is Test {
     function test_eip712Domain() public {
         assertEq(true, plugin.isOwnerOf(accountA, owner2));
         assertEq(false, plugin.isOwnerOf(accountA, address(contractOwner)));
-        assertEq(true, plugin.isOwner(owner2));
-        assertEq(false, plugin.isOwner(address(contractOwner)));
 
         (
             bytes1 fields,
@@ -133,7 +129,6 @@ contract MultiOwnerPluginTest is Test {
 
     function test_updateOwners_success() public {
         (address[] memory owners) = plugin.ownersOf(accountA);
-        assertEq(owners, plugin.owners());
         assertEq(Utils.reverseAddressArray(ownerArray), owners);
 
         // remove should also work
@@ -144,7 +139,6 @@ contract MultiOwnerPluginTest is Test {
         plugin.updateOwners(new address[](0), ownersToRemove);
 
         (address[] memory newOwnerList) = plugin.ownersOf(accountA);
-        assertEq(newOwnerList, plugin.owners());
         assertEq(newOwnerList.length, 1);
         assertEq(newOwnerList[0], owner3);
     }
@@ -167,8 +161,6 @@ contract MultiOwnerPluginTest is Test {
 
         address[] memory ownersToAdd = new address[](1);
         ownersToAdd[0] = signer;
-
-        assertEq(plugin.isOwnerOf(accountA, signer), plugin.isOwner(signer));
 
         if (!plugin.isOwnerOf(accountA, signer)) {
             // sig check should fail
@@ -217,7 +209,7 @@ contract MultiOwnerPluginTest is Test {
     }
 
     function test_multiOwnerPlugin_sentinelIsNotOwner() public {
-        assertEq(false, plugin.isOwner(address(1)));
+        assertFalse(plugin.isOwnerOf(accountA, address(1)));
     }
 
     function testFuzz_userOpValidationFunction_ContractOwner(UserOperation memory userOp) public {
@@ -276,8 +268,6 @@ contract MultiOwnerPluginTest is Test {
 
         address[] memory ownersToAdd = new address[](1);
         ownersToAdd[0] = signer;
-
-        assertEq(plugin.isOwnerOf(accountA, signer), plugin.isOwner(signer));
 
         // Only check that the signature should fail if the signer is not already an owner
         if (!plugin.isOwnerOf(accountA, signer)) {
