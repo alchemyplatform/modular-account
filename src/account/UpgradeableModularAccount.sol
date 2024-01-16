@@ -53,12 +53,11 @@ contract UpgradeableModularAccount is
         // plugin manifest has changed. If empty, uses the default behavior of
         // calling the plugin to get its current manifest.
         bytes serializedManifest;
-        // If true, will complete the uninstall even if `onUninstall` or
-        // `onHookUnapply` callbacks revert. Available as an escape hatch if a
-        // plugin is blocking uninstall.
+        // If true, will complete the uninstall even if `onUninstall` callbacks revert. Available as an escape
+        // hatch if a plugin is blocking uninstall.
         bool forceUninstall;
         // Maximum amount of gas allowed for each uninstall callback function
-        // (`onUninstall` and `onHookUnapply`), or zero to set no limit. Should
+        // (`onUninstall`), or zero to set no limit. Should
         // typically be used with `forceUninstall` to remove plugins that are
         // preventing uninstallation by consuming all remaining gas.
         uint256 callbackGasLimit;
@@ -107,12 +106,9 @@ contract UpgradeableModularAccount is
         }
 
         FunctionReference[] memory emptyDependencies = new FunctionReference[](0);
-        InjectedHook[] memory emptyInjectedHooks = new InjectedHook[](0);
 
         for (uint256 i = 0; i < length; ++i) {
-            _installPlugin(
-                plugins[i], manifestHashes[i], pluginInstallDatas[i], emptyDependencies, emptyInjectedHooks
-            );
+            _installPlugin(plugins[i], manifestHashes[i], pluginInstallDatas[i], emptyDependencies);
         }
 
         emit ModularAccountInitialized(_ENTRY_POINT);
@@ -303,13 +299,7 @@ contract UpgradeableModularAccount is
             revert ExecFromPluginExternalNotPermitted(callingPlugin, target, value, data);
         }
 
-        // Run any pre permitted call hooks specific to this caller and the `executeFromPluginExternal` selector,
-        // then run any pre-exec hooks associated with the `executeFromPluginExternal` selector.
-        PermittedCallData storage permittedCallData = storage_.permittedCalls[_getPermittedCallKey(
-            callingPlugin, IPluginExecutor.executeFromPluginExternal.selector
-        )];
-        SelectorData storage selectorData =
-            storage_.selectorData[IPluginExecutor.executeFromPluginExternal.selector];
+        // Run any pre exec hooks for the `executeFromPluginExternal` selector
 
         (FunctionReference[][] memory postHooksToRun, bytes[] memory postHookArgs) =
             _doPrePermittedCallHooksAndPreExecHooks(selectorData, permittedCallData, "");
@@ -327,21 +317,18 @@ contract UpgradeableModularAccount is
         address plugin,
         bytes32 manifestHash,
         bytes calldata pluginInitData,
-        FunctionReference[] calldata dependencies,
-        InjectedHook[] calldata injectedHooks
+        FunctionReference[] calldata dependencies
     ) external override {
         (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
-        _installPlugin(plugin, manifestHash, pluginInitData, dependencies, injectedHooks);
+        _installPlugin(plugin, manifestHash, pluginInitData, dependencies);
         _postNativeFunction(postExecHooks, postHookArgs);
     }
 
     /// @inheritdoc IPluginManager
-    function uninstallPlugin(
-        address plugin,
-        bytes calldata config,
-        bytes calldata pluginUninstallData,
-        bytes[] calldata hookUnapplyData
-    ) external override {
+    function uninstallPlugin(address plugin, bytes calldata config, bytes calldata pluginUninstallData)
+        external
+        override
+    {
         (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
 
         UninstallPluginArgs memory args;
@@ -364,7 +351,7 @@ contract UpgradeableModularAccount is
             args.callbackGasLimit = type(uint256).max;
         }
 
-        _uninstallPlugin(args, pluginUninstallData, hookUnapplyData);
+        _uninstallPlugin(args, pluginUninstallData);
 
         _postNativeFunction(postExecHooks, postHookArgs);
     }
@@ -608,23 +595,14 @@ contract UpgradeableModularAccount is
         PermittedCallData storage permittedCallData,
         bytes memory callBuffer
     ) internal returns (FunctionReference[][] memory postHooksToRun, bytes[] memory postHookArgs) {
-        FunctionReference[] memory prePermittedCallHooks;
         FunctionReference[] memory preExecHooks;
-
-        bool hasPrePermittedCallHooks = permittedCallData.hasPrePermittedCallHooks;
-        bool hasPostOnlyPermittedCallHooks = permittedCallData.hasPostOnlyPermittedCallHooks;
 
         bool hasPreExecHooks = selectorData.hasPreExecHooks;
         bool hasPostOnlyExecHooks = selectorData.hasPostOnlyExecHooks;
 
         // If we have any type of pre hooks, we need to allocate memory for them to perform their call.
-        if (callBuffer.length == 0 && (hasPrePermittedCallHooks || hasPreExecHooks)) {
+        if (callBuffer.length == 0 && hasPreExecHooks) {
             callBuffer = _allocateRuntimeCallBuffer(msg.data);
-        }
-
-        if (hasPrePermittedCallHooks) {
-            prePermittedCallHooks =
-                CastLib.toFunctionReferenceArray(permittedCallData.permittedCallHooks.preHooks.getAll());
         }
 
         if (hasPreExecHooks) {
@@ -634,42 +612,16 @@ contract UpgradeableModularAccount is
         // Allocate memory for the post hooks and post hook args.
         // If we have post-only hooks, we allocate an extra FunctionReference[] for them, and one extra element in
         // the args for their empty `bytes` argument.
-        uint256 postHooksToRunLength = prePermittedCallHooks.length + preExecHooks.length
-            + (hasPostOnlyPermittedCallHooks ? 1 : 0) + (hasPostOnlyExecHooks ? 1 : 0);
+        uint256 postHooksToRunLength = preExecHooks.length + (hasPostOnlyExecHooks ? 1 : 0);
         postHooksToRun = new FunctionReference[][](postHooksToRunLength);
         postHookArgs = new bytes[](postHooksToRunLength);
 
         // The order we want to fill the post exec hooks is:
-        // 1. Post-only permitted call hooks
-        // 2. Associated post hooks for pre-permitted call hooks
-        // 3. Post-only exec hooks
-        // 4. Associated post hooks for pre-exec hooks
+        // 1. Associated post hooks for pre-permitted call hooks
+        // 2. Post-only exec hooks
+        // 3. Associated post hooks for pre-exec hooks
 
-        uint256 associatedPermittedCallHooksIndex = 0;
-
-        if (hasPostOnlyPermittedCallHooks) {
-            // If we have post-only hooks, we allocate an single FunctionReference[] for them, and one element in
-            // the args for their empty `bytes` argument. We put this into the first element of the post hooks in
-            // order to have it run last.
-            postHooksToRun[associatedPermittedCallHooksIndex] =
-                CastLib.toFunctionReferenceArray(permittedCallData.permittedCallHooks.postOnlyHooks.getAll());
-            unchecked {
-                ++associatedPermittedCallHooksIndex;
-            }
-        }
-
-        // Cache post-permitted-call hooks in memory
-        _cacheAssociatedPostHooks(
-            prePermittedCallHooks,
-            permittedCallData.permittedCallHooks,
-            postHooksToRun,
-            associatedPermittedCallHooksIndex
-        );
-        // The exec hooks start after the permitted call hooks
         uint256 associatedExecHooksIndex;
-        unchecked {
-            associatedExecHooksIndex = associatedPermittedCallHooksIndex + prePermittedCallHooks.length;
-        }
 
         if (hasPostOnlyExecHooks) {
             // If we have post-only hooks, we allocate an single FunctionReference[] for them, and one element in
@@ -685,11 +637,6 @@ contract UpgradeableModularAccount is
         // Cache post-exec hooks in memory
         _cacheAssociatedPostHooks(
             preExecHooks, selectorData.executionHooks, postHooksToRun, associatedExecHooksIndex
-        );
-
-        // Run the permitted call hooks
-        _doPreHooks(
-            prePermittedCallHooks, callBuffer, postHooksToRun, postHookArgs, associatedPermittedCallHooksIndex
         );
 
         // Run the pre-exec hooks

@@ -40,7 +40,6 @@ abstract contract AccountExecutor {
     /// - Pre Runtime Validation Hook
     /// - Runtime Validation
     /// - Pre Execution Hook
-    /// - Pre Permitted Call Hook
     /// And if it fails, reverts with the appropriate custom error.
     function _executeRuntimePluginFunction(bytes memory buffer, address plugin, bytes4 errorSelector) internal {
         if (!_executeRaw(plugin, buffer)) {

@@ -83,8 +83,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
             pluginInitData: abi.encode(new address[](0), new bytes32[](0), new bytes[][](0)),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
 
         // Create and add a session key

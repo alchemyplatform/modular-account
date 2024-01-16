@@ -93,8 +93,7 @@ contract SessionKeyPermissionsTest is Test {
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
             pluginInitData: abi.encode(new address[](0), new bytes32[](0), new bytes[][](0)),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
 
         // Create and add a session key
@@ -645,7 +644,7 @@ contract SessionKeyPermissionsTest is Test {
     function testFuzz_initialSessionKeysWithPermissions(uint256 seed) public {
         // Uninstall the plugin
         vm.prank(owner1);
-        account1.uninstallPlugin(address(sessionKeyPlugin), "", "", new bytes[](0));
+        account1.uninstallPlugin(address(sessionKeyPlugin), "", "");
 
         address[] memory sessionKeys = _generateRandomAddresses(seed);
         bytes32[] memory tags = new bytes32[](sessionKeys.length);
@@ -669,8 +668,7 @@ contract SessionKeyPermissionsTest is Test {
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
             pluginInitData: abi.encode(sessionKeys, tags, sessionKeyPermissions),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
     }
 

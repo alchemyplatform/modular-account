@@ -85,8 +85,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
             pluginInitData: abi.encode(new address[](0), new bytes32[](0), new bytes[][](0)),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
     }
 
@@ -162,7 +161,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
     function testFuzz_sessionKey_addKeysDuringInstall(uint8 seed) public {
         // First uninstall the plugin
         vm.prank(owner1);
-        account1.uninstallPlugin(address(sessionKeyPlugin), "", "", new bytes[](0));
+        account1.uninstallPlugin(address(sessionKeyPlugin), "", "");
 
         // Generate a set of initial session keys
         uint256 addressCount = (seed % 16) + 1;
@@ -195,8 +194,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
             pluginInitData: onInstallData,
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
 
         // Check using all view methods

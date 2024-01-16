@@ -60,8 +60,7 @@ contract AccountReturnDataTest is Test {
             plugin: address(resultCreatorPlugin),
             manifestHash: resultCreatorManifestHash,
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
         // Add the result consumer plugin to the account
         bytes32 resultConsumerManifestHash = keccak256(abi.encode(resultConsumerPlugin.pluginManifest()));
@@ -69,8 +68,7 @@ contract AccountReturnDataTest is Test {
             plugin: address(resultConsumerPlugin),
             manifestHash: resultConsumerManifestHash,
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
     }
 
