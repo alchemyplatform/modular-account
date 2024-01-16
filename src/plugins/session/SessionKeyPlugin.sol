@@ -134,7 +134,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
     /// @inheritdoc ISessionKeyPlugin
     function addSessionKey(address sessionKey, bytes32 tag) public override {
         if (!_sessionKeys.tryAdd(msg.sender, CastLib.toSetValue(sessionKey))) {
-            // This check ensures no duplciate keys and that the session key is not the zero address.
+            // This check ensures no duplicate keys and that the session key is not the zero address.
             revert InvalidSessionKey(sessionKey);
         }
 
@@ -170,6 +170,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
             revert InvalidSessionKey(oldSessionKey);
         }
 
+        // If the new key to rotate into is a duplicate or the zero address, revert.
         if (!_sessionKeys.tryAdd(msg.sender, CastLib.toSetValue(newSessionKey))) {
             revert InvalidSessionKey(newSessionKey);
         }
