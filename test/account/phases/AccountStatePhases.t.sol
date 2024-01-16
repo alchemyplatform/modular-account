@@ -28,11 +28,11 @@ import {MockPlugin} from "../../mocks/MockPlugin.sol";
 
 // A test suite that verifies how the account caches the state of plugins. This is intended to ensure consistency
 // of execution flow when either hooks or plugins change installation state within a single call to the account.
-// The follow tests inherit from this test base:
+// The following tests inherit from this test base:
 // - AccountStatePhasesUOValidationTest
 // - AccountStatePhasesRTValidationTest
 // - AccountStatePhasesExecTest
-// NOTE: This test implicitly depends on hooks executionorder being latest-to-oldest. This is not guaranteed by
+// NOTE: This test implicitly depends on hooks execution order being latest-to-oldest. This is not guaranteed by
 // the spec, but is currently the case. If that changes, this test will need to be updated.
 // How these tests will work
 // - Create a custom plugin "AccountStateMutatingPlugin" that can perform install / uninstall during hooks,
@@ -40,8 +40,7 @@ import {MockPlugin} from "../../mocks/MockPlugin.sol";
 // - This is done by pushing the call encoding responsibilitiy to this test, and just exposing a "side"
 // method that specifies the callback it should do in a given phase back toward the calling account.
 // - Authorization for install/uninstall can be granted by making the plugin itself an owner in multi-owner
-// plugin, which will
-// authorize runtime calls.
+// plugin, which will authorize runtime calls.
 // - The contents of what is called are defined in a mock plugin like the exec hooks test.
 contract AccountStatePhasesTest is Test {
     using ECDSA for bytes32;

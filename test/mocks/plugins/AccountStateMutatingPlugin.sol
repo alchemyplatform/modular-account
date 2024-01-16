@@ -164,40 +164,36 @@ contract AccountStateMutatingPlugin is BaseTestPlugin {
                     dependencyIndex: 0 // Unused
                 })
             });
-        } else {
-            if (hasPreExec) {
-                m.executionHooks = new ManifestExecutionHook[](1);
-                m.executionHooks[0] = ManifestExecutionHook({
-                    executionSelector: this.executionFunction.selector,
-                    preExecHook: ManifestFunction({
-                        functionType: ManifestAssociatedFunctionType.SELF,
-                        functionId: uint8(FunctionId.PRE_EXECUTION_HOOK),
-                        dependencyIndex: 0 // Unused
-                    }),
-                    postExecHook: ManifestFunction({
-                        functionType: ManifestAssociatedFunctionType.NONE,
-                        functionId: 0, // Unused
-                        dependencyIndex: 0 // Unused
-                    })
-                });
-            }
-
-            if (hasPostExec) {
-                m.executionHooks = new ManifestExecutionHook[](1);
-                m.executionHooks[0] = ManifestExecutionHook({
-                    executionSelector: this.executionFunction.selector,
-                    preExecHook: ManifestFunction({
-                        functionType: ManifestAssociatedFunctionType.NONE,
-                        functionId: 0, // Unused
-                        dependencyIndex: 0 // Unused
-                    }),
-                    postExecHook: ManifestFunction({
-                        functionType: ManifestAssociatedFunctionType.SELF,
-                        functionId: uint8(FunctionId.POST_EXECUTION_HOOK),
-                        dependencyIndex: 0 // Unused
-                    })
-                });
-            }
+        } else if (hasPreExec) {
+            m.executionHooks = new ManifestExecutionHook[](1);
+            m.executionHooks[0] = ManifestExecutionHook({
+                executionSelector: this.executionFunction.selector,
+                preExecHook: ManifestFunction({
+                    functionType: ManifestAssociatedFunctionType.SELF,
+                    functionId: uint8(FunctionId.PRE_EXECUTION_HOOK),
+                    dependencyIndex: 0 // Unused
+                }),
+                postExecHook: ManifestFunction({
+                    functionType: ManifestAssociatedFunctionType.NONE,
+                    functionId: 0, // Unused
+                    dependencyIndex: 0 // Unused
+                })
+            });
+        } else if (hasPostExec) {
+            m.executionHooks = new ManifestExecutionHook[](1);
+            m.executionHooks[0] = ManifestExecutionHook({
+                executionSelector: this.executionFunction.selector,
+                preExecHook: ManifestFunction({
+                    functionType: ManifestAssociatedFunctionType.NONE,
+                    functionId: 0, // Unused
+                    dependencyIndex: 0 // Unused
+                }),
+                postExecHook: ManifestFunction({
+                    functionType: ManifestAssociatedFunctionType.SELF,
+                    functionId: uint8(FunctionId.POST_EXECUTION_HOOK),
+                    dependencyIndex: 0 // Unused
+                })
+            });
         }
 
         return m;
