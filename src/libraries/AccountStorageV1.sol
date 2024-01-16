@@ -20,9 +20,9 @@ contract AccountStorageV1 {
         mapping(address => PluginData) pluginData;
         // Execution functions and their associated functions
         mapping(bytes4 => SelectorData) selectorData;
-        // bytes24 key = address(calling plugin) || bytes4(selector of execution function)
+        // bytes24 key = address(calling plugin) | bytes4(selector of execution function)
         mapping(bytes24 => PermittedCallData) permittedCalls;
-        // key = address(calling plugin) || target address
+        // key = address(calling plugin) | target address
         mapping(IPlugin => mapping(address => PermittedExternalCallData)) permittedExternalCalls;
         // For ERC165 introspection, each count indicates support from account or an installed plugin
         // 0 indicate the account does not support the interface and all plugins that support this interface have
