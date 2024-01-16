@@ -63,8 +63,7 @@ contract ManifestValidityTest is Test {
             plugin: address(plugin),
             manifestHash: manifestHash,
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
     }
 
@@ -81,8 +80,7 @@ contract ManifestValidityTest is Test {
             plugin: address(plugin),
             manifestHash: manifestHash,
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
     }
 
@@ -99,8 +97,7 @@ contract ManifestValidityTest is Test {
             plugin: address(plugin),
             manifestHash: manifestHash,
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
     }
 
@@ -115,8 +112,7 @@ contract ManifestValidityTest is Test {
             plugin: address(plugin),
             manifestHash: manifestHash,
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
     }
 
@@ -131,8 +127,7 @@ contract ManifestValidityTest is Test {
             plugin: address(plugin),
             manifestHash: manifestHash,
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
     }
 
@@ -148,8 +143,7 @@ contract ManifestValidityTest is Test {
             plugin: address(plugin),
             manifestHash: manifestHash,
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
     }
 
@@ -165,8 +159,7 @@ contract ManifestValidityTest is Test {
             plugin: address(plugin),
             manifestHash: manifestHash,
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
     }
 
@@ -181,8 +174,7 @@ contract ManifestValidityTest is Test {
             plugin: address(plugin),
             manifestHash: manifestHash,
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
     }
 }

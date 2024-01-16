@@ -302,21 +302,6 @@ contract EFPPermittedCallHookPlugin is BaseTestPlugin {
             })
         });
 
-        manifest.permittedCallHooks = new ManifestExecutionHook[](1);
-        manifest.permittedCallHooks[0] = ManifestExecutionHook({
-            executionSelector: ResultCreatorPlugin.foo.selector,
-            preExecHook: ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: 0,
-                dependencyIndex: 0
-            }),
-            postExecHook: ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: 0,
-                dependencyIndex: 0
-            })
-        });
-
         manifest.permittedExecutionSelectors = new bytes4[](1);
         manifest.permittedExecutionSelectors[0] = ResultCreatorPlugin.foo.selector;
 
@@ -360,21 +345,6 @@ contract EFPExternalPermittedCallHookPlugin is BaseTestPlugin {
             executionSelector: this.performIncrement.selector,
             associatedFunction: ManifestFunction({
                 functionType: ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW,
-                functionId: 0,
-                dependencyIndex: 0
-            })
-        });
-
-        manifest.permittedCallHooks = new ManifestExecutionHook[](1);
-        manifest.permittedCallHooks[0] = ManifestExecutionHook({
-            executionSelector: IPluginExecutor.executeFromPluginExternal.selector,
-            preExecHook: ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: 0,
-                dependencyIndex: 0
-            }),
-            postExecHook: ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
                 functionId: 0,
                 dependencyIndex: 0
             })

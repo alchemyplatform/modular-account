@@ -32,14 +32,6 @@ contract UninstallErrorsPlugin is BaseTestPlugin {
         _revert();
     }
 
-    function onHookUnapply(address, IPluginManager.InjectedHooksInfo calldata, bytes calldata)
-        external
-        virtual
-        override
-    {
-        _revert();
-    }
-
     function pluginManifest() external pure override returns (PluginManifest memory manifest) {}
 
     function pluginMetadata() external pure override returns (PluginMetadata memory) {

@@ -43,7 +43,6 @@ library KnownSelectors {
         // check against IAccountLoupe methods
         || selector == IAccountLoupe.getExecutionFunctionConfig.selector
             || selector == IAccountLoupe.getExecutionHooks.selector
-            || selector == IAccountLoupe.getPermittedCallHooks.selector
             || selector == IAccountLoupe.getPreValidationHooks.selector
             || selector == IAccountLoupe.getInstalledPlugins.selector;
     }
@@ -61,8 +60,7 @@ library KnownSelectors {
             || selector == IPlugin.userOpValidationFunction.selector
             || selector == IPlugin.preRuntimeValidationHook.selector
             || selector == IPlugin.runtimeValidationFunction.selector || selector == IPlugin.preExecutionHook.selector
-            || selector == IPlugin.postExecutionHook.selector || selector == IPlugin.onHookApply.selector
-            || selector == IPlugin.onHookUnapply.selector || selector == IPlugin.pluginManifest.selector
+            || selector == IPlugin.postExecutionHook.selector || selector == IPlugin.pluginManifest.selector
             || selector == IPlugin.pluginMetadata.selector;
     }
 }

@@ -53,12 +53,11 @@ contract UpgradeableModularAccount is
         // plugin manifest has changed. If empty, uses the default behavior of
         // calling the plugin to get its current manifest.
         bytes serializedManifest;
-        // If true, will complete the uninstall even if `onUninstall` or
-        // `onHookUnapply` callbacks revert. Available as an escape hatch if a
-        // plugin is blocking uninstall.
+        // If true, will complete the uninstall even if `onUninstall` callbacks revert. Available as an escape
+        // hatch if a plugin is blocking uninstall.
         bool forceUninstall;
         // Maximum amount of gas allowed for each uninstall callback function
-        // (`onUninstall` and `onHookUnapply`), or zero to set no limit. Should
+        // (`onUninstall`), or zero to set no limit. Should
         // typically be used with `forceUninstall` to remove plugins that are
         // preventing uninstallation by consuming all remaining gas.
         uint256 callbackGasLimit;
@@ -107,12 +106,9 @@ contract UpgradeableModularAccount is
         }
 
         FunctionReference[] memory emptyDependencies = new FunctionReference[](0);
-        InjectedHook[] memory emptyInjectedHooks = new InjectedHook[](0);
 
         for (uint256 i = 0; i < length;) {
-            _installPlugin(
-                plugins[i], manifestHashes[i], pluginInstallDatas[i], emptyDependencies, emptyInjectedHooks
-            );
+            _installPlugin(plugins[i], manifestHashes[i], pluginInstallDatas[i], emptyDependencies);
 
             unchecked {
                 ++i;
@@ -247,14 +243,6 @@ contract UpgradeableModularAccount is
 
         bytes memory callBuffer = _allocateRuntimeCallBuffer(data);
 
-        FunctionReference[] memory postPermittedCallHooks;
-        bytes[] memory postPermittedCallHookArgs;
-        if (permittedCallData.hasPrePermittedCallHooks) {
-            // Cache post-permitted call hooks in memory
-            (postPermittedCallHooks, postPermittedCallHookArgs) =
-                _doPrePermittedCallHooks(permittedCallKey, callBuffer);
-        }
-
         SelectorData storage selectorData = storage_.selectorData[selector];
         address execFunctionPlugin = selectorData.plugin;
 
@@ -283,15 +271,6 @@ contract UpgradeableModularAccount is
         if (selectorData.hasPostOnlyExecHooks) {
             _doCachedPostHooks(
                 CastLib.toFunctionReferenceArray(selectorData.executionHooks.postOnlyHooks.getAll()),
-                new bytes[](0)
-            );
-        }
-
-        _doCachedPostHooks(postPermittedCallHooks, postPermittedCallHookArgs);
-
-        if (permittedCallData.hasPostOnlyPermittedCallHooks) {
-            _doCachedPostHooks(
-                CastLib.toFunctionReferenceArray(permittedCallData.permittedCallHooks.postOnlyHooks.getAll()),
                 new bytes[](0)
             );
         }
@@ -347,16 +326,10 @@ contract UpgradeableModularAccount is
             revert ExecFromPluginExternalNotPermitted(callingPlugin, target, value, data);
         }
 
-        // Run permitted call hooks and execution hooks. `executeFromPluginExternal` doesn't use PermittedCallData
-        // to check call permissions, nor do they have an address entry in SelectorData, so it doesn't make sense
-        // to use cached booleans (hasPreExecHooks, hasPostOnlyExecHooks, etc.) to conditionally bypass certain
-        // steps, as it would just be an added `sload` in the nonzero hooks case.
-
-        // Run any pre permitted call hooks specific to this caller and the `executeFromPluginExternal` selector
-        bytes24 permittedCallKey =
-            _getPermittedCallKey(callingPlugin, IPluginExecutor.executeFromPluginExternal.selector);
-        (FunctionReference[] memory postPermittedCallHooks, bytes[] memory postPermittedCallHookArgs) =
-            _doPrePermittedCallHooks(permittedCallKey, "");
+        // Run execution hooks. `executeFromPluginExternal` doesn't use PermittedCallData to check call
+        // permissions, nor do they have an address entry in SelectorData, so it doesn't make sense to use cached
+        // booleans (hasPreExecHooks, hasPostOnlyExecHooks, etc.) to conditionally bypass certain steps, as it
+        // would just be an added `sload` in the nonzero hooks case.
 
         // Run any pre exec hooks for the `executeFromPluginExternal` selector
         (FunctionReference[] memory postExecHooks, bytes[] memory postExecHookArgs) =
@@ -379,18 +352,6 @@ contract UpgradeableModularAccount is
             new bytes[](0)
         );
 
-        // Run any post permitted call hooks specific to this caller and the `executeFromPluginExternal` selector
-        _doCachedPostHooks(postPermittedCallHooks, postPermittedCallHookArgs);
-
-        // Run any post only permitted call hooks specific to this caller and the `executeFromPluginExternal`
-        // selector
-        _doCachedPostHooks(
-            CastLib.toFunctionReferenceArray(
-                storage_.permittedCalls[permittedCallKey].permittedCallHooks.postOnlyHooks.getAll()
-            ),
-            new bytes[](0)
-        );
-
         return returnData;
     }
 
@@ -399,21 +360,18 @@ contract UpgradeableModularAccount is
         address plugin,
         bytes32 manifestHash,
         bytes calldata pluginInitData,
-        FunctionReference[] calldata dependencies,
-        InjectedHook[] calldata injectedHooks
+        FunctionReference[] calldata dependencies
     ) external override {
         (FunctionReference[] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
-        _installPlugin(plugin, manifestHash, pluginInitData, dependencies, injectedHooks);
+        _installPlugin(plugin, manifestHash, pluginInitData, dependencies);
         _postNativeFunction(postExecHooks, postHookArgs);
     }
 
     /// @inheritdoc IPluginManager
-    function uninstallPlugin(
-        address plugin,
-        bytes calldata config,
-        bytes calldata pluginUninstallData,
-        bytes[] calldata hookUnapplyData
-    ) external override {
+    function uninstallPlugin(address plugin, bytes calldata config, bytes calldata pluginUninstallData)
+        external
+        override
+    {
         (FunctionReference[] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
 
         UninstallPluginArgs memory args;
@@ -436,7 +394,7 @@ contract UpgradeableModularAccount is
             args.callbackGasLimit = type(uint256).max;
         }
 
-        _uninstallPlugin(args, pluginUninstallData, hookUnapplyData);
+        _uninstallPlugin(args, pluginUninstallData);
 
         _postNativeFunction(postExecHooks, postHookArgs);
     }
@@ -654,18 +612,6 @@ contract UpgradeableModularAccount is
         SelectorData storage selectorData = _getAccountStorage().selectorData[selector];
         return _doPreHooks(
             selectorData.executionHooks.preHooks, selectorData.executionHooks.associatedPostHooks, callBuffer
-        );
-    }
-
-    function _doPrePermittedCallHooks(bytes24 permittedCallKey, bytes memory callBuffer)
-        internal
-        returns (FunctionReference[] memory, bytes[] memory)
-    {
-        PermittedCallData storage permittedCallData = _getAccountStorage().permittedCalls[permittedCallKey];
-        return _doPreHooks(
-            permittedCallData.permittedCallHooks.preHooks,
-            permittedCallData.permittedCallHooks.associatedPostHooks,
-            callBuffer
         );
     }
 

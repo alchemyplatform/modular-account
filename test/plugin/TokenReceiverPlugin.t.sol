@@ -81,11 +81,7 @@ contract TokenReceiverPluginTest is Test, IERC1155Receiver, AccountStorageV1 {
     function _initPlugin() internal {
         vm.startPrank(owner);
         acct.installPlugin(
-            address(plugin),
-            keccak256(abi.encode(plugin.pluginManifest())),
-            bytes(""),
-            new FunctionReference[](0),
-            new IPluginManager.InjectedHook[](0)
+            address(plugin), keccak256(abi.encode(plugin.pluginManifest())), bytes(""), new FunctionReference[](0)
         );
         vm.stopPrank();
     }

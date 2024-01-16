@@ -39,31 +39,12 @@ contract AccountStorageV1 {
         FunctionReference[] dependencies;
         // Tracks the number of times this plugin has been used as a dependency function
         uint256 dependentCount;
-        StoredInjectedHook[] injectedHooks;
-    }
-
-    /// @dev A version of IPluginManager.InjectedHook used to track injected hooks in storage. Omits the
-    /// hookApplyData field, which is not needed for storage, and flattens the struct.
-    struct StoredInjectedHook {
-        // The plugin that provides the hook
-        address providingPlugin;
-        // Either a plugin-defined execution function, or the native function executeFromPluginExternal
-        bytes4 selector;
-        // Contents of the InjectedHooksInfo struct
-        uint8 preExecHookFunctionId;
-        bool isPostHookUsed;
-        uint8 postExecHookFunctionId;
     }
 
     /// @dev Represents data associated with a plugin's permission to use `executeFromPlugin` to interact with
     /// another plugin installed on the account.
     struct PermittedCallData {
         bool callPermitted;
-        // Cached flags indicating whether or not this function has pre permitted call hooks and
-        // post-only permitted call hooks.
-        bool hasPrePermittedCallHooks;
-        bool hasPostOnlyPermittedCallHooks;
-        HookGroup permittedCallHooks;
     }
 
     /// @dev Represents data associated with a plugin's permission to use `executeFromPluginExternal` to interact

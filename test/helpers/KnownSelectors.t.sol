@@ -49,7 +49,6 @@ contract KnownSelectorsTest is Test {
         // IAccountLoupe methods
         assertTrue(KnownSelectors.isNativeFunction(IAccountLoupe.getExecutionFunctionConfig.selector));
         assertTrue(KnownSelectors.isNativeFunction(IAccountLoupe.getExecutionHooks.selector));
-        assertTrue(KnownSelectors.isNativeFunction(IAccountLoupe.getPermittedCallHooks.selector));
         assertTrue(KnownSelectors.isNativeFunction(IAccountLoupe.getPreValidationHooks.selector));
         assertTrue(KnownSelectors.isNativeFunction(IAccountLoupe.getInstalledPlugins.selector));
 
@@ -75,8 +74,6 @@ contract KnownSelectorsTest is Test {
         assertTrue(KnownSelectors.isIPluginFunction(IPlugin.runtimeValidationFunction.selector));
         assertTrue(KnownSelectors.isIPluginFunction(IPlugin.preExecutionHook.selector));
         assertTrue(KnownSelectors.isIPluginFunction(IPlugin.postExecutionHook.selector));
-        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.onHookApply.selector));
-        assertTrue(KnownSelectors.isIPluginFunction(IPlugin.onHookUnapply.selector));
         assertTrue(KnownSelectors.isIPluginFunction(IPlugin.pluginManifest.selector));
         assertTrue(KnownSelectors.isIPluginFunction(IPlugin.pluginMetadata.selector));
 

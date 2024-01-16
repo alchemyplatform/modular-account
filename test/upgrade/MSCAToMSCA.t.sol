@@ -89,8 +89,7 @@ contract MSCAToMSCATest is Test {
             address(msca),
             0,
             abi.encodeCall(
-                UpgradeableModularAccount.uninstallPlugin,
-                (address(multiOwnerPlugin), bytes(""), bytes(""), new bytes[](0))
+                UpgradeableModularAccount.uninstallPlugin, (address(multiOwnerPlugin), bytes(""), bytes(""))
             )
         );
 

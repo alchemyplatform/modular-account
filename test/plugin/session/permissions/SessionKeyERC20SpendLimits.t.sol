@@ -93,8 +93,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
             pluginInitData: abi.encode(new address[](0)),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
 
         manifestHash = keccak256(abi.encode(sessionKeyPermissionsPlugin.pluginManifest()));
@@ -104,8 +103,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
             plugin: address(sessionKeyPermissionsPlugin),
             manifestHash: manifestHash,
             pluginInitData: "",
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
 
         // Create and add a session key
