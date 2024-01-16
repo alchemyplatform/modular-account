@@ -68,6 +68,7 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPermissionsPlugin {
     // The first word (32 bytes) is the associated address.
     // The second word (32 bytes) is the prefix and batch index concatenated.
     // Any subsequent words are the key data.
+    // Note: `||` refers to the concat operator
 
     // SessionKeyId storage key (96 bytes)
     // 12 padding zeros || associated address || SESSION_KEY_ID_PREFIX || batch index || 12 padding zero bytes
