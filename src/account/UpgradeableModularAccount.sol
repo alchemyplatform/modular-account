@@ -235,9 +235,8 @@ contract UpgradeableModularAccount is
         bytes24 permittedCallKey = _getPermittedCallKey(msg.sender, selector);
 
         AccountStorage storage storage_ = _getAccountStorage();
-        PermittedCallData storage permittedCallData = storage_.permittedCalls[permittedCallKey];
 
-        if (!permittedCallData.callPermitted) {
+        if (!storage_.callPermitted[permittedCallKey]) {
             revert ExecFromPluginNotPermitted(msg.sender, selector);
         }
 
@@ -326,7 +325,7 @@ contract UpgradeableModularAccount is
             revert ExecFromPluginExternalNotPermitted(callingPlugin, target, value, data);
         }
 
-        // Run execution hooks. `executeFromPluginExternal` doesn't use PermittedCallData to check call
+        // Run execution hooks. `executeFromPluginExternal` doesn't use callPermitted to check call
         // permissions, nor do they have an address entry in SelectorData, so it doesn't make sense to use cached
         // booleans (hasPreExecHooks, hasPostOnlyExecHooks, etc.) to conditionally bypass certain steps, as it
         // would just be an added `sload` in the nonzero hooks case.
