@@ -15,7 +15,6 @@ import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAcc
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {AccountStorageV1} from "../../src/libraries/AccountStorageV1.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
-import {IPluginManager} from "../../src/interfaces/IPluginManager.sol";
 import {FunctionReference} from "../../src/libraries/FunctionReferenceLib.sol";
 
 import {MockERC777} from "../mocks/tokens/MockERC777.sol";

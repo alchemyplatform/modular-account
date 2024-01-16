@@ -16,7 +16,6 @@ import {ISessionKeyPermissionsUpdates} from
 import {SessionKeyPlugin} from "../../../src/plugins/session/SessionKeyPlugin.sol";
 import {IEntryPoint} from "../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
-import {IPluginManager} from "../../../src/interfaces/IPluginManager.sol";
 import {FunctionReference, FunctionReferenceLib} from "../../../src/libraries/FunctionReferenceLib.sol";
 import {Call} from "../../../src/interfaces/IStandardExecutor.sol";
 
