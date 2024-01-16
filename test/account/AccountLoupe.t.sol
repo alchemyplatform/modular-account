@@ -567,4 +567,9 @@ contract AccountLoupeTest is Test {
         assertEq(FunctionReference.unwrap(hook.preExecHook), FunctionReference.unwrap(preHook));
         assertEq(FunctionReference.unwrap(hook.postExecHook), FunctionReference.unwrap(postHook));
     }
+
+    function test_trace_comprehensivePlugin() public {
+        vm.prank(address(comprehensivePlugin));
+        account1.executeFromPlugin(abi.encodeCall(comprehensivePlugin.foo, ()));
+    }
 }

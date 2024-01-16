@@ -652,48 +652,61 @@ contract UpgradeableModularAccount is
         postHooksToRun = new FunctionReference[][](postHooksToRunLength);
         postHookArgs = new bytes[](postHooksToRunLength);
 
-        uint256 currentIndex = 0;
+        // The order we want to fill the post exec hooks is:
+        // 1. Post-only permitted call hooks
+        // 2. Associated post hooks for pre-permitted call hooks
+        // 3. Post-only exec hooks
+        // 4. Associated post hooks for pre-exec hooks
+
+        uint256 associatedPermittedCallHooksIndex = 0;
 
         if (hasPostOnlyPermittedCallHooks) {
             // If we have post-only hooks, we allocate an single FunctionReference[] for them, and one element in
             // the args for their empty `bytes` argument. We put this into the first element of the post hooks in
             // order to have it run last.
-            postHooksToRun[currentIndex] =
+            postHooksToRun[associatedPermittedCallHooksIndex] =
                 CastLib.toFunctionReferenceArray(permittedCallData.permittedCallHooks.postOnlyHooks.getAll());
             unchecked {
-                ++currentIndex;
+                ++associatedPermittedCallHooksIndex;
             }
+        }
+
+        // Cache post-permitted-call hooks in memory
+        _cacheAssociatedPostHooks(
+            prePermittedCallHooks,
+            permittedCallData.permittedCallHooks,
+            postHooksToRun,
+            associatedPermittedCallHooksIndex
+        );
+        // The exec hooks start after the permitted call hooks
+        uint256 associatedExecHooksIndex;
+        unchecked {
+            associatedExecHooksIndex = associatedPermittedCallHooksIndex + prePermittedCallHooks.length;
         }
 
         if (hasPostOnlyExecHooks) {
             // If we have post-only hooks, we allocate an single FunctionReference[] for them, and one element in
             // the args for their empty `bytes` argument. We put this into the first element of the post hooks in
             // order to have it run last.
-            postHooksToRun[currentIndex] =
+            postHooksToRun[associatedExecHooksIndex] =
                 CastLib.toFunctionReferenceArray(selectorData.executionHooks.postOnlyHooks.getAll());
             unchecked {
-                ++currentIndex;
+                ++associatedExecHooksIndex;
             }
         }
 
-        // Cache post-permitted-call hooks in memory
-        _cacheAssociatedPostHooks(
-            prePermittedCallHooks, permittedCallData.permittedCallHooks, postHooksToRun, currentIndex
-        );
-
         // Cache post-exec hooks in memory
-        // We use `currentIndex + prePermittedCallHooks.length` for the starting index but do not update it,
-        // because its current value is useful for executing the hooks.
-        uint256 preExecHookStartingIndex = currentIndex + prePermittedCallHooks.length;
         _cacheAssociatedPostHooks(
-            preExecHooks, selectorData.executionHooks, postHooksToRun, preExecHookStartingIndex
+            preExecHooks, selectorData.executionHooks, postHooksToRun, associatedExecHooksIndex
         );
 
         // Run the permitted call hooks
-        _doPreHooks(prePermittedCallHooks, callBuffer, postHooksToRun, postHookArgs, currentIndex);
+        _doPreHooks(
+            prePermittedCallHooks, callBuffer, postHooksToRun, postHookArgs, associatedPermittedCallHooksIndex
+        );
 
         // Run the pre-exec hooks
-        _doPreHooks(preExecHooks, callBuffer, postHooksToRun, postHookArgs, preExecHookStartingIndex);
+        _doPreHooks(preExecHooks, callBuffer, postHooksToRun, postHookArgs, associatedExecHooksIndex);
     }
 
     /// @dev Execute all pre hooks provided, using the call buffer if provided.
