@@ -66,7 +66,9 @@ contract MSCAToMSCATest is Test {
         msca.upgradeToAndCall(mscaImpl2, "");
 
         // verify account storage is the same
-        (, bytes memory returnData) = address(msca).call(abi.encodeWithSelector(MultiOwnerPlugin.owners.selector));
+        (, bytes memory returnData) = address(multiOwnerPlugin).call(
+            abi.encodeWithSelector(MultiOwnerPlugin.ownersOf.selector, address(msca))
+        );
         address[] memory returnedOwners = abi.decode(returnData, (address[]));
         assertEq(Utils.reverseAddressArray(returnedOwners), owners);
         assertEq(token1.balanceOf(address(msca)), 1 ether);

@@ -28,19 +28,6 @@ interface IMultiOwnerPlugin {
     /// @param ownersToRemove The address array of owners to be removed.
     function updateOwners(address[] memory ownersToAdd, address[] memory ownersToRemove) external;
 
-    /// @notice Check if an address is an owner of the current account.
-    /// @dev This function is installed on the account as part of plugin installation, and should
-    /// only be called from an account.
-    /// @param ownerToCheck The owner to check if it is an owner of the current account.
-    /// @return True if the address is an owner of the account.
-    function isOwner(address ownerToCheck) external view returns (bool);
-
-    /// @notice Get the owners of the current account.
-    /// @dev This function is installed on the account as part of plugin installation, and should
-    /// only be called from an account.
-    /// @return The addresses of the owners of the account.
-    function owners() external view returns (address[] memory);
-
     /// @notice Gets the EIP712 domain
     /// @dev This implementation is different from typical 712 via its use of msg.sender instead. As such, it
     /// should only be called from the SCAs that has installed this. See ERC-5267.

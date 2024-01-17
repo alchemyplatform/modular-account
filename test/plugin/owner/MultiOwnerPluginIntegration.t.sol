@@ -76,9 +76,9 @@ contract MultiOwnerPluginIntegration is Test {
     }
 
     function test_ownerPlugin_successInstallation() public {
-        assertTrue(IMultiOwnerPlugin(address(account)).isOwner(owner1));
-        assertTrue(IMultiOwnerPlugin(address(account)).isOwner(owner2));
-        assertEq(Utils.reverseAddressArray(owners), IMultiOwnerPlugin(address(account)).owners());
+        assertTrue(multiOwnerPlugin.isOwnerOf(address(account), owner1));
+        assertTrue(multiOwnerPlugin.isOwnerOf(address(account), owner2));
+        assertEq(Utils.reverseAddressArray(owners), multiOwnerPlugin.ownersOf(address(account)));
     }
 
     function test_runtimeValidation_alwaysAllow_isValidSignature() public {

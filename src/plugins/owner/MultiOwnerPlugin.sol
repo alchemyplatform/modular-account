@@ -99,16 +99,6 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @inheritdoc IMultiOwnerPlugin
-    function isOwner(address ownerToCheck) external view returns (bool) {
-        return isOwnerOf(msg.sender, ownerToCheck);
-    }
-
-    /// @inheritdoc IMultiOwnerPlugin
-    function owners() external view returns (address[] memory) {
-        return ownersOf(msg.sender);
-    }
-
-    /// @inheritdoc IMultiOwnerPlugin
     function eip712Domain()
         public
         view
@@ -253,12 +243,10 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
     function pluginManifest() external pure override returns (PluginManifest memory) {
         PluginManifest memory manifest;
 
-        manifest.executionFunctions = new bytes4[](5);
+        manifest.executionFunctions = new bytes4[](3);
         manifest.executionFunctions[0] = this.updateOwners.selector;
-        manifest.executionFunctions[1] = this.owners.selector;
-        manifest.executionFunctions[2] = this.isOwner.selector;
-        manifest.executionFunctions[3] = this.eip712Domain.selector;
-        manifest.executionFunctions[4] = this.isValidSignature.selector;
+        manifest.executionFunctions[1] = this.eip712Domain.selector;
+        manifest.executionFunctions[2] = this.isValidSignature.selector;
 
         ManifestFunction memory ownerUserOpValidationFunction = ManifestFunction({
             functionType: ManifestAssociatedFunctionType.SELF,
@@ -305,7 +293,7 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
         });
 
         // Update Modular Account's native functions to use runtimeValidationFunction provided by this plugin
-        manifest.runtimeValidationFunctions = new ManifestAssociatedFunction[](10);
+        manifest.runtimeValidationFunctions = new ManifestAssociatedFunction[](8);
         manifest.runtimeValidationFunctions[0] = ManifestAssociatedFunction({
             executionSelector: this.updateOwners.selector,
             associatedFunction: ownerOrSelfRuntimeValidationFunction
@@ -335,14 +323,6 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
             associatedFunction: alwaysAllowFunction
         });
         manifest.runtimeValidationFunctions[7] = ManifestAssociatedFunction({
-            executionSelector: this.isOwner.selector,
-            associatedFunction: alwaysAllowFunction
-        });
-        manifest.runtimeValidationFunctions[8] = ManifestAssociatedFunction({
-            executionSelector: this.owners.selector,
-            associatedFunction: alwaysAllowFunction
-        });
-        manifest.runtimeValidationFunctions[9] = ManifestAssociatedFunction({
             executionSelector: this.eip712Domain.selector,
             associatedFunction: alwaysAllowFunction
         });
