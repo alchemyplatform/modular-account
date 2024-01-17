@@ -24,7 +24,7 @@ import {
     AssociatedLinkedListSet, AssociatedLinkedListSetLib
 } from "../../libraries/AssociatedLinkedListSetLib.sol";
 import {CastLib} from "../../libraries/CastLib.sol";
-import {SetValue} from "../../libraries/LinkedListSetUtils.sol";
+import {SetValue, SIG_VALIDATION_PASSED, SIG_VALIDATION_FAILED} from "../../libraries/Constants.sol";
 
 /// @title Multi Owner Plugin
 /// @author Alchemy
@@ -58,11 +58,6 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
     bytes32 private constant _HASHED_NAME = keccak256(bytes(_NAME));
     bytes32 private constant _HASHED_VERSION = keccak256(bytes(_VERSION));
     bytes32 private immutable _SALT = bytes32(bytes20(address(this)));
-
-    // ERC-4337 specific value: signature validation passed
-    uint256 internal constant _SIG_VALIDATION_PASSED = 0;
-    // ERC-4337 specific value: signature validation failed
-    uint256 internal constant _SIG_VALIDATION_FAILED = 1;
 
     // bytes4(keccak256("isValidSignature(bytes32,bytes)"))
     bytes4 internal constant _1271_MAGIC_VALUE = 0x1626ba7e;
@@ -183,14 +178,14 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
             (address signer, ECDSA.RecoverError error) =
                 userOpHash.toEthSignedMessageHash().tryRecover(userOp.signature);
             if (error == ECDSA.RecoverError.NoError && isOwnerOf(msg.sender, signer)) {
-                return _SIG_VALIDATION_PASSED;
+                return SIG_VALIDATION_PASSED;
             }
 
             if (_isValidERC1271OwnerTypeSignature(msg.sender, userOpHash, userOp.signature)) {
-                return _SIG_VALIDATION_PASSED;
+                return SIG_VALIDATION_PASSED;
             }
 
-            return _SIG_VALIDATION_FAILED;
+            return SIG_VALIDATION_FAILED;
         }
 
         revert NotImplemented(msg.sig, functionId);

@@ -24,7 +24,9 @@ import {
     AssociatedLinkedListSet, AssociatedLinkedListSetLib
 } from "../../libraries/AssociatedLinkedListSetLib.sol";
 import {CastLib} from "../../libraries/CastLib.sol";
-import {SetValue, SENTINEL_VALUE} from "../../libraries/LinkedListSetUtils.sol";
+import {
+    SetValue, SENTINEL_VALUE, SIG_VALIDATION_PASSED, SIG_VALIDATION_FAILED
+} from "../../libraries/Constants.sol";
 
 /// @title Session Key Plugin
 /// @author Alchemy
@@ -41,9 +43,6 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
     string internal constant _NAME = "Session Key Plugin";
     string internal constant _VERSION = "1.0.0";
     string internal constant _AUTHOR = "Alchemy";
-
-    uint256 internal constant _SIG_VALIDATION_PASSED = 0;
-    uint256 internal constant _SIG_VALIDATION_FAILED = 1;
 
     // Constants used in the manifest
     uint256 internal constant _MANIFEST_DEPENDENCY_INDEX_OWNER_USER_OP_VALIDATION = 0;
@@ -177,7 +176,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
                 ) {
                     return _checkUserOpPermissions(userOp, calls, sessionKey);
                 }
-                return _SIG_VALIDATION_FAILED;
+                return SIG_VALIDATION_FAILED;
             }
             revert InvalidSignature(sessionKey);
         }

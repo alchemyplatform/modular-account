@@ -11,7 +11,7 @@ import {
     AssociatedLinkedListSet,
     AssociatedLinkedListSetLib
 } from "../../../src/libraries/AssociatedLinkedListSetLib.sol";
-import {SetValue} from "../../../src/libraries/LinkedListSetUtils.sol";
+import {SetValue} from "../../../src/libraries/Constants.sol";
 
 /// @notice A handler contract for differential invariant testing AssociatedLinkedListSetLib
 ///         This contract maps logic for adding, removeing, clearing, and inspecting a list

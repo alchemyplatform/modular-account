@@ -65,7 +65,6 @@ contract UpgradeableModularAccount is
     }
 
     IEntryPoint private immutable _ENTRY_POINT;
-    uint256 internal constant _SIG_VALIDATION_FAILED = 1;
 
     // As per the EIP-165 spec, no interface should ever match 0xffffffff
     bytes4 internal constant _INTERFACE_ID_INVALID = 0xffffffff;

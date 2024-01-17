@@ -8,7 +8,7 @@ import {StdUtils} from "forge-std/StdUtils.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {LinkedListSetLib, LinkedListSet as EnumerableSetType} from "../../../src/libraries/LinkedListSetLib.sol";
-import {SetValue} from "../../../src/libraries/LinkedListSetUtils.sol";
+import {SetValue} from "../../../src/libraries/Constants.sol";
 
 /// @notice A handler contract for differential invariant testing LinkedListSetLib
 ///         This contract maps logic for adding, removeing, clearing, and inspecting a list
