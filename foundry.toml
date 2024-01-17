@@ -1,5 +1,6 @@
 [profile.default]
 solc = '0.8.21'
+evm_version='paris'
 via_ir = true
 src = 'src'
 out = 'out'
@@ -19,12 +20,14 @@ depth = 10
 
 [profile.optimized-build]
 via_ir = true
+evm_version='paris'
 script = 'src'
 test = 'src'
 out = 'out-optimized'
 
 [profile.lite]
 solc = '0.8.21'
+evm_version='paris'
 via_ir = false
 optimizer = true
 optimizer_runs = 10_000
@@ -32,10 +35,12 @@ ignored_error_codes = []
 
 [profile.deep.fuzz]
 runs = 10000
+evm_version='paris'
 
 [profile.deep.invariant]
 runs = 5000
 depth = 32
+evm_version='paris'
 
 [fmt]
 line_length = 115
