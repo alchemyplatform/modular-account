@@ -10,7 +10,7 @@ import {UserOperation} from "../interfaces/erc4337/UserOperation.sol";
 /// @title Base contract for plugins
 /// @dev Implements ERC-165 to support IPlugin's interface, which is a requirement
 /// for plugin installation. This also ensures that plugin interactions cannot
-/// happen via the standard execution funtions `execute` and `executeBatch`.
+/// happen via the standard execution funtions `execute`, `executeBatch`, and `executeFromPluginExternal`.
 /// Note that the plugins implement BasePlugins cannot be installed when creating an account (aka installed in the
 /// account constructor) unless onInstall is overriden without checking codesize of caller (account). Checking
 /// codesize of account is to prevent EOA from accidentally calling plugin and initiate states which will make it
@@ -200,8 +200,8 @@ abstract contract BasePlugin is ERC165, IPlugin {
     /// This function call must use less than 30 000 gas.
     ///
     /// Supporting the IPlugin interface is a requirement for plugin installation. This is also used
-    /// by the modular account to prevent standard execution functions `execute` and `executeBatch` from
-    /// making calls to plugins.
+    /// by the modular account to prevent standard execution functions `execute`, `executeBatch`, and
+    /// `executeFromPluginExternal` from making calls to plugins.
     /// @param interfaceId The interface ID to check for support.
     /// @return True if the contract supports `interfaceId`.
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
