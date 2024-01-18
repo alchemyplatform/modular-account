@@ -210,7 +210,6 @@ abstract contract AccountExecutor {
             // Add the abi-encoded fields length (128 bytes) and the selector's size (4 bytes)
             // to the error size.
             errorSize := add(errorSize, 132)
-            // errorSize := add(errorSize, 132)
             // Store the selector in the start of the error buffer.
             // Any set lower bits will be cleared with the subsequest mstore.
             mstore(errorStart, errorSelector)
