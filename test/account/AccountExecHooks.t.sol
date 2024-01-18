@@ -728,7 +728,7 @@ contract UpgradeableModularAccountExecHooksTest is Test {
 
     /// @dev Plugin 1 hook pair: [1, 2]
     ///      Plugin 2 hook pair: [1, 4]
-    ///      Expected execution: [1, 2], [1, 4]
+    ///      Expected execution: [1, 2], [null, 4]
     function test_overlappingExecHookPairsOnPre_run() public {
         test_overlappingExecHookPairsOnPre_install();
 
@@ -744,7 +744,7 @@ contract UpgradeableModularAccountExecHooksTest is Test {
                 0, // msg.value in call to account
                 abi.encodeWithSelector(_EXEC_SELECTOR)
             ),
-            2
+            1
         );
 
         // Expect each post hook to be called once, with the expected data.

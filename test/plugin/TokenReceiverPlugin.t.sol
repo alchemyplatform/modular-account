@@ -93,7 +93,8 @@ contract TokenReceiverPluginTest is Test, IERC1155Receiver, AccountStorageV1 {
     function test_failERC721Transfer() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                UpgradeableModularAccount.UnrecognizedFunction.selector, IERC721Receiver.onERC721Received.selector
+                UpgradeableModularAccount.RuntimeValidationFunctionMissing.selector,
+                IERC721Receiver.onERC721Received.selector
             )
         );
         t0.safeTransferFrom(address(this), address(acct), _TOKEN_ID);
@@ -109,7 +110,8 @@ contract TokenReceiverPluginTest is Test, IERC1155Receiver, AccountStorageV1 {
     function test_failERC777Transfer() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                UpgradeableModularAccount.UnrecognizedFunction.selector, IERC777Recipient.tokensReceived.selector
+                UpgradeableModularAccount.RuntimeValidationFunctionMissing.selector,
+                IERC777Recipient.tokensReceived.selector
             )
         );
         t1.transfer(address(acct), _TOKEN_AMOUNT);

@@ -117,6 +117,9 @@ contract ComprehensivePlugin is BaseTestPlugin {
     function pluginManifest() external pure override returns (PluginManifest memory) {
         PluginManifest memory manifest;
 
+        manifest.permittedExecutionSelectors = new bytes4[](1);
+        manifest.permittedExecutionSelectors[0] = this.foo.selector;
+
         manifest.executionFunctions = new bytes4[](1);
         manifest.executionFunctions[0] = this.foo.selector;
 

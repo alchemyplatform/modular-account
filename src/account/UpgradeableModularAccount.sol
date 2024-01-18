@@ -129,27 +129,24 @@ contract UpgradeableModularAccount is
     /// this function selector, revert.
     /// @return Data returned from the called execution function.
     fallback(bytes calldata) external payable returns (bytes memory) {
-        SelectorData storage selectorData = _getAccountStorage().selectorData[msg.sig];
-
-        address execPlugin = selectorData.plugin;
-        if (execPlugin == address(0)) {
-            revert UnrecognizedFunction(msg.sig);
-        }
-
         // Either reuse the call buffer from runtime validation, or allocate a new one. It may or may not be used
         // for pre exec hooks but it will be used for the plugin execution itself.
         bytes memory callBuffer =
             (msg.sender != address(_ENTRY_POINT)) ? _doRuntimeValidation() : _allocateRuntimeCallBuffer(msg.data);
 
-        bool hasPreExecHooks = selectorData.hasPreExecHooks;
-        bool hasPostOnlyExecHooks = selectorData.hasPostOnlyExecHooks;
-
-        FunctionReference[] memory postExecHooksToRun;
-        bytes[] memory postExecHookArgs;
-        if (hasPreExecHooks) {
-            // Cache post-exec hooks in memory
-            (postExecHooksToRun, postExecHookArgs) = _doPreExecHooks(msg.sig, callBuffer);
+        // To comply with ERC-6900 phase rules, defer the loading of execution phase data until the completion of
+        // runtime validation.
+        // Validation may update account state and therefore change execution phase data. These values should also
+        // be loaded before
+        // we run the pre exec hooks, because they may modify which plugin is defined.
+        SelectorData storage selectorData = _getAccountStorage().selectorData[msg.sig];
+        address execPlugin = selectorData.plugin;
+        if (execPlugin == address(0)) {
+            revert UnrecognizedFunction(msg.sig);
         }
+
+        (FunctionReference[][] memory postHooksToRun, bytes[] memory postHookArgs) =
+            _doPreExecHooks(selectorData, callBuffer);
 
         // execute the function, bubbling up any reverts
         bool execSuccess = _executeRaw(execPlugin, _convertRuntimeCallBufferToExecBuffer(callBuffer));
@@ -162,14 +159,7 @@ contract UpgradeableModularAccount is
             }
         }
 
-        _doCachedPostHooks(postExecHooksToRun, postExecHookArgs);
-
-        if (hasPostOnlyExecHooks) {
-            _doCachedPostHooks(
-                CastLib.toFunctionReferenceArray(selectorData.executionHooks.postOnlyHooks.getAll()),
-                new bytes[](0)
-            );
-        }
+        _doCachedPostHooks(postHooksToRun, postHookArgs);
 
         return execReturnData;
     }
@@ -185,13 +175,11 @@ contract UpgradeableModularAccount is
             revert UserOpNotFromEntryPoint();
         }
 
-        bool hasPreValidationHooks;
-
         bytes4 selector = _selectorFromCallData(userOp.callData);
         SelectorData storage selectorData = _getAccountStorage().selectorData[selector];
 
         FunctionReference userOpValidationFunction = selectorData.userOpValidation;
-        hasPreValidationHooks = selectorData.hasPreUserOpValidationHooks;
+        bool hasPreValidationHooks = selectorData.hasPreUserOpValidationHooks;
 
         validationData =
             _doUserOpValidation(selector, userOpValidationFunction, userOp, userOpHash, hasPreValidationHooks);
@@ -210,14 +198,14 @@ contract UpgradeableModularAccount is
         override
         returns (bytes memory result)
     {
-        (FunctionReference[] memory postExecHooks, bytes[] memory postExecHookArgs) = _preNativeFunction();
+        (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
         result = _exec(target, value, data);
-        _postNativeFunction(postExecHooks, postExecHookArgs);
+        _postNativeFunction(postExecHooks, postHookArgs);
     }
 
     /// @inheritdoc IStandardExecutor
     function executeBatch(Call[] calldata calls) external payable override returns (bytes[] memory results) {
-        (FunctionReference[] memory postExecHooks, bytes[] memory postExecHookArgs) = _preNativeFunction();
+        (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
 
         uint256 callsLength = calls.length;
         results = new bytes[](callsLength);
@@ -230,7 +218,7 @@ contract UpgradeableModularAccount is
             }
         }
 
-        _postNativeFunction(postExecHooks, postExecHookArgs);
+        _postNativeFunction(postExecHooks, postHookArgs);
     }
 
     /// @inheritdoc IPluginExecutor
@@ -247,26 +235,15 @@ contract UpgradeableModularAccount is
 
         bytes memory callBuffer = _allocateRuntimeCallBuffer(data);
 
-        FunctionReference[] memory postPermittedCallHooks;
-        bytes[] memory postPermittedCallHookArgs;
-        if (permittedCallData.hasPrePermittedCallHooks) {
-            // Cache post-permitted call hooks in memory
-            (postPermittedCallHooks, postPermittedCallHookArgs) =
-                _doPrePermittedCallHooks(permittedCallKey, callBuffer);
-        }
-
         SelectorData storage selectorData = storage_.selectorData[selector];
+        // Load the plugin address from storage prior to running any hooks, to abide by the ERC-6900 phase rules.
         address execFunctionPlugin = selectorData.plugin;
+
+        (FunctionReference[][] memory postHooksToRun, bytes[] memory postHookArgs) =
+            _doPrePermittedCallHooksAndPreExecHooks(selectorData, permittedCallData, callBuffer);
 
         if (execFunctionPlugin == address(0)) {
             revert UnrecognizedFunction(selector);
-        }
-
-        FunctionReference[] memory postExecHooks;
-        bytes[] memory postExecHookArgs;
-        if (selectorData.hasPreExecHooks) {
-            // Cache post-exec hooks in memory
-            (postExecHooks, postExecHookArgs) = _doPreExecHooks(selector, callBuffer);
         }
 
         bool success = _executeRaw(execFunctionPlugin, _convertRuntimeCallBufferToExecBuffer(callBuffer));
@@ -278,23 +255,7 @@ contract UpgradeableModularAccount is
             }
         }
 
-        _doCachedPostHooks(postExecHooks, postExecHookArgs);
-
-        if (selectorData.hasPostOnlyExecHooks) {
-            _doCachedPostHooks(
-                CastLib.toFunctionReferenceArray(selectorData.executionHooks.postOnlyHooks.getAll()),
-                new bytes[](0)
-            );
-        }
-
-        _doCachedPostHooks(postPermittedCallHooks, postPermittedCallHookArgs);
-
-        if (permittedCallData.hasPostOnlyPermittedCallHooks) {
-            _doCachedPostHooks(
-                CastLib.toFunctionReferenceArray(permittedCallData.permittedCallHooks.postOnlyHooks.getAll()),
-                new bytes[](0)
-            );
-        }
+        _doCachedPostHooks(postHooksToRun, postHookArgs);
 
         return returnData;
     }
@@ -347,49 +308,21 @@ contract UpgradeableModularAccount is
             revert ExecFromPluginExternalNotPermitted(callingPlugin, target, value, data);
         }
 
-        // Run permitted call hooks and execution hooks. `executeFromPluginExternal` doesn't use PermittedCallData
-        // to check call permissions, nor do they have an address entry in SelectorData, so it doesn't make sense
-        // to use cached booleans (hasPreExecHooks, hasPostOnlyExecHooks, etc.) to conditionally bypass certain
-        // steps, as it would just be an added `sload` in the nonzero hooks case.
+        // Run any pre permitted call hooks specific to this caller and the `executeFromPluginExternal` selector,
+        // then run any pre-exec hooks associated with the `executeFromPluginExternal` selector.
+        PermittedCallData storage permittedCallData = storage_.permittedCalls[_getPermittedCallKey(
+            callingPlugin, IPluginExecutor.executeFromPluginExternal.selector
+        )];
+        SelectorData storage selectorData =
+            storage_.selectorData[IPluginExecutor.executeFromPluginExternal.selector];
 
-        // Run any pre permitted call hooks specific to this caller and the `executeFromPluginExternal` selector
-        bytes24 permittedCallKey =
-            _getPermittedCallKey(callingPlugin, IPluginExecutor.executeFromPluginExternal.selector);
-        (FunctionReference[] memory postPermittedCallHooks, bytes[] memory postPermittedCallHookArgs) =
-            _doPrePermittedCallHooks(permittedCallKey, "");
-
-        // Run any pre exec hooks for the `executeFromPluginExternal` selector
-        (FunctionReference[] memory postExecHooks, bytes[] memory postExecHookArgs) =
-            _doPreExecHooks(IPluginExecutor.executeFromPluginExternal.selector, "");
+        (FunctionReference[][] memory postHooksToRun, bytes[] memory postHookArgs) =
+            _doPrePermittedCallHooksAndPreExecHooks(selectorData, permittedCallData, "");
 
         // Perform the external call
         bytes memory returnData = _exec(target, value, data);
 
-        // Run any post exec hooks for the `executeFromPluginExternal` selector
-        _doCachedPostHooks(postExecHooks, postExecHookArgs);
-
-        // Run any post only exec hooks for the `executeFromPluginExternal` selector
-        _doCachedPostHooks(
-            CastLib.toFunctionReferenceArray(
-                storage_.selectorData[IPluginExecutor.executeFromPluginExternal.selector]
-                    .executionHooks
-                    .postOnlyHooks
-                    .getAll()
-            ),
-            new bytes[](0)
-        );
-
-        // Run any post permitted call hooks specific to this caller and the `executeFromPluginExternal` selector
-        _doCachedPostHooks(postPermittedCallHooks, postPermittedCallHookArgs);
-
-        // Run any post only permitted call hooks specific to this caller and the `executeFromPluginExternal`
-        // selector
-        _doCachedPostHooks(
-            CastLib.toFunctionReferenceArray(
-                storage_.permittedCalls[permittedCallKey].permittedCallHooks.postOnlyHooks.getAll()
-            ),
-            new bytes[](0)
-        );
+        _doCachedPostHooks(postHooksToRun, postHookArgs);
 
         return returnData;
     }
@@ -402,7 +335,7 @@ contract UpgradeableModularAccount is
         FunctionReference[] calldata dependencies,
         InjectedHook[] calldata injectedHooks
     ) external override {
-        (FunctionReference[] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
+        (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
         _installPlugin(plugin, manifestHash, pluginInitData, dependencies, injectedHooks);
         _postNativeFunction(postExecHooks, postHookArgs);
     }
@@ -414,7 +347,7 @@ contract UpgradeableModularAccount is
         bytes calldata pluginUninstallData,
         bytes[] calldata hookUnapplyData
     ) external override {
-        (FunctionReference[] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
+        (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
 
         UninstallPluginArgs memory args;
         args.plugin = plugin;
@@ -455,7 +388,7 @@ contract UpgradeableModularAccount is
 
     /// @inheritdoc UUPSUpgradeable
     function upgradeToAndCall(address newImplementation, bytes calldata data) public payable override onlyProxy {
-        (FunctionReference[] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
+        (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
         UUPSUpgradeable.upgradeToAndCall(newImplementation, data);
         _postNativeFunction(postExecHooks, postHookArgs);
     }
@@ -476,7 +409,7 @@ contract UpgradeableModularAccount is
     /// execute, executeBatch, installPlugin, uninstallPlugin.
     function _preNativeFunction()
         internal
-        returns (FunctionReference[] memory postExecHooks, bytes[] memory postExecHookArgs)
+        returns (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs)
     {
         bytes memory callBuffer = "";
 
@@ -484,22 +417,15 @@ contract UpgradeableModularAccount is
             callBuffer = _doRuntimeValidation();
         }
 
-        (postExecHooks, postExecHookArgs) = _doPreExecHooks(msg.sig, callBuffer);
+        (postExecHooks, postHookArgs) = _doPreExecHooks(_getAccountStorage().selectorData[msg.sig], callBuffer);
     }
 
     /// @dev Wraps execution of a native function with runtime validation and hooks. Used for upgradeToAndCall,
     /// execute, executeBatch, installPlugin, uninstallPlugin.
-    function _postNativeFunction(FunctionReference[] memory postExecHooks, bytes[] memory postExecHookArgs)
+    function _postNativeFunction(FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs)
         internal
     {
-        _doCachedPostHooks(postExecHooks, postExecHookArgs);
-
-        _doCachedPostHooks(
-            CastLib.toFunctionReferenceArray(
-                _getAccountStorage().selectorData[msg.sig].executionHooks.postOnlyHooks.getAll()
-            ),
-            new bytes[](0)
-        );
+        _doCachedPostHooks(postExecHooks, postHookArgs);
     }
 
     /// @dev To support gas estimation, we don't fail early when the failure is caused by a signature failure.
@@ -647,54 +573,162 @@ contract UpgradeableModularAccount is
         }
     }
 
-    function _doPreExecHooks(bytes4 selector, bytes memory callBuffer)
+    /// @dev Executes pre-exec hooks and returns the post-exec hooks to run and their associated args.
+    function _doPreExecHooks(SelectorData storage selectorData, bytes memory callBuffer)
         internal
-        returns (FunctionReference[] memory, bytes[] memory)
+        returns (FunctionReference[][] memory postHooksToRun, bytes[] memory postHookArgs)
     {
-        SelectorData storage selectorData = _getAccountStorage().selectorData[selector];
-        return _doPreHooks(
-            selectorData.executionHooks.preHooks, selectorData.executionHooks.associatedPostHooks, callBuffer
-        );
-    }
+        FunctionReference[] memory preExecHooks;
 
-    function _doPrePermittedCallHooks(bytes24 permittedCallKey, bytes memory callBuffer)
-        internal
-        returns (FunctionReference[] memory, bytes[] memory)
-    {
-        PermittedCallData storage permittedCallData = _getAccountStorage().permittedCalls[permittedCallKey];
-        return _doPreHooks(
-            permittedCallData.permittedCallHooks.preHooks,
-            permittedCallData.permittedCallHooks.associatedPostHooks,
-            callBuffer
-        );
-    }
+        bool hasPreExecHooks = selectorData.hasPreExecHooks;
+        bool hasPostOnlyExecHooks = selectorData.hasPostOnlyExecHooks;
 
-    function _doPreHooks(
-        LinkedListSet storage preHookSet,
-        mapping(FunctionReference => LinkedListSet) storage associatedPostHooks,
-        bytes memory callBuffer
-    ) internal returns (FunctionReference[] memory postHooks, bytes[] memory postHookArgs) {
-        FunctionReference[] memory preExecHooks = CastLib.toFunctionReferenceArray(preHookSet.getAll());
+        if (hasPreExecHooks) {
+            preExecHooks = CastLib.toFunctionReferenceArray(selectorData.executionHooks.preHooks.getAll());
+        }
 
-        uint256 preExecHooksLength = preExecHooks.length;
-        uint256 maxPostHooksToRunLength;
+        // Allocate memory for the post hooks and post hook args.
+        // If we have post-only hooks, we allocate an extra FunctionReference[] for them, and one extra element
+        // in the args for their empty `bytes` argument.
+        uint256 postHooksToRunLength = preExecHooks.length + (hasPostOnlyExecHooks ? 1 : 0);
+        postHooksToRun = new FunctionReference[][](postHooksToRunLength);
+        postHookArgs = new bytes[](postHooksToRunLength);
 
-        // There can only be as many associated post hooks to run as there are pre hooks.
-        for (uint256 i = 0; i < preExecHooksLength;) {
+        uint256 currentIndex = 0;
+
+        if (hasPostOnlyExecHooks) {
+            // If we have post-only hooks, we allocate an single FunctionReference[] for them, and one element
+            // in the args for their empty `bytes` argument. We put this into the first element of the post
+            // hooks in order to have it run last.
+            postHooksToRun[0] =
+                CastLib.toFunctionReferenceArray(selectorData.executionHooks.postOnlyHooks.getAll());
             unchecked {
-                maxPostHooksToRunLength += preHookSet.getCount(CastLib.toSetValue(preExecHooks[i]));
-                ++i;
+                ++currentIndex;
             }
         }
 
-        // Overallocate on length, but not all of this may get filled up.
-        postHooks = new FunctionReference[](maxPostHooksToRunLength);
-        postHookArgs = new bytes[](maxPostHooksToRunLength);
-        uint256 actualPostHooksToRunLength;
+        // If there are no pre exec hooks, this will short-circuit in the length check on `preExecHooks`.
+        _cacheAssociatedPostHooks(preExecHooks, selectorData.executionHooks, postHooksToRun, currentIndex);
+
+        // Run all pre-exec hooks and capture their outputs.
+        _doPreHooks(preExecHooks, callBuffer, postHooksToRun, postHookArgs, currentIndex);
+    }
+
+    /// @dev Executes pre-permitted call hooks and pre-exec hooks, and returns the post-exec hooks to run and
+    /// their associated args.
+    function _doPrePermittedCallHooksAndPreExecHooks(
+        SelectorData storage selectorData,
+        PermittedCallData storage permittedCallData,
+        bytes memory callBuffer
+    ) internal returns (FunctionReference[][] memory postHooksToRun, bytes[] memory postHookArgs) {
+        FunctionReference[] memory prePermittedCallHooks;
+        FunctionReference[] memory preExecHooks;
+
+        bool hasPrePermittedCallHooks = permittedCallData.hasPrePermittedCallHooks;
+        bool hasPostOnlyPermittedCallHooks = permittedCallData.hasPostOnlyPermittedCallHooks;
+
+        bool hasPreExecHooks = selectorData.hasPreExecHooks;
+        bool hasPostOnlyExecHooks = selectorData.hasPostOnlyExecHooks;
+
+        // If we have any type of pre hooks, we need to allocate memory for them to perform their call.
+        if (callBuffer.length == 0 && (hasPrePermittedCallHooks || hasPreExecHooks)) {
+            callBuffer = _allocateRuntimeCallBuffer(msg.data);
+        }
+
+        if (hasPrePermittedCallHooks) {
+            prePermittedCallHooks =
+                CastLib.toFunctionReferenceArray(permittedCallData.permittedCallHooks.preHooks.getAll());
+        }
+
+        if (hasPreExecHooks) {
+            preExecHooks = CastLib.toFunctionReferenceArray(selectorData.executionHooks.preHooks.getAll());
+        }
+
+        // Allocate memory for the post hooks and post hook args.
+        // If we have post-only hooks, we allocate an extra FunctionReference[] for them, and one extra element in
+        // the args for their empty `bytes` argument.
+        uint256 postHooksToRunLength = prePermittedCallHooks.length + preExecHooks.length
+            + (hasPostOnlyPermittedCallHooks ? 1 : 0) + (hasPostOnlyExecHooks ? 1 : 0);
+        postHooksToRun = new FunctionReference[][](postHooksToRunLength);
+        postHookArgs = new bytes[](postHooksToRunLength);
+
+        // The order we want to fill the post exec hooks is:
+        // 1. Post-only permitted call hooks
+        // 2. Associated post hooks for pre-permitted call hooks
+        // 3. Post-only exec hooks
+        // 4. Associated post hooks for pre-exec hooks
+
+        uint256 associatedPermittedCallHooksIndex = 0;
+
+        if (hasPostOnlyPermittedCallHooks) {
+            // If we have post-only hooks, we allocate an single FunctionReference[] for them, and one element in
+            // the args for their empty `bytes` argument. We put this into the first element of the post hooks in
+            // order to have it run last.
+            postHooksToRun[associatedPermittedCallHooksIndex] =
+                CastLib.toFunctionReferenceArray(permittedCallData.permittedCallHooks.postOnlyHooks.getAll());
+            unchecked {
+                ++associatedPermittedCallHooksIndex;
+            }
+        }
+
+        // Cache post-permitted-call hooks in memory
+        _cacheAssociatedPostHooks(
+            prePermittedCallHooks,
+            permittedCallData.permittedCallHooks,
+            postHooksToRun,
+            associatedPermittedCallHooksIndex
+        );
+        // The exec hooks start after the permitted call hooks
+        uint256 associatedExecHooksIndex;
+        unchecked {
+            associatedExecHooksIndex = associatedPermittedCallHooksIndex + prePermittedCallHooks.length;
+        }
+
+        if (hasPostOnlyExecHooks) {
+            // If we have post-only hooks, we allocate an single FunctionReference[] for them, and one element in
+            // the args for their empty `bytes` argument. We put this into the first element of the post hooks in
+            // order to have it run last.
+            postHooksToRun[associatedExecHooksIndex] =
+                CastLib.toFunctionReferenceArray(selectorData.executionHooks.postOnlyHooks.getAll());
+            unchecked {
+                ++associatedExecHooksIndex;
+            }
+        }
+
+        // Cache post-exec hooks in memory
+        _cacheAssociatedPostHooks(
+            preExecHooks, selectorData.executionHooks, postHooksToRun, associatedExecHooksIndex
+        );
+
+        // Run the permitted call hooks
+        _doPreHooks(
+            prePermittedCallHooks, callBuffer, postHooksToRun, postHookArgs, associatedPermittedCallHooksIndex
+        );
+
+        // Run the pre-exec hooks
+        _doPreHooks(preExecHooks, callBuffer, postHooksToRun, postHookArgs, associatedExecHooksIndex);
+    }
+
+    /// @dev Execute all pre hooks provided, using the call buffer if provided.
+    /// Outputs are captured into the `hookReturnData` array, in increasing index starting at `startingIndex`.
+    /// The `postHooks` array is used to determine whether or not to capture the return data.
+    /// NOTE: The caller must ensure that:
+    /// - `postHooks` is allocated, and `startingIndex + preHooks.length` does not exceed the array bounds of
+    /// `postHooks`.
+    /// - `hookReturnData` is allocated, and `startingIndex + preHooks.length` does not exceed the array bounds of
+    /// `hookReturnData`.
+    function _doPreHooks(
+        FunctionReference[] memory preHooks,
+        bytes memory callBuffer,
+        FunctionReference[][] memory postHooks, // Only used to check if any post hooks exist.
+        bytes[] memory hookReturnData,
+        uint256 startingIndex // Where to start writing into hookReturnData
+    ) internal {
+        uint256 preExecHooksLength = preHooks.length;
 
         // If not running anything, short-circuit before allocating more memory for the call buffers.
         if (preExecHooksLength == 0) {
-            return (postHooks, postHookArgs);
+            return;
         }
 
         if (callBuffer.length == 0) {
@@ -706,7 +740,7 @@ contract UpgradeableModularAccount is
         _updatePluginCallBufferSelector(callBuffer, IPlugin.preExecutionHook.selector);
 
         for (uint256 i = 0; i < preExecHooksLength;) {
-            FunctionReference preExecHook = preExecHooks[i];
+            FunctionReference preExecHook = preHooks[i];
 
             if (preExecHook.isEmptyOrMagicValue()) {
                 // The function reference must be the Always Deny magic value in this case,
@@ -718,50 +752,54 @@ contract UpgradeableModularAccount is
 
             _updatePluginCallBufferFunctionId(callBuffer, functionId);
 
-            if (preHookSet.flagsEnabled(CastLib.toSetValue(preExecHook), _PRE_EXEC_HOOK_HAS_POST_FLAG)) {
-                FunctionReference[] memory associatedPostExecHooks =
-                    CastLib.toFunctionReferenceArray(associatedPostHooks[preExecHook].getAll());
-                uint256 associatedPostExecHooksLength = associatedPostExecHooks.length;
+            _executeRuntimePluginFunction(callBuffer, plugin, PreExecHookReverted.selector);
 
-                for (uint256 j = 0; j < associatedPostExecHooksLength;) {
-                    // Execute the pre-hook as many times as there are unique associated post-hooks.
-                    _executeRuntimePluginFunction(callBuffer, plugin, PreExecHookReverted.selector);
+            uint256 adjustedIndex;
+            unchecked {
+                adjustedIndex = startingIndex + i;
+            }
 
-                    postHooks[actualPostHooksToRunLength] = associatedPostExecHooks[j];
-                    postHookArgs[actualPostHooksToRunLength] = abi.decode(_collectReturnData(), (bytes));
-
-                    unchecked {
-                        ++actualPostHooksToRunLength;
-                        ++j;
-                    }
-                }
-            } else {
-                _executeRuntimePluginFunction(callBuffer, plugin, PreExecHookReverted.selector);
+            // Only collect the return data if there is at least one post-hook to consume it.
+            if (postHooks[adjustedIndex].length > 0) {
+                hookReturnData[adjustedIndex] = abi.decode(_collectReturnData(), (bytes));
             }
 
             unchecked {
                 ++i;
             }
         }
-
-        // "Trim" the associated post hook arrays to the actual length, since we may have overallocated. This
-        // allows for execution of post hooks in reverse order.
-        assembly ("memory-safe") {
-            mstore(postHooks, actualPostHooksToRunLength)
-            mstore(postHookArgs, actualPostHooksToRunLength)
-        }
     }
 
-    function _doCachedPostHooks(FunctionReference[] memory postHooks, bytes[] memory postHookArgs) internal {
-        uint256 postHooksToRunLength = postHooks.length;
-        bool hasPostHookArgs = postHookArgs.length > 0;
-        for (uint256 i = postHooksToRunLength; i > 0;) {
-            FunctionReference postExecHook = postHooks[i - 1];
-            (address plugin, uint8 functionId) = postExecHook.unpack();
-            // solhint-disable-next-line no-empty-blocks
-            try IPlugin(plugin).postExecutionHook(functionId, hasPostHookArgs ? postHookArgs[i - 1] : bytes("")) {}
-            catch (bytes memory revertReason) {
-                revert PostExecHookReverted(plugin, functionId, revertReason);
+    /// @dev Executes all post hooks in the nested array, using the corresponding args in the nested array.
+    /// Executes the elements in reverse order, so the caller should ensure the correct ordering before calling.
+    function _doCachedPostHooks(FunctionReference[][] memory postHooks, bytes[] memory postHookArgs) internal {
+        // Run post hooks in reverse order of their associated pre hooks.
+        uint256 postHookArrsLength = postHooks.length;
+        for (uint256 i = postHookArrsLength; i > 0;) {
+            uint256 index;
+            unchecked {
+                // i starts as the length of the array and goes to 1, not zero, to avoid underflowing.
+                // To use the index for array access, we need to subtract 1.
+                index = i - 1;
+            }
+            FunctionReference[] memory postHooksToRun = postHooks[index];
+
+            // We don't need to run each associated post-hook in reverse order, because the associativity we want
+            // to maintain is reverse order of associated pre-hooks.
+            uint256 postHooksToRunLength = postHooksToRun.length;
+            for (uint256 j = 0; j < postHooksToRunLength;) {
+                (address plugin, uint8 functionId) = postHooksToRun[j].unpack();
+
+                // Execute the post hook with the current post hook args
+                // solhint-disable-next-line no-empty-blocks
+                try IPlugin(plugin).postExecutionHook(functionId, postHookArgs[index]) {}
+                catch (bytes memory revertReason) {
+                    revert PostExecHookReverted(plugin, functionId, revertReason);
+                }
+
+                unchecked {
+                    ++j;
+                }
             }
 
             unchecked {
@@ -773,6 +811,35 @@ contract UpgradeableModularAccount is
     /// @inheritdoc UUPSUpgradeable
     // solhint-disable-next-line no-empty-blocks
     function _authorizeUpgrade(address newImplementation) internal override {}
+
+    /// @dev Loads the associated post hooks for the given pre-exec hooks in the `postHooks` array, starting at
+    /// `startingIndex`.
+    /// NOTE: The caller must ensure that `postHooks` is allocated, and `startingIndex + preHooks.length` does not
+    // exceed the array bounds of `postHooks`.
+    function _cacheAssociatedPostHooks(
+        FunctionReference[] memory preExecHooks,
+        HookGroup storage hookGroup,
+        FunctionReference[][] memory postHooks,
+        uint256 startingIndex
+    ) internal view {
+        uint256 preExecHooksLength = preExecHooks.length;
+        for (uint256 i = 0; i < preExecHooksLength;) {
+            FunctionReference preExecHook = preExecHooks[i];
+
+            // If the pre-exec hook has associated post hooks, cache them in the postHooks array.
+            if (hookGroup.preHooks.flagsEnabled(CastLib.toSetValue(preExecHook), _PRE_EXEC_HOOK_HAS_POST_FLAG)) {
+                // We start writing into the postHooks array starting at the `startingIndex` and counting up.
+                postHooks[startingIndex + i] =
+                    CastLib.toFunctionReferenceArray(hookGroup.associatedPostHooks[preExecHook].getAll());
+            }
+            // In no-associated-post-hooks case, we're OK returning the default value, which is an array of length
+            // 0.
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
 
     /// @dev Revert with an appropriate error if the calldata does not include a function selector.
     function _selectorFromCallData(bytes calldata data) internal pure returns (bytes4) {
