@@ -99,11 +99,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         SessionKeyPlugin(address(account1)).addSessionKey(sessionKeyToAdd, bytes32(0));
 
         // Check using all view methods
-        address[] memory sessionKeys = SessionKeyPlugin(address(account1)).getSessionKeys();
-        assertEq(sessionKeys.length, 1);
-        assertEq(sessionKeys[0], sessionKeyToAdd);
-        assertTrue(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKeyToAdd));
-        sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
+        address[] memory sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
         assertEq(sessionKeys.length, 1);
         assertEq(sessionKeys[0], sessionKeyToAdd);
         assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKeyToAdd));
@@ -124,11 +120,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         SessionKeyPlugin(address(account1)).addSessionKey(sessionKeyToAdd, bytes32(0));
 
         // Check using all view methods
-        address[] memory sessionKeys = SessionKeyPlugin(address(account1)).getSessionKeys();
-        assertEq(sessionKeys.length, 1);
-        assertEq(sessionKeys[0], sessionKeyToAdd);
-        assertTrue(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKeyToAdd));
-        sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
+        address[] memory sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
         assertEq(sessionKeys.length, 1);
         assertEq(sessionKeys[0], sessionKeyToAdd);
         assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKeyToAdd));
@@ -144,16 +136,12 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         vm.stopPrank();
 
         // Check using all view methods
-        address[] memory sessionKeys = SessionKeyPlugin(address(account1)).getSessionKeys();
+        address[] memory sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
         assertEq(sessionKeys.length, 2);
         assertEq(sessionKeys[0], sessionKey2);
         assertEq(sessionKeys[1], sessionKey1);
-        assertTrue(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKey1));
-        assertTrue(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKey2));
-        sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
-        assertEq(sessionKeys.length, 2);
-        assertEq(sessionKeys[0], sessionKey2);
-        assertEq(sessionKeys[1], sessionKey1);
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey1));
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey2));
 
         vm.expectEmit(true, true, true, true);
         emit SessionKeyRemoved(address(account1), sessionKey1);
@@ -164,11 +152,6 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         vm.stopPrank();
 
         // Check using all view methods
-        sessionKeys = SessionKeyPlugin(address(account1)).getSessionKeys();
-        assertEq(sessionKeys.length, 1);
-        assertEq(sessionKeys[0], sessionKey2);
-        assertFalse(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKey1));
-        assertTrue(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKey2));
         sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
         assertEq(sessionKeys.length, 1);
         assertEq(sessionKeys[0], sessionKey2);
@@ -191,12 +174,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         SessionKeyPlugin(address(account1)).rotateSessionKey(sessionKey1, predecessor, sessionKey2);
 
         // Check using all view methods
-        address[] memory sessionKeys = SessionKeyPlugin(address(account1)).getSessionKeys();
-        assertEq(sessionKeys.length, 1);
-        assertEq(sessionKeys[0], sessionKey2);
-        assertFalse(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKey1));
-        assertTrue(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKey2));
-        sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
+        address[] memory sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
         assertEq(sessionKeys.length, 1);
         assertEq(sessionKeys[0], sessionKey2);
         assertFalse(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey1));
@@ -433,12 +411,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         vm.stopPrank();
 
         // Check using all view methods
-        address[] memory sessionKeys = SessionKeyPlugin(address(account1)).getSessionKeys();
-        assertEq(sessionKeys.length, 1);
-        assertEq(sessionKeys[0], sessionKey1);
-        assertTrue(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKey1));
-        assertFalse(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKey2));
-        sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
+        address[] memory sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
         assertEq(sessionKeys.length, 1);
         assertEq(sessionKeys[0], sessionKey1);
         assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey1));
@@ -461,12 +434,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         vm.stopPrank();
 
         // Check using all view methods
-        address[] memory sessionKeys = SessionKeyPlugin(address(account1)).getSessionKeys();
-        assertEq(sessionKeys.length, 1);
-        assertEq(sessionKeys[0], sessionKey2);
-        assertTrue(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKey2));
-        assertFalse(ISessionKeyPlugin(address(account1)).isSessionKey(sessionKey1));
-        sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
+        address[] memory sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
         assertEq(sessionKeys.length, 1);
         assertEq(sessionKeys[0], sessionKey2);
         assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey2));

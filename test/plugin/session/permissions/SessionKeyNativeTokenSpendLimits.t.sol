@@ -109,7 +109,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
 
     function test_sessionKeyNativeTokenSpendLimits_validateSetUp() public {
         // Check that the session key is registered
-        assertTrue(SessionKeyPlugin(address(account1)).isSessionKey(sessionKey1));
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey1));
 
         // Check that the session key is registered with the permissions plugin and has its allowlist set up
         // correctly

@@ -107,19 +107,6 @@ interface ISessionKeyPlugin {
     /// @param sessionKey The session key to reset.
     function resetSessionKeyGasLimitTimestamp(address account, address sessionKey) external;
 
-    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    // ┃  Execution view functions   ┃
-    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-
-    /// @notice Get the session keys of the account.
-    /// @return The array of session keys of the account.
-    function getSessionKeys() external view returns (address[] memory);
-
-    /// @notice Check if a session key is a session key of the account.
-    /// @param sessionKey The session key to check.
-    /// @return The boolean whether the session key is a session key of the account.
-    function isSessionKey(address sessionKey) external view returns (bool);
-
     // ┏━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    View functions    ┃
     // ┗━━━━━━━━━━━━━━━━━━━━━━┛

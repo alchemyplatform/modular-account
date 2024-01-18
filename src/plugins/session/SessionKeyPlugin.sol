@@ -73,12 +73,10 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
                     _sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey)) && sessionKey == recoveredSig
                 ) {
                     return _checkUserOpPermissions(userOp, calls, sessionKey);
-                } else {
-                    return _SIG_VALIDATION_FAILED;
                 }
-            } else {
-                revert InvalidSignature(sessionKey);
+                return _SIG_VALIDATION_FAILED;
             }
+            revert InvalidSignature(sessionKey);
         }
         revert NotImplemented();
     }
@@ -191,34 +189,18 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
     // The function `resetSessionKeyGasLimitTimestamp` is implemented in `SessionKeyPermissions`.
 
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    // ┃  Execution view functions   ┃
-    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-
-    /// @inheritdoc ISessionKeyPlugin
-    function getSessionKeys() external view returns (address[] memory) {
-        SetValue[] memory values = _sessionKeys.getAll(msg.sender);
-
-        return CastLib.toAddressArray(values);
-    }
-
-    /// @inheritdoc ISessionKeyPlugin
-    function isSessionKey(address sessionKey) external view returns (bool) {
-        return _sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey));
-    }
-
-    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    Plugin view functions    ┃
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @inheritdoc ISessionKeyPlugin
-    function sessionKeysOf(address account) external view returns (address[] memory) {
+    function sessionKeysOf(address account) external view override returns (address[] memory) {
         SetValue[] memory values = _sessionKeys.getAll(account);
 
         return CastLib.toAddressArray(values);
     }
 
     /// @inheritdoc ISessionKeyPlugin
-    function isSessionKeyOf(address account, address sessionKey) external view returns (bool) {
+    function isSessionKeyOf(address account, address sessionKey) external view override returns (bool) {
         return _sessionKeys.contains(account, CastLib.toSetValue(sessionKey));
     }
 
@@ -227,7 +209,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
     // ┗━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @inheritdoc ISessionKeyPlugin
-    function findPredecessor(address account, address sessionKey) external view returns (bytes32) {
+    function findPredecessor(address account, address sessionKey) external view override returns (bytes32) {
         address[] memory sessionKeys = CastLib.toAddressArray(_sessionKeys.getAll(account));
 
         uint256 length = sessionKeys.length;
@@ -257,14 +239,12 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
         manifest.dependencyInterfaceIds[_MANIFEST_DEPENDENCY_INDEX_OWNER_RUNTIME_VALIDATION] =
             type(IPlugin).interfaceId;
 
-        manifest.executionFunctions = new bytes4[](7);
+        manifest.executionFunctions = new bytes4[](5);
         manifest.executionFunctions[0] = this.executeWithSessionKey.selector;
         manifest.executionFunctions[1] = this.addSessionKey.selector;
         manifest.executionFunctions[2] = this.removeSessionKey.selector;
         manifest.executionFunctions[3] = this.rotateSessionKey.selector;
         manifest.executionFunctions[4] = this.updateKeyPermissions.selector;
-        manifest.executionFunctions[5] = this.getSessionKeys.selector;
-        manifest.executionFunctions[6] = this.isSessionKey.selector;
 
         ManifestFunction memory sessionKeyUserOpValidationFunction = ManifestFunction({
             functionType: ManifestAssociatedFunctionType.SELF,
@@ -301,40 +281,26 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
 
         // Session keys are only expected to be used for user op validation, so no runtime validation functions are
         // set over executeWithSessionKey, and pre runtime hook will always deny.
-        ManifestFunction memory alwaysAllowValidationFunction = ManifestFunction({
-            functionType: ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW,
-            functionId: 0, // Unused.
-            dependencyIndex: 0 // Unused.
-        });
-
         ManifestFunction memory ownerRuntimeValidationFunction = ManifestFunction({
             functionType: ManifestAssociatedFunctionType.DEPENDENCY,
             functionId: 0, // unused since it's a dependency
             dependencyIndex: _MANIFEST_DEPENDENCY_INDEX_OWNER_RUNTIME_VALIDATION
         });
 
-        manifest.runtimeValidationFunctions = new ManifestAssociatedFunction[](6);
+        manifest.runtimeValidationFunctions = new ManifestAssociatedFunction[](4);
         manifest.runtimeValidationFunctions[0] = ManifestAssociatedFunction({
-            executionSelector: this.getSessionKeys.selector,
-            associatedFunction: alwaysAllowValidationFunction
-        });
-        manifest.runtimeValidationFunctions[1] = ManifestAssociatedFunction({
-            executionSelector: this.isSessionKey.selector,
-            associatedFunction: alwaysAllowValidationFunction
-        });
-        manifest.runtimeValidationFunctions[2] = ManifestAssociatedFunction({
             executionSelector: this.addSessionKey.selector,
             associatedFunction: ownerRuntimeValidationFunction
         });
-        manifest.runtimeValidationFunctions[3] = ManifestAssociatedFunction({
+        manifest.runtimeValidationFunctions[1] = ManifestAssociatedFunction({
             executionSelector: this.removeSessionKey.selector,
             associatedFunction: ownerRuntimeValidationFunction
         });
-        manifest.runtimeValidationFunctions[4] = ManifestAssociatedFunction({
+        manifest.runtimeValidationFunctions[2] = ManifestAssociatedFunction({
             executionSelector: this.rotateSessionKey.selector,
             associatedFunction: ownerRuntimeValidationFunction
         });
-        manifest.runtimeValidationFunctions[5] = ManifestAssociatedFunction({
+        manifest.runtimeValidationFunctions[3] = ManifestAssociatedFunction({
             executionSelector: this.updateKeyPermissions.selector,
             associatedFunction: ownerRuntimeValidationFunction
         });
