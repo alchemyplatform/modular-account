@@ -90,8 +90,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
         asmPlugin.setCallback(
             abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
             ),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
@@ -133,7 +132,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             setPostExec: false
         });
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "")),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
         _installASMPlugin();
@@ -210,7 +209,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
 
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(asmPlugin), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(asmPlugin), "", "")),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
         _installASMPlugin();
@@ -255,8 +254,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
         asmPlugin.setCallback(
             abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
             ),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
@@ -296,8 +294,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
         asmPlugin.setCallback(
             abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
             ),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
@@ -345,7 +342,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             setPostExec: false
         });
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "")),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
         _installASMPlugin();
@@ -423,7 +420,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             setPostExec: false
         });
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(asmPlugin), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(asmPlugin), "", "")),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
         _installASMPlugin();
@@ -463,8 +460,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
         asmPlugin.setCallback(
             abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
             ),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
@@ -504,8 +500,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
         asmPlugin.setCallback(
             abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
             ),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
@@ -547,7 +542,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             setPostExec: false
         });
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "")),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
         _installASMPlugin();
@@ -589,7 +584,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             setPostExec: false
         });
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "")),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
         _installASMPlugin();
@@ -627,8 +622,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
         asmPlugin.setCallback(
             abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
             ),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
@@ -668,8 +662,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
         asmPlugin.setCallback(
             abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
             ),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
@@ -717,7 +710,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             setPreExec: false
         });
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "")),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
         _installASMPlugin();
@@ -759,7 +752,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             setPostExec: true
         });
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "")),
             AccountStateMutatingPlugin.FunctionId.PRE_USER_OP_VALIDATION_HOOK
         );
         _installASMPlugin();
@@ -818,8 +811,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
         asmPlugin.setCallback(
             abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
             ),
             AccountStateMutatingPlugin.FunctionId.USER_OP_VALIDATION
         );
@@ -858,8 +850,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
         asmPlugin.setCallback(
             abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
             ),
             AccountStateMutatingPlugin.FunctionId.USER_OP_VALIDATION
         );
@@ -906,7 +897,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             setPostExec: false
         });
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "")),
             AccountStateMutatingPlugin.FunctionId.USER_OP_VALIDATION
         );
         _installASMPlugin();
@@ -983,7 +974,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             setPostExec: false
         });
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(asmPlugin), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(asmPlugin), "", "")),
             AccountStateMutatingPlugin.FunctionId.USER_OP_VALIDATION
         );
         _installASMPlugin();
@@ -1020,8 +1011,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
         asmPlugin.setCallback(
             abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
             ),
             AccountStateMutatingPlugin.FunctionId.USER_OP_VALIDATION
         );
@@ -1061,8 +1051,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
         asmPlugin.setCallback(
             abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
             ),
             AccountStateMutatingPlugin.FunctionId.USER_OP_VALIDATION
         );
@@ -1103,7 +1092,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             setPostExec: false
         });
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "")),
             AccountStateMutatingPlugin.FunctionId.USER_OP_VALIDATION
         );
         _installASMPlugin();
@@ -1145,7 +1134,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             setPostExec: false
         });
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "")),
             AccountStateMutatingPlugin.FunctionId.USER_OP_VALIDATION
         );
         _installASMPlugin();
@@ -1183,8 +1172,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
         asmPlugin.setCallback(
             abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
             ),
             AccountStateMutatingPlugin.FunctionId.USER_OP_VALIDATION
         );
@@ -1225,8 +1213,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
         });
         asmPlugin.setCallback(
             abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
             ),
             AccountStateMutatingPlugin.FunctionId.USER_OP_VALIDATION
         );
@@ -1273,7 +1260,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             setPreExec: false
         });
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "")),
             AccountStateMutatingPlugin.FunctionId.USER_OP_VALIDATION
         );
         _installASMPlugin();
@@ -1315,7 +1302,7 @@ contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {
             setPreExec: false
         });
         asmPlugin.setCallback(
-            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "", _EMPTY_HOOK_APPLY_DATA)),
+            abi.encodeCall(IPluginManager.uninstallPlugin, (address(mockPlugin1), "", "")),
             AccountStateMutatingPlugin.FunctionId.USER_OP_VALIDATION
         );
         _installASMPlugin();

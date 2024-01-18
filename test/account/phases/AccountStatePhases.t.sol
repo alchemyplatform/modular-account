@@ -69,19 +69,12 @@ contract AccountStatePhasesTest is Test {
     uint8 internal constant _RT_VALIDATION_FUNCTION_ID_6 = 6;
 
     // Event re-declarations for vm.expectEmit
-    event PluginInstalled(
-        address indexed plugin,
-        bytes32 manifestHash,
-        FunctionReference[] dependencies,
-        IPluginManager.InjectedHook[] injectedHooks
-    );
+    event PluginInstalled(address indexed plugin, bytes32 manifestHash, FunctionReference[] dependencies);
     event PluginUninstalled(address indexed plugin, bool indexed callbacksSucceeded);
     event ReceivedCall(bytes msgData, uint256 msgValue);
 
     // Empty arrays for convenience
     FunctionReference[] internal _EMPTY_DEPENDENCIES;
-    IPluginManager.InjectedHook[] internal _EMPTY_INJECTED_HOOKS;
-    bytes[] internal _EMPTY_HOOK_APPLY_DATA;
 
     // Constants for running user ops
     uint256 constant CALL_GAS_LIMIT = 300000;
@@ -242,9 +235,9 @@ contract AccountStatePhasesTest is Test {
     function _installASMPlugin() internal {
         bytes32 manifestHash = _manifestHashOf(asmPlugin.pluginManifest());
         vm.expectEmit(true, true, true, true);
-        emit PluginInstalled(address(asmPlugin), manifestHash, _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS);
+        emit PluginInstalled(address(asmPlugin), manifestHash, _EMPTY_DEPENDENCIES);
         vm.prank(owner1);
-        account1.installPlugin(address(asmPlugin), manifestHash, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS);
+        account1.installPlugin(address(asmPlugin), manifestHash, "", _EMPTY_DEPENDENCIES);
     }
 
     // Sets up the manifest hash variable and deploys the mock plugin.
@@ -259,9 +252,9 @@ contract AccountStatePhasesTest is Test {
         vm.expectEmit(true, true, true, true);
         emit ReceivedCall(abi.encodeCall(IPlugin.onInstall, (bytes(""))), 0);
         vm.expectEmit(true, true, true, true);
-        emit PluginInstalled(address(mockPlugin1), manifestHash1, _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS);
+        emit PluginInstalled(address(mockPlugin1), manifestHash1, _EMPTY_DEPENDENCIES);
         vm.prank(owner1);
-        account1.installPlugin(address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS);
+        account1.installPlugin(address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES);
     }
 
     function _manifestHashOf(PluginManifest memory manifest) internal pure returns (bytes32) {
@@ -295,14 +288,13 @@ contract AccountStatePhasesTest is Test {
         calls[0] = Call({
             target: address(account1),
             value: 0 ether,
-            data: abi.encodeCall(IPluginManager.uninstallPlugin, (address(asmPlugin), "", "", _EMPTY_HOOK_APPLY_DATA))
+            data: abi.encodeCall(IPluginManager.uninstallPlugin, (address(asmPlugin), "", ""))
         });
         calls[1] = Call({
             target: address(account1),
             value: 0 ether,
             data: abi.encodeCall(
-                IPluginManager.installPlugin,
-                (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES, _EMPTY_INJECTED_HOOKS)
+                IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
                 )
         });
         return calls;

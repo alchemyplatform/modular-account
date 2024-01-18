@@ -20,9 +20,7 @@ import {
     EFPCallerPlugin,
     EFPCallerPluginAnyExternal,
     EFPCallerPluginAnyExternalCanSpendNativeToken,
-    EFPExecutionHookPlugin,
-    EFPExternalPermittedCallHookPlugin,
-    EFPPermittedCallHookPlugin
+    EFPExecutionHookPlugin
 } from "../mocks/plugins/ExecFromPluginPermissionsMocks.sol";
 
 contract ExecuteFromPluginPermissionsTest is Test {
@@ -39,8 +37,6 @@ contract ExecuteFromPluginPermissionsTest is Test {
     EFPCallerPlugin public efpCallerPlugin;
     EFPCallerPluginAnyExternal public efpCallerPluginAnyExternal;
     EFPCallerPluginAnyExternalCanSpendNativeToken public efpCallerPluginAnyExternalCanSpendNativeToken;
-    EFPPermittedCallHookPlugin public efpPermittedCallHookPlugin;
-    EFPExternalPermittedCallHookPlugin public efpExternalPermittedCallHookPlugin;
     EFPExecutionHookPlugin public efpExecutionHookPlugin;
 
     function setUp() public {
@@ -67,8 +63,6 @@ contract ExecuteFromPluginPermissionsTest is Test {
         efpCallerPlugin = new EFPCallerPlugin();
         efpCallerPluginAnyExternal = new EFPCallerPluginAnyExternal();
         efpCallerPluginAnyExternalCanSpendNativeToken = new EFPCallerPluginAnyExternalCanSpendNativeToken();
-        efpPermittedCallHookPlugin = new EFPPermittedCallHookPlugin();
-        efpExternalPermittedCallHookPlugin = new EFPExternalPermittedCallHookPlugin();
         efpExecutionHookPlugin = new EFPExecutionHookPlugin();
 
         // Create an account with "this" as the owner, so we can execute along the runtime path with regular
@@ -110,26 +104,6 @@ contract ExecuteFromPluginPermissionsTest is Test {
         account.installPlugin({
             plugin: address(efpCallerPluginAnyExternalCanSpendNativeToken),
             manifestHash: efpCallerAnyExternalCanSpendNativeTokenManifestHash,
-            pluginInitData: "",
-            dependencies: new FunctionReference[](0)
-        });
-
-        // Add the EFP caller plugin with permitted call hooks to the account
-        bytes32 efpPermittedCallHookManifestHash =
-            keccak256(abi.encode(efpPermittedCallHookPlugin.pluginManifest()));
-        account.installPlugin({
-            plugin: address(efpPermittedCallHookPlugin),
-            manifestHash: efpPermittedCallHookManifestHash,
-            pluginInitData: "",
-            dependencies: new FunctionReference[](0)
-        });
-
-        // Add the EFP caller plugin with an external permitted call hook to the account
-        bytes32 efpExternalPermittedCallHookManifestHash =
-            keccak256(abi.encode(efpExternalPermittedCallHookPlugin.pluginManifest()));
-        account.installPlugin({
-            plugin: address(efpExternalPermittedCallHookPlugin),
-            manifestHash: efpExternalPermittedCallHookManifestHash,
             pluginInitData: "",
             dependencies: new FunctionReference[](0)
         });

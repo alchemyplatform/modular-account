@@ -227,7 +227,7 @@ contract UpgradeableModularAccount is
         address execFunctionPlugin = selectorData.plugin;
 
         (FunctionReference[][] memory postHooksToRun, bytes[] memory postHookArgs) =
-            _doPrePermittedCallHooksAndPreExecHooks(selectorData, permittedCallData, callBuffer);
+            _doPreExecHooks(selectorData, callBuffer);
 
         if (execFunctionPlugin == address(0)) {
             revert UnrecognizedFunction(selector);
@@ -299,9 +299,11 @@ contract UpgradeableModularAccount is
         }
 
         // Run any pre exec hooks for the `executeFromPluginExternal` selector
+        SelectorData storage selectorData =
+            storage_.selectorData[IPluginExecutor.executeFromPluginExternal.selector];
 
         (FunctionReference[][] memory postHooksToRun, bytes[] memory postHookArgs) =
-            _doPrePermittedCallHooksAndPreExecHooks(selectorData, permittedCallData, "");
+            _doPreExecHooks(selectorData, "");
 
         // Perform the external call
         bytes memory returnData = _exec(target, value, data);
@@ -585,61 +587,6 @@ contract UpgradeableModularAccount is
 
         // Run all pre-exec hooks and capture their outputs.
         _doPreHooks(preExecHooks, callBuffer, postHooksToRun, postHookArgs, currentIndex);
-    }
-
-    /// @dev Executes pre-permitted call hooks and pre-exec hooks, and returns the post-exec hooks to run and
-    /// their associated args.
-    function _doPrePermittedCallHooksAndPreExecHooks(
-        SelectorData storage selectorData,
-        PermittedCallData storage permittedCallData,
-        bytes memory callBuffer
-    ) internal returns (FunctionReference[][] memory postHooksToRun, bytes[] memory postHookArgs) {
-        FunctionReference[] memory preExecHooks;
-
-        bool hasPreExecHooks = selectorData.hasPreExecHooks;
-        bool hasPostOnlyExecHooks = selectorData.hasPostOnlyExecHooks;
-
-        // If we have any type of pre hooks, we need to allocate memory for them to perform their call.
-        if (callBuffer.length == 0 && hasPreExecHooks) {
-            callBuffer = _allocateRuntimeCallBuffer(msg.data);
-        }
-
-        if (hasPreExecHooks) {
-            preExecHooks = CastLib.toFunctionReferenceArray(selectorData.executionHooks.preHooks.getAll());
-        }
-
-        // Allocate memory for the post hooks and post hook args.
-        // If we have post-only hooks, we allocate an extra FunctionReference[] for them, and one extra element in
-        // the args for their empty `bytes` argument.
-        uint256 postHooksToRunLength = preExecHooks.length + (hasPostOnlyExecHooks ? 1 : 0);
-        postHooksToRun = new FunctionReference[][](postHooksToRunLength);
-        postHookArgs = new bytes[](postHooksToRunLength);
-
-        // The order we want to fill the post exec hooks is:
-        // 1. Associated post hooks for pre-permitted call hooks
-        // 2. Post-only exec hooks
-        // 3. Associated post hooks for pre-exec hooks
-
-        uint256 associatedExecHooksIndex;
-
-        if (hasPostOnlyExecHooks) {
-            // If we have post-only hooks, we allocate an single FunctionReference[] for them, and one element in
-            // the args for their empty `bytes` argument. We put this into the first element of the post hooks in
-            // order to have it run last.
-            postHooksToRun[associatedExecHooksIndex] =
-                CastLib.toFunctionReferenceArray(selectorData.executionHooks.postOnlyHooks.getAll());
-            unchecked {
-                ++associatedExecHooksIndex;
-            }
-        }
-
-        // Cache post-exec hooks in memory
-        _cacheAssociatedPostHooks(
-            preExecHooks, selectorData.executionHooks, postHooksToRun, associatedExecHooksIndex
-        );
-
-        // Run the pre-exec hooks
-        _doPreHooks(preExecHooks, callBuffer, postHooksToRun, postHookArgs, associatedExecHooksIndex);
     }
 
     /// @dev Execute all pre hooks provided, using the call buffer if provided.
