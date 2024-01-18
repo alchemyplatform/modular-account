@@ -47,7 +47,7 @@ contract MultiOwnerMSCAFactory is Ownable2Step {
     /// @notice Create a modular smart contract account
     /// @dev Account address depends on salt, impl addr, plugins and plugin init data
     /// @dev The owner array must be in strictly ascending order and not include the 0 address.
-    /// @param salt salt for additional entropy for create2
+    /// @param salt salt for create2
     /// @param owners address array of the owners
     function createAccount(uint256 salt, address[] calldata owners) external returns (address addr) {
         if (!FactoryHelpers.isValidOwnerArray(owners)) {
@@ -116,7 +116,9 @@ contract MultiOwnerMSCAFactory is Ownable2Step {
 
     /// @notice Getter for counterfactual address based on input params
     /// @dev The owner array must be in strictly ascending order and not include the 0 address.
+    /// @param salt salt for additional entropy for create2
     /// @param owners array of addresses of the owner
+    /// @return address of counterfactual account
     function getAddress(uint256 salt, address[] calldata owners) external view returns (address) {
         // array can't be empty
         if (owners.length == 0) {

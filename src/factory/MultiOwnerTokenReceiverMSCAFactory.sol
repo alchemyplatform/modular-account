@@ -126,6 +126,7 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
     /// @dev The owner array must be in strictly ascending order and not include the 0 address.
     /// @param salt salt for additional entropy for create2
     /// @param owners array of addresses of the owner
+    /// @return address of counterfactual account
     function getAddress(uint256 salt, address[] calldata owners) external view returns (address) {
         // array can't be empty
         if (owners.length == 0) {
