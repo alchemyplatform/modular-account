@@ -569,40 +569,29 @@ contract UpgradeableModularAccount is
         postHooksToRun = new FunctionReference[][](postHooksToRunLength);
         postHookArgs = new bytes[](postHooksToRunLength);
 
-        uint256 currentIndex = 0;
+        // If there are no pre exec hooks, this will short-circuit in the length check on `preExecHooks`.
+        _cacheAssociatedPostHooks(preExecHooks, selectorData.executionHooks, postHooksToRun);
 
         if (hasPostOnlyExecHooks) {
             // If we have post-only hooks, we allocate an single FunctionReference[] for them, and one element
             // in the args for their empty `bytes` argument. We put this into the first element of the post
             // hooks in order to have it run last.
-            postHooksToRun[0] =
+            postHooksToRun[postHooksToRunLength - 1] =
                 CastLib.toFunctionReferenceArray(selectorData.executionHooks.postOnlyHooks.getAll());
-            unchecked {
-                ++currentIndex;
-            }
         }
 
-        // If there are no pre exec hooks, this will short-circuit in the length check on `preExecHooks`.
-        _cacheAssociatedPostHooks(preExecHooks, selectorData.executionHooks, postHooksToRun, currentIndex);
-
         // Run all pre-exec hooks and capture their outputs.
-        _doPreHooks(preExecHooks, callBuffer, postHooksToRun, postHookArgs, currentIndex);
+        _doPreHooks(preExecHooks, callBuffer, postHooksToRun, postHookArgs);
     }
 
     /// @dev Execute all pre hooks provided, using the call buffer if provided.
-    /// Outputs are captured into the `hookReturnData` array, in increasing index starting at `startingIndex`.
+    /// Outputs are captured into the `hookReturnData` array, in increasing index starting at 0.
     /// The `postHooks` array is used to determine whether or not to capture the return data.
-    /// NOTE: The caller must ensure that:
-    /// - `postHooks` is allocated, and `startingIndex + preHooks.length` does not exceed the array bounds of
-    /// `postHooks`.
-    /// - `hookReturnData` is allocated, and `startingIndex + preHooks.length` does not exceed the array bounds of
-    /// `hookReturnData`.
     function _doPreHooks(
         FunctionReference[] memory preHooks,
         bytes memory callBuffer,
         FunctionReference[][] memory postHooks, // Only used to check if any post hooks exist.
-        bytes[] memory hookReturnData,
-        uint256 startingIndex // Where to start writing into hookReturnData
+        bytes[] memory hookReturnData
     ) internal {
         uint256 preExecHooksLength = preHooks.length;
 
@@ -634,14 +623,9 @@ contract UpgradeableModularAccount is
 
             _executeRuntimePluginFunction(callBuffer, plugin, PreExecHookReverted.selector);
 
-            uint256 adjustedIndex;
-            unchecked {
-                adjustedIndex = startingIndex + i;
-            }
-
             // Only collect the return data if there is at least one post-hook to consume it.
-            if (postHooks[adjustedIndex].length > 0) {
-                hookReturnData[adjustedIndex] = abi.decode(_collectReturnData(), (bytes));
+            if (postHooks[i].length > 0) {
+                hookReturnData[i] = abi.decode(_collectReturnData(), (bytes));
             }
         }
     }
@@ -686,15 +670,11 @@ contract UpgradeableModularAccount is
     // solhint-disable-next-line no-empty-blocks
     function _authorizeUpgrade(address newImplementation) internal override {}
 
-    /// @dev Loads the associated post hooks for the given pre-exec hooks in the `postHooks` array, starting at
-    /// `startingIndex`.
-    /// NOTE: The caller must ensure that `postHooks` is allocated, and `startingIndex + preHooks.length` does not
-    // exceed the array bounds of `postHooks`.
+    /// @dev Loads the associated post hooks for the given pre-exec hooks in the `postHooks` array, starting at 0.
     function _cacheAssociatedPostHooks(
         FunctionReference[] memory preExecHooks,
         HookGroup storage hookGroup,
-        FunctionReference[][] memory postHooks,
-        uint256 startingIndex
+        FunctionReference[][] memory postHooks
     ) internal view {
         uint256 preExecHooksLength = preExecHooks.length;
         for (uint256 i = 0; i < preExecHooksLength; ++i) {
@@ -702,8 +682,7 @@ contract UpgradeableModularAccount is
 
             // If the pre-exec hook has associated post hooks, cache them in the postHooks array.
             if (hookGroup.preHooks.flagsEnabled(CastLib.toSetValue(preExecHook), _PRE_EXEC_HOOK_HAS_POST_FLAG)) {
-                // We start writing into the postHooks array starting at the `startingIndex` and counting up.
-                postHooks[startingIndex + i] =
+                postHooks[i] =
                     CastLib.toFunctionReferenceArray(hookGroup.associatedPostHooks[preExecHook].getAll());
             }
             // In no-associated-post-hooks case, we're OK returning the default value, which is an array of length
