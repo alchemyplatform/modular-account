@@ -35,20 +35,28 @@ interface ISessionKeyPermissionsUpdates {
 
     /// @notice Sets the native token spend limit for a session key. This specifies how much of the native token
     /// the session key may use, optionally with a refresh interval that specifies how often the limit is reset.
+    /// If a refresh interval is already set and a new refresh interval is specified, then any existing interval
+    /// spend data will be cleared and a new interval will start.
     /// @param spendLimit The maximum amount of native token the session key may spend.
     /// @param refreshInterval The time interval over which the spend limit is enforced. If zero, there is no time
     /// interval by which the limit is refreshed.
     function setNativeTokenSpendLimit(uint256 spendLimit, uint48 refreshInterval) external;
 
-    /// @notice Sets the ERC-20 spend limit for a session key.
+    /// @notice Sets the ERC-20 spend limit for a session key. This specifies how much of the ERC-20 token the
+    /// session key may use, optionally with a refresh interval that specifies how often the limit is reset. If
+    /// a refresh interval is already set and a new refresh interval is specified, then any existing interval
+    /// spend data will be cleared and a new interval will start.
     /// @param token The ERC-20 token address.
     /// @param spendLimit The maximum amount of the ERC-20 token the session key may spend.
     /// @param refreshInterval The time interval over which the spend limit is enforced. If zero, the spend limit
     /// is never refreshed.
     function setERC20SpendLimit(address token, uint256 spendLimit, uint48 refreshInterval) external;
 
-    /// @notice Sets the gas spend limit for a session key. Note that the session key permissions enforcement will
-    /// usually overestimate the gas usage per user operation.
+    /// @notice Sets the gas spend limit for a session key. This specifies how much of the native token the
+    /// session key may spend on gas fees, optionally with a refresh interval that specifies how often the limit
+    /// is reset. If a refresh interval is already set and a new refresh interval is specified, then any existing
+    /// interval spend data will be cleared and a new interval will start. Note that the session key permissions
+    /// enforcement will usually overestimate the gas usage per user operation.
     /// @dev If the account is staked, a malicious session key user may abuse gas limits to cause reputation damage
     /// to the account. This is because when a gas limit is set, there are state updates during validation that can
     /// potentially cause future user ops in the same bundle to fail. Intelligent bundlers may re-simulate and
