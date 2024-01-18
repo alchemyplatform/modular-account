@@ -50,7 +50,8 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @dev A check to run during user op validation that checks the permissions of the session key used to
-    /// validate the user op.
+    /// validate the user op. Note that this function does not check ERC-20 spend limits, which are checked
+    /// during the execution phase.
     function _checkUserOpPermissions(UserOperation calldata userOp, Call[] memory calls, address sessionKey)
         internal
         returns (uint256)
