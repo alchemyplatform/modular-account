@@ -115,7 +115,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         factory.createAccount(0, owners1);
     }
 
-    function test_installPlugin() public {
+    function test_installPlugin_standard() public {
         vm.startPrank(owner2);
 
         bytes32 manifestHash = keccak256(abi.encode(sessionKeyPlugin.pluginManifest()));
@@ -136,7 +136,9 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
-            pluginInitData: abi.encode(sessionKeys),
+            pluginInitData: abi.encode(
+                sessionKeys, new bytes32[](sessionKeys.length), new bytes[][](sessionKeys.length)
+                ),
             dependencies: dependencies,
             injectedHooks: new IPluginManager.InjectedHook[](0)
         });
