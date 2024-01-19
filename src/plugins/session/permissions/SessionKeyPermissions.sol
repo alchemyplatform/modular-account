@@ -169,6 +169,11 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
             FunctionData storage functionData = _functionDataOf(msg.sender, keyId, target, selector);
             validationSuccess = !functionData.isOnList;
         }
+
+        // Check the selector in use if the target is a known ERC-20 contract with a spending limit.
+        if (contractData.isERC20WithSpendLimit && !isAllowedERC20Function(selector)) {
+            validationSuccess = false;
+        }
     }
 
     /// @dev Runs during execution to re-check and update the spend limits of the session key in use.
@@ -424,7 +429,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         // trailing zero bytes.
         bytes4 selector = bytes4(callData);
 
-        if (selector == IERC20.transfer.selector || selector == IERC20.approve.selector) {
+        if (isAllowedERC20Function(selector)) {
             // Expected length: 68 bytes (4 selector + 32 address + 32 amount)
             if (callData.length < 68) {
                 return 0;
@@ -608,5 +613,9 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
 
     function _max(uint48 a, uint48 b) internal pure returns (uint48) {
         return a > b ? a : b;
+    }
+
+    function isAllowedERC20Function(bytes4 selector) internal pure returns (bool) {
+        return selector == IERC20.transfer.selector || selector == IERC20.approve.selector;
     }
 }

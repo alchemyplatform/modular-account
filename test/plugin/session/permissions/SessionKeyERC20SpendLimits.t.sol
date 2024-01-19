@@ -186,6 +186,28 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
     }
 
+    function test_sessionKeyERC20SpendLimits_unknownSelectorFails() public {
+        // Give the account a starting balance
+        token1.mint(address(account1), 100 ether);
+
+        // Set the limit to 1 ether
+        bytes[] memory updates = new bytes[](1);
+        updates[0] =
+            abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 0 days));
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+
+        // Run a user op that tries to call name(), a non-allowed selector.
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({target: address(token1), data: abi.encodeCall(token1.name, ()), value: 0});
+
+        _runSessionKeyUserOp(
+            calls,
+            sessionKey1Private,
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+        );
+    }
+
     function test_sessionKeyERC20SpendLimits_enforceLimit_none_basic() public {
         // Give the account a starting balance
         token1.mint(address(account1), 100 ether);
