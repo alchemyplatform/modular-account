@@ -429,7 +429,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         // trailing zero bytes.
         bytes4 selector = bytes4(callData);
 
-        if (selector == IERC20.transfer.selector || selector == IERC20.approve.selector) {
+        if (isAllowedERC20Function(selector)) {
             // Expected length: 68 bytes (4 selector + 32 address + 32 amount)
             if (callData.length < 68) {
                 return 0;
