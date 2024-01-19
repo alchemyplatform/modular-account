@@ -11,12 +11,8 @@ import {IMultiOwnerPlugin} from "../../../../src/plugins/owner/IMultiOwnerPlugin
 import {MultiOwnerPlugin} from "../../../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {ISessionKeyPlugin} from "../../../../src/plugins/session/ISessionKeyPlugin.sol";
 import {SessionKeyPlugin} from "../../../../src/plugins/session/SessionKeyPlugin.sol";
-import {ISessionKeyPermissionsPlugin} from
-    "../../../../src/plugins/session/permissions/ISessionKeyPermissionsPlugin.sol";
 import {ISessionKeyPermissionsUpdates} from
     "../../../../src/plugins/session/permissions/ISessionKeyPermissionsUpdates.sol";
-import {SessionKeyPermissionsPlugin} from
-    "../../../../src/plugins/session/permissions/SessionKeyPermissionsPlugin.sol";
 import {IEntryPoint} from "../../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../../src/interfaces/erc4337/UserOperation.sol";
 import {IPluginManager} from "../../../../src/interfaces/IPluginManager.sol";
@@ -35,7 +31,6 @@ contract SessionKeyERC20SpendLimitsTest is Test {
     MultiOwnerPlugin public multiOwnerPlugin;
     MultiOwnerMSCAFactory public factory;
     SessionKeyPlugin sessionKeyPlugin;
-    SessionKeyPermissionsPlugin sessionKeyPermissionsPlugin;
 
     address owner1;
     uint256 owner1Key;
@@ -78,7 +73,6 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         vm.deal(address(account1), 100 ether);
 
         sessionKeyPlugin = new SessionKeyPlugin();
-        sessionKeyPermissionsPlugin = new SessionKeyPermissionsPlugin();
 
         bytes32 manifestHash = keccak256(abi.encode(sessionKeyPlugin.pluginManifest()));
         FunctionReference[] memory dependencies = new FunctionReference[](2);
@@ -97,40 +91,19 @@ contract SessionKeyERC20SpendLimitsTest is Test {
             injectedHooks: new IPluginManager.InjectedHook[](0)
         });
 
-        manifestHash = keccak256(abi.encode(sessionKeyPermissionsPlugin.pluginManifest()));
-        // Can reuse the same dependencies for this installation, because the requirements are the same.
-        vm.prank(owner1);
-        account1.installPlugin({
-            plugin: address(sessionKeyPermissionsPlugin),
-            manifestHash: manifestHash,
-            pluginInitData: "",
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
-        });
-
         // Create and add a session key
         (sessionKey1, sessionKey1Private) = makeAddrAndKey("sessionKey1");
 
-        address[] memory sessionKeysToAdd = new address[](1);
-        sessionKeysToAdd[0] = sessionKey1;
-
         vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
-
-        // Register the session key with the permissions plugin
-        vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).registerKey(sessionKey1, 0);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
 
         // Disable the allowlist
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType,
-            (ISessionKeyPermissionsPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
         );
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Create recipients' addresses to receive the tokens
         recipient1 = makeAddr("recipient1");
@@ -144,13 +117,13 @@ contract SessionKeyERC20SpendLimitsTest is Test {
 
     function test_sessionKeyERC20SpendLimits_validateSetUp() public {
         // Check that the session key is registered
-        assertTrue(SessionKeyPlugin(address(account1)).isSessionKey(sessionKey1));
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey1));
 
         // Check that the session key is registered with the permissions plugin and has its allowlist set up
         // correctly
         assertTrue(
-            sessionKeyPermissionsPlugin.getAccessControlType(address(account1), sessionKey1)
-                == ISessionKeyPermissionsPlugin.ContractAccessControlType.NONE
+            sessionKeyPlugin.getAccessControlType(address(account1), sessionKey1)
+                == ISessionKeyPlugin.ContractAccessControlType.NONE
         );
     }
 
@@ -167,8 +140,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         vm.warp(timestamp);
 
         // Assert that the limit starts out unset
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, token);
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, token);
 
         assertFalse(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 0);
@@ -180,10 +153,10 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (token, limit, refreshInterval));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Verify the limit can be retrieved
-        spendLimitInfo = sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, token);
+        spendLimitInfo = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, token);
 
         if (limit == type(uint256).max) {
             // If the limit is "set" to this value, it is just removed.
@@ -208,9 +181,9 @@ contract SessionKeyERC20SpendLimitsTest is Test {
     function test_sessionKeyERC20SpendLimits_tokenAddressZeroFails() public {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(0), 1000, 0));
-        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPermissionsPlugin.InvalidToken.selector));
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidToken.selector));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
     }
 
     function test_sessionKeyERC20SpendLimits_enforceLimit_none_basic() public {
@@ -222,7 +195,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 0 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 wei, should fail
         Call[] memory calls = new Call[](1);
@@ -252,7 +225,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 0 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // run a multi-execution user op that spends 0 wei, should succeed.
         Call[] memory calls = new Call[](3);
@@ -279,7 +252,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 wei, should succeed
         Call[] memory calls = new Call[](1);
@@ -290,8 +263,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
 
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 wei);
@@ -311,7 +284,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 wei, should succeed
         Call[] memory calls = new Call[](1);
@@ -322,8 +295,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
 
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 wei);
@@ -339,8 +312,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is not updated, and remains the same as before
-        spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        spendLimitInfo = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
 
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 wei);
@@ -358,7 +330,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 3 wei, should succeed
         Call[] memory calls = new Call[](3);
@@ -374,8 +346,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 3 wei);
         assertEq(spendLimitInfo.refreshInterval, 0);
@@ -396,7 +368,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 ether, should succeed
         Call[] memory calls = new Call[](1);
@@ -407,8 +379,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 ether);
         assertEq(spendLimitInfo.refreshInterval, 0);
@@ -425,7 +397,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 3 wei, should succeed
         Call[] memory calls = new Call[](3);
@@ -442,8 +414,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 6 wei);
         assertEq(spendLimitInfo.refreshInterval, 0);
@@ -460,7 +432,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 3 wei, should succeed
         Call[] memory calls = new Call[](3);
@@ -479,8 +451,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 3 wei);
         assertEq(spendLimitInfo.refreshInterval, 0);
@@ -500,7 +472,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[1] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token2), 1 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 3 wei, should succeed
         Call[] memory calls = new Call[](3);
@@ -519,10 +491,10 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo1 =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo2 =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token2));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo1 =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo2 =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token2));
         assertEq(spendLimitInfo1.limit, 1 ether);
         assertEq(spendLimitInfo1.limitUsed, 1 wei);
         assertEq(spendLimitInfo2.limit, 1 ether);
@@ -538,7 +510,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 wei, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that should fail due to exceeding limit
         Call[] memory calls = new Call[](2);
@@ -552,8 +524,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is NOT updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 wei);
         // limit used should be 0 as all action failed.
         assertEq(spendLimitInfo.limitUsed, 0 wei);
@@ -568,7 +540,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 wei, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that should fail due to exceeding limit
         Call[] memory calls = new Call[](3);
@@ -587,8 +559,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         vm.expectCall(address(token1), 0 wei, calls[2].data, 0);
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
         // Assert that the limit is NOT updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 wei);
         // limit used should be 0 as all action failed.
         assertEq(spendLimitInfo.limitUsed, 0 wei);
@@ -603,7 +575,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 wei, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that should fail due to exceeding limit
         Call[] memory calls = new Call[](3);
@@ -622,8 +594,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         vm.expectCall(address(token1), 0 wei, calls[1].data, 0);
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
         // Assert that the limit is NOT updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 wei);
         // limit used should be 0 as all action failed.
         assertEq(spendLimitInfo.limitUsed, 0 wei);
@@ -641,7 +613,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[1] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token2), 1 wei, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that should fail due to exceeding limit
         Call[] memory calls = new Call[](3);
@@ -660,10 +632,10 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is NOT updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo1 =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo2 =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token2));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo1 =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo2 =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token2));
         assertEq(spendLimitInfo1.limit, 1 wei);
         // limit used should be 0 as all action failed.
         assertEq(spendLimitInfo1.limitUsed, 0 wei);
@@ -685,7 +657,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 wei, should succeed
         Call[] memory calls = new Call[](1);
@@ -695,8 +667,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit and last used time is updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 wei);
         assertEq(spendLimitInfo.refreshInterval, 1 days);
@@ -709,8 +681,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit and last used time is NOT updated
-        spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        spendLimitInfo = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 wei);
         assertEq(spendLimitInfo.refreshInterval, 1 days);
@@ -726,8 +697,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is now updated and the last used timestamp is set.
-        spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        spendLimitInfo = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 ether);
         assertEq(spendLimitInfo.refreshInterval, 1 days);
@@ -747,7 +717,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 wei, should succeed
         Call[] memory calls = new Call[](2);
@@ -759,8 +729,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit and last used time is updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 2 wei);
         assertEq(spendLimitInfo.refreshInterval, 1 days);
@@ -773,8 +743,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit and last used time is NOT updated
-        spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        spendLimitInfo = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 2 wei);
         assertEq(spendLimitInfo.refreshInterval, 1 days);
@@ -798,8 +767,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is now updated and the last used timestamp is set.
-        spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        spendLimitInfo = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 ether);
         assertEq(spendLimitInfo.refreshInterval, 1 days);
@@ -819,7 +787,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 wei and approve 1 wei, should succeed
         Call[] memory calls = new Call[](2);
@@ -831,8 +799,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         vm.expectCall(address(token1), 0 wei, calls[1].data, 1);
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
         // Assert that the limit and last used time is updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 2 wei);
         assertEq(spendLimitInfo.refreshInterval, 1 days);
@@ -844,8 +812,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         vm.expectCall(address(token1), 0 wei, calls[0].data, 0);
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
         // Assert that the limit and last used time is NOT updated
-        spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        spendLimitInfo = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 2 wei);
         assertEq(spendLimitInfo.refreshInterval, 1 days);
@@ -869,8 +836,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         vm.expectCall(address(token1), 0 wei, calls[0].data, 2);
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
         // Assert that the limit is now updated and the last used timestamp is set.
-        spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        spendLimitInfo = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 ether);
         assertEq(spendLimitInfo.refreshInterval, 1 days);
@@ -890,7 +856,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends within limit, should succeed
         Call[] memory calls = new Call[](2);
@@ -902,8 +868,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         vm.expectCall(address(token1), 0 wei, calls[1].data, 1);
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
         // Assert that the limit and last used time is updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 3 wei);
         assertEq(spendLimitInfo.refreshInterval, 1 days);
@@ -915,8 +881,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         vm.expectCall(address(token1), 0 wei, calls[0].data, 0);
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
         // Assert that the limit and last used time is NOT updated
-        spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        spendLimitInfo = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 3 wei);
         assertEq(spendLimitInfo.refreshInterval, 1 days);
@@ -940,8 +905,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         vm.expectCall(address(token1), 0 wei, calls[1].data, 1);
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
         // Assert that the limit is now updated and the last used timestamp is set.
-        spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        spendLimitInfo = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 ether);
         assertEq(spendLimitInfo.refreshInterval, 1 days);
@@ -964,7 +928,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[1] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token2), 1 ether, 10 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends max limit in interval, should succeed
         Call[] memory calls = new Call[](2);
@@ -977,10 +941,10 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit and last used time is updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo1 =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo2 =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token2));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo1 =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo2 =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token2));
         assertEq(spendLimitInfo1.limit, 1 ether);
         assertEq(spendLimitInfo1.limitUsed, 1 ether);
         assertEq(spendLimitInfo2.limit, 1 ether);
@@ -1000,10 +964,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit and last used time is NOT updated
-        spendLimitInfo1 =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
-        spendLimitInfo2 =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token2));
+        spendLimitInfo1 = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        spendLimitInfo2 = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token2));
         assertEq(spendLimitInfo1.limit, 1 ether);
         assertEq(spendLimitInfo1.limitUsed, 1 ether);
         assertEq(spendLimitInfo1.lastUsedTime, time0);
@@ -1024,10 +986,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is now updated and the last used timestamp is set.
-        spendLimitInfo1 =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
-        spendLimitInfo2 =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token2));
+        spendLimitInfo1 = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        spendLimitInfo2 = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token2));
         assertEq(spendLimitInfo1.limit, 1 ether);
         assertEq(spendLimitInfo1.limitUsed, 1 ether);
         assertEq(spendLimitInfo1.lastUsedTime, time0 + 10 days);
@@ -1049,7 +1009,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         updates[0] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(token1), 1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 0.5 ether, should succeed
         Call[] memory calls = new Call[](1);
@@ -1062,8 +1022,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit and last used time is updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 0.5 ether);
         assertEq(spendLimitInfo.refreshInterval, 1 days);
@@ -1082,8 +1042,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that limits are not updated
-        spendLimitInfo =
-            sessionKeyPermissionsPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
+        spendLimitInfo = sessionKeyPlugin.getERC20SpendLimitInfo(address(account1), sessionKey1, address(token1));
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 0.5 ether);
         assertEq(spendLimitInfo.refreshInterval, 1 days);

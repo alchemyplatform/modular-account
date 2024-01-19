@@ -11,12 +11,8 @@ import {IMultiOwnerPlugin} from "../../../../src/plugins/owner/IMultiOwnerPlugin
 import {MultiOwnerPlugin} from "../../../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {ISessionKeyPlugin} from "../../../../src/plugins/session/ISessionKeyPlugin.sol";
 import {SessionKeyPlugin} from "../../../../src/plugins/session/SessionKeyPlugin.sol";
-import {ISessionKeyPermissionsPlugin} from
-    "../../../../src/plugins/session/permissions/ISessionKeyPermissionsPlugin.sol";
 import {ISessionKeyPermissionsUpdates} from
     "../../../../src/plugins/session/permissions/ISessionKeyPermissionsUpdates.sol";
-import {SessionKeyPermissionsPlugin} from
-    "../../../../src/plugins/session/permissions/SessionKeyPermissionsPlugin.sol";
 import {IEntryPoint} from "../../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../../src/interfaces/erc4337/UserOperation.sol";
 import {IPluginManager} from "../../../../src/interfaces/IPluginManager.sol";
@@ -34,7 +30,6 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
     MultiOwnerPlugin multiOwnerPlugin;
     MultiOwnerMSCAFactory factory;
     SessionKeyPlugin sessionKeyPlugin;
-    SessionKeyPermissionsPlugin sessionKeyPermissionsPlugin;
 
     address owner1;
     uint256 owner1Key;
@@ -69,7 +64,6 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         );
 
         sessionKeyPlugin = new SessionKeyPlugin();
-        sessionKeyPermissionsPlugin = new SessionKeyPermissionsPlugin();
 
         address[] memory owners1 = new address[](1);
         owners1[0] = owner1;
@@ -93,40 +87,19 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
             injectedHooks: new IPluginManager.InjectedHook[](0)
         });
 
-        manifestHash = keccak256(abi.encode(sessionKeyPermissionsPlugin.pluginManifest()));
-        // Can reuse the same dependencies for this installation, because the requirements are the same.
-        vm.prank(owner1);
-        account1.installPlugin({
-            plugin: address(sessionKeyPermissionsPlugin),
-            manifestHash: manifestHash,
-            pluginInitData: "",
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
-        });
-
         // Create and add a session key
         (sessionKey1, sessionKey1Private) = makeAddrAndKey("sessionKey1");
 
-        address[] memory sessionKeysToAdd = new address[](1);
-        sessionKeysToAdd[0] = sessionKey1;
-
         vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
-
-        // Register the session key with the permissions plugin
-        vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).registerKey(sessionKey1, 0);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
 
         // Remove the allowlist
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType,
-            (ISessionKeyPermissionsPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
         );
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Create recipient addresses to receive ether
         recipient1 = makeAddr("recipient1");
@@ -136,13 +109,13 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
 
     function test_sessionKeyNativeTokenSpendLimits_validateSetUp() public {
         // Check that the session key is registered
-        assertTrue(SessionKeyPlugin(address(account1)).isSessionKey(sessionKey1));
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey1));
 
         // Check that the session key is registered with the permissions plugin and has its allowlist set up
         // correctly
         assertTrue(
-            sessionKeyPermissionsPlugin.getAccessControlType(address(account1), sessionKey1)
-                == ISessionKeyPermissionsPlugin.ContractAccessControlType.NONE
+            sessionKeyPlugin.getAccessControlType(address(account1), sessionKey1)
+                == ISessionKeyPlugin.ContractAccessControlType.NONE
         );
     }
 
@@ -152,8 +125,8 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         vm.warp(timestamp);
 
         // Assert that the limit starts out set, and at zero
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 0);
@@ -164,10 +137,10 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (limit, interval));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Verify the limit can be retrieved
-        spendLimitInfo = sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        spendLimitInfo = sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         if (limit == type(uint256).max) {
             // If the limit is "set" to this value, it is just removed.
@@ -220,7 +193,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 0));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 wei, should succeed
         Call[] memory calls = new Call[](1);
@@ -229,8 +202,8 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is now updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 wei);
@@ -254,7 +227,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 0));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 wei, should succeed
         Call[] memory calls = new Call[](1);
@@ -282,7 +255,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 0));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Attempt to run a user op that spends > type(uint256).max (causing an overflow). Should fail.
         Call[] memory calls = new Call[](2);
@@ -300,7 +273,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 0));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 wei, should succeed
         Call[] memory calls = new Call[](1);
@@ -318,8 +291,8 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         );
 
         // Assert that the limit is NOT updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
@@ -335,7 +308,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 0));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a multi execution user op spending 3 wei, should succeed
         Call[] memory calls = new Call[](3);
@@ -346,8 +319,8 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is now updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 3 wei);
@@ -361,7 +334,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 0));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Attempt to run a multi execution user op spending 1.5 ether, should fail
         Call[] memory calls = new Call[](3);
@@ -376,8 +349,8 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         );
 
         // Assert that the limit is NOT updated
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
@@ -396,7 +369,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 wei, should succeed
         Call[] memory calls = new Call[](1);
@@ -405,8 +378,8 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is now updated and the last used timestamp is set.
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 wei);
@@ -424,7 +397,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         );
 
         // Assert that the limit is NOT updated
-        spendLimitInfo = sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        spendLimitInfo = sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
@@ -441,7 +414,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is now updated and the last used timestamp is set.
-        spendLimitInfo = sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        spendLimitInfo = sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 ether);
@@ -458,7 +431,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 wei, should succeed
         Call[] memory calls = new Call[](1);
@@ -467,8 +440,8 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is now updated and the last used timestamp is set.
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 wei);
@@ -488,7 +461,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         );
 
         // Assert that the limit is NOT updated
-        spendLimitInfo = sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        spendLimitInfo = sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
@@ -503,7 +476,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is now updated and the last used timestamp is set.
-        spendLimitInfo = sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        spendLimitInfo = sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 ether);
@@ -523,7 +496,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 wei, should succeed
         Call[] memory calls = new Call[](1);
@@ -532,8 +505,8 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is now updated and the last used timestamp is set.
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 wei);
@@ -575,7 +548,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes[] memory updates2 = new bytes[](1);
         updates2[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.updateTimeRange, (uint48(keyStartTime), 0));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates2);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates2);
 
         // Assert that the later start time is returned (key time range)
         vm.prank(address(entryPoint));
@@ -590,7 +563,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
 
         updates2[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.updateTimeRange, (uint48(keyStartTime), 0));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates2);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates2);
 
         // Assert that the later start time is returned (spend limit)
         vm.prank(address(entryPoint));
@@ -611,7 +584,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Prepare a user op bundle that attempts to spend 1 ether twice.
         // The second call should revert because the first call will have updated the limit.
@@ -671,8 +644,8 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         assertEq(recipient1.balance, 1 ether);
 
         // Assert that the spend limit is maxed out now.
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 1 ether);
@@ -689,7 +662,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Run a user op that spends 1 wei, should succeed
         Call[] memory calls = new Call[](1);
@@ -698,8 +671,8 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(calls, sessionKey1Private, "");
 
         // Assert that the limit is now updated and the last used timestamp is set.
-        ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo =
-            sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo =
+            sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
@@ -718,7 +691,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         );
 
         // Assert that limits are NOT updated
-        spendLimitInfo = sessionKeyPermissionsPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
+        spendLimitInfo = sessionKeyPlugin.getNativeTokenSpendLimitInfo(address(account1), sessionKey1);
 
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);

@@ -11,12 +11,8 @@ import {IMultiOwnerPlugin} from "../../../../src/plugins/owner/IMultiOwnerPlugin
 import {MultiOwnerPlugin} from "../../../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {ISessionKeyPlugin} from "../../../../src/plugins/session/ISessionKeyPlugin.sol";
 import {SessionKeyPlugin} from "../../../../src/plugins/session/SessionKeyPlugin.sol";
-import {ISessionKeyPermissionsPlugin} from
-    "../../../../src/plugins/session/permissions/ISessionKeyPermissionsPlugin.sol";
 import {ISessionKeyPermissionsUpdates} from
     "../../../../src/plugins/session/permissions/ISessionKeyPermissionsUpdates.sol";
-import {SessionKeyPermissionsPlugin} from
-    "../../../../src/plugins/session/permissions/SessionKeyPermissionsPlugin.sol";
 import {IEntryPoint} from "../../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../../src/interfaces/erc4337/UserOperation.sol";
 import {IPluginManager} from "../../../../src/interfaces/IPluginManager.sol";
@@ -34,7 +30,6 @@ contract SessionKeyGasLimitsTest is Test {
     MultiOwnerPlugin public multiOwnerPlugin;
     MultiOwnerMSCAFactory public factory;
     SessionKeyPlugin sessionKeyPlugin;
-    SessionKeyPermissionsPlugin sessionKeyPermissionsPlugin;
 
     address owner1;
     uint256 owner1Key;
@@ -69,7 +64,6 @@ contract SessionKeyGasLimitsTest is Test {
         vm.deal(address(account1), 100 ether);
 
         sessionKeyPlugin = new SessionKeyPlugin();
-        sessionKeyPermissionsPlugin = new SessionKeyPermissionsPlugin();
 
         bytes32 manifestHash = keccak256(abi.encode(sessionKeyPlugin.pluginManifest()));
         FunctionReference[] memory dependencies = new FunctionReference[](2);
@@ -88,47 +82,26 @@ contract SessionKeyGasLimitsTest is Test {
             injectedHooks: new IPluginManager.InjectedHook[](0)
         });
 
-        manifestHash = keccak256(abi.encode(sessionKeyPermissionsPlugin.pluginManifest()));
-        // Can reuse the same dependencies for this installation, because the requirements are the same.
-        vm.prank(owner1);
-        account1.installPlugin({
-            plugin: address(sessionKeyPermissionsPlugin),
-            manifestHash: manifestHash,
-            pluginInitData: "",
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
-        });
-
         // Create and add a session key
         (sessionKey1, sessionKey1Private) = makeAddrAndKey("sessionKey1");
 
-        address[] memory sessionKeysToAdd = new address[](1);
-        sessionKeysToAdd[0] = sessionKey1;
-
         vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
-
-        // Register the session key with the permissions plugin
-        vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).registerKey(sessionKey1, 0);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
 
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType,
-            (ISessionKeyPermissionsPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
         );
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
     }
 
     function testFuzz_sessionKeyGasLimits_setLimits(uint256 limit, uint48 interval, uint48 timestamp) public {
         vm.warp(timestamp);
 
         // Assert that the limit starts out unset
-        (ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo,) =
-            sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo,) =
+            sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
 
         assertFalse(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 0);
@@ -139,10 +112,10 @@ contract SessionKeyGasLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (limit, interval));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Verify that the limit is set
-        (spendLimitInfo,) = sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (spendLimitInfo,) = sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
 
         if (limit == type(uint256).max) {
             // If the limit is "set" to this value, it is just removed.
@@ -169,7 +142,7 @@ contract SessionKeyGasLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (0 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // A user op spending any gas should be rejected at this stage
         _runSessionKeyUserOp(
@@ -197,14 +170,14 @@ contract SessionKeyGasLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (1 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // A basic user op using 0.6 ether in gas should succeed
         _runSessionKeyUserOp(100_000, 500_000, 1_000 gwei, 0.6 ether, sessionKey1Private, "");
 
         // This usage update should be reflected in the limits
-        (ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo,) =
-            sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo,) =
+            sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 0.6 ether);
@@ -228,7 +201,7 @@ contract SessionKeyGasLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (1 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         UserOperation[] memory userOps = new UserOperation[](2);
         userOps[0] = _generateAndSignUserOp(
@@ -243,7 +216,7 @@ contract SessionKeyGasLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (1 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // A basic user op using 1.2 ether in gas should fail
         _runSessionKeyUserOp(
@@ -260,7 +233,7 @@ contract SessionKeyGasLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (1 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Construct two user ops that, when bundled together, spend 0.8 ether
         UserOperation[] memory userOps = new UserOperation[](2);
@@ -275,8 +248,8 @@ contract SessionKeyGasLimitsTest is Test {
         entryPoint.handleOps(userOps, beneficiary);
 
         // This usage update should be reflected in the limits
-        (ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo,) =
-            sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo,) =
+            sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 0.8 ether);
@@ -288,7 +261,7 @@ contract SessionKeyGasLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (1 ether, 0 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Construct two user ops that, when bundled together, spend 1.6 ether
         UserOperation[] memory userOps = new UserOperation[](2);
@@ -305,8 +278,8 @@ contract SessionKeyGasLimitsTest is Test {
         entryPoint.handleOps(userOps, beneficiary);
 
         // The lack of usage update should be reflected in the limits
-        (ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo,) =
-            sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo,) =
+            sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 0 ether);
@@ -322,14 +295,14 @@ contract SessionKeyGasLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // A basic user op using 0.6 ether in gas should succeed
         _runSessionKeyUserOp(100_000, 500_000, 1_000 gwei, 0.6 ether, sessionKey1Private, "");
 
         // This usage update should be reflected in the limits
-        (ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo,) =
-            sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo,) =
+            sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 0.6 ether);
@@ -362,14 +335,14 @@ contract SessionKeyGasLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // A basic user op using 0.6 ether in gas should succeed
         _runSessionKeyUserOp(100_000, 500_000, 1_000 gwei, 0.6 ether, sessionKey1Private, "");
 
         // This usage update should be reflected in the limits
-        (ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo,) =
-            sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo,) =
+            sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 0.6 ether);
@@ -393,7 +366,7 @@ contract SessionKeyGasLimitsTest is Test {
         _runSessionKeyUserOp(100_000, 500_000, 1_000 gwei, 0.6 ether, sessionKey1Private, "");
 
         // This usage update should be reflected in the limits
-        (spendLimitInfo,) = sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (spendLimitInfo,) = sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
 
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
@@ -412,7 +385,7 @@ contract SessionKeyGasLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Use up 0.6 ether
         _runSessionKeyUserOp(100_000, 500_000, 1_000 gwei, 0.6 ether, sessionKey1Private, "");
@@ -432,8 +405,8 @@ contract SessionKeyGasLimitsTest is Test {
         entryPoint.handleOps(userOps, beneficiary);
 
         // Usage should still be at 0.6
-        (ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo,) =
-            sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo,) =
+            sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 0.6 ether);
@@ -448,7 +421,7 @@ contract SessionKeyGasLimitsTest is Test {
         // Usage should now be at 0.4 (odd case, since the first one fits in the old interval, but the second one
         // doesn't.
 
-        (spendLimitInfo,) = sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (spendLimitInfo,) = sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 0.4 ether);
@@ -466,7 +439,7 @@ contract SessionKeyGasLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Use up 0.8 ether
         _runSessionKeyUserOp(100_000, 700_000, 1_000 gwei, 0.8 ether, sessionKey1Private, "");
@@ -489,8 +462,8 @@ contract SessionKeyGasLimitsTest is Test {
         entryPoint.handleOps(userOps, beneficiary);
 
         // Usage should still be at 0.8
-        (ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo,) =
-            sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo,) =
+            sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
         assertTrue(spendLimitInfo.hasLimit);
         assertEq(spendLimitInfo.limit, 1 ether);
         assertEq(spendLimitInfo.limitUsed, 0.8 ether);
@@ -516,7 +489,7 @@ contract SessionKeyGasLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Use up 0.6 ether
         _runSessionKeyUserOp(100_000, 500_000, 1_000 gwei, 0.6 ether, sessionKey1Private, "");
@@ -534,7 +507,7 @@ contract SessionKeyGasLimitsTest is Test {
         skip(1 days + 1 minutes);
         entryPoint.handleOps(userOps, beneficiary);
 
-        (, bool shouldReset) = sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (, bool shouldReset) = sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
 
         assertTrue(shouldReset, "Session key should report that it needs to be reset");
     }
@@ -550,8 +523,8 @@ contract SessionKeyGasLimitsTest is Test {
         _runSessionKeyUserOp(100_000, 300_000, 1_000 gwei, 0.4 ether, sessionKey1Private, "");
 
         // The reset flag should now be false
-        (ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo, bool shouldReset) =
-            sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo, bool shouldReset) =
+            sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
 
         assertFalse(shouldReset, "Session key should report that it does not need to be reset");
         assertEq(spendLimitInfo.limitUsed, 1 ether);
@@ -566,11 +539,11 @@ contract SessionKeyGasLimitsTest is Test {
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setGasSpendLimit, (1 ether, 1 days));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // The reset flag should now be false
-        (ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo, bool shouldReset) =
-            sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo, bool shouldReset) =
+            sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
 
         assertFalse(shouldReset, "Session key should report that it does not need to be reset");
         assertEq(spendLimitInfo.limitUsed, 0.6 ether);
@@ -582,11 +555,11 @@ contract SessionKeyGasLimitsTest is Test {
         test_sessionKeyGasLimits_refreshInterval_resetFlagTracking();
 
         // Now, attempt to fix it by calling the public reset function
-        sessionKeyPermissionsPlugin.resetSessionKeyGasLimitTimestamp(address(account1), sessionKey1);
+        sessionKeyPlugin.resetSessionKeyGasLimitTimestamp(address(account1), sessionKey1);
 
         // The reset flag should now be false
-        (ISessionKeyPermissionsPlugin.SpendLimitInfo memory spendLimitInfo, bool shouldReset) =
-            sessionKeyPermissionsPlugin.getGasSpendLimit(address(account1), sessionKey1);
+        (ISessionKeyPlugin.SpendLimitInfo memory spendLimitInfo, bool shouldReset) =
+            sessionKeyPlugin.getGasSpendLimit(address(account1), sessionKey1);
 
         assertFalse(shouldReset, "Session key should report that it does not need to be reset");
         assertEq(spendLimitInfo.limitUsed, 0.6 ether);

@@ -11,12 +11,8 @@ import {IMultiOwnerPlugin} from "../../../../src/plugins/owner/IMultiOwnerPlugin
 import {MultiOwnerPlugin} from "../../../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {ISessionKeyPlugin} from "../../../../src/plugins/session/ISessionKeyPlugin.sol";
 import {SessionKeyPlugin} from "../../../../src/plugins/session/SessionKeyPlugin.sol";
-import {ISessionKeyPermissionsPlugin} from
-    "../../../../src/plugins/session/permissions/ISessionKeyPermissionsPlugin.sol";
 import {ISessionKeyPermissionsUpdates} from
     "../../../../src/plugins/session/permissions/ISessionKeyPermissionsUpdates.sol";
-import {SessionKeyPermissionsPlugin} from
-    "../../../../src/plugins/session/permissions/SessionKeyPermissionsPlugin.sol";
 import {IEntryPoint} from "../../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../../src/interfaces/erc4337/UserOperation.sol";
 import {IPluginManager} from "../../../../src/interfaces/IPluginManager.sol";
@@ -26,7 +22,7 @@ import {Call} from "../../../../src/interfaces/IStandardExecutor.sol";
 import {Counter} from "../../../mocks/Counter.sol";
 import {MultiOwnerMSCAFactory} from "../../../../src/factory/MultiOwnerMSCAFactory.sol";
 
-contract SessionKeyPermissionsPluginTest is Test {
+contract SessionKeyPermissionsTest is Test {
     using ECDSA for bytes32;
 
     IEntryPoint entryPoint;
@@ -34,7 +30,7 @@ contract SessionKeyPermissionsPluginTest is Test {
     MultiOwnerPlugin multiOwnerPlugin;
     MultiOwnerMSCAFactory factory;
     SessionKeyPlugin sessionKeyPlugin;
-    SessionKeyPermissionsPlugin sessionKeyPermissionsPlugin;
+    FunctionReference[] dependencies;
 
     address owner1;
     uint256 owner1Key;
@@ -73,7 +69,6 @@ contract SessionKeyPermissionsPluginTest is Test {
         );
 
         sessionKeyPlugin = new SessionKeyPlugin();
-        sessionKeyPermissionsPlugin = new SessionKeyPermissionsPlugin();
 
         address[] memory owners1 = new address[](1);
         owners1[0] = owner1;
@@ -81,12 +76,15 @@ contract SessionKeyPermissionsPluginTest is Test {
         vm.deal(address(account1), 100 ether);
 
         bytes32 manifestHash = keccak256(abi.encode(sessionKeyPlugin.pluginManifest()));
-        FunctionReference[] memory dependencies = new FunctionReference[](2);
-        dependencies[0] = FunctionReferenceLib.pack(
-            address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.USER_OP_VALIDATION_OWNER)
+        dependencies.push(
+            FunctionReferenceLib.pack(
+                address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.USER_OP_VALIDATION_OWNER)
+            )
         );
-        dependencies[1] = FunctionReferenceLib.pack(
-            address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.RUNTIME_VALIDATION_OWNER_OR_SELF)
+        dependencies.push(
+            FunctionReferenceLib.pack(
+                address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.RUNTIME_VALIDATION_OWNER_OR_SELF)
+            )
         );
         vm.prank(owner1);
         account1.installPlugin({
@@ -97,34 +95,13 @@ contract SessionKeyPermissionsPluginTest is Test {
             injectedHooks: new IPluginManager.InjectedHook[](0)
         });
 
-        manifestHash = keccak256(abi.encode(sessionKeyPermissionsPlugin.pluginManifest()));
-        // Can reuse the same dependencies for this installation, because the requirements are the same.
-        vm.prank(owner1);
-        account1.installPlugin({
-            plugin: address(sessionKeyPermissionsPlugin),
-            manifestHash: manifestHash,
-            pluginInitData: "",
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
-        });
-
         // Create and add a session key
         (sessionKey1, sessionKey1Private) = makeAddrAndKey("sessionKey1");
 
-        address[] memory sessionKeysToAdd = new address[](1);
-        sessionKeysToAdd[0] = sessionKey1;
-
         vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
-
-        // Register the session key with the permissions plugin
-        vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).registerKey(sessionKey1, 0);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
 
         // Initialize the interaction targets
-
         counter1 = new Counter();
         counter1.increment();
 
@@ -134,17 +111,9 @@ contract SessionKeyPermissionsPluginTest is Test {
 
     function test_sessionPerms_validateSetUp() public {
         assertEq(
-            uint8(sessionKeyPermissionsPlugin.getAccessControlType(address(account1), sessionKey1)),
-            uint8(ISessionKeyPermissionsPlugin.ContractAccessControlType.ALLOWLIST)
+            uint8(sessionKeyPlugin.getAccessControlType(address(account1), sessionKey1)),
+            uint8(ISessionKeyPlugin.ContractAccessControlType.ALLOWLIST)
         );
-    }
-
-    function test_sessionPerms_duplicateRegister() public {
-        vm.prank(owner1);
-        vm.expectRevert(
-            abi.encodeWithSelector(ISessionKeyPermissionsPlugin.KeyAlreadyRegistered.selector, sessionKey1)
-        );
-        SessionKeyPermissionsPlugin(address(account1)).registerKey(sessionKey1, 0);
     }
 
     function test_sessionPerms_contractDefaultAllowList() public {
@@ -163,11 +132,10 @@ contract SessionKeyPermissionsPluginTest is Test {
         // Remove the allowlist
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType,
-            (ISessionKeyPermissionsPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
         );
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Call should succeed after removing the allowlist
         _runSessionKeyExecUserOp(
@@ -180,7 +148,7 @@ contract SessionKeyPermissionsPluginTest is Test {
     function test_sessionPerms_contractAllowList() public {
         // Assert the contracts to be added are not already on the allowlist
         (bool isOnList, bool checkSelectors) =
-            sessionKeyPermissionsPlugin.getAccessControlEntry(address(account1), sessionKey1, address(counter1));
+            sessionKeyPlugin.getAccessControlEntry(address(account1), sessionKey1, address(counter1));
 
         assertFalse(isOnList, "Address should not start on the list");
         assertFalse(checkSelectors, "Address should not start with selectors checked");
@@ -191,11 +159,11 @@ contract SessionKeyPermissionsPluginTest is Test {
             ISessionKeyPermissionsUpdates.updateAccessListAddressEntry, (address(counter1), true, false)
         );
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Plugin should report the entry as on the list
         (isOnList, checkSelectors) =
-            sessionKeyPermissionsPlugin.getAccessControlEntry(address(account1), sessionKey1, address(counter1));
+            sessionKeyPlugin.getAccessControlEntry(address(account1), sessionKey1, address(counter1));
         assertTrue(isOnList);
         assertFalse(checkSelectors);
 
@@ -223,14 +191,13 @@ contract SessionKeyPermissionsPluginTest is Test {
         // Add the denylist
         bytes[] memory updates = new bytes[](2);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType,
-            (ISessionKeyPermissionsPlugin.ContractAccessControlType.DENYLIST)
+            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.DENYLIST)
         );
         updates[1] = abi.encodeCall(
             ISessionKeyPermissionsUpdates.updateAccessListAddressEntry, (address(counter1), true, false)
         );
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Check that the call should fail after adding the denylist
         _runSessionKeyExecUserOp(
@@ -255,10 +222,10 @@ contract SessionKeyPermissionsPluginTest is Test {
     function test_sessionPerms_selectorAllowList() public {
         // Validate that the address and the selector do not start out enabled.
         (bool addressOnList, bool checkSelectors) =
-            sessionKeyPermissionsPlugin.getAccessControlEntry(address(account1), sessionKey1, address(counter1));
+            sessionKeyPlugin.getAccessControlEntry(address(account1), sessionKey1, address(counter1));
         assertFalse(addressOnList);
         assertFalse(checkSelectors);
-        bool selectorOnList = sessionKeyPermissionsPlugin.isSelectorOnAccessControlList(
+        bool selectorOnList = sessionKeyPlugin.isSelectorOnAccessControlList(
             address(account1), sessionKey1, address(counter1), Counter.increment.selector
         );
         assertFalse(selectorOnList);
@@ -274,14 +241,14 @@ contract SessionKeyPermissionsPluginTest is Test {
         );
 
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Validate that the address and the selector are now enabled
         (addressOnList, checkSelectors) =
-            sessionKeyPermissionsPlugin.getAccessControlEntry(address(account1), sessionKey1, address(counter1));
+            sessionKeyPlugin.getAccessControlEntry(address(account1), sessionKey1, address(counter1));
         assertTrue(addressOnList);
         assertTrue(checkSelectors);
-        selectorOnList = sessionKeyPermissionsPlugin.isSelectorOnAccessControlList(
+        selectorOnList = sessionKeyPlugin.isSelectorOnAccessControlList(
             address(account1), sessionKey1, address(counter1), Counter.increment.selector
         );
         assertTrue(selectorOnList);
@@ -310,8 +277,7 @@ contract SessionKeyPermissionsPluginTest is Test {
         // Add the denylist
         bytes[] memory updates = new bytes[](3);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType,
-            (ISessionKeyPermissionsPlugin.ContractAccessControlType.DENYLIST)
+            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.DENYLIST)
         );
         updates[1] = abi.encodeCall(
             ISessionKeyPermissionsUpdates.updateAccessListAddressEntry, (address(counter1), true, true)
@@ -322,7 +288,7 @@ contract SessionKeyPermissionsPluginTest is Test {
         );
 
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Call should fail after adding the denylist
         _runSessionKeyExecUserOp(
@@ -349,7 +315,7 @@ contract SessionKeyPermissionsPluginTest is Test {
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.updateTimeRange, (startTime, endTime));
 
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         Call[] memory calls = new Call[](1);
         calls[0] = Call({target: address(0), value: 0, data: ""});
@@ -387,11 +353,10 @@ contract SessionKeyPermissionsPluginTest is Test {
         // Remove the default allowlist
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType,
-            (ISessionKeyPermissionsPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
         );
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         (address sessionKey2, uint256 sessionKey2Private) = makeAddrAndKey("sessionKey2");
 
@@ -399,23 +364,20 @@ contract SessionKeyPermissionsPluginTest is Test {
         address[] memory keysToAdd = new address[](1);
         keysToAdd[0] = sessionKey2;
 
-        vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            keysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
+        vm.startPrank(owner1);
+        SessionKeyPlugin(address(account1)).rotateSessionKey(
+            sessionKey1, sessionKeyPlugin.findPredecessor(address(account1), sessionKey1), sessionKey2
         );
+        vm.stopPrank();
 
-        vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).rotateKey(sessionKey1, sessionKey2);
-
-        // Attempting to use the previous key should fail
+        // Attempting to use the previous key should fail during the signature check
         _runSessionKeyExecUserOp(
             address(counter1),
             sessionKey1,
             sessionKey1Private,
             abi.encodeCall(Counter.increment, ()),
             0 wei,
-            // Entrypoint wont recognize and bubble up KeyNotRegistered custom error in ver0.6.0
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
         );
 
         // Attempting to use the new key should succeed
@@ -433,49 +395,23 @@ contract SessionKeyPermissionsPluginTest is Test {
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.updateTimeRange, (startTime, endTime));
 
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Rotate the key
         address sessionKey2 = makeAddr("sessionKey2");
 
-        vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).rotateKey(sessionKey1, sessionKey2);
+        vm.startPrank(owner1);
+        SessionKeyPlugin(address(account1)).rotateSessionKey(
+            sessionKey1, sessionKeyPlugin.findPredecessor(address(account1), sessionKey1), sessionKey2
+        );
+        vm.stopPrank();
 
         // Check the rotated key's time range
         (uint48 returnedStartTime, uint48 returnedEndTime) =
-            sessionKeyPermissionsPlugin.getKeyTimeRange(address(account1), sessionKey2);
+            sessionKeyPlugin.getKeyTimeRange(address(account1), sessionKey2);
 
         assertEq(returnedStartTime, startTime);
         assertEq(returnedEndTime, endTime);
-    }
-
-    function test_rotateKey_invalid_alreadyRegistered() public {
-        // Attempt to rotate the key to itself
-        vm.expectRevert(
-            abi.encodeWithSelector(ISessionKeyPermissionsPlugin.KeyAlreadyRegistered.selector, sessionKey1)
-        );
-        vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).rotateKey(sessionKey1, sessionKey1);
-
-        // Add a second session key
-        address sessionKey2 = makeAddr("sessionKey2");
-        address[] memory keysToAdd = new address[](1);
-        keysToAdd[0] = sessionKey2;
-        vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            keysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
-
-        // Register the second session key
-        vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).registerKey(sessionKey2, 0);
-
-        // Attempt to rotate the key to the second session key
-        vm.expectRevert(
-            abi.encodeWithSelector(ISessionKeyPermissionsPlugin.KeyAlreadyRegistered.selector, sessionKey2)
-        );
-        vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).rotateKey(sessionKey1, sessionKey2);
     }
 
     function testFuzz_sessionKeyPermissions_setRequiredPaymaster(address requiredPaymaster) public {
@@ -483,21 +419,19 @@ contract SessionKeyPermissionsPluginTest is Test {
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setRequiredPaymaster, (requiredPaymaster));
 
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Check the required paymaster
-        address returnedRequiredPaymaster =
-            sessionKeyPermissionsPlugin.getRequiredPaymaster(address(account1), sessionKey1);
+        address returnedRequiredPaymaster = sessionKeyPlugin.getRequiredPaymaster(address(account1), sessionKey1);
         assertEq(returnedRequiredPaymaster, requiredPaymaster);
 
         // Set the required paymaster to zero
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setRequiredPaymaster, (address(0)));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // Check the required paymaster
-        returnedRequiredPaymaster =
-            sessionKeyPermissionsPlugin.getRequiredPaymaster(address(account1), sessionKey1);
+        returnedRequiredPaymaster = sessionKeyPlugin.getRequiredPaymaster(address(account1), sessionKey1);
         assertEq(returnedRequiredPaymaster, address(0));
     }
 
@@ -508,13 +442,12 @@ contract SessionKeyPermissionsPluginTest is Test {
         // Disable the allowlist and disable native token spend checking.
         bytes[] memory updates = new bytes[](2);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType,
-            (ISessionKeyPermissionsPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
         );
         updates[1] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (type(uint256).max, 0));
 
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         vm.assume(providedPaymaster != address(0));
 
@@ -550,7 +483,7 @@ contract SessionKeyPermissionsPluginTest is Test {
         bytes[] memory updates2 = new bytes[](1);
         updates2[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setRequiredPaymaster, (requiredPaymaster));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates2);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates2);
 
         vm.prank(address(entryPoint));
         validationData = account1.validateUserOp(userOp, userOpHash, 0);
@@ -568,18 +501,17 @@ contract SessionKeyPermissionsPluginTest is Test {
         // Disable the allowlist
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType,
-            (ISessionKeyPermissionsPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
         );
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         // create a paymaster address that would match, if right-padded with zeroes
         address paymasterAddr = 0x1234123412341234000000000000000000000000;
         // Add it
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setRequiredPaymaster, (paymasterAddr));
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         Call[] memory calls = new Call[](1);
         calls[0] = Call({target: recipient, value: 1 wei, data: ""});
@@ -613,65 +545,99 @@ contract SessionKeyPermissionsPluginTest is Test {
         vm.startPrank(owner1);
         bytes[] memory updates = new bytes[](1);
         updates[0] = hex"112233"; // < 4 byte update
-        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPermissionsPlugin.InvalidPermissionsUpdate.selector));
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidPermissionsUpdate.selector));
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         updates[0] = hex"11223344"; // Invalid selector
-        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPermissionsPlugin.InvalidPermissionsUpdate.selector));
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidPermissionsUpdate.selector));
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
     }
 
     function test_sessionKeyPerms_independentKeyStorage() public {
         address sessionKey2 = makeAddr("sessionKey2");
 
-        address[] memory sessionKeysToAdd = new address[](1);
-        sessionKeysToAdd[0] = sessionKey2;
-
         vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
-        vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).registerKey(sessionKey2, 0);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey2, bytes32(0));
 
-        ISessionKeyPermissionsPlugin.ContractAccessControlType accessControlType1;
-        ISessionKeyPermissionsPlugin.ContractAccessControlType accessControlType2;
+        ISessionKeyPlugin.ContractAccessControlType accessControlType1;
+        ISessionKeyPlugin.ContractAccessControlType accessControlType2;
 
-        accessControlType1 = sessionKeyPermissionsPlugin.getAccessControlType(address(account1), sessionKey1);
-        accessControlType2 = sessionKeyPermissionsPlugin.getAccessControlType(address(account1), sessionKey2);
+        accessControlType1 = sessionKeyPlugin.getAccessControlType(address(account1), sessionKey1);
+        accessControlType2 = sessionKeyPlugin.getAccessControlType(address(account1), sessionKey2);
 
         assertEq(
             uint8(accessControlType1),
-            uint8(ISessionKeyPermissionsPlugin.ContractAccessControlType.ALLOWLIST),
+            uint8(ISessionKeyPlugin.ContractAccessControlType.ALLOWLIST),
             "sessionKey1 should start with an allowlist"
         );
         assertEq(
             uint8(accessControlType2),
-            uint8(ISessionKeyPermissionsPlugin.ContractAccessControlType.ALLOWLIST),
+            uint8(ISessionKeyPlugin.ContractAccessControlType.ALLOWLIST),
             "sessionKey2 should start with an allowlist"
         );
 
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType,
-            (ISessionKeyPermissionsPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
         );
         vm.prank(owner1);
-        SessionKeyPermissionsPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
-        accessControlType1 = sessionKeyPermissionsPlugin.getAccessControlType(address(account1), sessionKey1);
-        accessControlType2 = sessionKeyPermissionsPlugin.getAccessControlType(address(account1), sessionKey2);
+        accessControlType1 = sessionKeyPlugin.getAccessControlType(address(account1), sessionKey1);
+        accessControlType2 = sessionKeyPlugin.getAccessControlType(address(account1), sessionKey2);
 
         assertEq(
             uint8(accessControlType1),
-            uint8(ISessionKeyPermissionsPlugin.ContractAccessControlType.NONE),
+            uint8(ISessionKeyPlugin.ContractAccessControlType.NONE),
             "sessionKey1 should now have no allowlist"
         );
         assertEq(
             uint8(accessControlType2),
-            uint8(ISessionKeyPermissionsPlugin.ContractAccessControlType.ALLOWLIST),
+            uint8(ISessionKeyPlugin.ContractAccessControlType.ALLOWLIST),
             "sessionKey2 should still have an allowlist"
         );
+    }
+
+    function test_sessionKeyPerms_reinstallResets() public {
+        // Tests that reinstalling the plugin resets the permissions.
+
+        uint48 time1 = uint48(2000);
+        uint48 time2 = uint48(3000);
+        // Set the time range on the key
+        bytes[] memory updates = new bytes[](1);
+        updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.updateTimeRange, (time1, time2));
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
+
+        // Assert that the time range is set
+        (uint48 returnedStartTime, uint48 returnedEndTime) =
+            sessionKeyPlugin.getKeyTimeRange(address(account1), sessionKey1);
+        assertEq(returnedStartTime, time1);
+        assertEq(returnedEndTime, time2);
+
+        // Uninstall the session key plugin
+        vm.prank(owner1);
+        account1.uninstallPlugin(address(sessionKeyPlugin), "", "", new bytes[](0));
+
+        // Reinstall the session key plugin.
+        vm.startPrank(owner1);
+        account1.installPlugin({
+            plugin: address(sessionKeyPlugin),
+            manifestHash: keccak256(abi.encode(sessionKeyPlugin.pluginManifest())),
+            pluginInitData: abi.encode(new address[](0)),
+            dependencies: dependencies,
+            injectedHooks: new IPluginManager.InjectedHook[](0)
+        });
+        vm.stopPrank();
+
+        // Re-add the session key
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+
+        // Assert that the time range is reset
+        (returnedStartTime, returnedEndTime) = sessionKeyPlugin.getKeyTimeRange(address(account1), sessionKey1);
+        assertEq(returnedStartTime, uint48(0));
+        assertEq(returnedEndTime, uint48(0));
     }
 
     function _runSessionKeyExecUserOp(

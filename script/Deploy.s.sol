@@ -17,7 +17,6 @@ import {BasePlugin} from "../src/plugins/BasePlugin.sol";
 import {MultiOwnerPlugin} from "../src/plugins/owner/MultiOwnerPlugin.sol";
 import {TokenReceiverPlugin} from "../src/plugins/TokenReceiverPlugin.sol";
 import {SessionKeyPlugin} from "../src/plugins/session/SessionKeyPlugin.sol";
-import {SessionKeyPermissionsPlugin} from "../src/plugins/session/permissions/SessionKeyPermissionsPlugin.sol";
 
 contract Deploy is Script {
     // Load entrypoint from env
@@ -40,7 +39,6 @@ contract Deploy is Script {
     address public tokenReceiverPlugin = vm.envOr("TOKEN_RECEIVER_PLUGIN", address(0));
     bytes32 public tokenReceiverPluginManifestHash;
     address public sessionKeyPlugin = vm.envOr("SESSION_KEY_PLUGIN", address(0));
-    address public sessionKeyPermissionsPlugin = vm.envOr("SESSION_KEY_PERMS_PLUGIN", address(0));
 
     function run() public {
         console.log("******** Deploying *********");
@@ -121,15 +119,6 @@ contract Deploy is Script {
             console.log("New SessionKeyPlugin: ", sessionKeyPlugin);
         } else {
             console.log("Exist SessionKeyPlugin: ", sessionKeyPlugin);
-        }
-
-        // Deploy SessionKeyPermissionsPlugin impl
-        if (sessionKeyPermissionsPlugin == address(0)) {
-            SessionKeyPermissionsPlugin skpp = new SessionKeyPermissionsPlugin();
-            sessionKeyPermissionsPlugin = address(skpp);
-            console.log("New SessionKeyPermissionsPlugin: ", sessionKeyPermissionsPlugin);
-        } else {
-            console.log("Exist SessionKeyPermissionsPlugin: ", sessionKeyPermissionsPlugin);
         }
 
         console.log("******** Deploy Done! *********");

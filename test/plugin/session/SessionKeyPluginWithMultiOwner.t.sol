@@ -11,6 +11,8 @@ import {BasePlugin} from "../../../src/plugins/BasePlugin.sol";
 import {IMultiOwnerPlugin} from "../../../src/plugins/owner/IMultiOwnerPlugin.sol";
 import {MultiOwnerPlugin} from "../../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {ISessionKeyPlugin} from "../../../src/plugins/session/ISessionKeyPlugin.sol";
+import {ISessionKeyPermissionsUpdates} from
+    "../../../src/plugins/session/permissions/ISessionKeyPermissionsUpdates.sol";
 import {SessionKeyPlugin} from "../../../src/plugins/session/SessionKeyPlugin.sol";
 import {IEntryPoint} from "../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
@@ -38,6 +40,11 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
     uint256 constant VERIFICATION_GAS_LIMIT = 1000000;
 
     address payable recipient;
+
+    // Event re-declarations for use with `vm.expectEmit()`
+    event SessionKeyAdded(address indexed account, address indexed sessionKey, bytes32 indexed tag);
+    event SessionKeyRemoved(address indexed account, address indexed sessionKey);
+    event SessionKeyRotated(address indexed account, address indexed oldSessionKey, address indexed newSessionKey);
 
     function setUp() public {
         entryPoint = IEntryPoint(address(new EntryPoint()));
@@ -84,70 +91,140 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
     }
 
     function test_sessionKey_addKeySuccess() public {
-        address[] memory sessionKeysToAdd = new address[](1);
-        sessionKeysToAdd[0] = makeAddr("sessionKey1");
+        address sessionKeyToAdd = makeAddr("sessionKey1");
 
+        vm.expectEmit(true, true, true, true);
+        emit SessionKeyAdded(address(account1), sessionKeyToAdd, bytes32(0));
         vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKeyToAdd, bytes32(0));
 
-        address[] memory sessionKeys = SessionKeyPlugin(address(account1)).getSessionKeys();
+        // Check using all view methods
+        address[] memory sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
         assertEq(sessionKeys.length, 1);
-        assertEq(sessionKeys[0], sessionKeysToAdd[0]);
+        assertEq(sessionKeys[0], sessionKeyToAdd);
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKeyToAdd));
     }
 
     function test_sessionKey_addKeyFailure() public {
         vm.startPrank(owner1);
 
-        address[] memory sessionKeysToAdd = new address[](1);
+        // Zero address session key
+        address sessionKeyToAdd = address(0);
         vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidSessionKey.selector, address(0)));
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKeyToAdd, bytes32(0));
 
-        sessionKeysToAdd = new address[](2);
-        sessionKeysToAdd[0] = makeAddr("sessionKey1");
-        sessionKeysToAdd[1] = sessionKeysToAdd[0];
-        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidSessionKey.selector, sessionKeysToAdd[0]));
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
+        // Duplicate session key
+        sessionKeyToAdd = makeAddr("sessionKey1");
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKeyToAdd, bytes32(0));
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidSessionKey.selector, sessionKeyToAdd));
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKeyToAdd, bytes32(0));
+
+        // Check using all view methods
+        address[] memory sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
+        assertEq(sessionKeys.length, 1);
+        assertEq(sessionKeys[0], sessionKeyToAdd);
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKeyToAdd));
     }
 
     function test_sessionKey_addAndRemoveKeys() public {
-        address[] memory sessionKeysToAdd = new address[](2);
-        sessionKeysToAdd[0] = makeAddr("sessionKey1");
-        sessionKeysToAdd[1] = makeAddr("sessionKey2");
+        address sessionKey1 = makeAddr("sessionKey1");
+        address sessionKey2 = makeAddr("sessionKey2");
 
-        vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
+        vm.startPrank(owner1);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey2, bytes32(0));
+        vm.stopPrank();
+
+        // Check using all view methods
+        address[] memory sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
+        assertEq(sessionKeys.length, 2);
+        assertEq(sessionKeys[0], sessionKey2);
+        assertEq(sessionKeys[1], sessionKey1);
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey1));
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey2));
+
+        vm.expectEmit(true, true, true, true);
+        emit SessionKeyRemoved(address(account1), sessionKey1);
+        vm.startPrank(owner1);
+        SessionKeyPlugin(address(account1)).removeSessionKey(
+            sessionKey1, sessionKeyPlugin.findPredecessor(address(account1), sessionKey1)
         );
+        vm.stopPrank();
 
-        SessionKeyPlugin.SessionKeyToRemove[] memory sessionKeysToRemove =
-            new ISessionKeyPlugin.SessionKeyToRemove[](1);
-        sessionKeysToRemove[0] = ISessionKeyPlugin.SessionKeyToRemove({
-            sessionKey: sessionKeysToAdd[0],
-            predecessor: bytes32(bytes20(sessionKeysToAdd[1]))
-        });
-        vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(new address[](0), sessionKeysToRemove);
-
-        address[] memory sessionKeys = SessionKeyPlugin(address(account1)).getSessionKeys();
+        // Check using all view methods
+        sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
         assertEq(sessionKeys.length, 1);
-        assertEq(sessionKeys[0], sessionKeysToAdd[1]);
+        assertEq(sessionKeys[0], sessionKey2);
+        assertFalse(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey1));
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey2));
+    }
+
+    function test_sessionKey_rotate_valid() public {
+        // Add the first key
+        address sessionKey1 = makeAddr("sessionKey1");
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+
+        // Rotate to the second key
+        address sessionKey2 = makeAddr("sessionKey2");
+        bytes32 predecessor = sessionKeyPlugin.findPredecessor(address(account1), sessionKey1);
+        vm.expectEmit(true, true, true, true);
+        emit SessionKeyRotated(address(account1), sessionKey1, sessionKey2);
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).rotateSessionKey(sessionKey1, predecessor, sessionKey2);
+
+        // Check using all view methods
+        address[] memory sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
+        assertEq(sessionKeys.length, 1);
+        assertEq(sessionKeys[0], sessionKey2);
+        assertFalse(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey1));
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey2));
+    }
+
+    function test_sessionKey_rotate_existing() public {
+        // Add the session keys 1 and 2
+        address sessionKey1 = makeAddr("sessionKey1");
+        address sessionKey2 = makeAddr("sessionKey2");
+        vm.startPrank(owner1);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey2, bytes32(0));
+        vm.stopPrank();
+
+        // Attempt to rotate key 1 to key 2
+        bytes32 predecessor = sessionKeyPlugin.findPredecessor(address(account1), sessionKey1);
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidSessionKey.selector, sessionKey2));
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).rotateSessionKey(sessionKey1, predecessor, sessionKey2);
+    }
+
+    function test_sessionKey_rotate_invalid() public {
+        // Add the first key
+        address sessionKey1 = makeAddr("sessionKey1");
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+
+        // Attempt to rotate to the zero address
+        address zeroAddr = address(0);
+        bytes32 predecessor = sessionKeyPlugin.findPredecessor(address(account1), sessionKey1);
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidSessionKey.selector, zeroAddr));
+        vm.prank(owner1);
+        SessionKeyPlugin(address(account1)).rotateSessionKey(sessionKey1, predecessor, zeroAddr);
     }
 
     function test_sessionKey_useSessionKey() public {
-        address[] memory sessionKeysToAdd = new address[](1);
-        (address sessionKey, uint256 sessionKeyPrivate) = makeAddrAndKey("sessionKey1");
-        sessionKeysToAdd[0] = sessionKey;
+        (address sessionKey1, uint256 sessionKeyPrivate) = makeAddrAndKey("sessionKey1");
 
-        vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
+        vm.startPrank(owner1);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+        // Disable the allowlist and native token spend checking
+        bytes[] memory permissionUpdates = new bytes[](2);
+        permissionUpdates[0] = abi.encodeCall(
+            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
         );
+        permissionUpdates[1] =
+            abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (type(uint256).max, 0));
+        SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, permissionUpdates);
+        vm.stopPrank();
 
         Call[] memory calls = new Call[](1);
         calls[0] = Call({target: recipient, value: 1 wei, data: ""});
@@ -157,7 +234,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
             nonce: 0,
             initCode: "",
             callData: abi.encodeCall(
-                ISessionKeyPlugin(address(sessionKeyPlugin)).executeWithSessionKey, (calls, sessionKey)
+                ISessionKeyPlugin(address(sessionKeyPlugin)).executeWithSessionKey, (calls, sessionKey1)
                 ),
             callGasLimit: CALL_GAS_LIMIT,
             verificationGasLimit: VERIFICATION_GAS_LIMIT,
@@ -181,20 +258,16 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
     }
 
     function test_sessionKey_useSessionKey_failInRuntime() public {
-        address[] memory sessionKeysToAdd = new address[](1);
-        (address sessionKey,) = makeAddrAndKey("sessionKey1");
-        sessionKeysToAdd[0] = sessionKey;
+        (address sessionKey1,) = makeAddrAndKey("sessionKey1");
 
         vm.startPrank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
 
         Call[] memory calls = new Call[](1);
         calls[0] = Call({target: recipient, value: 1 wei, data: ""});
 
         vm.expectRevert(abi.encodeWithSelector(UpgradeableModularAccount.AlwaysDenyRule.selector));
-        SessionKeyPlugin(address(account1)).executeWithSessionKey(calls, sessionKey);
+        SessionKeyPlugin(address(account1)).executeWithSessionKey(calls, sessionKey1);
     }
 
     function testFuzz_sessionKey_userOpValidation_valid(uint16 seed) public {
@@ -324,62 +397,56 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
 
     // getPredecessor test case with sentinel value as predecessor
     function test_sessionKey_getPredecessor_sentinel() public {
-        address[] memory sessionKeysToAdd = new address[](2);
-        sessionKeysToAdd[0] = makeAddr("sessionKey1");
-        sessionKeysToAdd[1] = makeAddr("sessionKey2");
+        address sessionKey1 = makeAddr("sessionKey1");
+        address sessionKey2 = makeAddr("sessionKey2");
 
-        vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
+        vm.startPrank(owner1);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey2, bytes32(0));
 
-        SessionKeyPlugin.SessionKeyToRemove[] memory sessionKeysToRemove =
-            new ISessionKeyPlugin.SessionKeyToRemove[](1);
-        sessionKeysToRemove[0] = ISessionKeyPlugin.SessionKeyToRemove({
-            sessionKey: sessionKeysToAdd[0],
-            predecessor: sessionKeyPlugin.findPredecessor(address(account1), sessionKeysToAdd[0])
-        });
-        vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(new address[](0), sessionKeysToRemove);
+        bytes32 predecessor = sessionKeyPlugin.findPredecessor(address(account1), sessionKey2);
+        assertEq(predecessor, bytes32(uint256(1)));
 
-        address[] memory sessionKeys = SessionKeyPlugin(address(account1)).getSessionKeys();
+        SessionKeyPlugin(address(account1)).removeSessionKey(sessionKey2, predecessor);
+        vm.stopPrank();
+
+        // Check using all view methods
+        address[] memory sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
         assertEq(sessionKeys.length, 1);
-        assertEq(sessionKeys[0], sessionKeysToAdd[1]);
+        assertEq(sessionKeys[0], sessionKey1);
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey1));
+        assertFalse(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey2));
     }
 
     // getPredecessor test case with address value as predecessor
     function test_sessionKey_getPredecessor_address() public {
-        address[] memory sessionKeysToAdd = new address[](2);
-        sessionKeysToAdd[0] = makeAddr("sessionKey1");
-        sessionKeysToAdd[1] = makeAddr("sessionKey2");
+        address sessionKey1 = makeAddr("sessionKey1");
+        address sessionKey2 = makeAddr("sessionKey2");
 
-        vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
+        vm.startPrank(owner1);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey2, bytes32(0));
 
-        SessionKeyPlugin.SessionKeyToRemove[] memory sessionKeysToRemove =
-            new ISessionKeyPlugin.SessionKeyToRemove[](1);
-        sessionKeysToRemove[0] = ISessionKeyPlugin.SessionKeyToRemove({
-            sessionKey: sessionKeysToAdd[1],
-            predecessor: sessionKeyPlugin.findPredecessor(address(account1), sessionKeysToAdd[1])
-        });
-        vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(new address[](0), sessionKeysToRemove);
+        bytes32 predecessor = sessionKeyPlugin.findPredecessor(address(account1), sessionKey1);
+        assertEq(predecessor, bytes32(bytes20(sessionKey2)));
 
-        address[] memory sessionKeys = SessionKeyPlugin(address(account1)).getSessionKeys();
+        SessionKeyPlugin(address(account1)).removeSessionKey(sessionKey1, predecessor);
+        vm.stopPrank();
+
+        // Check using all view methods
+        address[] memory sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
         assertEq(sessionKeys.length, 1);
-        assertEq(sessionKeys[0], sessionKeysToAdd[0]);
+        assertEq(sessionKeys[0], sessionKey2);
+        assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey2));
+        assertFalse(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKey1));
     }
 
     function test_sessionKey_getPredecessor_missing() public {
         address[] memory sessionKeysToAdd = new address[](1);
         sessionKeysToAdd[0] = makeAddr("sessionKey1");
 
-        vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
+        vm.startPrank(owner1);
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKeysToAdd[0], bytes32(0));
 
         address key2 = makeAddr("sessionKey2");
         vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.SessionKeyNotFound.selector, key2));
@@ -393,9 +460,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         sessionKeysToAdd[0] = makeAddr("sessionKey1");
 
         vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
-        );
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKeysToAdd[0], bytes32(0));
 
         assertFalse(sessionKeyPlugin.isSessionKeyOf(address(account1), address(1)));
     }
@@ -409,9 +474,19 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
             (sessionKeysToAdd[i], privateKeys[i]) = makeAddrAndKey(string.concat("sessionKey", vm.toString(i)));
         }
 
-        vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).updateSessionKeys(
-            sessionKeysToAdd, new SessionKeyPlugin.SessionKeyToRemove[](0)
+        // To disable the allowlist and native token spend checking
+        bytes[] memory permissionUpdates = new bytes[](2);
+        permissionUpdates[0] = abi.encodeCall(
+            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
         );
+        permissionUpdates[1] =
+            abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (type(uint256).max, 0));
+
+        vm.startPrank(owner1);
+        for (uint256 i = 0; i < addressCount; i++) {
+            SessionKeyPlugin(address(account1)).addSessionKey(sessionKeysToAdd[i], bytes32(0));
+            SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKeysToAdd[i], permissionUpdates);
+        }
+        vm.stopPrank();
     }
 }

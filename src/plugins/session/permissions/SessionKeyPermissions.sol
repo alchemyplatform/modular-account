@@ -4,73 +4,23 @@ pragma solidity ^0.8.21;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {Call} from "../../../interfaces/IStandardExecutor.sol";
-import {BasePlugin} from "../../BasePlugin.sol";
-import {ISessionKeyPermissionsPlugin} from "./ISessionKeyPermissionsPlugin.sol";
-import {ISessionKeyPermissionsUpdates} from "./ISessionKeyPermissionsUpdates.sol";
 import {ISessionKeyPlugin} from "../ISessionKeyPlugin.sol";
+import {ISessionKeyPermissionsUpdates} from "./ISessionKeyPermissionsUpdates.sol";
 import {SessionKeyPermissionsLoupe} from "./SessionKeyPermissionsLoupe.sol";
 
-import {
-    IPlugin,
-    ManifestAssociatedFunction,
-    ManifestAssociatedFunctionType,
-    ManifestExecutionHook,
-    ManifestFunction,
-    PluginManifest,
-    PluginMetadata,
-    SelectorPermission
-} from "../../../interfaces/IPlugin.sol";
 import {IStandardExecutor} from "../../../interfaces/IStandardExecutor.sol";
 import {UserOperation} from "../../../interfaces/erc4337/UserOperation.sol";
 
-/// @title Session Key Permissions Plugin
+/// @title Session Key Permissions
 /// @author Alchemy
 /// @notice This plugin allows users to configure and enforce permissions on session keys that have been
 /// added by SessionKeyPlugin.
-contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKeyPermissionsLoupe, BasePlugin {
-    string internal constant _NAME = "Session Key Permissions Plugin";
-    string internal constant _VERSION = "1.0.0";
-    string internal constant _AUTHOR = "Alchemy";
-
-    // Constants used in the manifest
-    uint256 internal constant _MANIFEST_DEPENDENCY_INDEX_OWNER_USER_OP_VALIDATION = 0;
-    uint256 internal constant _MANIFEST_DEPENDENCY_INDEX_OWNER_RUNTIME_VALIDATION = 1;
-
+abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissionsLoupe {
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    Execution functions    ┃
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-    /// @inheritdoc ISessionKeyPermissionsPlugin
-    function registerKey(address sessionKey, bytes32 tag) external override {
-        SessionKeyId keyId = _sessionKeyIdOf(msg.sender, sessionKey);
-        if (SessionKeyId.unwrap(keyId) != 0) {
-            revert KeyAlreadyRegistered(sessionKey);
-        }
-        // Register the key with a new ID, and update the ID counter
-        // We use pre increment to prevent the first id from being zero
-        _updateSessionKeyId(msg.sender, sessionKey, SessionKeyId.wrap(bytes32(++_keyIdCounter[msg.sender])));
-
-        emit KeyRegistered(msg.sender, sessionKey, tag);
-    }
-
-    /// @inheritdoc ISessionKeyPermissionsPlugin
-    function rotateKey(address oldSessionKey, address newSessionKey) external override {
-        // Assert that the new key is not already registered
-        SessionKeyId newKeyId = _sessionKeyIdOf(msg.sender, newSessionKey);
-        if (SessionKeyId.unwrap(newKeyId) != bytes32(0)) {
-            revert KeyAlreadyRegistered(newSessionKey);
-        }
-        // Assert that the old key is registered
-        SessionKeyId keyId = _sessionKeyIdOf(msg.sender, oldSessionKey);
-        _assertRegistered(keyId, oldSessionKey);
-        // Update the key ID of the old key to zero, and the new key to the old key's ID
-        _updateSessionKeyId(msg.sender, oldSessionKey, SessionKeyId.wrap(bytes32(0)));
-        _updateSessionKeyId(msg.sender, newSessionKey, keyId);
-
-        emit KeyRotated(msg.sender, oldSessionKey, newSessionKey);
-    }
-
-    /// @inheritdoc ISessionKeyPermissionsPlugin
+    /// @inheritdoc ISessionKeyPlugin
     function updateKeyPermissions(address sessionKey, bytes[] calldata updates) external override {
         (SessionKeyData storage sessionKeyData, SessionKeyId keyId) = _loadSessionKey(msg.sender, sessionKey);
 
@@ -86,7 +36,7 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
         emit PermissionsUpdated(msg.sender, sessionKey, updates);
     }
 
-    /// @inheritdoc ISessionKeyPermissionsPlugin
+    /// @inheritdoc ISessionKeyPlugin
     function resetSessionKeyGasLimitTimestamp(address account, address sessionKey) external override {
         (SessionKeyData storage sessionKeyData,) = _loadSessionKey(account, sessionKey);
         if (sessionKeyData.gasLimitResetThisBundle) {
@@ -95,170 +45,25 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
         }
     }
 
-    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    // ┃    Plugin interface functions    ┃
-    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-
-    /// @inheritdoc BasePlugin
-    function preUserOpValidationHook(uint8 functionId, UserOperation calldata userOp, bytes32)
-        external
-        override
-        returns (uint256)
-    {
-        if (functionId == uint8(FunctionId.PRE_USER_OP_VALIDATION_HOOK_CHECK_PERMISSIONS)) {
-            return _checkUserOpPermissions(userOp);
-        }
-        revert NotImplemented();
-    }
-
-    function preExecutionHook(uint8 functionId, address, uint256, bytes calldata data)
-        external
-        override
-        returns (bytes memory)
-    {
-        if (functionId == uint8(FunctionId.PRE_EXECUTION_HOOK_UPDATE_LIMITS)) {
-            _updateLimitsPreExec(msg.sender, data);
-        } else {
-            revert NotImplemented();
-        }
-    }
-
-    /// @inheritdoc BasePlugin
-    function onInstall(bytes calldata) external override {}
-
-    /// @inheritdoc BasePlugin
-    function onUninstall(bytes calldata) external override {}
-
-    /// @inheritdoc BasePlugin
-    function pluginManifest() external pure override returns (PluginManifest memory) {
-        PluginManifest memory manifest;
-
-        manifest.dependencyInterfaceIds = new bytes4[](2);
-        manifest.dependencyInterfaceIds[_MANIFEST_DEPENDENCY_INDEX_OWNER_USER_OP_VALIDATION] =
-            type(IPlugin).interfaceId;
-        manifest.dependencyInterfaceIds[_MANIFEST_DEPENDENCY_INDEX_OWNER_RUNTIME_VALIDATION] =
-            type(IPlugin).interfaceId;
-
-        manifest.executionFunctions = new bytes4[](3);
-        manifest.executionFunctions[0] = ISessionKeyPermissionsPlugin.updateKeyPermissions.selector;
-        manifest.executionFunctions[1] = ISessionKeyPermissionsPlugin.registerKey.selector;
-        manifest.executionFunctions[2] = ISessionKeyPermissionsPlugin.rotateKey.selector;
-
-        // Associate the owner's user op and runtime validator with permissions config
-        ManifestFunction memory ownerUserOpValidationFunction = ManifestFunction({
-            functionType: ManifestAssociatedFunctionType.DEPENDENCY,
-            functionId: 0, // unused since it's a dependency
-            dependencyIndex: _MANIFEST_DEPENDENCY_INDEX_OWNER_USER_OP_VALIDATION
-        });
-        manifest.userOpValidationFunctions = new ManifestAssociatedFunction[](3);
-        manifest.userOpValidationFunctions[0] = ManifestAssociatedFunction({
-            executionSelector: this.updateKeyPermissions.selector,
-            associatedFunction: ownerUserOpValidationFunction
-        });
-        manifest.userOpValidationFunctions[1] = ManifestAssociatedFunction({
-            executionSelector: this.registerKey.selector,
-            associatedFunction: ownerUserOpValidationFunction
-        });
-        manifest.userOpValidationFunctions[2] = ManifestAssociatedFunction({
-            executionSelector: this.rotateKey.selector,
-            associatedFunction: ownerUserOpValidationFunction
-        });
-
-        ManifestFunction memory ownerRuntimeValidationFunction = ManifestFunction({
-            functionType: ManifestAssociatedFunctionType.DEPENDENCY,
-            functionId: 0, // unused since it's a dependency
-            dependencyIndex: _MANIFEST_DEPENDENCY_INDEX_OWNER_RUNTIME_VALIDATION
-        });
-        manifest.runtimeValidationFunctions = new ManifestAssociatedFunction[](3);
-        manifest.runtimeValidationFunctions[0] = ManifestAssociatedFunction({
-            executionSelector: this.updateKeyPermissions.selector,
-            associatedFunction: ownerRuntimeValidationFunction
-        });
-        manifest.runtimeValidationFunctions[1] = ManifestAssociatedFunction({
-            executionSelector: this.registerKey.selector,
-            associatedFunction: ownerRuntimeValidationFunction
-        });
-        manifest.runtimeValidationFunctions[2] = ManifestAssociatedFunction({
-            executionSelector: this.rotateKey.selector,
-            associatedFunction: ownerRuntimeValidationFunction
-        });
-
-        // Apply the "enforcing" pre validation hook and pre exec hook
-        manifest.preUserOpValidationHooks = new ManifestAssociatedFunction[](1);
-        manifest.preUserOpValidationHooks[0] = ManifestAssociatedFunction({
-            executionSelector: ISessionKeyPlugin.executeWithSessionKey.selector,
-            associatedFunction: ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: uint8(FunctionId.PRE_USER_OP_VALIDATION_HOOK_CHECK_PERMISSIONS),
-                dependencyIndex: 0 // Unused.
-            })
-        });
-
-        manifest.executionHooks = new ManifestExecutionHook[](1);
-        manifest.executionHooks[0] = ManifestExecutionHook({
-            executionSelector: ISessionKeyPlugin.executeWithSessionKey.selector,
-            preExecHook: ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: uint8(FunctionId.PRE_EXECUTION_HOOK_UPDATE_LIMITS),
-                dependencyIndex: 0 // Unused.
-            }),
-            postExecHook: ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.NONE,
-                functionId: 0, // Unused.
-                dependencyIndex: 0 // Unused.
-            })
-        });
-
-        return manifest;
-    }
-
-    /// @inheritdoc BasePlugin
-    function pluginMetadata() external pure virtual override returns (PluginMetadata memory) {
-        PluginMetadata memory metadata;
-        metadata.name = _NAME;
-        metadata.version = _VERSION;
-        metadata.author = _AUTHOR;
-
-        // Permission strings
-        string memory modifyOwnershipPermission = "Modify Session Key Permissions";
-
-        // Permission descriptions
-        metadata.permissionDescriptors = new SelectorPermission[](1);
-        metadata.permissionDescriptors[0] = SelectorPermission({
-            functionSelector: this.updateKeyPermissions.selector,
-            permissionDescription: modifyOwnershipPermission
-        });
-
-        return metadata;
-    }
-
-    // ┏━━━━━━━━━━━━━━━┓
-    // ┃    EIP-165    ┃
-    // ┗━━━━━━━━━━━━━━━┛
-
-    /// @inheritdoc BasePlugin
-    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
-        return
-            interfaceId == type(ISessionKeyPermissionsPlugin).interfaceId || super.supportsInterface(interfaceId);
-    }
-
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    Internal / Private functions    ┃
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-    /// @dev A pre user op validation hook that checks the permissions of the key used to validate the user op.
-    function _checkUserOpPermissions(UserOperation calldata userOp) internal returns (uint256) {
-        // If not calling executeWithSessionKey, nothing to do. Return 0 as validation success.
-        if (bytes4(userOp.callData) != ISessionKeyPlugin.executeWithSessionKey.selector) return 0;
-
-        // Decode the executions array and the session key from the user op's calldata
-        (Call[] memory calls, address sessionKey) = abi.decode(userOp.callData[4:], (Call[], address));
-
-        (SessionKeyData storage sessionKeyData, SessionKeyId keyId) = _loadSessionKey(msg.sender, sessionKey);
+    /// @dev A check to run during user op validation that checks the permissions of the session key used to
+    /// validate the user op.
+    function _checkUserOpPermissions(UserOperation calldata userOp, Call[] memory calls, address sessionKey)
+        internal
+        returns (uint256)
+    {
+        // This step does not need to assert that the key id is nonzero, since the user op signature check implies
+        // that.
+        SessionKeyId keyId = _sessionKeyIdOf(msg.sender, sessionKey);
+        SessionKeyData storage sessionKeyData = _sessionKeyDataOf(msg.sender, keyId);
 
         // The session key's start time is the max of the key-specific validAfter and any time restrictions imposed
         // by spending limits.
         uint48 currentValidAfter = sessionKeyData.validAfter;
+        uint48 validUntil = sessionKeyData.validUntil;
         uint256 nativeTokenSpend;
 
         uint256 callsLength = calls.length;
@@ -289,6 +94,16 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
         }
 
         if (sessionKeyData.hasGasLimit) {
+            // Gas limit checking is the only type of permissions checking that has state changes performed during
+            // validation. This can potentially cause reputation damage to staked accounts if multiple user
+            // operations are accepted into the same bundle, then validation for one of the later operations fails
+            // due to the state change from the first. To protect from this, we require session keys to use their
+            // own address as the key portion of the user operation nonce field, in order to guarantee that they
+            // are used sequentially.
+            if (uint192(userOp.nonce >> 64) != uint192(uint160(sessionKey))) {
+                validationSuccess = false;
+            }
+
             // Multiplier for the verification gas limit is 3 if there is a paymaster, 1 otherwise.
             // This is defined in EntryPoint v0.6.0, which uses the limit for the user op validation + paymaster
             // validation, then again for up to two more calls of `postOp`. Later versions of the EntryPoint may
@@ -302,16 +117,6 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
                 _checkAndUpdateGasLimitUsage(maxGasFee, sessionKeyData);
             validationSuccess = validationSuccess && gasLimitSuccess;
             currentValidAfter = _max(currentValidAfter, gasLimitValidAfter);
-
-            // Gas limit checking is the only type of permissions checking that has state changes performed during
-            // validation. This can potentially cause reputation damage to staked accounts if multiple user
-            // operations are accepted into the same bundle, then validation for one of the later operations fails
-            // due to the state change from the first. To protect from this, we require session keys to use their
-            // own address as the key portion of the user operation nonce field, in order to guarantee that they
-            // are used sequentially.
-            if (uint192(userOp.nonce >> 64) != uint192(uint160(sessionKey))) {
-                validationSuccess = false;
-            }
         }
 
         if (sessionKeyData.hasRequiredPaymaster) {
@@ -330,12 +135,12 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
         // otherwise a packed struct of the aggregator address (0 here), and two
         // 6-byte timestamps indicating the start and end times at which the op
         // is valid.
-        return uint160(!validationSuccess ? 1 : 0) | (uint256(sessionKeyData.validUntil) << 160)
+        return uint160(!validationSuccess ? 1 : 0) | (uint256(validUntil) << 160)
             | (uint256(currentValidAfter) << (208));
     }
 
-    /// @dev Checks permissions on a per-call basis. Should be run in the pre user op validation hook once per
-    /// `Call` struct in the user op's calldata.
+    /// @dev Checks permissions on a per-call basis. Should be run during user op validation once per `Call` struct
+    /// in the user op's calldata.
     function _checkCallPermissions(
         ContractAccessControlType accessControlType,
         SessionKeyId keyId,
@@ -366,17 +171,16 @@ contract SessionKeyPermissionsPlugin is ISessionKeyPermissionsPlugin, SessionKey
         }
     }
 
-    /// @dev Runs as a pre exec hook, and updates the spend limits of the session key in use
-    function _updateLimitsPreExec(address account, bytes calldata callData) internal {
-        // If not calling executeWithSessionKey, nothing to do.
-        if (bytes4(callData) != ISessionKeyPlugin.executeWithSessionKey.selector) return;
-
-        (Call[] memory calls, address sessionKey) = abi.decode(callData[4:], (Call[], address));
+    /// @dev Runs during execution to re-check and update the spend limits of the session key in use.
+    function _updateLimitsPreExec(address account, Call[] calldata calls, address sessionKey) internal {
         uint256 callsLength = calls.length;
 
         uint256 newNativeTokenUsage;
 
-        (SessionKeyData storage sessionKeyData, SessionKeyId keyId) = _loadSessionKey(account, sessionKey);
+        // This step does not need to assert that the key id is nonzero, since the user op signature check implies
+        // that.
+        SessionKeyId keyId = _sessionKeyIdOf(msg.sender, sessionKey);
+        SessionKeyData storage sessionKeyData = _sessionKeyDataOf(msg.sender, keyId);
 
         for (uint256 i = 0; i < callsLength;) {
             Call memory call = calls[i];

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.21;
 
-import {ISessionKeyPermissionsPlugin} from "./ISessionKeyPermissionsPlugin.sol";
+import {ISessionKeyPlugin} from "../ISessionKeyPlugin.sol";
 import {SessionKeyPermissionsBase} from "./SessionKeyPermissionsBase.sol";
 
 abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
-    /// @inheritdoc ISessionKeyPermissionsPlugin
+    /// @inheritdoc ISessionKeyPlugin
     function getAccessControlType(address account, address sessionKey)
         external
         view
@@ -15,19 +15,19 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         return sessionKeyData.contractAccessControlType;
     }
 
-    /// @inheritdoc ISessionKeyPermissionsPlugin
+    /// @inheritdoc ISessionKeyPlugin
     function getAccessControlEntry(address account, address sessionKey, address contractAddress)
         external
         view
         returns (bool isOnList, bool checkSelectors)
     {
         SessionKeyId keyId = _sessionKeyIdOf(account, sessionKey);
-        _assertRegistered(keyId, sessionKey);
+        _assertKeyExists(keyId, sessionKey);
         ContractData storage contractData = _contractDataOf(account, keyId, contractAddress);
         return (contractData.isOnList, contractData.checkSelectors);
     }
 
-    /// @inheritdoc ISessionKeyPermissionsPlugin
+    /// @inheritdoc ISessionKeyPlugin
     function isSelectorOnAccessControlList(
         address account,
         address sessionKey,
@@ -35,12 +35,12 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         bytes4 selector
     ) external view returns (bool isOnList) {
         SessionKeyId keyId = _sessionKeyIdOf(account, sessionKey);
-        _assertRegistered(keyId, sessionKey);
+        _assertKeyExists(keyId, sessionKey);
         FunctionData storage functionData = _functionDataOf(account, keyId, contractAddress, selector);
         return functionData.isOnList;
     }
 
-    /// @inheritdoc ISessionKeyPermissionsPlugin
+    /// @inheritdoc ISessionKeyPlugin
     function getKeyTimeRange(address account, address sessionKey)
         external
         view
@@ -50,7 +50,7 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         return (sessionKeyData.validAfter, sessionKeyData.validUntil);
     }
 
-    /// @inheritdoc ISessionKeyPermissionsPlugin
+    /// @inheritdoc ISessionKeyPlugin
     function getNativeTokenSpendLimitInfo(address account, address sessionKey)
         external
         view
@@ -74,7 +74,7 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         }
     }
 
-    /// @inheritdoc ISessionKeyPermissionsPlugin
+    /// @inheritdoc ISessionKeyPlugin
     function getERC20SpendLimitInfo(address account, address sessionKey, address token)
         external
         view
@@ -91,15 +91,15 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         });
     }
 
-    /// @inheritdoc ISessionKeyPermissionsPlugin
+    /// @inheritdoc ISessionKeyPlugin
     function getRequiredPaymaster(address account, address sessionKey) external view returns (address) {
         SessionKeyId id = _sessionKeyIdOf(account, sessionKey);
-        _assertRegistered(id, sessionKey);
+        _assertKeyExists(id, sessionKey);
         SessionKeyData storage sessionKeyData = _sessionKeyDataOf(account, id);
         return sessionKeyData.hasRequiredPaymaster ? sessionKeyData.requiredPaymaster : address(0);
     }
 
-    /// @inheritdoc ISessionKeyPermissionsPlugin
+    /// @inheritdoc ISessionKeyPlugin
     function getGasSpendLimit(address account, address sessionKey)
         external
         view
