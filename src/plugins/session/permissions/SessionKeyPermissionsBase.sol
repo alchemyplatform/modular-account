@@ -10,47 +10,59 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPlugin {
 
     // Implementation-internal structs not exposed by the external interface.
 
+    // Holds permission data unique to each session key on an account.
     struct SessionKeyData {
-        // Contract access control type
+        // Contract access control type.
         ContractAccessControlType contractAccessControlType;
         // Key time range: limits when a key may be used.
         uint48 validAfter;
         uint48 validUntil;
+        // Boolean flags for optional rules.
         bool hasRequiredPaymaster;
         bool hasGasLimit;
+        bool nativeTokenSpendLimitBypassed; // By default, spend limits are enforced and the limit is zero.
+        // Flag for resetting gas limit last used timestamp during the execution phase.
         bool gasLimitResetThisBundle;
-        // Native token spend limits
-        bool nativeTokenSpendLimitBypassed; // By default, spend limits ARE enforced and the limit is zero.
+        // Time info for gas and native token spend limits.
         SpendLimitTimeInfo gasLimitTimeInfo;
         SpendLimitTimeInfo nativeTokenSpendLimitTimeInfo;
         // Required paymaster rule
         address requiredPaymaster;
+        // Limit amounts and limit usages for gas and native token spend limits.
         SpendLimit gasLimit;
         SpendLimit nativeTokenSpendLimit;
     }
 
-    /// @dev These structs are not held in an Associated Enumerable set, so the elements must be emitted from
-    /// events to use offchain.
+    // Holds permission data for an address associated with a session key and an account.
     struct ContractData {
+        // Whether or not this address is on the access control list.
         bool isOnList;
+        // Whether or not to check selectors for this address, per the current access control type's rules.
         bool checkSelectors;
+        // Whether or not this address is a known ERC-20 contract with a spend limit.
         bool isERC20WithSpendLimit;
+        // Spend limit configuration data for ERC-20 contracts.
         SpendLimitTimeInfo erc20SpendLimitTimeInfo;
         SpendLimit erc20SpendLimit;
     }
 
+    // Holds permission data for a function selector associated with a session key, an account,
+    // and a contract address.
     struct FunctionData {
+        // Whether or not this selector is on the access control list.
         bool isOnList;
     }
 
     // Spending limit info structs.
     // Split into two structs to allow custom storage arrangements.
 
+    // Holds time info for spend limits.
     struct SpendLimitTimeInfo {
         uint48 lastUsed;
         uint48 refreshInterval;
     }
 
+    // Holds spend limit data.
     struct SpendLimit {
         uint256 limitAmount;
         uint256 limitUsed;
