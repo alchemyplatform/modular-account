@@ -292,12 +292,15 @@ contract UpgradeableModularAccount is
         //
         // We allow calls where the data may be less than 4 bytes - it's up to the calling contract to
         // determine how to handle this.
+
+        PermittedExternalCallData storage permittedExternalCallData =
+            storage_.permittedExternalCalls[IPlugin(callingPlugin)][target];
+
         bool isTargetCallPermitted;
-        if (storage_.permittedExternalCalls[IPlugin(callingPlugin)][target].addressPermitted) {
+        if (permittedExternalCallData.addressPermitted) {
             isTargetCallPermitted = (
-                storage_.permittedExternalCalls[IPlugin(callingPlugin)][target].anySelectorPermitted
-                    || data.length == 0
-                    || storage_.permittedExternalCalls[IPlugin(callingPlugin)][target].permittedSelectors[bytes4(data)]
+                permittedExternalCallData.anySelectorPermitted || data.length == 0
+                    || permittedExternalCallData.permittedSelectors[bytes4(data)]
             );
         } else {
             isTargetCallPermitted = storage_.pluginData[callingPlugin].anyExternalAddressPermitted;
