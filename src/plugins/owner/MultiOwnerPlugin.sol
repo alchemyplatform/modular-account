@@ -189,10 +189,14 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
             revert EmptyOwnersNotAllowed();
         }
         _addOwnersOrRevert(_owners, msg.sender, initialOwners);
+
+        emit OwnerUpdated(msg.sender, initialOwners, new address[](0));
     }
 
     /// @inheritdoc BasePlugin
     function onUninstall(bytes calldata) external override {
+        address[] memory ownersToRemove = ownersOf(msg.sender);
+        emit OwnerUpdated(msg.sender, new address[](0), ownersToRemove);
         _owners.clear(msg.sender);
     }
 

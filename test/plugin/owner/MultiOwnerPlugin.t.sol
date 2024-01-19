@@ -34,6 +34,9 @@ contract MultiOwnerPluginTest is Test {
     ContractOwner public contractOwner;
     address[] public ownerArray;
 
+    // Re-declare events for vm.expectEmit
+    event OwnerUpdated(address indexed account, address[] addedOwners, address[] removedOwners);
+
     function setUp() public {
         plugin = new MultiOwnerPlugin();
         entryPoint = IEntryPoint(address(new EntryPoint()));
@@ -52,6 +55,8 @@ contract MultiOwnerPluginTest is Test {
         ownerArray[1] = owner3;
         ownerArray[2] = owner1;
 
+        vm.expectEmit(true, true, true, true);
+        emit OwnerUpdated(accountA, ownerArray, new address[](0));
         vm.startPrank(accountA);
         plugin.onInstall(abi.encode(ownerArray));
     }
@@ -67,6 +72,11 @@ contract MultiOwnerPluginTest is Test {
     }
 
     function test_onUninstall_success() public {
+        // Populate the expected event using `plugin.ownersOf` instead of `ownerArray` to reverse the order of
+        // owners.
+        vm.expectEmit(true, true, true, true);
+        emit OwnerUpdated(accountA, new address[](0), plugin.ownersOf(accountA));
+
         plugin.onUninstall(abi.encode(""));
         address[] memory returnedOwners = plugin.ownersOf(accountA);
         assertEq(0, returnedOwners.length);
@@ -135,6 +145,9 @@ contract MultiOwnerPluginTest is Test {
         address[] memory ownersToRemove = new address[](2);
         ownersToRemove[0] = owner1;
         ownersToRemove[1] = owner2;
+
+        vm.expectEmit(true, true, true, true);
+        emit OwnerUpdated(accountA, new address[](0), ownersToRemove);
 
         plugin.updateOwners(new address[](0), ownersToRemove);
 
