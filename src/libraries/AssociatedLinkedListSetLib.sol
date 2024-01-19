@@ -382,16 +382,12 @@ library AssociatedLinkedListSetLib {
         keyBuffer = _allocateTempKeyBuffer(set, associated);
 
         cursor = SENTINEL_VALUE;
-        for (uint256 i = 0; i < count;) {
+        for (uint256 i = 0; i < count; ++i) {
             StoragePointer cursorSlot = _mapLookup(keyBuffer, cursor);
             bytes32 cursorValue = _load(cursorSlot);
             bytes32 cleared = clearFlags(cursorValue);
             res[i] = SetValue.wrap(bytes30(cleared));
             cursor = cleared;
-
-            unchecked {
-                ++i;
-            }
         }
     }
 

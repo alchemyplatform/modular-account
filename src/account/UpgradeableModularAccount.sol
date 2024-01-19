@@ -109,14 +109,10 @@ contract UpgradeableModularAccount is
         FunctionReference[] memory emptyDependencies = new FunctionReference[](0);
         InjectedHook[] memory emptyInjectedHooks = new InjectedHook[](0);
 
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             _installPlugin(
                 plugins[i], manifestHashes[i], pluginInstallDatas[i], emptyDependencies, emptyInjectedHooks
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         emit ModularAccountInitialized(_ENTRY_POINT);
@@ -210,12 +206,8 @@ contract UpgradeableModularAccount is
         uint256 callsLength = calls.length;
         results = new bytes[](callsLength);
 
-        for (uint256 i = 0; i < callsLength;) {
+        for (uint256 i = 0; i < callsLength; ++i) {
             results[i] = _exec(calls[i].target, calls[i].value, calls[i].data);
-
-            unchecked {
-                ++i;
-            }
         }
 
         _postNativeFunction(postExecHooks, postHookArgs);
@@ -453,7 +445,7 @@ contract UpgradeableModularAccount is
             );
 
             preUserOpValidationHooksLength = preUserOpValidationHooks.length;
-            for (uint256 i = 0; i < preUserOpValidationHooksLength;) {
+            for (uint256 i = 0; i < preUserOpValidationHooksLength; ++i) {
                 // FunctionReference preUserOpValidationHook = preUserOpValidationHooks[i];
 
                 if (preUserOpValidationHooks[i].isEmptyOrMagicValue()) {
@@ -474,10 +466,6 @@ contract UpgradeableModularAccount is
                     revert UnexpectedAggregator(plugin, functionId, address(uint160(currentValidationData)));
                 }
                 validationData = _coalescePreValidation(validationData, currentValidationData);
-
-                unchecked {
-                    ++i;
-                }
             }
         }
 
@@ -518,7 +506,7 @@ contract UpgradeableModularAccount is
             );
 
             uint256 preRuntimeValidationHooksLength = preRuntimeValidationHooks.length;
-            for (uint256 i = 0; i < preRuntimeValidationHooksLength;) {
+            for (uint256 i = 0; i < preRuntimeValidationHooksLength; ++i) {
                 FunctionReference preRuntimeValidationHook = preRuntimeValidationHooks[i];
 
                 if (preRuntimeValidationHook.isEmptyOrMagicValue()) {
@@ -532,10 +520,6 @@ contract UpgradeableModularAccount is
                 _updatePluginCallBufferFunctionId(callBuffer, functionId);
 
                 _executeRuntimePluginFunction(callBuffer, plugin, PreRuntimeValidationHookFailed.selector);
-
-                unchecked {
-                    ++i;
-                }
             }
         }
 
@@ -739,7 +723,7 @@ contract UpgradeableModularAccount is
         }
         _updatePluginCallBufferSelector(callBuffer, IPlugin.preExecutionHook.selector);
 
-        for (uint256 i = 0; i < preExecHooksLength;) {
+        for (uint256 i = 0; i < preExecHooksLength; ++i) {
             FunctionReference preExecHook = preHooks[i];
 
             if (preExecHook.isEmptyOrMagicValue()) {
@@ -763,10 +747,6 @@ contract UpgradeableModularAccount is
             if (postHooks[adjustedIndex].length > 0) {
                 hookReturnData[adjustedIndex] = abi.decode(_collectReturnData(), (bytes));
             }
-
-            unchecked {
-                ++i;
-            }
         }
     }
 
@@ -787,7 +767,7 @@ contract UpgradeableModularAccount is
             // We don't need to run each associated post-hook in reverse order, because the associativity we want
             // to maintain is reverse order of associated pre-hooks.
             uint256 postHooksToRunLength = postHooksToRun.length;
-            for (uint256 j = 0; j < postHooksToRunLength;) {
+            for (uint256 j = 0; j < postHooksToRunLength; ++j) {
                 (address plugin, uint8 functionId) = postHooksToRun[j].unpack();
 
                 // Execute the post hook with the current post hook args
@@ -796,12 +776,10 @@ contract UpgradeableModularAccount is
                 catch (bytes memory revertReason) {
                     revert PostExecHookReverted(plugin, functionId, revertReason);
                 }
-
-                unchecked {
-                    ++j;
-                }
             }
 
+            // Solidity v0.8.22 allows the optimizer to automatically remove checking on for loop increments, but
+            // not decrements. Therefore we need to use unchecked here to avoid the extra costs for checked math.
             unchecked {
                 --i;
             }
@@ -823,7 +801,7 @@ contract UpgradeableModularAccount is
         uint256 startingIndex
     ) internal view {
         uint256 preExecHooksLength = preExecHooks.length;
-        for (uint256 i = 0; i < preExecHooksLength;) {
+        for (uint256 i = 0; i < preExecHooksLength; ++i) {
             FunctionReference preExecHook = preExecHooks[i];
 
             // If the pre-exec hook has associated post hooks, cache them in the postHooks array.
@@ -834,10 +812,6 @@ contract UpgradeableModularAccount is
             }
             // In no-associated-post-hooks case, we're OK returning the default value, which is an array of length
             // 0.
-
-            unchecked {
-                ++i;
-            }
         }
     }
 

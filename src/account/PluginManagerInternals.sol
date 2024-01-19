@@ -355,7 +355,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
             revert InvalidDependenciesProvided();
         }
 
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             // Check the dependency interface id over the address of the dependency.
             (address dependencyAddr,) = dependencies[i].unpack();
 
@@ -371,32 +371,20 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
             // Increment the dependency's dependents counter.
             storage_.pluginData[dependencyAddr].dependentCount += 1;
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Update components according to the manifest.
 
         // Install execution functions
         length = manifest.executionFunctions.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             _setExecutionFunction(manifest.executionFunctions[i], plugin);
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Add installed plugin and selectors this plugin can call
         length = manifest.permittedExecutionSelectors.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             _enableExecFromPlugin(manifest.permittedExecutionSelectors[i], plugin, storage_);
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Add the permitted external calls to the account.
@@ -405,7 +393,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         } else {
             // Only store the specific permitted external calls if "permit any" flag was not set.
             length = manifest.permittedExternalCalls.length;
-            for (uint256 i = 0; i < length;) {
+            for (uint256 i = 0; i < length; ++i) {
                 ManifestExternalCallPermission memory externalCallPermission = manifest.permittedExternalCalls[i];
 
                 PermittedExternalCallData storage permittedExternalCallData =
@@ -417,17 +405,9 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     permittedExternalCallData.anySelectorPermitted = true;
                 } else {
                     uint256 externalContractSelectorsLength = externalCallPermission.selectors.length;
-                    for (uint256 j = 0; j < externalContractSelectorsLength;) {
+                    for (uint256 j = 0; j < externalContractSelectorsLength; ++j) {
                         permittedExternalCallData.permittedSelectors[externalCallPermission.selectors[j]] = true;
-
-                        unchecked {
-                            ++j;
-                        }
                     }
-                }
-
-                unchecked {
-                    ++i;
                 }
             }
         }
@@ -439,7 +419,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         assembly ("memory-safe") {
             sstore(injectedHooksArray.slot, length)
         }
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             InjectedHook memory hook = injectedHooks[i];
 
             // Check that the dependency is installed. This also blocks self-dependencies.
@@ -466,15 +446,11 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     ? FunctionReferenceLib.pack(hook.providingPlugin, hook.injectedHooksInfo.postExecHookFunctionId)
                     : FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Add user operation validation functions
         length = manifest.userOpValidationFunctions.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             ManifestAssociatedFunction memory mv = manifest.userOpValidationFunctions[i];
             _addUserOpValidationFunction(
                 mv.executionSelector,
@@ -482,15 +458,11 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     mv.associatedFunction, plugin, dependencies, ManifestAssociatedFunctionType.NONE
                 )
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Add runtime validation functions
         length = manifest.runtimeValidationFunctions.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             ManifestAssociatedFunction memory mv = manifest.runtimeValidationFunctions[i];
             _addRuntimeValidationFunction(
                 mv.executionSelector,
@@ -501,15 +473,11 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW
                 )
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Add pre user operation validation hooks
         length = manifest.preUserOpValidationHooks.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             ManifestAssociatedFunction memory mh = manifest.preUserOpValidationHooks[i];
             _addPreUserOpValidationHook(
                 mh.executionSelector,
@@ -520,15 +488,11 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY
                 )
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Add pre runtime validation hooks
         length = manifest.preRuntimeValidationHooks.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             ManifestAssociatedFunction memory mh = manifest.preRuntimeValidationHooks[i];
             _addPreRuntimeValidationHook(
                 mh.executionSelector,
@@ -539,14 +503,11 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY
                 )
             );
-            unchecked {
-                ++i;
-            }
         }
 
         // Add pre and post execution hooks
         length = manifest.executionHooks.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
             _addExecHooks(
                 mh.executionSelector,
@@ -557,15 +518,11 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     mh.postExecHook, plugin, dependencies, ManifestAssociatedFunctionType.NONE
                 )
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Add pre and post permitted call hooks
         length = manifest.permittedCallHooks.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             _addPermittedCallHooks(
                 manifest.permittedCallHooks[i].executionSelector,
                 plugin,
@@ -582,23 +539,16 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     ManifestAssociatedFunctionType.NONE
                 )
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Add new interface ids the plugin enabled for the account
         length = manifest.interfaceIds.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             bytes4 interfaceId = manifest.interfaceIds[i];
             if (interfaceId == type(IPlugin).interfaceId) {
                 revert IPluginInterfaceNotAllowed();
             }
             storage_.supportedInterfaces[interfaceId] += 1;
-            unchecked {
-                ++i;
-            }
         }
 
         // Add the plugin metadata to the account
@@ -612,7 +562,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
         // Call injected hooks' onHookApply after all setup, this is before calling plugin onInstall
         length = injectedHooks.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             InjectedHook memory hook = injectedHooks[i];
 
             /* solhint-disable no-empty-blocks */
@@ -625,10 +575,6 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
             // zero out hookApplyData to reduce log cost
             injectedHooks[i].hookApplyData = new bytes(0);
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Initialize the plugin storage for the account.
@@ -668,16 +614,12 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         // Remove this plugin as a dependent from its dependencies.
         FunctionReference[] memory dependencies = pluginData.dependencies;
         uint256 length = dependencies.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             FunctionReference dependency = dependencies[i];
             (address dependencyAddr,) = dependency.unpack();
 
             // Decrement the dependent count for the dependency function.
             storage_.pluginData[dependencyAddr].dependentCount -= 1;
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Remove the plugin metadata from the account.
@@ -687,7 +629,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
         // Remove pre and post permitted call hooks
         length = args.manifest.permittedCallHooks.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             _removePermittedCallHooks(
                 args.manifest.permittedCallHooks[i].executionSelector,
                 args.plugin,
@@ -704,15 +646,11 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     ManifestAssociatedFunctionType.NONE
                 )
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Remove pre and post execution function hooks
         length = args.manifest.executionHooks.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = args.manifest.executionHooks[i];
             _removeExecHooks(
                 mh.executionSelector,
@@ -723,15 +661,11 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     mh.postExecHook, args.plugin, dependencies, ManifestAssociatedFunctionType.NONE
                 )
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Remove pre runtime validation function hooks
         length = args.manifest.preRuntimeValidationHooks.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             ManifestAssociatedFunction memory mh = args.manifest.preRuntimeValidationHooks[i];
 
             _removePreRuntimeValidationHook(
@@ -743,15 +677,11 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY
                 )
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Remove pre user op validation function hooks
         length = args.manifest.preUserOpValidationHooks.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             ManifestAssociatedFunction memory mh = args.manifest.preUserOpValidationHooks[i];
 
             _removePreUserOpValidationHook(
@@ -763,34 +693,22 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY
                 )
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Remove runtime validation function hooks
         length = args.manifest.runtimeValidationFunctions.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             bytes4 executionSelector = args.manifest.runtimeValidationFunctions[i].executionSelector;
             storage_.selectorData[executionSelector].runtimeValidation =
                 FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE;
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Remove user op validation function hooks
         length = args.manifest.userOpValidationFunctions.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             bytes4 executionSelector = args.manifest.userOpValidationFunctions[i].executionSelector;
             storage_.selectorData[executionSelector].userOpValidation =
                 FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE;
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Remove permitted external call permissions, anyExternalAddressPermitted is cleared when pluginData being
@@ -798,7 +716,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         if (!args.manifest.permitAnyExternalAddress) {
             // Only clear the specific permitted external calls if "permit any" flag was not set.
             length = args.manifest.permittedExternalCalls.length;
-            for (uint256 i = 0; i < length;) {
+            for (uint256 i = 0; i < length; ++i) {
                 ManifestExternalCallPermission memory externalCallPermission =
                     args.manifest.permittedExternalCalls[i];
 
@@ -812,24 +730,16 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     permittedExternalCallData.anySelectorPermitted = false;
                 } else {
                     uint256 externalContractSelectorsLength = externalCallPermission.selectors.length;
-                    for (uint256 j = 0; j < externalContractSelectorsLength;) {
+                    for (uint256 j = 0; j < externalContractSelectorsLength; ++j) {
                         permittedExternalCallData.permittedSelectors[externalCallPermission.selectors[j]] = false;
-
-                        unchecked {
-                            ++j;
-                        }
                     }
-                }
-
-                unchecked {
-                    ++i;
                 }
             }
         }
 
         // Remove injected hooks
         length = pluginData.injectedHooks.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             StoredInjectedHook memory hook = pluginData.injectedHooks[i];
 
             // Decrement the dependent count for the plugin providing the hook.
@@ -843,41 +753,25 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                     ? FunctionReferenceLib.pack(hook.providingPlugin, hook.postExecHookFunctionId)
                     : FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE
             );
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Remove permitted account execution function call permissions
         length = args.manifest.permittedExecutionSelectors.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             storage_.permittedCalls[_getPermittedCallKey(args.plugin, args.manifest.permittedExecutionSelectors[i])]
                 .callPermitted = false;
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Remove installed execution function
         length = args.manifest.executionFunctions.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             storage_.selectorData[args.manifest.executionFunctions[i]].plugin = address(0);
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Decrease supported interface ids' counters
         length = args.manifest.interfaceIds.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             storage_.supportedInterfaces[args.manifest.interfaceIds[i]] -= 1;
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Call onHookUnapply on all injected hooks
@@ -887,7 +781,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         if (hasUnapplyHookData && hookUnapplyData.length != length) {
             revert ArrayLengthMismatch();
         }
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             StoredInjectedHook memory hook = pluginData.injectedHooks[i];
 
             /* solhint-disable no-empty-blocks */
@@ -907,10 +801,6 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                 emit PluginIgnoredHookUnapplyCallbackFailure(args.plugin, hook.providingPlugin);
             }
             /* solhint-enable no-empty-blocks */
-
-            unchecked {
-                ++i;
-            }
         }
 
         // Clear the plugin storage for the account.

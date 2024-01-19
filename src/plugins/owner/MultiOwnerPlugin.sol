@@ -373,14 +373,10 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
         address[] memory ownersToAdd
     ) private {
         uint256 length = ownersToAdd.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             // Catches address(0), duplicated addresses
             if (!ownerSet.tryAdd(associated, CastLib.toSetValue(ownersToAdd[i]))) {
                 revert InvalidOwner(ownersToAdd[i]);
-            }
-
-            unchecked {
-                ++i;
             }
         }
     }
@@ -391,13 +387,9 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
         address[] memory ownersToRemove
     ) private {
         uint256 length = ownersToRemove.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             if (!ownerSet.tryRemove(associated, CastLib.toSetValue(ownersToRemove[i]))) {
                 revert OwnerDoesNotExist(ownersToRemove[i]);
-            }
-
-            unchecked {
-                ++i;
             }
         }
     }
@@ -409,13 +401,9 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
     {
         address[] memory owners_ = ownersOf(associated);
         uint256 length = owners_.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             if (SignatureChecker.isValidERC1271SignatureNow(owners_[i], digest, signature)) {
                 return true;
-            }
-
-            unchecked {
-                ++i;
             }
         }
         return false;
