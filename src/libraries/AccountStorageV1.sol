@@ -114,7 +114,7 @@ contract AccountStorageV1 {
     bytes32 internal constant _V1_STORAGE_SLOT = 0xade46bbfcf6f898a43d541e42556d456ca0bf9b326df8debc0f29d3f811a0300;
 
     function _getAccountStorage() internal pure returns (AccountStorage storage storage_) {
-        assembly {
+        assembly ("memory-safe") {
             storage_.slot := _V1_STORAGE_SLOT
         }
     }
