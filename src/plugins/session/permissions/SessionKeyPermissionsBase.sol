@@ -80,7 +80,7 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPlugin {
 
     // ContractData (128 bytes)
     // 12 padding zeros || associated address || CONTRACT_DATA_PREFIX || batch index || sessionKeyId
-    // || contractAddress  || 12 padding zero bytes
+    // || 12 padding zero bytes || contractAddress
 
     // FunctionData (128 bytes)
     // 12 padding zeros || associated address || FUNCTION_DATA_PREFIX || batch index || sessionKeyId || selector
@@ -154,7 +154,7 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPlugin {
             PluginStorageLib.allocateAssociatedStorageKey(associated, prefixAndBatchIndex, 2);
 
         bytes32 contractDataKey1 = SessionKeyId.unwrap(id);
-        bytes32 contractDataKey2 = bytes32(bytes20(contractAddress));
+        bytes32 contractDataKey2 = bytes32(uint256(uint160(contractAddress)));
         return _toContractData(
             PluginStorageLib.associatedStorageLookup(associatedStorageKey, contractDataKey1, contractDataKey2)
         );
