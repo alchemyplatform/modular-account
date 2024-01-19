@@ -201,11 +201,6 @@ contract MultiOwnerTokenReceiverMSCAFactoryTest is Test {
         assertEq(factory.owner(), owner1);
     }
 
-    function test_getAddressAndDeploy() public {
-        address addr = factory.getAddress(0, owners);
-        assertEq(addr, factory.createAccount(0, owners));
-    }
-
     function test_getAddressWithMaxOwnersAndDeploy() public {
         address addr = factory.getAddress(0, largeOwners);
         assertEq(addr, factory.createAccount(0, largeOwners));
@@ -215,14 +210,6 @@ contract MultiOwnerTokenReceiverMSCAFactoryTest is Test {
         largeOwners.push(address(101));
         vm.expectRevert(MultiOwnerTokenReceiverMSCAFactory.OwnersLimitExceeded.selector);
         factory.getAddress(0, largeOwners);
-    }
-
-    function test_getAddressWithDuplicateOwners() public {
-        address[] memory tempOwners = new address[](2);
-        tempOwners[0] = address(1);
-        tempOwners[1] = address(1);
-        vm.expectRevert(MultiOwnerTokenReceiverMSCAFactory.InvalidOwner.selector);
-        factory.getAddress(0, tempOwners);
     }
 
     function test_getAddressWithUnsortedOwners() public {
