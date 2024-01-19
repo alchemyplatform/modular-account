@@ -7,15 +7,11 @@ library FactoryHelpers {
     /// @return bool if the owners array is valid
     function isValidOwnerArray(address[] calldata owners) internal pure returns (bool) {
         address currentOwnerValue;
-        for (uint256 i = 0; i < owners.length;) {
+        for (uint256 i = 0; i < owners.length; ++i) {
             if (owners[i] <= currentOwnerValue) {
                 return false;
             }
             currentOwnerValue = owners[i];
-
-            unchecked {
-                ++i;
-            }
         }
         return true;
     }

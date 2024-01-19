@@ -26,12 +26,8 @@ library CastLib {
         }
 
         uint256 length = values.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             valuesBytes[i] >>= 96;
-
-            unchecked {
-                i++;
-            }
         }
 
         assembly ("memory-safe") {

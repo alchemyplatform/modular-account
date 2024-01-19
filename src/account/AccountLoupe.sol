@@ -85,10 +85,9 @@ abstract contract AccountLoupe is IAccountLoupe, AccountStorageV1 {
         uint256 maxExecHooksLength = postOnlyExecHooksLength;
 
         // There can only be as many associated post hooks to run as there are pre hooks.
-        for (uint256 i = 0; i < preExecHooksLength;) {
+        for (uint256 i = 0; i < preExecHooksLength; ++i) {
             unchecked {
                 maxExecHooksLength += storedHooks.preHooks.getCount(CastLib.toSetValue(preExecHooks[i]));
-                ++i;
             }
         }
 
@@ -96,19 +95,18 @@ abstract contract AccountLoupe is IAccountLoupe, AccountStorageV1 {
         execHooks = new ExecutionHooks[](maxExecHooksLength);
         uint256 actualExecHooksLength = 0;
 
-        for (uint256 i = 0; i < preExecHooksLength;) {
+        for (uint256 i = 0; i < preExecHooksLength; ++i) {
             FunctionReference[] memory associatedPostExecHooks =
                 CastLib.toFunctionReferenceArray(storedHooks.associatedPostHooks[preExecHooks[i]].getAll());
             uint256 associatedPostExecHooksLength = associatedPostExecHooks.length;
 
             if (associatedPostExecHooksLength > 0) {
-                for (uint256 j = 0; j < associatedPostExecHooksLength;) {
+                for (uint256 j = 0; j < associatedPostExecHooksLength; ++j) {
                     execHooks[actualExecHooksLength].preExecHook = preExecHooks[i];
                     execHooks[actualExecHooksLength].postExecHook = associatedPostExecHooks[j];
 
                     unchecked {
                         ++actualExecHooksLength;
-                        ++j;
                     }
                 }
             } else {
@@ -118,18 +116,13 @@ abstract contract AccountLoupe is IAccountLoupe, AccountStorageV1 {
                     ++actualExecHooksLength;
                 }
             }
-
-            unchecked {
-                ++i;
-            }
         }
 
-        for (uint256 i = 0; i < postOnlyExecHooksLength;) {
+        for (uint256 i = 0; i < postOnlyExecHooksLength; ++i) {
             execHooks[actualExecHooksLength].postExecHook = postOnlyExecHooks[i];
 
             unchecked {
                 ++actualExecHooksLength;
-                ++i;
             }
         }
 

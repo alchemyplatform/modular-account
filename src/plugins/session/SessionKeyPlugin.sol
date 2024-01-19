@@ -86,14 +86,10 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
         // Unset the key id for all session keys.
         address[] memory sessionKeys = CastLib.toAddressArray(_sessionKeys.getAll(msg.sender));
         uint256 length = sessionKeys.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             _updateSessionKeyId(msg.sender, sessionKeys[i], SessionKeyId.wrap(bytes32(0)));
 
             emit SessionKeyRemoved(msg.sender, sessionKeys[i]);
-
-            unchecked {
-                ++i;
-            }
         }
 
         _sessionKeys.clear(msg.sender);
@@ -116,14 +112,10 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
         uint256 callsLength = calls.length;
         bytes[] memory results = new bytes[](callsLength);
 
-        for (uint256 i = 0; i < callsLength;) {
+        for (uint256 i = 0; i < callsLength; ++i) {
             Call calldata call = calls[i];
 
             results[i] = IPluginExecutor(msg.sender).executeFromPluginExternal(call.target, call.value, call.data);
-
-            unchecked {
-                ++i;
-            }
         }
 
         return results;
@@ -214,16 +206,12 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
 
         uint256 length = sessionKeys.length;
         bytes32 predecessor = SENTINEL_VALUE;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             if (sessionKeys[i] == sessionKey) {
                 return predecessor;
             }
 
             predecessor = bytes32(bytes20(sessionKeys[i]));
-
-            unchecked {
-                ++i;
-            }
         }
 
         revert SessionKeyNotFound(sessionKey);
@@ -372,14 +360,10 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
         address[] memory sessionKeysToAdd = abi.decode(data, (address[]));
 
         uint256 length = sessionKeysToAdd.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             // Use the public function to add the session key, set the key id, and emit the event.
             // Note that no tags are set when adding keys with this method.
             addSessionKey(sessionKeysToAdd[i], bytes32(0));
-
-            unchecked {
-                ++i;
-            }
         }
     }
 

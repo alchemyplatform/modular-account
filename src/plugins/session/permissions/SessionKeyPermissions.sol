@@ -25,12 +25,8 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         (SessionKeyData storage sessionKeyData, SessionKeyId keyId) = _loadSessionKey(msg.sender, sessionKey);
 
         uint256 length = updates.length;
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ++i) {
             _performSessionKeyPermissionsUpdate(keyId, sessionKeyData, updates[i]);
-
-            unchecked {
-                ++i;
-            }
         }
 
         emit PermissionsUpdated(msg.sender, sessionKey, updates);
@@ -72,15 +68,11 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         bool validationSuccess = callsLength > 0;
         {
             ContractAccessControlType accessControlType = sessionKeyData.contractAccessControlType;
-            for (uint256 i = 0; i < callsLength;) {
+            for (uint256 i = 0; i < callsLength; ++i) {
                 Call memory call = calls[i];
                 nativeTokenSpend += call.value;
                 validationSuccess =
                     validationSuccess && _checkCallPermissions(accessControlType, keyId, call.target, call.data);
-
-                unchecked {
-                    ++i;
-                }
             }
         }
 
@@ -188,7 +180,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         SessionKeyId keyId = _sessionKeyIdOf(msg.sender, sessionKey);
         SessionKeyData storage sessionKeyData = _sessionKeyDataOf(msg.sender, keyId);
 
-        for (uint256 i = 0; i < callsLength;) {
+        for (uint256 i = 0; i < callsLength; ++i) {
             Call memory call = calls[i];
             newNativeTokenUsage += call.value;
 
@@ -205,10 +197,6 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
                 ) {
                     revert ERC20SpendLimitExceeded(msg.sender, sessionKey, call.target);
                 }
-            }
-
-            unchecked {
-                ++i;
             }
         }
 
