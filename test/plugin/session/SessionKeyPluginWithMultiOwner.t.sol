@@ -203,7 +203,6 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         address[] memory sessionKeys = sessionKeyPlugin.sessionKeysOf(address(account1));
         assertEq(sessionKeys.length, addressCount);
         for (uint256 i = 0; i < addressCount; i++) {
-            // todo: check order here
             // Invert the indexing because the view function will return it in reverse order
             assertEq(sessionKeys[sessionKeys.length - 1 - i], sessionKeysToAdd[i]);
             assertTrue(sessionKeyPlugin.isSessionKeyOf(address(account1), sessionKeysToAdd[i]));
