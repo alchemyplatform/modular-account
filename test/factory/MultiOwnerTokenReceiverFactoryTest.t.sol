@@ -33,6 +33,7 @@ contract MultiOwnerTokenReceiverMSCAFactoryTest is Test {
     address public nftHolder = address(3);
 
     address[] public owners;
+    address[] public largeOwners;
     uint256[] public tokenIds;
     uint256[] public tokenAmts;
     uint256[] public zeroTokenAmts;
@@ -40,6 +41,7 @@ contract MultiOwnerTokenReceiverMSCAFactoryTest is Test {
     uint256 internal constant _TOKEN_AMOUNT = 1 ether;
     uint256 internal constant _TOKEN_ID = 0;
     uint256 internal constant _BATCH_TOKEN_IDS = 5;
+    uint256 internal constant _MAX_OWNERS_ON_CREATION = 100;
 
     bytes32 internal constant _IMPLEMENTATION_SLOT =
         0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
@@ -77,6 +79,10 @@ contract MultiOwnerTokenReceiverMSCAFactoryTest is Test {
             tokenIds.push(i);
             tokenAmts.push(_TOKEN_AMOUNT);
             zeroTokenAmts.push(0);
+        }
+
+        for (uint160 i = 0; i < _MAX_OWNERS_ON_CREATION; i++) {
+            largeOwners.push(address(i + 1));
         }
     }
 
@@ -193,6 +199,41 @@ contract MultiOwnerTokenReceiverMSCAFactoryTest is Test {
         vm.prank(owner1);
         factory.acceptOwnership();
         assertEq(factory.owner(), owner1);
+    }
+
+    function test_getAddressWithMaxOwnersAndDeploy() public {
+        address addr = factory.getAddress(0, largeOwners);
+        assertEq(addr, factory.createAccount(0, largeOwners));
+    }
+
+    function test_getAddressWithTooManyOwners() public {
+        largeOwners.push(address(101));
+        vm.expectRevert(MultiOwnerTokenReceiverMSCAFactory.OwnersLimitExceeded.selector);
+        factory.getAddress(0, largeOwners);
+    }
+
+    function test_getAddressWithUnsortedOwners() public {
+        address[] memory tempOwners = new address[](2);
+        tempOwners[0] = address(2);
+        tempOwners[1] = address(1);
+        vm.expectRevert(MultiOwnerTokenReceiverMSCAFactory.InvalidOwner.selector);
+        factory.getAddress(0, tempOwners);
+    }
+
+    function test_deployWithDuplicateOwners() public {
+        address[] memory tempOwners = new address[](2);
+        tempOwners[0] = address(1);
+        tempOwners[1] = address(1);
+        vm.expectRevert(MultiOwnerTokenReceiverMSCAFactory.InvalidOwner.selector);
+        factory.createAccount(0, tempOwners);
+    }
+
+    function test_deployWithUnsortedOwners() public {
+        address[] memory tempOwners = new address[](2);
+        tempOwners[0] = address(2);
+        tempOwners[1] = address(1);
+        vm.expectRevert(MultiOwnerTokenReceiverMSCAFactory.InvalidOwner.selector);
+        factory.createAccount(0, tempOwners);
     }
 
     // to receive funds from withdraw

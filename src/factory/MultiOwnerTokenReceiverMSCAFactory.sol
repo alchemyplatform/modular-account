@@ -17,15 +17,17 @@ import {FactoryHelpers} from "../helpers/FactoryHelpers.sol";
 /// @dev There is a reliance on the assumption that the plugin manifest will remain static, following ERC-6900. If
 /// this assumption is broken then account deployments would be bricked.
 contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
+    IEntryPoint public immutable ENTRYPOINT;
     address public immutable MULTI_OWNER_PLUGIN;
     address public immutable TOKEN_RECEIVER_PLUGIN;
     address public immutable IMPL;
     bytes32 internal immutable _MULTI_OWNER_PLUGIN_MANIFEST_HASH;
     bytes32 internal immutable _TOKEN_RECEIVER_PLUGIN_MANIFEST_HASH;
-    IEntryPoint public immutable ENTRYPOINT;
+    uint256 internal constant _MAX_OWNERS_ON_CREATION = 100;
 
-    error OwnersArrayEmpty();
     error InvalidOwner();
+    error OwnersArrayEmpty();
+    error OwnersLimitExceeded();
     error TransferFailed();
 
     /// @notice Constructor for the factory
@@ -128,9 +130,15 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
     /// @param owners array of addresses of the owner
     /// @return address of counterfactual account
     function getAddress(uint256 salt, address[] calldata owners) external view returns (address) {
-        // array can't be empty
+        // Array can't be empty.
         if (owners.length == 0) {
             revert OwnersArrayEmpty();
+        }
+
+        // This protects against counterfactuals being generated against an exceptionally large number of owners
+        // that may exceed the block gas limit when actually creating the account.
+        if (owners.length > _MAX_OWNERS_ON_CREATION) {
+            revert OwnersLimitExceeded();
         }
 
         if (!FactoryHelpers.isValidOwnerArray(owners)) {
