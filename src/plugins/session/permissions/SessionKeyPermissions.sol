@@ -128,7 +128,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         // otherwise a packed struct of the aggregator address (0 here), and two
         // 6-byte timestamps indicating the start and end times at which the op
         // is valid.
-        return uint160(!validationSuccess ? 1 : 0) | (uint256(validUntil) << 160)
+        return uint160(validationSuccess ? 0 : 1) | (uint256(validUntil) << 160)
             | (uint256(currentValidAfter) << (208));
     }
 
