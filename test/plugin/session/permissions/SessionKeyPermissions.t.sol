@@ -617,7 +617,7 @@ contract SessionKeyPermissionsTest is Test {
 
         // Uninstall the session key plugin
         vm.prank(owner1);
-        account1.uninstallPlugin(address(sessionKeyPlugin), "", "", new bytes[](0));
+        account1.uninstallPlugin(address(sessionKeyPlugin), "", "");
 
         // Reinstall the session key plugin.
         vm.startPrank(owner1);
@@ -625,8 +625,7 @@ contract SessionKeyPermissionsTest is Test {
             plugin: address(sessionKeyPlugin),
             manifestHash: keccak256(abi.encode(sessionKeyPlugin.pluginManifest())),
             pluginInitData: abi.encode(new address[](0), new bytes32[](0), new bytes[][](0)),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
         vm.stopPrank();
 
