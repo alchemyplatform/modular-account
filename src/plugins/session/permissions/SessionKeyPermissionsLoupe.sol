@@ -99,14 +99,13 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         external
         view
         override
-        returns (SpendLimitInfo memory, bool)
+        returns (SpendLimitInfo memory info, bool shouldReset)
     {
         (SessionKeyData storage sessionKeyData,) = _loadSessionKey(account, sessionKey);
 
         bool hasLimit = sessionKeyData.hasGasLimit;
-        bool shouldReset = sessionKeyData.gasLimitResetThisBundle;
+        shouldReset = sessionKeyData.gasLimitResetThisBundle;
 
-        SpendLimitInfo memory info;
         if (hasLimit) {
             info.hasLimit = true;
             info.limit = sessionKeyData.gasLimit.limitAmount;
@@ -116,6 +115,5 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         }
         // If the limit is bypassed, report false for hasLimit and zeros for the other fields.
         // These are the default values for SpendLimitInfo, so we don't need to set them explicitly.
-        return (info, shouldReset);
     }
 }
