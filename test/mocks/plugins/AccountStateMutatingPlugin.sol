@@ -74,7 +74,7 @@ contract AccountStateMutatingPlugin is BaseTestPlugin {
         } else if (where == FunctionId.POST_EXECUTION_HOOK) {
             postExecCallback = callback;
         } else {
-            revert NotImplemented();
+            revert NotImplemented(msg.sig, uint8(where));
         }
     }
 
@@ -216,7 +216,7 @@ contract AccountStateMutatingPlugin is BaseTestPlugin {
             _performCallbackIfNonempty(preUOValidationCallback);
             return 0;
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     function userOpValidationFunction(uint8 functionId, UserOperation calldata, bytes32)
@@ -228,7 +228,7 @@ contract AccountStateMutatingPlugin is BaseTestPlugin {
             _performCallbackIfNonempty(UOValidationCallback);
             return 0;
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     function preRuntimeValidationHook(uint8 functionId, address, uint256, bytes calldata) external override {
@@ -236,7 +236,7 @@ contract AccountStateMutatingPlugin is BaseTestPlugin {
             _performCallbackIfNonempty(preRTValidationCallback);
             return;
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     function runtimeValidationFunction(uint8 functionId, address, uint256, bytes calldata) external override {
@@ -244,7 +244,7 @@ contract AccountStateMutatingPlugin is BaseTestPlugin {
             _performCallbackIfNonempty(RTValidationCallback);
             return;
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     function preExecutionHook(uint8 functionId, address, uint256, bytes calldata)
@@ -256,7 +256,7 @@ contract AccountStateMutatingPlugin is BaseTestPlugin {
             _performCallbackIfNonempty(preExecCallback);
             return "";
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     function executionFunction() external {
@@ -268,7 +268,7 @@ contract AccountStateMutatingPlugin is BaseTestPlugin {
             _performCallbackIfNonempty(postExecCallback);
             return;
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     function _performCallbackIfNonempty(bytes storage callback) internal {

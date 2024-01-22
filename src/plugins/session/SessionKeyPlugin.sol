@@ -181,7 +181,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
             }
             revert InvalidSignature(sessionKey);
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     /// @inheritdoc BasePlugin

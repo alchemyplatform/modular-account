@@ -56,7 +56,7 @@ contract ComprehensivePlugin is BaseTestPlugin {
         } else if (functionId == uint8(FunctionId.PRE_USER_OP_VALIDATION_HOOK_2)) {
             return 0;
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     function userOpValidationFunction(uint8 functionId, UserOperation calldata, bytes32)
@@ -68,7 +68,7 @@ contract ComprehensivePlugin is BaseTestPlugin {
         if (functionId == uint8(FunctionId.USER_OP_VALIDATION)) {
             return 0;
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     function preRuntimeValidationHook(uint8 functionId, address, uint256, bytes calldata) external pure override {
@@ -77,7 +77,7 @@ contract ComprehensivePlugin is BaseTestPlugin {
         } else if (functionId == uint8(FunctionId.PRE_RUNTIME_VALIDATION_HOOK_2)) {
             return;
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     function runtimeValidationFunction(uint8 functionId, address, uint256, bytes calldata)
@@ -88,7 +88,7 @@ contract ComprehensivePlugin is BaseTestPlugin {
         if (functionId == uint8(FunctionId.RUNTIME_VALIDATION)) {
             return;
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     function preExecutionHook(uint8 functionId, address, uint256, bytes calldata)
@@ -102,7 +102,7 @@ contract ComprehensivePlugin is BaseTestPlugin {
         } else if (functionId == uint8(FunctionId.PRE_PERMITTED_CALL_EXECUTION_HOOK)) {
             return "";
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     function postExecutionHook(uint8 functionId, bytes calldata) external pure override {
@@ -111,7 +111,7 @@ contract ComprehensivePlugin is BaseTestPlugin {
         } else if (functionId == uint8(FunctionId.POST_PERMITTED_CALL_EXECUTION_HOOK)) {
             return;
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     function pluginManifest() external pure override returns (PluginManifest memory) {
