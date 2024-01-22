@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.22;
 
 library FactoryHelpers {
     /// @dev The owner array must be in strictly ascending order and not include the 0 address.
