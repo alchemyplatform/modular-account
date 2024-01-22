@@ -224,10 +224,8 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                 }
             }
         } else {
-            if (postExecHook == FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
-                // both pre and post hooks cannot be null
-                revert NullFunctionReference();
-            }
+            // both pre and post hooks cannot be null
+            _assertNotNullFunction(postExecHook);
 
             if (!hooks.postOnlyHooks.tryIncrement(CastLib.toSetValue(postExecHook))) {
                 revert DuplicateHookLimitExceeded(selector, postExecHook);
