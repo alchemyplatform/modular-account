@@ -48,6 +48,8 @@ contract SessionKeyPermissionsTest is Test {
 
     Counter counter2;
 
+    event PermissionsUpdated(address indexed account, address indexed sessionKey, bytes[] updates);
+
     function setUp() public {
         entryPoint = IEntryPoint(address(new EntryPoint()));
         (owner1, owner1Key) = makeAddrAndKey("owner1");
@@ -90,7 +92,7 @@ contract SessionKeyPermissionsTest is Test {
         account1.installPlugin({
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
-            pluginInitData: abi.encode(new address[](0)),
+            pluginInitData: abi.encode(new address[](0), new bytes32[](0), new bytes[][](0)),
             dependencies: dependencies,
             injectedHooks: new IPluginManager.InjectedHook[](0)
         });
@@ -99,7 +101,7 @@ contract SessionKeyPermissionsTest is Test {
         (sessionKey1, sessionKey1Private) = makeAddrAndKey("sessionKey1");
 
         vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0), new bytes[](0));
 
         // Initialize the interaction targets
         counter1 = new Counter();
@@ -557,7 +559,7 @@ contract SessionKeyPermissionsTest is Test {
         address sessionKey2 = makeAddr("sessionKey2");
 
         vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey2, bytes32(0));
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey2, bytes32(0), new bytes[](0));
 
         ISessionKeyPlugin.ContractAccessControlType accessControlType1;
         ISessionKeyPlugin.ContractAccessControlType accessControlType2;
@@ -624,7 +626,7 @@ contract SessionKeyPermissionsTest is Test {
         account1.installPlugin({
             plugin: address(sessionKeyPlugin),
             manifestHash: keccak256(abi.encode(sessionKeyPlugin.pluginManifest())),
-            pluginInitData: abi.encode(new address[](0)),
+            pluginInitData: abi.encode(new address[](0), new bytes32[](0), new bytes[][](0)),
             dependencies: dependencies,
             injectedHooks: new IPluginManager.InjectedHook[](0)
         });
@@ -632,12 +634,44 @@ contract SessionKeyPermissionsTest is Test {
 
         // Re-add the session key
         vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0), new bytes[](0));
 
         // Assert that the time range is reset
         (returnedStartTime, returnedEndTime) = sessionKeyPlugin.getKeyTimeRange(address(account1), sessionKey1);
         assertEq(returnedStartTime, uint48(0));
         assertEq(returnedEndTime, uint48(0));
+    }
+
+    function testFuzz_initialSessionKeysWithPermissions(uint256 seed) public {
+        // Uninstall the plugin
+        vm.prank(owner1);
+        account1.uninstallPlugin(address(sessionKeyPlugin), "", "", new bytes[](0));
+
+        address[] memory sessionKeys = _generateRandomAddresses(seed);
+        bytes32[] memory tags = new bytes32[](sessionKeys.length);
+        bytes[][] memory sessionKeyPermissions = new bytes[][](sessionKeys.length);
+        for (uint256 i = 0; i < sessionKeys.length; i++) {
+            uint256 modifiedSeed;
+            unchecked {
+                modifiedSeed = seed + i;
+            }
+            sessionKeyPermissions[i] = _generateRandomPermissionUpdates(modifiedSeed);
+        }
+
+        // Reinstall the plugin with the session keys
+        for (uint256 i = 0; i < sessionKeys.length; i++) {
+            vm.expectEmit(true, true, true, true);
+            emit PermissionsUpdated(address(account1), sessionKeys[i], sessionKeyPermissions[i]);
+        }
+        bytes32 manifestHash = keccak256(abi.encode(sessionKeyPlugin.pluginManifest()));
+        vm.prank(owner1);
+        account1.installPlugin({
+            plugin: address(sessionKeyPlugin),
+            manifestHash: manifestHash,
+            pluginInitData: abi.encode(sessionKeys, tags, sessionKeyPermissions),
+            dependencies: dependencies,
+            injectedHooks: new IPluginManager.InjectedHook[](0)
+        });
     }
 
     function _runSessionKeyExecUserOp(
@@ -676,5 +710,61 @@ contract SessionKeyPermissionsTest is Test {
             vm.expectRevert(revertReason);
         }
         entryPoint.handleOps(userOps, beneficiary);
+    }
+
+    function _generateRandomAddresses(uint256 seed) internal returns (address[] memory keys) {
+        uint256 addressCount = (seed % 5) + 1;
+
+        keys = new address[](addressCount);
+        for (uint256 i = 0; i < addressCount; i++) {
+            keys[i] = makeAddr(string.concat(vm.toString(seed), "sessionKey", vm.toString(i)));
+        }
+    }
+
+    function _generateRandomPermissionUpdates(uint256 seed) internal returns (bytes[] memory updates) {
+        uint256 updateCount = (seed % 5) + 1;
+
+        updates = new bytes[](updateCount);
+
+        for (uint256 i = 0; i < updateCount; i++) {
+            uint256 updateType = (seed % 6) + 1;
+            if (updateType == 1) {
+                // Set access list type
+                uint256 accessListType = (seed % 3);
+                updates[i] = abi.encodeCall(
+                    ISessionKeyPermissionsUpdates.setAccessListType,
+                    ISessionKeyPlugin.ContractAccessControlType(accessListType)
+                );
+            } else if (updateType == 2) {
+                // Update access list address entry
+                address addr = makeAddr(string.concat(vm.toString(seed), "addr", vm.toString(i)));
+                bool isOnList = (seed % 2) == 0;
+                bool checkSelectors = (seed % 3) == 0;
+                updates[i] = abi.encodeCall(
+                    ISessionKeyPermissionsUpdates.updateAccessListAddressEntry, (addr, isOnList, checkSelectors)
+                );
+            } else if (updateType == 3) {
+                // Update access list function entry
+                address addr = makeAddr(string.concat(vm.toString(seed), "addr", vm.toString(i)));
+                bytes4 selector = bytes4(uint32(seed));
+                bool isOnList = (seed % 2) == 0;
+                updates[i] = abi.encodeCall(
+                    ISessionKeyPermissionsUpdates.updateAccessListFunctionEntry, (addr, selector, isOnList)
+                );
+            } else if (updateType == 4) {
+                // Set time range
+                uint48 startTime = uint48(seed);
+                uint48 endTime = uint48(seed << 2);
+                updates[i] = abi.encodeCall(ISessionKeyPermissionsUpdates.updateTimeRange, (startTime, endTime));
+            } else if (updateType == 5) {
+                // Set required paymaster
+                address paymaster = makeAddr(string.concat(vm.toString(seed), "paymaster", vm.toString(i)));
+                updates[i] = abi.encodeCall(ISessionKeyPermissionsUpdates.setRequiredPaymaster, (paymaster));
+            } else if (updateType == 6) {
+                // Set native token spend limit
+                uint256 limit = seed;
+                updates[i] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (limit, 0));
+            }
+        }
     }
 }

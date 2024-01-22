@@ -59,6 +59,7 @@ interface ISessionKeyPlugin {
     error InvalidPermissionsUpdate();
     error InvalidToken();
     error NativeTokenSpendLimitExceeded(address account, address sessionKey);
+    error LengthMismatch();
 
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    Execution functions    ┃
@@ -75,7 +76,8 @@ interface ISessionKeyPlugin {
     /// @notice Add a session key.
     /// @param sessionKey The session key to register.
     /// @param tag An optional tag that can be used to identify the key.
-    function addSessionKey(address sessionKey, bytes32 tag) external;
+    /// @param permissionUpdates The initial permission updates to apply to the key.
+    function addSessionKey(address sessionKey, bytes32 tag, bytes[] calldata permissionUpdates) external;
 
     /// @notice Remove a session key.
     /// @param sessionKey The session key to remove.

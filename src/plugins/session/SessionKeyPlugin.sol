@@ -122,7 +122,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
     }
 
     /// @inheritdoc ISessionKeyPlugin
-    function addSessionKey(address sessionKey, bytes32 tag) public override {
+    function addSessionKey(address sessionKey, bytes32 tag, bytes[] calldata permissionUpdates) public override {
         if (!_sessionKeys.tryAdd(msg.sender, CastLib.toSetValue(sessionKey))) {
             // This check ensures no duplicate keys and that the session key is not the zero address.
             revert InvalidSessionKey(sessionKey);
@@ -135,6 +135,11 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
         _updateSessionKeyId(msg.sender, sessionKey, SessionKeyId.wrap(bytes32(++_keyIdCounter[msg.sender])));
 
         emit SessionKeyAdded(msg.sender, sessionKey, tag);
+
+        if (permissionUpdates.length > 0) {
+            // Call the public function internally to update the permissions.
+            updateKeyPermissions(sessionKey, permissionUpdates);
+        }
     }
 
     /// @inheritdoc ISessionKeyPlugin
@@ -357,13 +362,39 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
 
     /// @inheritdoc BasePlugin
     function _onInstall(bytes calldata data) internal override isNotInitialized(msg.sender) {
-        address[] memory sessionKeysToAdd = abi.decode(data, (address[]));
+        (address[] memory sessionKeysToAdd, bytes32[] memory tags,) =
+            abi.decode(data, (address[], bytes32[], bytes[][]));
+
+        // Permission updates depend on `calldata` types for the updates, in order to use array slices.
+        // Unfortunately, solidity does not support `abi.decode` outputting calldata types, so we do it manually.
+        // The prior `abi.decode` call validates that `data` has a valid encoding of a `bytes[][]` at this
+        // position, so we can load in the offset and length of the `bytes[][]` directly.
+        bytes[][] calldata permissionUpdates;
+        assembly ("memory-safe") {
+            // Get the offset of the bytes[][] used for permissions updates. The offset for this field is stored at
+            // the third word of `data`. Note that `data.offset` refers to the start of the actual data contents,
+            // one word after the length.
+            let permissionUpdatesRelativeOffset := calldataload(add(data.offset, 0x40))
+            // We now have the relative offset of the bytes[][] in `data`. We need to add the starting offset
+            // (aka `data.offset`) to get the absolute offset.
+            let permissionUpdatesLengthOffset := add(data.offset, permissionUpdatesRelativeOffset)
+            // Note that solidity expects the field `var.offset` to point to the start of the actual data contents,
+            // one word after the length. Therefore, we add 0x20 here to get the correct offset.
+            permissionUpdates.offset := add(0x20, permissionUpdatesLengthOffset)
+            // Load the length of the bytes[][].
+            permissionUpdates.length := calldataload(permissionUpdatesLengthOffset)
+        }
 
         uint256 length = sessionKeysToAdd.length;
+
+        if (length != tags.length || length != permissionUpdates.length) {
+            revert LengthMismatch();
+        }
+
         for (uint256 i = 0; i < length; ++i) {
-            // Use the public function to add the session key, set the key id, and emit the event.
-            // Note that no tags are set when adding keys with this method.
-            addSessionKey(sessionKeysToAdd[i], bytes32(0));
+            // Use the public function to add the session key, set the key id, emit the event, and update the
+            // permissions.
+            addSessionKey(sessionKeysToAdd[i], tags[i], permissionUpdates[i]);
         }
     }
 

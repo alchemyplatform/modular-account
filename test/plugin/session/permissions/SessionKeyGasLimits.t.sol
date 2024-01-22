@@ -77,7 +77,7 @@ contract SessionKeyGasLimitsTest is Test {
         account1.installPlugin({
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
-            pluginInitData: abi.encode(new address[](0)),
+            pluginInitData: abi.encode(new address[](0), new bytes32[](0), new bytes[][](0)),
             dependencies: dependencies,
             injectedHooks: new IPluginManager.InjectedHook[](0)
         });
@@ -86,7 +86,7 @@ contract SessionKeyGasLimitsTest is Test {
         (sessionKey1, sessionKey1Private) = makeAddrAndKey("sessionKey1");
 
         vm.prank(owner1);
-        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0));
+        SessionKeyPlugin(address(account1)).addSessionKey(sessionKey1, bytes32(0), new bytes[](0));
 
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(

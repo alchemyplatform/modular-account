@@ -21,7 +21,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @inheritdoc ISessionKeyPlugin
-    function updateKeyPermissions(address sessionKey, bytes[] calldata updates) external override {
+    function updateKeyPermissions(address sessionKey, bytes[] calldata updates) public override {
         (SessionKeyData storage sessionKeyData, SessionKeyId keyId) = _loadSessionKey(msg.sender, sessionKey);
 
         uint256 length = updates.length;
