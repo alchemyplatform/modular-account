@@ -17,12 +17,12 @@ import {IAccountView} from "../interfaces/IAccountView.sol";
 import {IEntryPoint} from "../interfaces/erc4337/IEntryPoint.sol";
 import {IPlugin, PluginManifest} from "../interfaces/IPlugin.sol";
 import {IPluginExecutor} from "../interfaces/IPluginExecutor.sol";
-import {IPluginManager} from "../interfaces/IPluginManager.sol";
+import {FunctionReference, IPluginManager} from "../interfaces/IPluginManager.sol";
 import {UserOperation} from "../interfaces/erc4337/UserOperation.sol";
 
 import {CastLib} from "../libraries/CastLib.sol";
 import {CountableLinkedListSetLib} from "../libraries/CountableLinkedListSetLib.sol";
-import {FunctionReference, FunctionReferenceLib} from "../libraries/FunctionReferenceLib.sol";
+import {FunctionReferenceLib} from "../libraries/FunctionReferenceLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {UUPSUpgradeable} from "../../ext/UUPSUpgradeable.sol";
 
@@ -44,6 +44,7 @@ contract UpgradeableModularAccount is
 {
     using CountableLinkedListSetLib for LinkedListSet;
     using LinkedListSetLib for LinkedListSet;
+    using FunctionReferenceLib for FunctionReference;
 
     /// @dev Struct to hold optional configuration data for uninstalling a plugin. This should be encoded and
     /// passed to the `config` parameter of `uninstallPlugin`.
@@ -419,7 +420,7 @@ contract UpgradeableModularAccount is
         bytes32 userOpHash,
         bool doPreValidationHooks
     ) internal returns (uint256 validationData) {
-        if (userOpValidationFunction == FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+        if (userOpValidationFunction.isEmpty()) {
             revert UserOpValidationFunctionMissing(selector);
         }
 
@@ -518,7 +519,7 @@ contract UpgradeableModularAccount is
         {
             if (runtimeValidationFunction.isEmptyOrMagicValue()) {
                 if (
-                    runtimeValidationFunction == FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE
+                    runtimeValidationFunction.isEmpty()
                         && (
                             (
                                 msg.sig != IPluginManager.installPlugin.selector

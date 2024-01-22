@@ -2,9 +2,12 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {FunctionReference, FunctionReferenceLib} from "../../src/libraries/FunctionReferenceLib.sol";
+import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
+import {FunctionReferenceLib} from "../../src/libraries/FunctionReferenceLib.sol";
 
 contract FunctionReferenceLibTest is Test {
+    using FunctionReferenceLib for FunctionReference;
+
     function testFuzz_functionReference_packing(address addr, uint8 functionId) public {
         // console.log("addr: ", addr);
         // console.log("functionId: ", vm.toString(functionId));
@@ -18,19 +21,19 @@ contract FunctionReferenceLibTest is Test {
     }
 
     function testFuzz_functionReference_operators(FunctionReference a, FunctionReference b) public {
-        assertTrue(a == a);
-        assertTrue(b == b);
+        assertTrue(a.eq(a));
+        assertTrue(b.eq(b));
 
         if (FunctionReference.unwrap(a) == FunctionReference.unwrap(b)) {
-            assertTrue(a == b);
-            assertTrue(b == a);
-            assertFalse(a != b);
-            assertFalse(b != a);
+            assertTrue(a.eq(b));
+            assertTrue(b.eq(a));
+            assertFalse(a.notEq(b));
+            assertFalse(b.notEq(a));
         } else {
-            assertTrue(a != b);
-            assertTrue(b != a);
-            assertFalse(a == b);
-            assertFalse(b == a);
+            assertTrue(a.notEq(b));
+            assertTrue(b.notEq(a));
+            assertFalse(a.eq(b));
+            assertFalse(b.eq(a));
         }
     }
 }

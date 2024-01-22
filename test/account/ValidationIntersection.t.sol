@@ -8,8 +8,8 @@ import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.so
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../src/interfaces/erc4337/UserOperation.sol";
+import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
-import {FunctionReference} from "../../src/libraries/FunctionReferenceLib.sol";
 
 import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
 import {

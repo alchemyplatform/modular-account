@@ -12,8 +12,8 @@ import {
 import {IStandardExecutor} from "../../../src/interfaces/IStandardExecutor.sol";
 import {IPluginExecutor} from "../../../src/interfaces/IPluginExecutor.sol";
 import {IPlugin} from "../../../src/interfaces/IPlugin.sol";
+import {FunctionReference} from "../../../src/interfaces/IPluginManager.sol";
 import {BaseTestPlugin} from "./BaseTestPlugin.sol";
-import {FunctionReference} from "../../../src/libraries/FunctionReferenceLib.sol";
 
 import {ResultCreatorPlugin} from "./ReturnDataPluginMocks.sol";
 import {Counter} from "../Counter.sol";

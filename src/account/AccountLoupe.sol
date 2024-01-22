@@ -4,11 +4,11 @@ pragma solidity ^0.8.22;
 import {KnownSelectors} from "../helpers/KnownSelectors.sol";
 
 import {IAccountLoupe} from "../interfaces/IAccountLoupe.sol";
+import {FunctionReference} from "../interfaces/IPluginManager.sol";
 
 import {AccountStorageV1} from "../libraries/AccountStorageV1.sol";
 import {CastLib} from "../libraries/CastLib.sol";
 import {CountableLinkedListSetLib} from "../libraries/CountableLinkedListSetLib.sol";
-import {FunctionReference} from "../libraries/FunctionReferenceLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 
 /// @title Account Loupe

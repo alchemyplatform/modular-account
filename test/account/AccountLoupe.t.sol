@@ -17,9 +17,9 @@ import {
     PluginManifest
 } from "../../src/interfaces/IPlugin.sol";
 import {IAccountLoupe} from "../../src/interfaces/IAccountLoupe.sol";
-import {IPluginManager} from "../../src/interfaces/IPluginManager.sol";
+import {FunctionReference, IPluginManager} from "../../src/interfaces/IPluginManager.sol";
 import {IStandardExecutor} from "../../src/interfaces/IStandardExecutor.sol";
-import {FunctionReference, FunctionReferenceLib} from "../../src/libraries/FunctionReferenceLib.sol";
+import {FunctionReferenceLib} from "../../src/libraries/FunctionReferenceLib.sol";
 
 import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
 import {ComprehensivePlugin} from "../mocks/plugins/ComprehensivePlugin.sol";

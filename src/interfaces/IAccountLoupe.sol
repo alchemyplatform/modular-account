@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
-import {FunctionReference} from "../libraries/FunctionReferenceLib.sol";
+import {FunctionReference} from "./IPluginManager.sol";
 
 /// @title Account Loupe Interface
 interface IAccountLoupe {

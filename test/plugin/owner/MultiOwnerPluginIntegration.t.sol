@@ -11,11 +11,11 @@ import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {UpgradeableModularAccount} from "../../../src/account/UpgradeableModularAccount.sol";
 import {IEntryPoint} from "../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
+import {FunctionReference} from "../../../src/interfaces/IPluginManager.sol";
 import {MultiOwnerPlugin} from "../../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {IMultiOwnerPlugin} from "../../../src/plugins/owner/IMultiOwnerPlugin.sol";
 import {Utils} from "../../Utils.sol";
 import {Call} from "../../../src/interfaces/IStandardExecutor.sol";
-import {FunctionReference} from "../../../src/libraries/FunctionReferenceLib.sol";
 
 import {Counter} from "../../mocks/Counter.sol";
 import {MultiOwnerMSCAFactory} from "../../../src/factory/MultiOwnerMSCAFactory.sol";

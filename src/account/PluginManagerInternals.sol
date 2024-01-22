@@ -14,12 +14,12 @@ import {
     ManifestFunction,
     PluginManifest
 } from "../interfaces/IPlugin.sol";
-import {IPluginManager} from "../interfaces/IPluginManager.sol";
+import {FunctionReference, IPluginManager} from "../interfaces/IPluginManager.sol";
 
 import {AccountStorageV1} from "../libraries/AccountStorageV1.sol";
 import {CastLib} from "../libraries/CastLib.sol";
 import {CountableLinkedListSetLib} from "../libraries/CountableLinkedListSetLib.sol";
-import {FunctionReference, FunctionReferenceLib} from "../libraries/FunctionReferenceLib.sol";
+import {FunctionReferenceLib} from "../libraries/FunctionReferenceLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 
 /// @title Plugin Manager Internals
@@ -28,6 +28,7 @@ import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol
 abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
     using LinkedListSetLib for LinkedListSet;
     using CountableLinkedListSetLib for LinkedListSet;
+    using FunctionReferenceLib for FunctionReference;
 
     // Grouping of arguments to `uninstallPlugin` to avoid "stack too deep"
     // errors when building without via-ir.
@@ -102,7 +103,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
         SelectorData storage selectorData = _getAccountStorage().selectorData[selector];
 
-        if (selectorData.userOpValidation != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+        if (!selectorData.userOpValidation.isEmpty()) {
             revert UserOpValidationFunctionAlreadySet(selector, validationFunction);
         }
 
@@ -114,7 +115,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
         SelectorData storage selectorData = _getAccountStorage().selectorData[selector];
 
-        if (selectorData.runtimeValidation != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+        if (!selectorData.runtimeValidation.isEmpty()) {
             revert RuntimeValidationFunctionAlreadySet(selector, validationFunction);
         }
 
@@ -128,9 +129,9 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
         _addHooks(selectorData.executionHooks, selector, preExecHook, postExecHook);
 
-        if (preExecHook != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+        if (!preExecHook.isEmpty()) {
             selectorData.hasPreExecHooks = true;
-        } else if (postExecHook != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+        } else if (!postExecHook.isEmpty()) {
             // Only set this flag if the pre hook is empty and the post hook is non-empty.
             selectorData.hasPostOnlyExecHooks = true;
         }
@@ -159,13 +160,13 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         FunctionReference preExecHook,
         FunctionReference postExecHook
     ) internal {
-        if (preExecHook != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+        if (!preExecHook.isEmpty()) {
             // add pre or pre/post pair of exec hooks
             if (!hooks.preHooks.tryIncrement(CastLib.toSetValue(preExecHook))) {
                 revert DuplicateHookLimitExceeded(selector, preExecHook);
             }
 
-            if (postExecHook != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+            if (!postExecHook.isEmpty()) {
                 // can ignore return val of tryEnableFlags here as tryIncrement above must have succeeded
                 hooks.preHooks.tryEnableFlags(CastLib.toSetValue(preExecHook), _PRE_EXEC_HOOK_HAS_POST_FLAG);
                 if (!hooks.associatedPostHooks[preExecHook].tryIncrement(CastLib.toSetValue(postExecHook))) {
@@ -186,7 +187,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         internal
         returns (bool shouldClearHasPreHooks, bool shouldClearHasPostOnlyHooks)
     {
-        if (preExecHook != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+        if (!preExecHook.isEmpty()) {
             // If decrementing results in removal, this also clears the flag _PRE_EXEC_HOOK_HAS_POST_FLAG.
             // Can ignore the return value because the manifest was checked to match the hash.
             hooks.preHooks.tryDecrement(CastLib.toSetValue(preExecHook));
@@ -197,7 +198,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                 shouldClearHasPreHooks = true;
             }
 
-            if (postExecHook != FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+            if (!postExecHook.isEmpty()) {
                 // Remove the associated post-exec hook, if it is set to the expected value.
                 // Can ignore the return value because the manifest was checked to match the hash.
                 hooks.associatedPostHooks[preExecHook].tryDecrement(CastLib.toSetValue(postExecHook));
@@ -655,7 +656,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
     }
 
     function _assertNotNullFunction(FunctionReference functionReference) internal pure {
-        if (functionReference == FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE) {
+        if (functionReference.isEmpty()) {
             revert NullFunctionReference();
         }
     }
