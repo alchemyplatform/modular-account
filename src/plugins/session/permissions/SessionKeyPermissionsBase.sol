@@ -103,12 +103,6 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPlugin {
 
     // Internal Functions
 
-    function _assertKeyExists(SessionKeyId id, address sessionKey) internal pure {
-        if (SessionKeyId.unwrap(id) == bytes32(0)) {
-            revert InvalidSessionKey(sessionKey);
-        }
-    }
-
     function _sessionKeyIdOf(address associated, address sessionKey) internal view returns (SessionKeyId keyId) {
         uint256 prefixAndBatchIndex = uint256(bytes32(SESSION_KEY_ID_PREFIX));
         bytes memory associatedStorageKey =
@@ -118,6 +112,19 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPlugin {
         assembly ("memory-safe") {
             keyId := sload(ptr)
         }
+    }
+
+    /// @dev Helper function that loads the session key id and asserts it is registered.
+    function _loadSessionKeyId(address associated, address sessionKey)
+        internal
+        view
+        returns (SessionKeyId keyId)
+    {
+        SessionKeyId id = _sessionKeyIdOf(associated, sessionKey);
+        if (SessionKeyId.unwrap(id) == bytes32(0)) {
+            revert InvalidSessionKey(sessionKey);
+        }
+        return id;
     }
 
     function _updateSessionKeyId(address associated, address sessionKey, SessionKeyId newId) internal {
@@ -146,13 +153,12 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPlugin {
 
     /// @dev Helper function that loads the session key id, asserts it is registered, and returns the session key
     /// data and the key id.
-    function _loadSessionKey(address associated, address sessionKey)
+    function _loadSessionKeyData(address associated, address sessionKey)
         internal
         view
         returns (SessionKeyData storage sessionKeyData, SessionKeyId keyId)
     {
-        SessionKeyId id = _sessionKeyIdOf(associated, sessionKey);
-        _assertKeyExists(id, sessionKey);
+        SessionKeyId id = _loadSessionKeyId(associated, sessionKey);
         return (_sessionKeyDataOf(associated, id), id);
     }
 
