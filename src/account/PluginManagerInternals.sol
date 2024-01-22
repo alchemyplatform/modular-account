@@ -646,26 +646,25 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
     ) internal pure returns (FunctionReference) {
         if (manifestFunction.functionType == ManifestAssociatedFunctionType.SELF) {
             return FunctionReferenceLib.pack(plugin, manifestFunction.functionId);
-        } else if (manifestFunction.functionType == ManifestAssociatedFunctionType.DEPENDENCY) {
+        }
+        if (manifestFunction.functionType == ManifestAssociatedFunctionType.DEPENDENCY) {
             uint256 index = manifestFunction.dependencyIndex;
             if (index < dependencies.length) {
-                return dependencies[manifestFunction.dependencyIndex];
-            } else {
-                revert InvalidPluginManifest();
+                return dependencies[index];
             }
-        } else if (manifestFunction.functionType == ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW)
-        {
+            revert InvalidPluginManifest();
+        }
+        if (manifestFunction.functionType == ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW) {
             if (allowedMagicValue == ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW) {
                 return FunctionReferenceLib._RUNTIME_VALIDATION_ALWAYS_ALLOW;
-            } else {
-                revert InvalidPluginManifest();
             }
-        } else if (manifestFunction.functionType == ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY) {
+            revert InvalidPluginManifest();
+        }
+        if (manifestFunction.functionType == ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY) {
             if (allowedMagicValue == ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY) {
                 return FunctionReferenceLib._PRE_HOOK_ALWAYS_DENY;
-            } else {
-                revert InvalidPluginManifest();
             }
+            revert InvalidPluginManifest();
         }
         return FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE; // Empty checks are done elsewhere
     }
