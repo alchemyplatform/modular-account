@@ -545,11 +545,15 @@ contract SessionKeyPermissionsTest is Test {
         vm.startPrank(owner1);
         bytes[] memory updates = new bytes[](1);
         updates[0] = hex"112233"; // < 4 byte update
-        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidPermissionsUpdate.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(ISessionKeyPlugin.InvalidPermissionsUpdate.selector, bytes4(updates[0]))
+        );
         SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
 
         updates[0] = hex"11223344"; // Invalid selector
-        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidPermissionsUpdate.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(ISessionKeyPlugin.InvalidPermissionsUpdate.selector, bytes4(updates[0]))
+        );
         SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
     }
 

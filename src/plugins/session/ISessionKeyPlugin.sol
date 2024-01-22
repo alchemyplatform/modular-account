@@ -51,15 +51,15 @@ interface ISessionKeyPlugin {
     /// `ISessionKeyPermissionsUpdates`, and are not external functions implemented by this contract.
     event PermissionsUpdated(address indexed account, address indexed sessionKey, bytes[] updates);
 
+    error ERC20SpendLimitExceeded(address account, address sessionKey, address token);
+    error InvalidPermissionsUpdate(bytes4 updateSelector);
     error InvalidSessionKey(address sessionKey);
+    error InvalidSignature(address sessionKey);
+    error InvalidToken(address token);
+    error LengthMismatch();
+    error NativeTokenSpendLimitExceeded(address account, address sessionKey);
     error SessionKeyNotFound(address sessionKey);
     error UnableToRemove(address sessionKey);
-    error InvalidSignature(address sessionKey);
-    error ERC20SpendLimitExceeded(address account, address sessionKey, address token);
-    error InvalidPermissionsUpdate();
-    error InvalidToken(address token);
-    error NativeTokenSpendLimitExceeded(address account, address sessionKey);
-    error LengthMismatch();
 
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    Execution functions    ┃

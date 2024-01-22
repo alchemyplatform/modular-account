@@ -447,11 +447,11 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         SessionKeyData storage sessionKeyData,
         bytes calldata update
     ) internal {
-        if (update.length < 4) {
-            revert InvalidPermissionsUpdate();
-        }
-
         bytes4 updateSelector = bytes4(update);
+
+        if (update.length < 4) {
+            revert InvalidPermissionsUpdate(updateSelector);
+        }
 
         // If/else chain to find the right interal update function to perform.
         if (updateSelector == ISessionKeyPermissionsUpdates.setAccessListType.selector) {
@@ -483,7 +483,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
             address requiredPaymaster = abi.decode(update[4:], (address));
             _setRequiredPaymaster(sessionKeyData, requiredPaymaster);
         } else {
-            revert InvalidPermissionsUpdate();
+            revert InvalidPermissionsUpdate(updateSelector);
         }
     }
 
