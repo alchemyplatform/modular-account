@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.22;
 
 import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
 import {

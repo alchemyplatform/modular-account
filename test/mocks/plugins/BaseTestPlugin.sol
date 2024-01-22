@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.22;
 
 import {BasePlugin} from "../../../src/plugins/BasePlugin.sol";
 import {PluginMetadata} from "../../../src/interfaces/IPlugin.sol";

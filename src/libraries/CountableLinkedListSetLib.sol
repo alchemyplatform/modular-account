@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.22;
 
 import {LinkedListSet, LinkedListSetLib} from "./LinkedListSetLib.sol";
 import {SetValue} from "./LinkedListSetUtils.sol";

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.21;
+pragma solidity ^0.8.22;
 
 library Utils {
     function reverseAddressArray(address[] calldata array) public pure returns (address[] memory reversedArray) {
