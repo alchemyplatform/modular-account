@@ -54,24 +54,19 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
     function getNativeTokenSpendLimitInfo(address account, address sessionKey)
         external
         view
-        returns (SpendLimitInfo memory)
+        returns (SpendLimitInfo memory info)
     {
         (SessionKeyData storage sessionKeyData,) = _loadSessionKey(account, sessionKey);
 
-        bool hasLimit = !sessionKeyData.nativeTokenSpendLimitBypassed;
-
-        if (hasLimit) {
-            return SpendLimitInfo({
-                hasLimit: true,
-                limit: sessionKeyData.nativeTokenSpendLimit.limitAmount,
-                limitUsed: sessionKeyData.nativeTokenSpendLimit.limitUsed,
-                refreshInterval: sessionKeyData.nativeTokenSpendLimitTimeInfo.refreshInterval,
-                lastUsedTime: sessionKeyData.nativeTokenSpendLimitTimeInfo.lastUsed
-            });
-        } else {
-            // The fields aren't cleared until the next time they are set, so report zeros.
-            return SpendLimitInfo({hasLimit: false, limit: 0, limitUsed: 0, refreshInterval: 0, lastUsedTime: 0});
+        if (!sessionKeyData.nativeTokenSpendLimitBypassed) {
+            info.hasLimit = true;
+            info.limit = sessionKeyData.nativeTokenSpendLimit.limitAmount;
+            info.limitUsed = sessionKeyData.nativeTokenSpendLimit.limitUsed;
+            info.refreshInterval = sessionKeyData.nativeTokenSpendLimitTimeInfo.refreshInterval;
+            info.lastUsedTime = sessionKeyData.nativeTokenSpendLimitTimeInfo.lastUsed;
         }
+        // If the limit is bypassed, report false for hasLimit and zeros for the other fields.
+        // These are the default values for SpendLimitInfo, so we don't need to set them explicitly.
     }
 
     /// @inheritdoc ISessionKeyPlugin
@@ -111,23 +106,16 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         bool hasLimit = sessionKeyData.hasGasLimit;
         bool shouldReset = sessionKeyData.gasLimitResetThisBundle;
 
+        SpendLimitInfo memory info;
         if (hasLimit) {
-            return (
-                SpendLimitInfo({
-                    hasLimit: true,
-                    limit: sessionKeyData.gasLimit.limitAmount,
-                    limitUsed: sessionKeyData.gasLimit.limitUsed,
-                    refreshInterval: sessionKeyData.gasLimitTimeInfo.refreshInterval,
-                    lastUsedTime: sessionKeyData.gasLimitTimeInfo.lastUsed
-                }),
-                shouldReset
-            );
-        } else {
-            // The fields aren't cleared until the next time they are set, so report zeros.
-            return (
-                SpendLimitInfo({hasLimit: false, limit: 0, limitUsed: 0, refreshInterval: 0, lastUsedTime: 0}),
-                shouldReset
-            );
+            info.hasLimit = true;
+            info.limit = sessionKeyData.gasLimit.limitAmount;
+            info.limitUsed = sessionKeyData.gasLimit.limitUsed;
+            info.refreshInterval = sessionKeyData.gasLimitTimeInfo.refreshInterval;
+            info.lastUsedTime = sessionKeyData.gasLimitTimeInfo.lastUsed;
         }
+        // If the limit is bypassed, report false for hasLimit and zeros for the other fields.
+        // These are the default values for SpendLimitInfo, so we don't need to set them explicitly.
+        return (info, shouldReset);
     }
 }
