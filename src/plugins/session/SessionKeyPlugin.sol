@@ -50,52 +50,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
     uint256 internal constant _MANIFEST_DEPENDENCY_INDEX_OWNER_RUNTIME_VALIDATION = 1;
 
     // Storage fields
-
     AssociatedLinkedListSet internal _sessionKeys;
-
-    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    // ┃    Plugin interface functions    ┃
-    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-
-    /// @inheritdoc BasePlugin
-    function userOpValidationFunction(uint8 functionId, UserOperation calldata userOp, bytes32 userOpHash)
-        external
-        override
-        returns (uint256)
-    {
-        if (functionId == uint8(FunctionId.USER_OP_VALIDATION_SESSION_KEY)) {
-            (Call[] memory calls, address sessionKey) = abi.decode(userOp.callData[4:], (Call[], address));
-            bytes32 hash = userOpHash.toEthSignedMessageHash();
-
-            (address recoveredSig, ECDSA.RecoverError err) = hash.tryRecover(userOp.signature);
-            if (err == ECDSA.RecoverError.NoError) {
-                if (
-                    _sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey)) && sessionKey == recoveredSig
-                ) {
-                    return _checkUserOpPermissions(userOp, calls, sessionKey);
-                }
-                return _SIG_VALIDATION_FAILED;
-            }
-            revert InvalidSignature(sessionKey);
-        }
-        revert NotImplemented();
-    }
-
-    /// @inheritdoc BasePlugin
-    function onUninstall(bytes calldata) external override {
-        // Unset the key id for all session keys.
-        address[] memory sessionKeys = CastLib.toAddressArray(_sessionKeys.getAll(msg.sender));
-        uint256 length = sessionKeys.length;
-        for (uint256 i = 0; i < length; ++i) {
-            _updateSessionKeyId(msg.sender, sessionKeys[i], SessionKeyId.wrap(bytes32(0)));
-
-            emit SessionKeyRemoved(msg.sender, sessionKeys[i]);
-        }
-
-        _sessionKeys.clear(msg.sender);
-        // Note that we do not reset the key id counter `_keyIdCounter` for the account, in order to prevent
-        // permissions configured from a previous installation from being re-used.
-    }
 
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    Execution functions    ┃
@@ -179,47 +134,54 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
 
     // The function `updateKeyPermissions` is implemented in `SessionKeyPermissions`.
 
-    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    // ┃    Plugin-only function    ┃
-    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃    Plugin only state updating functions       ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     // The function `resetSessionKeyGasLimitTimestamp` is implemented in `SessionKeyPermissions`.
 
-    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    // ┃    Plugin view functions    ┃
-    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃    Plugin interface functions    ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-    /// @inheritdoc ISessionKeyPlugin
-    function sessionKeysOf(address account) external view override returns (address[] memory) {
-        SetValue[] memory values = _sessionKeys.getAll(account);
-
-        return CastLib.toAddressArray(values);
-    }
-
-    /// @inheritdoc ISessionKeyPlugin
-    function isSessionKeyOf(address account, address sessionKey) external view override returns (bool) {
-        return _sessionKeys.contains(account, CastLib.toSetValue(sessionKey));
-    }
-
-    // ┏━━━━━━━━━━━━━━━━━━━━━━┓
-    // ┃    View functions    ┃
-    // ┗━━━━━━━━━━━━━━━━━━━━━━┛
-
-    /// @inheritdoc ISessionKeyPlugin
-    function findPredecessor(address account, address sessionKey) external view override returns (bytes32) {
-        address[] memory sessionKeys = CastLib.toAddressArray(_sessionKeys.getAll(account));
-
+    /// @inheritdoc BasePlugin
+    function onUninstall(bytes calldata) external override {
+        // Unset the key id for all session keys.
+        address[] memory sessionKeys = CastLib.toAddressArray(_sessionKeys.getAll(msg.sender));
         uint256 length = sessionKeys.length;
-        bytes32 predecessor = SENTINEL_VALUE;
         for (uint256 i = 0; i < length; ++i) {
-            if (sessionKeys[i] == sessionKey) {
-                return predecessor;
-            }
+            _updateSessionKeyId(msg.sender, sessionKeys[i], SessionKeyId.wrap(bytes32(0)));
 
-            predecessor = bytes32(bytes20(sessionKeys[i]));
+            emit SessionKeyRemoved(msg.sender, sessionKeys[i]);
         }
 
-        revert SessionKeyNotFound(sessionKey);
+        _sessionKeys.clear(msg.sender);
+        // Note that we do not reset the key id counter `_keyIdCounter` for the account, in order to prevent
+        // permissions configured from a previous installation from being re-used.
+    }
+
+    /// @inheritdoc BasePlugin
+    function userOpValidationFunction(uint8 functionId, UserOperation calldata userOp, bytes32 userOpHash)
+        external
+        override
+        returns (uint256)
+    {
+        if (functionId == uint8(FunctionId.USER_OP_VALIDATION_SESSION_KEY)) {
+            (Call[] memory calls, address sessionKey) = abi.decode(userOp.callData[4:], (Call[], address));
+            bytes32 hash = userOpHash.toEthSignedMessageHash();
+
+            (address recoveredSig, ECDSA.RecoverError err) = hash.tryRecover(userOp.signature);
+            if (err == ECDSA.RecoverError.NoError) {
+                if (
+                    _sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey)) && sessionKey == recoveredSig
+                ) {
+                    return _checkUserOpPermissions(userOp, calls, sessionKey);
+                }
+                return _SIG_VALIDATION_FAILED;
+            }
+            revert InvalidSignature(sessionKey);
+        }
+        revert NotImplemented();
     }
 
     /// @inheritdoc BasePlugin
@@ -347,19 +309,6 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
         return metadata;
     }
 
-    // ┏━━━━━━━━━━━━━━━┓
-    // ┃    EIP-165    ┃
-    // ┗━━━━━━━━━━━━━━━┛
-
-    /// @inheritdoc BasePlugin
-    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
-        return interfaceId == type(ISessionKeyPlugin).interfaceId || super.supportsInterface(interfaceId);
-    }
-
-    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    // ┃    Internal Functions    ┃
-    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-
     /// @inheritdoc BasePlugin
     function _onInstall(bytes calldata data) internal override isNotInitialized(msg.sender) {
         (address[] memory sessionKeysToAdd, bytes32[] memory tags,) =
@@ -397,9 +346,51 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
             addSessionKey(sessionKeysToAdd[i], tags[i], permissionUpdates[i]);
         }
     }
-
     /// @inheritdoc BasePlugin
+
     function _isInitialized(address account) internal view override returns (bool) {
         return !_sessionKeys.isEmpty(account);
+    }
+
+    // ┏━━━━━━━━━━━━━━━┓
+    // ┃    EIP-165    ┃
+    // ┗━━━━━━━━━━━━━━━┛
+
+    /// @inheritdoc BasePlugin
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return interfaceId == type(ISessionKeyPlugin).interfaceId || super.supportsInterface(interfaceId);
+    }
+
+    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃    Plugin only view functions    ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    /// @inheritdoc ISessionKeyPlugin
+    function sessionKeysOf(address account) external view override returns (address[] memory) {
+        SetValue[] memory values = _sessionKeys.getAll(account);
+
+        return CastLib.toAddressArray(values);
+    }
+
+    /// @inheritdoc ISessionKeyPlugin
+    function isSessionKeyOf(address account, address sessionKey) external view override returns (bool) {
+        return _sessionKeys.contains(account, CastLib.toSetValue(sessionKey));
+    }
+
+    /// @inheritdoc ISessionKeyPlugin
+    function findPredecessor(address account, address sessionKey) external view override returns (bytes32) {
+        address[] memory sessionKeys = CastLib.toAddressArray(_sessionKeys.getAll(account));
+
+        uint256 length = sessionKeys.length;
+        bytes32 predecessor = SENTINEL_VALUE;
+        for (uint256 i = 0; i < length; ++i) {
+            if (sessionKeys[i] == sessionKey) {
+                return predecessor;
+            }
+
+            predecessor = bytes32(bytes20(sessionKeys[i]));
+        }
+
+        revert SessionKeyNotFound(sessionKey);
     }
 }

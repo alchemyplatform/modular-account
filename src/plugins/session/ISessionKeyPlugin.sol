@@ -97,9 +97,9 @@ interface ISessionKeyPlugin {
     /// @param updates The abi-encoded updates to perform.
     function updateKeyPermissions(address sessionKey, bytes[] calldata updates) external;
 
-    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    // ┃    Plugin-only function    ┃
-    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃    Plugin only state updating functions       ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @notice An externally available function, callable by anyone, that resets the "last used" timestamp on a
     /// session key. This helps a session key get "unstuck" if it was used in a setting where every call it made
@@ -109,9 +109,9 @@ interface ISessionKeyPlugin {
     /// @param sessionKey The session key to reset.
     function resetSessionKeyGasLimitTimestamp(address account, address sessionKey) external;
 
-    // ┏━━━━━━━━━━━━━━━━━━━━━━┓
-    // ┃    View functions    ┃
-    // ┗━━━━━━━━━━━━━━━━━━━━━━┛
+    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃    Plugin only view functions    ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @notice Get the session keys of the account.
     /// This function is not added to accounts during installation.
