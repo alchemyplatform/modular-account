@@ -241,34 +241,6 @@ contract ComprehensivePlugin is BaseTestPlugin {
             })
         });
 
-        manifest.permittedCallHooks = new ManifestExecutionHook[](2);
-        manifest.permittedCallHooks[0] = ManifestExecutionHook({
-            executionSelector: this.foo.selector,
-            preExecHook: ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: uint8(FunctionId.PRE_PERMITTED_CALL_EXECUTION_HOOK),
-                dependencyIndex: 0 // Unused.
-            }),
-            postExecHook: ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: uint8(FunctionId.POST_PERMITTED_CALL_EXECUTION_HOOK),
-                dependencyIndex: 0 // Unused.
-            })
-        });
-        manifest.permittedCallHooks[1] = ManifestExecutionHook({
-            executionSelector: this.foo.selector,
-            preExecHook: ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.NONE,
-                functionId: 0, // Unused.
-                dependencyIndex: 0 // Unused.
-            }),
-            postExecHook: ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: uint8(FunctionId.POST_PERMITTED_CALL_EXECUTION_HOOK),
-                dependencyIndex: 0 // Unused.
-            })
-        });
-
         return manifest;
     }
 

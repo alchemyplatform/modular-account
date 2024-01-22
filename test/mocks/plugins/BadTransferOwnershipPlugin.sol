@@ -9,7 +9,6 @@ import {
     PluginManifest,
     PluginMetadata
 } from "../../../src/interfaces/IPlugin.sol";
-import {IPluginManager} from "../../../src/interfaces/IPluginManager.sol";
 import {BaseTestPlugin} from "./BaseTestPlugin.sol";
 import {IMultiOwnerPlugin} from "../../../src/plugins/owner/IMultiOwnerPlugin.sol";
 import {IStandardExecutor} from "../../../src/interfaces/IStandardExecutor.sol";

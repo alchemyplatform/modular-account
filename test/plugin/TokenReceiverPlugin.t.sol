@@ -15,7 +15,6 @@ import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAcc
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {AccountStorageV1} from "../../src/libraries/AccountStorageV1.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
-import {IPluginManager} from "../../src/interfaces/IPluginManager.sol";
 import {FunctionReference} from "../../src/libraries/FunctionReferenceLib.sol";
 
 import {MockERC777} from "../mocks/tokens/MockERC777.sol";
@@ -81,11 +80,7 @@ contract TokenReceiverPluginTest is Test, IERC1155Receiver, AccountStorageV1 {
     function _initPlugin() internal {
         vm.startPrank(owner);
         acct.installPlugin(
-            address(plugin),
-            keccak256(abi.encode(plugin.pluginManifest())),
-            bytes(""),
-            new FunctionReference[](0),
-            new IPluginManager.InjectedHook[](0)
+            address(plugin), keccak256(abi.encode(plugin.pluginManifest())), bytes(""), new FunctionReference[](0)
         );
         vm.stopPrank();
     }

@@ -11,7 +11,6 @@ import {IMultiOwnerPlugin} from "../../src/plugins/owner/IMultiOwnerPlugin.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../src/interfaces/erc4337/UserOperation.sol";
-import {IPluginManager} from "../../src/interfaces/IPluginManager.sol";
 import {FunctionReference, FunctionReferenceLib} from "../../src/libraries/FunctionReferenceLib.sol";
 import {
     IPlugin,
@@ -48,12 +47,7 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
     uint256 public constant CALL_GAS_LIMIT = 70000;
     uint256 public constant VERIFICATION_GAS_LIMIT = 1000000;
 
-    event PluginInstalled(
-        address indexed plugin,
-        bytes32 manifestHash,
-        FunctionReference[] dependencies,
-        IPluginManager.InjectedHook[] injectedHooks
-    );
+    event PluginInstalled(address indexed plugin, bytes32 manifestHash, FunctionReference[] dependencies);
     event PluginUninstalled(address indexed plugin, bool indexed callbacksSucceeded);
 
     function setUp() public {
@@ -620,16 +614,13 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
 
         vm.expectCall(address(mockPlugin1), abi.encodeCall(IPlugin.onInstall, ("")), 1);
         vm.expectEmit(true, true, true, true);
-        emit PluginInstalled(
-            address(mockPlugin1), manifestHash1, new FunctionReference[](0), new IPluginManager.InjectedHook[](0)
-        );
+        emit PluginInstalled(address(mockPlugin1), manifestHash1, new FunctionReference[](0));
 
         account1.installPlugin({
             plugin: address(mockPlugin1),
             manifestHash: manifestHash1,
             pluginInitData: bytes(""),
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
 
         return mockPlugin1;
@@ -650,16 +641,13 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
 
         vm.expectCall(address(mockPlugin2), abi.encodeCall(IPlugin.onInstall, ("")), 1);
         vm.expectEmit(true, true, true, true);
-        emit PluginInstalled(
-            address(mockPlugin2), manifestHash2, dependencies, new IPluginManager.InjectedHook[](0)
-        );
+        emit PluginInstalled(address(mockPlugin2), manifestHash2, dependencies);
 
         account1.installPlugin({
             plugin: address(mockPlugin2),
             manifestHash: manifestHash2,
             pluginInitData: bytes(""),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
     }
 
@@ -688,16 +676,13 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
 
         vm.expectCall(address(mockPlugin1), abi.encodeCall(IPlugin.onInstall, ("")), 1);
         vm.expectEmit(true, true, true, true);
-        emit PluginInstalled(
-            address(mockPlugin1), manifestHash1, dependencies, new IPluginManager.InjectedHook[](0)
-        );
+        emit PluginInstalled(address(mockPlugin1), manifestHash1, dependencies);
 
         account1.installPlugin({
             plugin: address(mockPlugin1),
             manifestHash: manifestHash1,
             pluginInitData: bytes(""),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
     }
 
@@ -716,16 +701,13 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
 
         vm.expectCall(address(mockPlugin2), abi.encodeCall(IPlugin.onInstall, ("")), 1);
         vm.expectEmit(true, true, true, true);
-        emit PluginInstalled(
-            address(mockPlugin2), manifestHash2, dependencies, new IPluginManager.InjectedHook[](0)
-        );
+        emit PluginInstalled(address(mockPlugin2), manifestHash2, dependencies);
 
         account1.installPlugin({
             plugin: address(mockPlugin2),
             manifestHash: manifestHash2,
             pluginInitData: bytes(""),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
     }
 
@@ -734,6 +716,6 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
         vm.expectEmit(true, true, true, true);
         emit PluginUninstalled(address(plugin), true);
 
-        account1.uninstallPlugin(address(plugin), bytes(""), bytes(""), new bytes[](0));
+        account1.uninstallPlugin(address(plugin), bytes(""), bytes(""));
     }
 }

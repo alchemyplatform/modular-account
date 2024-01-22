@@ -15,7 +15,6 @@ import {ISessionKeyPermissionsUpdates} from
     "../../../../src/plugins/session/permissions/ISessionKeyPermissionsUpdates.sol";
 import {IEntryPoint} from "../../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../../src/interfaces/erc4337/UserOperation.sol";
-import {IPluginManager} from "../../../../src/interfaces/IPluginManager.sol";
 import {FunctionReference, FunctionReferenceLib} from "../../../../src/libraries/FunctionReferenceLib.sol";
 import {Call} from "../../../../src/interfaces/IStandardExecutor.sol";
 
@@ -93,8 +92,7 @@ contract SessionKeyPermissionsTest is Test {
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
             pluginInitData: abi.encode(new address[](0), new bytes32[](0), new bytes[][](0)),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
 
         // Create and add a session key
@@ -619,7 +617,7 @@ contract SessionKeyPermissionsTest is Test {
 
         // Uninstall the session key plugin
         vm.prank(owner1);
-        account1.uninstallPlugin(address(sessionKeyPlugin), "", "", new bytes[](0));
+        account1.uninstallPlugin(address(sessionKeyPlugin), "", "");
 
         // Reinstall the session key plugin.
         vm.startPrank(owner1);
@@ -627,8 +625,7 @@ contract SessionKeyPermissionsTest is Test {
             plugin: address(sessionKeyPlugin),
             manifestHash: keccak256(abi.encode(sessionKeyPlugin.pluginManifest())),
             pluginInitData: abi.encode(new address[](0), new bytes32[](0), new bytes[][](0)),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
         vm.stopPrank();
 
@@ -645,7 +642,7 @@ contract SessionKeyPermissionsTest is Test {
     function testFuzz_initialSessionKeysWithPermissions(uint256 seed) public {
         // Uninstall the plugin
         vm.prank(owner1);
-        account1.uninstallPlugin(address(sessionKeyPlugin), "", "", new bytes[](0));
+        account1.uninstallPlugin(address(sessionKeyPlugin), "", "");
 
         address[] memory sessionKeys = _generateRandomAddresses(seed);
         bytes32[] memory tags = new bytes32[](sessionKeys.length);
@@ -669,8 +666,7 @@ contract SessionKeyPermissionsTest is Test {
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
             pluginInitData: abi.encode(sessionKeys, tags, sessionKeyPermissions),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
     }
 

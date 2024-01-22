@@ -15,7 +15,6 @@ import {ISessionKeyPermissionsUpdates} from
     "../../../../src/plugins/session/permissions/ISessionKeyPermissionsUpdates.sol";
 import {IEntryPoint} from "../../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../../src/interfaces/erc4337/UserOperation.sol";
-import {IPluginManager} from "../../../../src/interfaces/IPluginManager.sol";
 import {FunctionReference, FunctionReferenceLib} from "../../../../src/libraries/FunctionReferenceLib.sol";
 import {Call} from "../../../../src/interfaces/IStandardExecutor.sol";
 
@@ -83,8 +82,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
             pluginInitData: abi.encode(new address[](0), new bytes32[](0), new bytes[][](0)),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
 
         // Create and add a session key

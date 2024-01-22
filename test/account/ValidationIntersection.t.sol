@@ -5,7 +5,6 @@ import {Test} from "forge-std/Test.sol";
 
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 
-import {IPluginManager} from "../../src/interfaces/IPluginManager.sol";
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../src/interfaces/erc4337/UserOperation.sol";
@@ -61,22 +60,19 @@ contract ValidationIntersectionTest is Test {
             plugin: address(noHookPlugin),
             manifestHash: keccak256(abi.encode(noHookPlugin.pluginManifest())),
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
         account1.installPlugin({
             plugin: address(oneHookPlugin),
             manifestHash: keccak256(abi.encode(oneHookPlugin.pluginManifest())),
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
         account1.installPlugin({
             plugin: address(twoHookPlugin),
             manifestHash: keccak256(abi.encode(twoHookPlugin.pluginManifest())),
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
         vm.stopPrank();
     }

@@ -10,7 +10,6 @@ import {
     PluginManifest,
     PluginMetadata
 } from "../../../src/interfaces/IPlugin.sol";
-import {IPluginManager} from "../../../src/interfaces/IPluginManager.sol";
 import {BaseTestPlugin} from "./BaseTestPlugin.sol";
 
 /// Mock plugin that reverts in its uninstall callbacks. Can be configured to
@@ -29,14 +28,6 @@ contract UninstallErrorsPlugin is BaseTestPlugin {
     }
 
     function onUninstall(bytes calldata) external override {
-        _revert();
-    }
-
-    function onHookUnapply(address, IPluginManager.InjectedHooksInfo calldata, bytes calldata)
-        external
-        virtual
-        override
-    {
         _revert();
     }
 

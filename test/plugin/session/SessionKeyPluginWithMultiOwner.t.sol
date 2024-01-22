@@ -16,7 +16,6 @@ import {ISessionKeyPermissionsUpdates} from
 import {SessionKeyPlugin} from "../../../src/plugins/session/SessionKeyPlugin.sol";
 import {IEntryPoint} from "../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
-import {IPluginManager} from "../../../src/interfaces/IPluginManager.sol";
 import {FunctionReference, FunctionReferenceLib} from "../../../src/libraries/FunctionReferenceLib.sol";
 import {Call} from "../../../src/interfaces/IStandardExecutor.sol";
 
@@ -85,8 +84,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
             pluginInitData: abi.encode(new address[](0), new bytes32[](0), new bytes[][](0)),
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
     }
 
@@ -162,7 +160,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
     function testFuzz_sessionKey_addKeysDuringInstall(uint8 seed) public {
         // First uninstall the plugin
         vm.prank(owner1);
-        account1.uninstallPlugin(address(sessionKeyPlugin), "", "", new bytes[](0));
+        account1.uninstallPlugin(address(sessionKeyPlugin), "", "");
 
         // Generate a set of initial session keys
         uint256 addressCount = (seed % 16) + 1;
@@ -195,8 +193,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
             pluginInitData: onInstallData,
-            dependencies: dependencies,
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: dependencies
         });
 
         // Check using all view methods

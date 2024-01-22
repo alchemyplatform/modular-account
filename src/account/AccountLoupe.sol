@@ -42,18 +42,6 @@ abstract contract AccountLoupe is IAccountLoupe, AccountStorageV1 {
     }
 
     /// @inheritdoc IAccountLoupe
-    function getPermittedCallHooks(address callingPlugin, bytes4 selector)
-        external
-        view
-        returns (ExecutionHooks[] memory execHooks)
-    {
-        PermittedCallData storage permittedCallData =
-            _getAccountStorage().permittedCalls[_getPermittedCallKey(callingPlugin, selector)];
-
-        execHooks = _getHooks(permittedCallData.permittedCallHooks);
-    }
-
-    /// @inheritdoc IAccountLoupe
     function getPreValidationHooks(bytes4 selector)
         external
         view
@@ -73,8 +61,8 @@ abstract contract AccountLoupe is IAccountLoupe, AccountStorageV1 {
         pluginAddresses = CastLib.toAddressArray(_getAccountStorage().plugins.getAll());
     }
 
-    /// @dev Collects hook data from stored hooks (either execution hooks or permitted call hooks) and prepares it
-    /// for returning as the `ExecutionHooks` type defined by `IAccountLoupe`.
+    /// @dev Collects hook data from stored execution hooks and prepares it for returning as the `ExecutionHooks`
+    /// type defined by `IAccountLoupe`.
     function _getHooks(HookGroup storage storedHooks) internal view returns (ExecutionHooks[] memory execHooks) {
         FunctionReference[] memory preExecHooks = CastLib.toFunctionReferenceArray(storedHooks.preHooks.getAll());
         FunctionReference[] memory postOnlyExecHooks =

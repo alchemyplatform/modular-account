@@ -51,11 +51,6 @@ contract UpgradeableModularAccountTest is Test {
     address public ethRecipient;
     Counter public counter;
     PluginManifest public manifest;
-    IPluginManager.InjectedHooksInfo public injectedHooksInfo = IPluginManager.InjectedHooksInfo({
-        preExecHookFunctionId: 2,
-        isPostHookUsed: true,
-        postExecHookFunctionId: 3
-    });
 
     uint256 public constant CALL_GAS_LIMIT = 500000;
     uint256 public constant VERIFICATION_GAS_LIMIT = 2000000;
@@ -481,8 +476,7 @@ contract UpgradeableModularAccountTest is Test {
             plugin: address(plugin),
             manifestHash: manifestHash,
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
         vm.stopPrank();
 

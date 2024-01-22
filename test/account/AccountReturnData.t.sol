@@ -5,7 +5,6 @@ import {Test} from "forge-std/Test.sol";
 
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 
-import {IPluginManager} from "../../src/interfaces/IPluginManager.sol";
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
@@ -60,8 +59,7 @@ contract AccountReturnDataTest is Test {
             plugin: address(resultCreatorPlugin),
             manifestHash: resultCreatorManifestHash,
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
         // Add the result consumer plugin to the account
         bytes32 resultConsumerManifestHash = keccak256(abi.encode(resultConsumerPlugin.pluginManifest()));
@@ -69,8 +67,7 @@ contract AccountReturnDataTest is Test {
             plugin: address(resultConsumerPlugin),
             manifestHash: resultConsumerManifestHash,
             pluginInitData: "",
-            dependencies: new FunctionReference[](0),
-            injectedHooks: new IPluginManager.InjectedHook[](0)
+            dependencies: new FunctionReference[](0)
         });
     }
 
