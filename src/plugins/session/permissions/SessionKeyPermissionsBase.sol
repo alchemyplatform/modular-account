@@ -69,10 +69,10 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPlugin {
     }
 
     // Prefixes:
-    bytes4 internal constant SESSION_KEY_ID_PREFIX = bytes4(0x1a01dae4); // bytes4(keccak256("SessionKeyId"))
-    bytes4 internal constant SESSION_KEY_DATA_PREFIX = bytes4(0x16bff296); // bytes4(keccak256("SessionKeyData"))
-    bytes4 internal constant CONTRACT_DATA_PREFIX = bytes4(0x634c29f5); // bytes4(keccak256("ContractData"))
-    bytes4 internal constant FUNCTION_DATA_PREFIX = bytes4(0xd50536f0); // bytes4(keccak256("FunctionData"))
+    bytes4 internal constant SESSION_KEY_ID_PREFIX = bytes4(keccak256("SessionKeyId"));
+    bytes4 internal constant SESSION_KEY_DATA_PREFIX = bytes4(keccak256("SessionKeyData"));
+    bytes4 internal constant CONTRACT_DATA_PREFIX = bytes4(keccak256("ContractData"));
+    bytes4 internal constant FUNCTION_DATA_PREFIX = bytes4(keccak256("FunctionData"));
 
     // KEY DERIVATION
     // All of these following keys begin with the associated address,

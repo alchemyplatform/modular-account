@@ -25,6 +25,7 @@ library AssociatedLinkedListSetLib {
     // Mapping keys exclude the upper 15 bits of the meta bytes, which allows keys to be either a value or the
     // sentinel.
 
+    // This cannot be evaluated at compile time because of its use in inline assembly.
     bytes4 internal constant _ASSOCIATED_STORAGE_PREFIX = 0xf938c976; // bytes4(keccak256("AssociatedLinkedListSet"))
 
     // A custom type representing the index of a storage slot

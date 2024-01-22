@@ -68,8 +68,7 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
     bytes4 internal constant _1271_MAGIC_VALUE = 0x1626ba7e;
     bytes4 internal constant _1271_MAGIC_VALUE_FAILURE = 0xffffffff;
 
-    // keccak256("ERC6900Message(bytes message)");
-    bytes32 private constant ERC6900_TYPEHASH = 0xa856bbdae1f2c6e4aa17a75ad7cc5650f184ec4b549174dd7258c9701d663fc6;
+    bytes32 private constant MODULAR_ACCOUNT_TYPEHASH = keccak256("AlchemyModularAccountMessage(bytes message)");
 
     AssociatedLinkedListSet internal _owners;
 
@@ -356,7 +355,7 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
         override
         returns (bytes memory)
     {
-        bytes32 messageHash = keccak256(abi.encode(ERC6900_TYPEHASH, keccak256(message)));
+        bytes32 messageHash = keccak256(abi.encode(MODULAR_ACCOUNT_TYPEHASH, keccak256(message)));
         return abi.encodePacked("\x19\x01", _domainSeparator(account), messageHash);
     }
 
