@@ -7,18 +7,16 @@
     "MultiOwnerMSCAFactory": "",
     "MultiOwnerTokenReceiverMSCAFactory": "",
     "SessionKeyPlugin": "",
-    "SessionKeyPermissionsPlugin:": "",
     "MultiOwnerMSCAFactory Owner": "",
     "MultiOwnerTokenReceiverMSCAFactory Owner": ""
   },
   "Staging": {
-    "MSCA Impl": "0xb2b748c2557c552B8636862E41aB3649319dD045",
-    "MultiOwnerPlugin": "0x56bC629F342821FBe91C5273880792dFECBE7920",
-    "TokenReceiverPlugin": "0xa81C0AEaB22b21b4da8d8728063f6570384b48C9",
-    "MultiOwnerMSCAFactory": "0xFD14c78640d72f73CC88238E2f7Df3273Ee84043",
-    "MultiOwnerTokenReceiverMSCAFactory": "0x22322E35c1850F26DD54Ed8F59a27C1c79847A15",
-    "SessionKeyPlugin": "0x588dCE36DdeB0e40320AD1d9909a1f86053D7Df1",
-    "SessionKeyPermissionsPlugin:": "0x78462720341714Dcab90C6d5B9a47fAAA6fdADC6",
+    "MSCA Impl": "0x4395CBaF1600188e0116B6d5D6E9157330b0B57A",
+    "MultiOwnerPlugin": "0x90d4f511c9Ca2B1694eA2A1629130B430853aBeB",
+    "TokenReceiverPlugin": "0x4FCDe5A446208a20A1539FC425832334bc8360Fb",
+    "MultiOwnerMSCAFactory": "0x00bdE30160d664cB3126e7a48c5394A312eF8c2A",
+    "MultiOwnerTokenReceiverMSCAFactory": "0xEDe056c28731870875d74BBa6482722AA4284EF9",
+    "SessionKeyPlugin": "0xF546cB41F1Ac873187fC75E35D421E550DF47Fa4",
     "MultiOwnerMSCAFactory Owner": "0x7f89Ed1F3F0d52d303904101305471bca3cde710",
     "MultiOwnerTokenReceiverMSCAFactory Owner": "0x7f89Ed1F3F0d52d303904101305471bca3cde710"
   }
