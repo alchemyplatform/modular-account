@@ -15,7 +15,7 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         view
         returns (ContractAccessControlType)
     {
-        (SessionKeyData storage sessionKeyData,) = _loadSessionKey(account, sessionKey);
+        (SessionKeyData storage sessionKeyData,) = _loadSessionKeyData(account, sessionKey);
         return sessionKeyData.contractAccessControlType;
     }
 
@@ -25,8 +25,7 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         view
         returns (bool isOnList, bool checkSelectors)
     {
-        SessionKeyId keyId = _sessionKeyIdOf(account, sessionKey);
-        _assertKeyExists(keyId, sessionKey);
+        SessionKeyId keyId = _loadSessionKeyId(account, sessionKey);
         ContractData storage contractData = _contractDataOf(account, keyId, contractAddress);
         return (contractData.isOnList, contractData.checkSelectors);
     }
@@ -38,8 +37,7 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         address contractAddress,
         bytes4 selector
     ) external view returns (bool isOnList) {
-        SessionKeyId keyId = _sessionKeyIdOf(account, sessionKey);
-        _assertKeyExists(keyId, sessionKey);
+        SessionKeyId keyId = _loadSessionKeyId(account, sessionKey);
         FunctionData storage functionData = _functionDataOf(account, keyId, contractAddress, selector);
         return functionData.isOnList;
     }
@@ -50,7 +48,7 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         view
         returns (uint48 validAfter, uint48 validUntil)
     {
-        (SessionKeyData storage sessionKeyData,) = _loadSessionKey(account, sessionKey);
+        (SessionKeyData storage sessionKeyData,) = _loadSessionKeyData(account, sessionKey);
         return (sessionKeyData.validAfter, sessionKeyData.validUntil);
     }
 
@@ -60,7 +58,7 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         view
         returns (SpendLimitInfo memory info)
     {
-        (SessionKeyData storage sessionKeyData,) = _loadSessionKey(account, sessionKey);
+        (SessionKeyData storage sessionKeyData,) = _loadSessionKeyData(account, sessionKey);
 
         if (!sessionKeyData.nativeTokenSpendLimitBypassed) {
             info.hasLimit = true;
@@ -79,7 +77,7 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         view
         returns (SpendLimitInfo memory)
     {
-        (, SessionKeyId keyId) = _loadSessionKey(account, sessionKey);
+        SessionKeyId keyId = _loadSessionKeyId(account, sessionKey);
         ContractData storage tokenContractData = _contractDataOf(account, keyId, token);
         return SpendLimitInfo({
             hasLimit: tokenContractData.isERC20WithSpendLimit,
@@ -92,9 +90,7 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
 
     /// @inheritdoc ISessionKeyPlugin
     function getRequiredPaymaster(address account, address sessionKey) external view returns (address) {
-        SessionKeyId id = _sessionKeyIdOf(account, sessionKey);
-        _assertKeyExists(id, sessionKey);
-        SessionKeyData storage sessionKeyData = _sessionKeyDataOf(account, id);
+        (SessionKeyData storage sessionKeyData,) = _loadSessionKeyData(account, sessionKey);
         return sessionKeyData.hasRequiredPaymaster ? sessionKeyData.requiredPaymaster : address(0);
     }
 
@@ -105,7 +101,7 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
         override
         returns (SpendLimitInfo memory info, bool shouldReset)
     {
-        (SessionKeyData storage sessionKeyData,) = _loadSessionKey(account, sessionKey);
+        (SessionKeyData storage sessionKeyData,) = _loadSessionKeyData(account, sessionKey);
 
         shouldReset = sessionKeyData.gasLimitResetThisBundle;
 

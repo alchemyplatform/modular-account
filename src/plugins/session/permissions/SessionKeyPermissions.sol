@@ -22,7 +22,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
 
     /// @inheritdoc ISessionKeyPlugin
     function updateKeyPermissions(address sessionKey, bytes[] calldata updates) public override {
-        (SessionKeyData storage sessionKeyData, SessionKeyId keyId) = _loadSessionKey(msg.sender, sessionKey);
+        (SessionKeyData storage sessionKeyData, SessionKeyId keyId) = _loadSessionKeyData(msg.sender, sessionKey);
 
         uint256 length = updates.length;
         for (uint256 i = 0; i < length; ++i) {
@@ -34,7 +34,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
 
     /// @inheritdoc ISessionKeyPlugin
     function resetSessionKeyGasLimitTimestamp(address account, address sessionKey) external override {
-        (SessionKeyData storage sessionKeyData,) = _loadSessionKey(account, sessionKey);
+        (SessionKeyData storage sessionKeyData,) = _loadSessionKeyData(account, sessionKey);
         if (sessionKeyData.gasLimitResetThisBundle) {
             sessionKeyData.gasLimitResetThisBundle = false;
             sessionKeyData.gasLimitTimeInfo.lastUsed = uint48(block.timestamp);
