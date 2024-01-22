@@ -101,8 +101,8 @@ contract MultiOwnerMSCAFactory is Ownable2Step {
     }
 
     /// @notice Withdraw funds from this contract
-    /// @dev can withdraw stuck erc20s
-    /// @param to address to send native currency to
+    /// @dev can withdraw stuck erc20s or native currency
+    /// @param to address to send erc20s or native currency to
     /// @param token address of the token to withdraw, 0 address for native currency
     /// @param amount amount of the token to withdraw in case of rebasing tokens
     function withdraw(address payable to, address token, uint256 amount) external onlyOwner {
