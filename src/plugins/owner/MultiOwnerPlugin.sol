@@ -147,36 +147,6 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
         return _1271_MAGIC_VALUE_FAILURE;
     }
 
-    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-    // ┃    Plugin view functions    ┃
-    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-
-    /// @inheritdoc IMultiOwnerPlugin
-    function encodeMessageData(address account, bytes memory message)
-        public
-        view
-        override
-        returns (bytes memory)
-    {
-        bytes32 messageHash = keccak256(abi.encode(ERC6900_TYPEHASH, keccak256(message)));
-        return abi.encodePacked("\x19\x01", _domainSeparator(account), messageHash);
-    }
-
-    /// @inheritdoc IMultiOwnerPlugin
-    function getMessageHash(address account, bytes memory message) public view override returns (bytes32) {
-        return keccak256(encodeMessageData(account, message));
-    }
-
-    /// @inheritdoc IMultiOwnerPlugin
-    function isOwnerOf(address account, address ownerToCheck) public view returns (bool) {
-        return _owners.contains(account, CastLib.toSetValue(ownerToCheck));
-    }
-
-    /// @inheritdoc IMultiOwnerPlugin
-    function ownersOf(address account) public view returns (address[] memory) {
-        return CastLib.toAddressArray(_owners.getAll(account));
-    }
-
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    Plugin interface functions    ┃
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
@@ -363,9 +333,39 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
         return interfaceId == type(IMultiOwnerPlugin).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    // ┏━━━━━━━━━━━━━━━┓
-    // ┃   Internal    ┃
-    // ┗━━━━━━━━━━━━━━━┛
+    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃    Plugin only view functions    ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+    /// @inheritdoc IMultiOwnerPlugin
+    function isOwnerOf(address account, address ownerToCheck) public view returns (bool) {
+        return _owners.contains(account, CastLib.toSetValue(ownerToCheck));
+    }
+
+    /// @inheritdoc IMultiOwnerPlugin
+    function ownersOf(address account) public view returns (address[] memory) {
+        return CastLib.toAddressArray(_owners.getAll(account));
+    }
+
+    /// @inheritdoc IMultiOwnerPlugin
+    function encodeMessageData(address account, bytes memory message)
+        public
+        view
+        override
+        returns (bytes memory)
+    {
+        bytes32 messageHash = keccak256(abi.encode(ERC6900_TYPEHASH, keccak256(message)));
+        return abi.encodePacked("\x19\x01", _domainSeparator(account), messageHash);
+    }
+
+    /// @inheritdoc IMultiOwnerPlugin
+    function getMessageHash(address account, bytes memory message) public view override returns (bytes32) {
+        return keccak256(encodeMessageData(account, message));
+    }
+
+    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃    Internal Functions    ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     function _domainSeparator(address account) internal view returns (bytes32) {
         return keccak256(abi.encode(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION, block.chainid, account, _SALT));

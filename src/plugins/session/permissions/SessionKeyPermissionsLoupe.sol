@@ -5,6 +5,10 @@ import {ISessionKeyPlugin} from "../ISessionKeyPlugin.sol";
 import {SessionKeyPermissionsBase} from "./SessionKeyPermissionsBase.sol";
 
 abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
+    // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    // ┃    Plugin only view functions    ┃
+    // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
     /// @inheritdoc ISessionKeyPlugin
     function getAccessControlType(address account, address sessionKey)
         external
