@@ -229,6 +229,8 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
         });
 
         // Update Modular Account's native functions to use userOpValidationFunction provided by this plugin
+        // The view functions `isValidSignature` and `eip712Domain` are excluded from being assigned a user
+        // operation validation function since they should only be called via the runtime path.
         manifest.userOpValidationFunctions = new ManifestAssociatedFunction[](6);
         manifest.userOpValidationFunctions[0] = ManifestAssociatedFunction({
             executionSelector: this.updateOwners.selector,
