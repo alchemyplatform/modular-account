@@ -142,18 +142,18 @@ contract UpgradeableModularAccount is
 
         // execute the function, bubbling up any reverts
         bool execSuccess = _executeRaw(execPlugin, _convertRuntimeCallBufferToExecBuffer(callBuffer));
-        bytes memory execReturnData = _collectReturnData();
+        bytes memory returnData = _collectReturnData();
 
         if (!execSuccess) {
             // Bubble up revert reasons from plugins
             assembly ("memory-safe") {
-                revert(add(execReturnData, 32), mload(execReturnData))
+                revert(add(returnData, 32), mload(returnData))
             }
         }
 
         _doCachedPostHooks(postHooksToRun, postHookArgs);
 
-        return execReturnData;
+        return returnData;
     }
 
     /// @inheritdoc IAccount
@@ -233,10 +233,10 @@ contract UpgradeableModularAccount is
             revert UnrecognizedFunction(selector);
         }
 
-        bool success = _executeRaw(execFunctionPlugin, _convertRuntimeCallBufferToExecBuffer(callBuffer));
+        bool execSuccess = _executeRaw(execFunctionPlugin, _convertRuntimeCallBufferToExecBuffer(callBuffer));
         returnData = _collectReturnData();
 
-        if (!success) {
+        if (!execSuccess) {
             assembly ("memory-safe") {
                 revert(add(returnData, 32), mload(returnData))
             }
