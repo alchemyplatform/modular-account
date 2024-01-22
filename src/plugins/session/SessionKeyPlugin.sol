@@ -374,10 +374,10 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
             // Get the offset of the bytes[][] used for permissions updates. The offset for this field is stored at
             // the third word of `data`. Note that `data.offset` refers to the start of the actual data contents,
             // one word after the length.
-            let permissionUpdateRelativeOffset := calldataload(add(data.offset, 0x40))
+            let permissionUpdatesRelativeOffset := calldataload(add(data.offset, 0x40))
             // We now have the relative offset of the bytes[][] in `data`. We need to add the starting offset
             // (aka `data.offset`) to get the absolute offset.
-            let permissionUpdatesLengthOffset := add(data.offset, permissionUpdateRelativeOffset)
+            let permissionUpdatesLengthOffset := add(data.offset, permissionUpdatesRelativeOffset)
             // Note that solidity expects the field `var.offset` to point to the start of the actual data contents,
             // one word after the length. Therefore, we add 0x20 here to get the correct offset.
             permissionUpdates.offset := add(0x20, permissionUpdatesLengthOffset)
