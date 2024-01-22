@@ -57,7 +57,7 @@ interface ISessionKeyPlugin {
     error InvalidSignature(address sessionKey);
     error ERC20SpendLimitExceeded(address account, address sessionKey, address token);
     error InvalidPermissionsUpdate();
-    error InvalidToken();
+    error InvalidToken(address token);
     error NativeTokenSpendLimitExceeded(address account, address sessionKey);
     error LengthMismatch();
 

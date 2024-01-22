@@ -540,7 +540,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         internal
     {
         if (token == address(0)) {
-            revert InvalidToken();
+            revert InvalidToken(token);
         }
 
         ContractData storage tokenContractData = _contractDataOf(msg.sender, keyId, token);
