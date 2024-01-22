@@ -103,10 +103,9 @@ abstract contract SessionKeyPermissionsLoupe is SessionKeyPermissionsBase {
     {
         (SessionKeyData storage sessionKeyData,) = _loadSessionKey(account, sessionKey);
 
-        bool hasLimit = sessionKeyData.hasGasLimit;
         shouldReset = sessionKeyData.gasLimitResetThisBundle;
 
-        if (hasLimit) {
+        if (sessionKeyData.hasGasLimit) {
             info.hasLimit = true;
             info.limit = sessionKeyData.gasLimit.limitAmount;
             info.limitUsed = sessionKeyData.gasLimit.limitUsed;
