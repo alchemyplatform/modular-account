@@ -263,11 +263,11 @@ library LinkedListSetLib {
         // This is accomplished by first writing to memory after the free memory pointer,
         // then updating the free memory pointer to cover the newly-allocated data.
         // To the compiler, writes to memory after the free memory pointer are considered "memory safe".
-        // See https://docs.soliditylang.org/en/v0.8.21/assembly.html#memory-safety
+        // See https://docs.soliditylang.org/en/v0.8.22/assembly.html#memory-safety
         // Stack variable lifting done when compiling with via-ir will only ever place variables into memory
         // locations
         // below the current free memory pointer, so it is safe to compile this library with via-ir.
-        // See https://docs.soliditylang.org/en/v0.8.21/yul.html#memoryguard
+        // See https://docs.soliditylang.org/en/v0.8.22/yul.html#memoryguard
         assembly ("memory-safe") {
             // It is critical that no other memory allocations occur between:
             // -  loading the value of the free memory pointer into `ret`
