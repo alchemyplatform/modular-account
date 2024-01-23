@@ -466,7 +466,7 @@ library AssociatedLinkedListSetLib {
 
         // This segment is memory-safe because it only uses the scratch space memory after the value of the free
         // memory pointer.
-        // See https://docs.soliditylang.org/en/v0.8.21/assembly.html#memory-safety
+        // See https://docs.soliditylang.org/en/v0.8.22/assembly.html#memory-safety
         assembly ("memory-safe") {
             // Clean upper bits of arguments
             associated := and(associated, 0xffffffffffffffffffffffffffffffffffffffff)

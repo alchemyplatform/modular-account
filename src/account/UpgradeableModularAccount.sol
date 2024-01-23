@@ -9,10 +9,10 @@
 // option) any later version.
 //
 // This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
-// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
 // more details.
 //
-// You should have received a copy of the GNU General Public License along with this program.  If not, see
+// You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
 pragma solidity ^0.8.22;
@@ -86,7 +86,6 @@ contract UpgradeableModularAccount is
     event ModularAccountInitialized(IEntryPoint indexed entryPoint);
 
     error AlwaysDenyRule();
-    error AuthorizeUpgradeReverted(bytes revertReason);
     error ExecFromPluginNotPermitted(address plugin, bytes4 selector);
     error ExecFromPluginExternalNotPermitted(address plugin, address target, uint256 value, bytes data);
     error NativeTokenSpendingNotPermitted(address plugin);
