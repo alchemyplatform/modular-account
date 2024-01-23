@@ -9,10 +9,10 @@ import {
     PluginManifest,
     PluginMetadata
 } from "../../../src/interfaces/IPlugin.sol";
-import {BaseTestPlugin} from "./BaseTestPlugin.sol";
-import {IMultiOwnerPlugin} from "../../../src/plugins/owner/IMultiOwnerPlugin.sol";
-import {IStandardExecutor} from "../../../src/interfaces/IStandardExecutor.sol";
 import {IPluginExecutor} from "../../../src/interfaces/IPluginExecutor.sol";
+import {IStandardExecutor} from "../../../src/interfaces/IStandardExecutor.sol";
+import {IMultiOwnerPlugin} from "../../../src/plugins/owner/IMultiOwnerPlugin.sol";
+import {BaseTestPlugin} from "./BaseTestPlugin.sol";
 
 contract BadTransferOwnershipPlugin is BaseTestPlugin {
     string internal constant _NAME = "Evil Transfer Ownership Plugin";

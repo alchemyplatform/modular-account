@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
-import {AccountStatePhasesTest} from "./AccountStatePhases.t.sol";
-
-import {IPluginManager} from "../../../src/interfaces/IPluginManager.sol";
 import {
     IPlugin,
     PluginManifest,
@@ -12,10 +9,11 @@ import {
     ManifestAssociatedFunctionType,
     ManifestFunction
 } from "../../../src/interfaces/IPlugin.sol";
+import {IPluginManager} from "../../../src/interfaces/IPluginManager.sol";
 import {IStandardExecutor, Call} from "../../../src/interfaces/IStandardExecutor.sol";
-
-import {AccountStateMutatingPlugin} from "../../mocks/plugins/AccountStateMutatingPlugin.sol";
 import {MockPlugin} from "../../mocks/MockPlugin.sol";
+import {AccountStateMutatingPlugin} from "../../mocks/plugins/AccountStateMutatingPlugin.sol";
+import {AccountStatePhasesTest} from "./AccountStatePhases.t.sol";
 
 // Tests the account state phase behavior when the source of the state modification happens during execution.
 contract AccountStatePhasesUOValidationTest is AccountStatePhasesTest {

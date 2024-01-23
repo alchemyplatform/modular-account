@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
-import {ISessionKeyPlugin} from "../ISessionKeyPlugin.sol";
-
 import {PluginStorageLib, StoragePointer} from "../../../libraries/PluginStorageLib.sol";
+import {ISessionKeyPlugin} from "../ISessionKeyPlugin.sol";
 
 abstract contract SessionKeyPermissionsBase is ISessionKeyPlugin {
     type SessionKeyId is bytes32;

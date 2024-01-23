@@ -3,15 +3,15 @@ pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
 
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {BaseAccount} from "@eth-infinitism/account-abstraction/core/BaseAccount.sol";
 import {IAggregator} from "@eth-infinitism/account-abstraction/interfaces/IAggregator.sol";
 import {IPaymaster} from "@eth-infinitism/account-abstraction/interfaces/IPaymaster.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {KnownSelectors} from "../../src/helpers/KnownSelectors.sol";
-import {IAccountLoupe} from "../../src/interfaces/IAccountLoupe.sol";
 import {IAccountInitializable} from "../../src/interfaces/IAccountInitializable.sol";
+import {IAccountLoupe} from "../../src/interfaces/IAccountLoupe.sol";
 import {IPlugin} from "../../src/interfaces/IPlugin.sol";
 import {IPluginExecutor} from "../../src/interfaces/IPluginExecutor.sol";
 import {IPluginManager} from "../../src/interfaces/IPluginManager.sol";

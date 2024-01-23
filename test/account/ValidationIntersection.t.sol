@@ -6,13 +6,12 @@ import {Test} from "forge-std/Test.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
+import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../src/interfaces/erc4337/UserOperation.sol";
 import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
 import {SIG_VALIDATION_FAILED, SIG_VALIDATION_PASSED} from "../../src/libraries/Constants.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
-
-import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
 import {
     MockBaseUserOpValidationPlugin,
     MockUserOpValidation1HookPlugin,
