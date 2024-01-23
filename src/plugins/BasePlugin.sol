@@ -17,8 +17,8 @@ import {UserOperation} from "../interfaces/erc4337/UserOperation.sol";
 abstract contract BasePlugin is ERC165, IPlugin {
     error AlreadyInitialized();
     error InvalidAction();
-    error NotImplemented();
-    error NotContractCaller();
+    error NotContractCaller(address caller);
+    error NotImplemented(bytes4 selector, uint8 functionId);
     error NotInitialized();
 
     modifier isNotInitialized(address account) {
@@ -51,7 +51,7 @@ abstract contract BasePlugin is ERC165, IPlugin {
     /// modular account.
     function onInstall(bytes calldata data) external virtual {
         if (msg.sender.code.length == 0) {
-            revert NotContractCaller();
+            revert NotContractCaller(msg.sender);
         }
         _onInstall(data);
     }
@@ -62,7 +62,7 @@ abstract contract BasePlugin is ERC165, IPlugin {
     /// account.
     function onUninstall(bytes calldata data) external virtual {
         (data);
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, 0);
     }
 
     /// @notice Run the pre user operation validation hook specified by the `functionId`.
@@ -78,7 +78,7 @@ abstract contract BasePlugin is ERC165, IPlugin {
         returns (uint256)
     {
         (functionId, userOp, userOpHash);
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     /// @notice Run the user operation validationFunction specified by the `functionId`.
@@ -93,7 +93,7 @@ abstract contract BasePlugin is ERC165, IPlugin {
         returns (uint256)
     {
         (functionId, userOp, userOpHash);
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     /// @notice Run the pre runtime validation hook specified by the `functionId`.
@@ -108,7 +108,7 @@ abstract contract BasePlugin is ERC165, IPlugin {
         virtual
     {
         (functionId, sender, value, data);
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     /// @notice Run the runtime validationFunction specified by the `functionId`.
@@ -123,7 +123,7 @@ abstract contract BasePlugin is ERC165, IPlugin {
         virtual
     {
         (functionId, sender, value, data);
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     /// @notice Run the pre execution hook specified by the `functionId`.
@@ -140,7 +140,7 @@ abstract contract BasePlugin is ERC165, IPlugin {
         returns (bytes memory)
     {
         (functionId, sender, value, data);
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     /// @notice Run the post execution hook specified by the `functionId`.
@@ -150,14 +150,14 @@ abstract contract BasePlugin is ERC165, IPlugin {
     /// @param preExecHookData The context returned by its associated pre execution hook.
     function postExecutionHook(uint8 functionId, bytes calldata preExecHookData) external virtual {
         (functionId, preExecHookData);
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     /// @notice Describe the contents and intended configuration of the plugin.
     /// @dev This manifest MUST stay constant over time.
     /// @return A manifest describing the contents and intended configuration of the plugin.
     function pluginManifest() external pure virtual returns (PluginManifest memory) {
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, 0);
     }
 
     /// @notice Describe the metadata of the plugin.
@@ -187,7 +187,7 @@ abstract contract BasePlugin is ERC165, IPlugin {
     /// modular account.
     function _onInstall(bytes calldata data) internal virtual {
         (data);
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, 0);
     }
 
     /// @notice Check if the account has initialized this plugin yet

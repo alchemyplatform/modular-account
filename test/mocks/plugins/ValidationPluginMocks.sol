@@ -40,7 +40,7 @@ abstract contract MockBaseUserOpValidationPlugin is BaseTestPlugin {
         } else if (functionId == uint8(FunctionId.PRE_USER_OP_VALIDATION_HOOK_2)) {
             return _preUserOpValidationHook2Data;
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     function userOpValidationFunction(uint8 functionId, UserOperation calldata, bytes32)
@@ -52,7 +52,7 @@ abstract contract MockBaseUserOpValidationPlugin is BaseTestPlugin {
         if (functionId == uint8(FunctionId.USER_OP_VALIDATION)) {
             return _userOpValidationFunctionData;
         }
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 }
 

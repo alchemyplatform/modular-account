@@ -438,7 +438,11 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         vm.assume(functionId != uint8(ISessionKeyPlugin.FunctionId.USER_OP_VALIDATION_SESSION_KEY));
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        vm.expectRevert(abi.encodeWithSelector(BasePlugin.NotImplemented.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                BasePlugin.NotImplemented.selector, BasePlugin.userOpValidationFunction.selector, functionId
+            )
+        );
         sessionKeyPlugin.userOpValidationFunction(functionId, userOp, userOpHash);
     }
 

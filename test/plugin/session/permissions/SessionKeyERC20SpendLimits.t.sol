@@ -178,8 +178,9 @@ contract SessionKeyERC20SpendLimitsTest is Test {
 
     function test_sessionKeyERC20SpendLimits_tokenAddressZeroFails() public {
         bytes[] memory updates = new bytes[](1);
-        updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (address(0), 1000, 0));
-        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidToken.selector));
+        address token;
+        updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.setERC20SpendLimit, (token, 1000, 0));
+        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidToken.selector, token));
         vm.prank(owner1);
         SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
     }

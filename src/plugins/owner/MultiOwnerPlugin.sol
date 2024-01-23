@@ -193,7 +193,7 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
             return _SIG_VALIDATION_FAILED;
         }
 
-        revert NotImplemented();
+        revert NotImplemented(msg.sig, functionId);
     }
 
     /// @inheritdoc BasePlugin
@@ -207,9 +207,9 @@ contract MultiOwnerPlugin is BasePlugin, IMultiOwnerPlugin, IERC1271 {
             if (sender != msg.sender && !isOwnerOf(msg.sender, sender)) {
                 revert NotAuthorized();
             }
-        } else {
-            revert NotImplemented();
+            return;
         }
+        revert NotImplemented(msg.sig, functionId);
     }
 
     /// @inheritdoc BasePlugin
