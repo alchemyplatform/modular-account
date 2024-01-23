@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
+import {SIG_VALIDATION_FAILED} from "../libraries/Constants.sol";
+
 /// @dev This helper function assumes that uint160(validationData1) and uint160(validationData2) can only be 0 or 1
 // solhint-disable-next-line private-vars-leading-underscore
 function _coalescePreValidation(uint256 validationData1, uint256 validationData2)
@@ -47,5 +49,6 @@ function _coalesceValidation(uint256 preValidationData, uint256 validationData)
     resValidationData |= ((validAfter1 < validAfter2) ? uint256(validAfter2) << 208 : uint256(validAfter1) << 208);
 
     // If prevalidation failed, bubble up failure
-    resValidationData |= uint160(preValidationData) == 1 ? 1 : uint160(validationData);
+    resValidationData |=
+        uint160(preValidationData) == SIG_VALIDATION_FAILED ? SIG_VALIDATION_FAILED : uint160(validationData);
 }

@@ -7,7 +7,7 @@ import {
     AssociatedLinkedListSet,
     AssociatedLinkedListSetLib
 } from "../../src/libraries/AssociatedLinkedListSetLib.sol";
-import {SetValue, SENTINEL_VALUE} from "../../src/libraries/LinkedListSetUtils.sol";
+import {SetValue, SENTINEL_VALUE} from "../../src/libraries/Constants.sol";
 
 contract AssociatedLinkedListSetLibTest is Test {
     using AssociatedLinkedListSetLib for AssociatedLinkedListSet;

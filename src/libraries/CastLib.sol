@@ -2,7 +2,7 @@
 pragma solidity ^0.8.22;
 
 import {FunctionReference} from "./FunctionReferenceLib.sol";
-import {SetValue} from "./LinkedListSetUtils.sol";
+import {SetValue} from "./Constants.sol";
 
 /// @title Cast Library
 /// @author Alchemy

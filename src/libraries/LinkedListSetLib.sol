@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
-import {SetValue, SENTINEL_VALUE, HAS_NEXT_FLAG} from "./LinkedListSetUtils.sol";
+import {SetValue, SENTINEL_VALUE, HAS_NEXT_FLAG} from "./Constants.sol";
 
 struct LinkedListSet {
     // Byte Layout

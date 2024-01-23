@@ -9,6 +9,7 @@ import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAcc
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../src/interfaces/erc4337/UserOperation.sol";
 import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
+import {SIG_VALIDATION_FAILED, SIG_VALIDATION_PASSED} from "../../src/libraries/Constants.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 
 import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
@@ -20,8 +21,6 @@ import {
 } from "../mocks/plugins/ValidationPluginMocks.sol";
 
 contract ValidationIntersectionTest is Test {
-    uint256 internal constant _SIG_VALIDATION_FAILED = 1;
-
     IEntryPoint public entryPoint;
 
     address public owner1;
@@ -92,8 +91,8 @@ contract ValidationIntersectionTest is Test {
 
     function test_validationIntersect_authorizer_sigfail_validationFunction() public {
         oneHookPlugin.setValidationData(
-            _SIG_VALIDATION_FAILED,
-            0 // returns OK
+            SIG_VALIDATION_FAILED,
+            SIG_VALIDATION_PASSED // returns OK
         );
 
         UserOperation memory userOp;
@@ -104,13 +103,13 @@ contract ValidationIntersectionTest is Test {
         uint256 returnedValidationData = account1.validateUserOp(userOp, uoHash, 1 wei);
 
         // Down-cast to only check the authorizer
-        assertEq(uint160(returnedValidationData), _SIG_VALIDATION_FAILED);
+        assertEq(uint160(returnedValidationData), SIG_VALIDATION_FAILED);
     }
 
     function test_validationIntersect_authorizer_sigfail_hook() public {
         oneHookPlugin.setValidationData(
-            0, // returns OK
-            _SIG_VALIDATION_FAILED
+            SIG_VALIDATION_PASSED, // returns OK
+            SIG_VALIDATION_FAILED
         );
 
         UserOperation memory userOp;
@@ -121,7 +120,7 @@ contract ValidationIntersectionTest is Test {
         uint256 returnedValidationData = account1.validateUserOp(userOp, uoHash, 1 wei);
 
         // Down-cast to only check the authorizer
-        assertEq(uint160(returnedValidationData), _SIG_VALIDATION_FAILED);
+        assertEq(uint160(returnedValidationData), SIG_VALIDATION_FAILED);
     }
 
     function test_validationIntersect_timeBounds_intersect_1() public {
@@ -170,7 +169,7 @@ contract ValidationIntersectionTest is Test {
         address badAuthorizer = makeAddr("badAuthorizer");
 
         oneHookPlugin.setValidationData(
-            0, // returns OK
+            SIG_VALIDATION_PASSED, // returns OK
             uint256(uint160(badAuthorizer)) // returns an aggregator, which preValidation hooks are not allowed to
                 // do.
         );
@@ -196,7 +195,7 @@ contract ValidationIntersectionTest is Test {
 
         oneHookPlugin.setValidationData(
             uint256(uint160(goodAuthorizer)), // returns a valid aggregator
-            0 // returns OK
+            SIG_VALIDATION_PASSED // returns OK
         );
 
         UserOperation memory userOp;
@@ -240,7 +239,7 @@ contract ValidationIntersectionTest is Test {
         uint48 end2 = uint48(25);
 
         twoHookPlugin.setValidationData(
-            0, // returns OK
+            SIG_VALIDATION_PASSED, // returns OK
             _packValidationData(address(0), start1, end1),
             _packValidationData(address(0), start2, end2)
         );
@@ -257,9 +256,9 @@ contract ValidationIntersectionTest is Test {
 
     function test_validationIntersect_multiplePreValidationHooksSigFail() public {
         twoHookPlugin.setValidationData(
-            0, // returns OK
-            0, // returns OK
-            _SIG_VALIDATION_FAILED
+            SIG_VALIDATION_PASSED, // returns OK
+            SIG_VALIDATION_PASSED, // returns OK
+            SIG_VALIDATION_FAILED
         );
 
         UserOperation memory userOp;
@@ -271,7 +270,7 @@ contract ValidationIntersectionTest is Test {
         uint256 returnedValidationData = account1.validateUserOp(userOp, uoHash, 1 wei);
 
         // Down-cast to only check the authorizer
-        assertEq(uint160(returnedValidationData), _SIG_VALIDATION_FAILED);
+        assertEq(uint160(returnedValidationData), SIG_VALIDATION_FAILED);
     }
 
     function _unpackValidationData(uint256 validationData)
