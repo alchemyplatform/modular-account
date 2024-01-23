@@ -549,7 +549,7 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
         account1.installPlugin({
             plugin: address(mockPlugin1),
             manifestHash: manifestHash1,
-            pluginInitData: bytes(""),
+            pluginInstallData: bytes(""),
             dependencies: new FunctionReference[](0)
         });
 
@@ -597,7 +597,7 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
         account1.installPlugin({
             plugin: address(mockPlugin2),
             manifestHash: manifestHash2,
-            pluginInitData: bytes(""),
+            pluginInstallData: bytes(""),
             dependencies: dependencies
         });
 
@@ -634,7 +634,7 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
         account1.installPlugin({
             plugin: address(mockPlugin1),
             manifestHash: manifestHash1,
-            pluginInitData: bytes(""),
+            pluginInstallData: bytes(""),
             dependencies: dependencies
         });
     }
@@ -659,7 +659,7 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
         account1.installPlugin({
             plugin: address(mockPlugin2),
             manifestHash: manifestHash2,
-            pluginInitData: bytes(""),
+            pluginInstallData: bytes(""),
             dependencies: dependencies
         });
     }

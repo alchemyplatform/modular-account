@@ -52,28 +52,9 @@ struct ManifestExternalCallPermission {
     bytes4[] selectors;
 }
 
-/// @dev A struct describing how the plugin should be installed on a modular account.
-struct PluginManifest {
-    // List of ERC-165 interfaceIds to add to account to support introspection checks.
-    bytes4[] interfaceIds;
-    // If this plugin depends on other plugins' validation functions, the interface IDs of
-    // those plugins MUST be provided here, with its position in the array matching the `dependencyIndex`
-    // members of `ManifestFunction` structs used in the manifest.
-    bytes4[] dependencyInterfaceIds;
-    // Execution functions defined in this plugin to be installed on the MSCA.
-    bytes4[] executionFunctions;
-    // Plugin execution functions already installed on the MSCA that this plugin will be able to call.
-    bytes4[] permittedExecutionSelectors;
-    // External addresses that this plugin will be able to call.
-    bool permitAnyExternalAddress;
-    // boolean to indicate whether the plugin needs access to spend native tokens of the account
-    bool canSpendNativeToken;
-    ManifestExternalCallPermission[] permittedExternalCalls;
-    ManifestAssociatedFunction[] userOpValidationFunctions;
-    ManifestAssociatedFunction[] runtimeValidationFunctions;
-    ManifestAssociatedFunction[] preUserOpValidationHooks;
-    ManifestAssociatedFunction[] preRuntimeValidationHooks;
-    ManifestExecutionHook[] executionHooks;
+struct SelectorPermission {
+    bytes4 functionSelector;
+    string permissionDescription;
 }
 
 /// @dev A struct holding fields to describe the plugin in a purely view context. Intended for front end clients.
@@ -90,9 +71,30 @@ struct PluginMetadata {
     SelectorPermission[] permissionDescriptors;
 }
 
-struct SelectorPermission {
-    bytes4 functionSelector;
-    string permissionDescription;
+/// @dev A struct describing how the plugin should be installed on a modular account.
+struct PluginManifest {
+    // List of ERC-165 interface IDs to add to account to support introspection checks. This MUST NOT include
+    // IPlugin's interface ID.
+    bytes4[] interfaceIds;
+    // If this plugin depends on other plugins' validation functions, the interface IDs of those plugins MUST be
+    // provided here, with its position in the array matching the `dependencyIndex` members of `ManifestFunction`
+    // structs used in the manifest.
+    bytes4[] dependencyInterfaceIds;
+    // Execution functions defined in this plugin to be installed on the MSCA.
+    bytes4[] executionFunctions;
+    // Plugin execution functions already installed on the MSCA that this plugin will be able to call.
+    bytes4[] permittedExecutionSelectors;
+    // Boolean to indicate whether the plugin can call any external address.
+    bool permitAnyExternalAddress;
+    // Boolean to indicate whether the plugin needs access to spend native tokens of the account. If false, the
+    // plugin MUST still be able to spend up to the balance that it sends to the account in the same call.
+    bool canSpendNativeToken;
+    ManifestExternalCallPermission[] permittedExternalCalls;
+    ManifestAssociatedFunction[] userOpValidationFunctions;
+    ManifestAssociatedFunction[] runtimeValidationFunctions;
+    ManifestAssociatedFunction[] preUserOpValidationHooks;
+    ManifestAssociatedFunction[] preRuntimeValidationHooks;
+    ManifestExecutionHook[] executionHooks;
 }
 
 /// @title Plugin Interface
