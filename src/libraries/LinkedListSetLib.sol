@@ -1,4 +1,11 @@
-// SPDX-License-Identifier: UNLICENSED
+// This file is part of Modular Account.
+//
+// Copyright 2024 Alchemy Insights, Inc.
+//
+// SPDX-License-Identifier: MIT
+//
+// See LICENSE file for more information
+
 pragma solidity ^0.8.22;
 
 import {SetValue, SENTINEL_VALUE, HAS_NEXT_FLAG} from "./Constants.sol";
