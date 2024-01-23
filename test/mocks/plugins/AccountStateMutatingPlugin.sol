@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
+import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
 import {
     PluginManifest,
     ManifestExecutionHook,
@@ -8,8 +9,6 @@ import {
     ManifestAssociatedFunctionType,
     ManifestAssociatedFunction
 } from "../../../src/interfaces/IPlugin.sol";
-import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
-
 import {BaseTestPlugin} from "./BaseTestPlugin.sol";
 
 // Used in conjunction with AccountStatePhasesTest to verify that the account state is consistent when plugins are

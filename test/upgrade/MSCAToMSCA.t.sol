@@ -7,13 +7,12 @@ import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.so
 
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
 import {MultiOwnerTokenReceiverMSCAFactory} from "../../src/factory/MultiOwnerTokenReceiverMSCAFactory.sol";
-import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
-import {TokenReceiverPlugin} from "../../src/plugins/TokenReceiverPlugin.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {Call} from "../../src/interfaces/IStandardExecutor.sol";
-
-import {Utils} from "../Utils.sol";
+import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
+import {TokenReceiverPlugin} from "../../src/plugins/TokenReceiverPlugin.sol";
 import {MockERC20} from "../mocks/tokens/MockERC20.sol";
+import {Utils} from "../Utils.sol";
 
 contract MSCAToMSCATest is Test {
     IEntryPoint public entryPoint;

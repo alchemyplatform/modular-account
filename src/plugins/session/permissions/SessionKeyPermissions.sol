@@ -3,14 +3,13 @@ pragma solidity ^0.8.22;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {UserOperation} from "../../../interfaces/erc4337/UserOperation.sol";
 import {Call} from "../../../interfaces/IStandardExecutor.sol";
+import {IStandardExecutor} from "../../../interfaces/IStandardExecutor.sol";
+import {SIG_VALIDATION_PASSED, SIG_VALIDATION_FAILED} from "../../../libraries/Constants.sol";
 import {ISessionKeyPlugin} from "../ISessionKeyPlugin.sol";
 import {ISessionKeyPermissionsUpdates} from "./ISessionKeyPermissionsUpdates.sol";
 import {SessionKeyPermissionsLoupe} from "./SessionKeyPermissionsLoupe.sol";
-
-import {IStandardExecutor} from "../../../interfaces/IStandardExecutor.sol";
-import {UserOperation} from "../../../interfaces/erc4337/UserOperation.sol";
-import {SIG_VALIDATION_PASSED, SIG_VALIDATION_FAILED} from "../../../libraries/Constants.sol";
 
 /// @title Session Key Permissions
 /// @author Alchemy

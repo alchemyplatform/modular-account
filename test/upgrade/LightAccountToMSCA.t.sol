@@ -9,9 +9,8 @@ import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.so
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {IEntryPoint as IMSCAEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
-
+import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {MockERC20} from "../mocks/tokens/MockERC20.sol";
 
 contract LightAccountToMSCATest is Test {

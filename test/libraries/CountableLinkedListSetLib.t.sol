@@ -3,9 +3,9 @@ pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
 
+import {SetValue} from "../../src/libraries/Constants.sol";
 import {CountableLinkedListSetLib} from "../../src/libraries/CountableLinkedListSetLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../../src/libraries/LinkedListSetLib.sol";
-import {SetValue} from "../../src/libraries/Constants.sol";
 
 contract CountableLinkedListSetLibTest is Test {
     using LinkedListSetLib for LinkedListSet;

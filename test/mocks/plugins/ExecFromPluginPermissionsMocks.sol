@@ -9,14 +9,13 @@ import {
     ManifestExecutionHook,
     PluginManifest
 } from "../../../src/interfaces/IPlugin.sol";
-import {IStandardExecutor} from "../../../src/interfaces/IStandardExecutor.sol";
-import {IPluginExecutor} from "../../../src/interfaces/IPluginExecutor.sol";
 import {IPlugin} from "../../../src/interfaces/IPlugin.sol";
+import {IPluginExecutor} from "../../../src/interfaces/IPluginExecutor.sol";
 import {FunctionReference} from "../../../src/interfaces/IPluginManager.sol";
-import {BaseTestPlugin} from "./BaseTestPlugin.sol";
-
-import {ResultCreatorPlugin} from "./ReturnDataPluginMocks.sol";
+import {IStandardExecutor} from "../../../src/interfaces/IStandardExecutor.sol";
 import {Counter} from "../Counter.sol";
+import {BaseTestPlugin} from "./BaseTestPlugin.sol";
+import {ResultCreatorPlugin} from "./ReturnDataPluginMocks.sol";
 
 // Hardcode the counter addresses from ExecuteFromPluginPermissionsTest to be able to have a pure plugin manifest
 // easily

@@ -3,7 +3,6 @@ pragma solidity ^0.8.22;
 
 import {IPlugin} from "../interfaces/IPlugin.sol";
 import {FunctionReference} from "../interfaces/IPluginManager.sol";
-
 import {LinkedListSet} from "../libraries/LinkedListSetLib.sol";
 
 /// @title Account Storage V1
