@@ -56,7 +56,7 @@ struct ManifestExternalCallPermission {
 struct PluginManifest {
     // List of ERC-165 interfaceIds to add to account to support introspection checks.
     bytes4[] interfaceIds;
-    // If this plugin depends on other plugins' validation functions and/or hooks, the interface IDs of
+    // If this plugin depends on other plugins' validation functions, the interface IDs of
     // those plugins MUST be provided here, with its position in the array matching the `dependencyIndex`
     // members of `ManifestFunction` structs used in the manifest.
     bytes4[] dependencyInterfaceIds;

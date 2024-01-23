@@ -6,6 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 
+import {PluginManagerInternals} from "../../src/account/PluginManagerInternals.sol";
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
@@ -49,8 +50,6 @@ contract UpgradeableModularAccountExecHooksTest is Test {
 
     event PluginInstalled(address indexed plugin, bytes32 manifestHash, FunctionReference[] dependencies);
     event PluginUninstalled(address indexed plugin, bool indexed callbacksSucceeded);
-    // emitted by MockPlugin
-    event ReceivedCall(bytes msgData, uint256 msgValue);
 
     function setUp() public {
         entryPoint = IEntryPoint(address(new EntryPoint()));
@@ -113,8 +112,8 @@ contract UpgradeableModularAccountExecHooksTest is Test {
 
         vm.startPrank(owner1);
 
-        vm.expectEmit(true, true, true, true);
-        emit ReceivedCall(
+        vm.expectCall(
+            address(mockPlugin1),
             abi.encodeWithSelector(
                 IPlugin.preExecutionHook.selector,
                 _PRE_HOOK_FUNCTION_ID_1,
@@ -122,7 +121,7 @@ contract UpgradeableModularAccountExecHooksTest is Test {
                 0, // msg.value in call to account
                 abi.encodeWithSelector(_EXEC_SELECTOR)
             ),
-            0 // msg value in call to plugin
+            1
         );
 
         (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
@@ -191,6 +190,103 @@ contract UpgradeableModularAccountExecHooksTest is Test {
         vm.stopPrank();
     }
 
+    function test_overlappingPreExecHookAlwaysDeny_install() public {
+        vm.startPrank(owner1);
+
+        _installPlugin1WithHooks(
+            _EXEC_SELECTOR,
+            ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY,
+                functionId: 0,
+                dependencyIndex: 0
+            }),
+            ManifestFunction({functionType: ManifestAssociatedFunctionType.NONE, functionId: 0, dependencyIndex: 0})
+        );
+
+        _installPlugin2WithHooks(
+            _EXEC_SELECTOR,
+            ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY,
+                functionId: 0,
+                dependencyIndex: 0
+            }),
+            ManifestFunction({functionType: ManifestAssociatedFunctionType.NONE, functionId: 0, dependencyIndex: 0}),
+            new FunctionReference[](0)
+        );
+
+        vm.stopPrank();
+    }
+
+    function test_overlappingPreExecHookAlwaysDeny_revert() public {
+        test_overlappingPreExecHookAlwaysDeny_install();
+
+        vm.startPrank(owner1);
+
+        (bool success, bytes memory returnData) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
+        assertFalse(success);
+        assertEq(returnData, abi.encodeWithSelector(UpgradeableModularAccount.AlwaysDenyRule.selector));
+
+        vm.stopPrank();
+    }
+
+    function test_overlappingPreExecHookAlwaysDeny_uninstallPlugin1() public {
+        test_overlappingPreExecHookAlwaysDeny_install();
+
+        vm.startPrank(owner1);
+
+        _uninstallPlugin(mockPlugin1);
+
+        // Execution selector should no longer exist.
+        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
+        assertFalse(success);
+
+        vm.stopPrank();
+    }
+
+    function test_overlappingPreExecHookAlwaysDeny_uninstallPlugin2() public {
+        test_overlappingPreExecHookAlwaysDeny_install();
+
+        vm.startPrank(owner1);
+
+        _uninstallPlugin(mockPlugin2);
+
+        (bool success, bytes memory returnData) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
+        assertFalse(success);
+        assertEq(returnData, abi.encodeWithSelector(UpgradeableModularAccount.AlwaysDenyRule.selector));
+
+        vm.stopPrank();
+    }
+
+    /// Plugins cannot depend on hooks from other plugins.
+    function test_overlappingPreExecHook_invalid() public {
+        vm.startPrank(owner1);
+
+        _installPlugin1WithHooks(
+            _EXEC_SELECTOR,
+            ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY,
+                functionId: 0,
+                dependencyIndex: 0
+            }),
+            ManifestFunction({functionType: ManifestAssociatedFunctionType.NONE, functionId: 0, dependencyIndex: 0})
+        );
+
+        FunctionReference[] memory dependencies = new FunctionReference[](1);
+        dependencies[0] = FunctionReferenceLib.pack(address(mockPlugin1), 1);
+
+        vm.expectRevert(abi.encodeWithSelector(PluginManagerInternals.InvalidPluginManifest.selector));
+        this.installPlugin2WithHooksNoSuccessCheck(
+            _EXEC_SELECTOR,
+            ManifestFunction({
+                functionType: ManifestAssociatedFunctionType.DEPENDENCY,
+                functionId: 0,
+                dependencyIndex: 0
+            }),
+            ManifestFunction({functionType: ManifestAssociatedFunctionType.NONE, functionId: 0, dependencyIndex: 0}),
+            dependencies
+        );
+    }
+
     /// @dev Plugin 1 hook pair: [1, 2]
     ///      Expected execution: [1, 2]
     function test_execHookPair_install() public {
@@ -220,9 +316,8 @@ contract UpgradeableModularAccountExecHooksTest is Test {
 
         vm.startPrank(owner1);
 
-        vm.expectEmit(true, true, true, true);
-        // pre hook call
-        emit ReceivedCall(
+        vm.expectCall(
+            address(mockPlugin1),
             abi.encodeWithSelector(
                 IPlugin.preExecutionHook.selector,
                 _PRE_HOOK_FUNCTION_ID_1,
@@ -230,18 +325,15 @@ contract UpgradeableModularAccountExecHooksTest is Test {
                 0, // msg.value in call to account
                 abi.encodeWithSelector(_EXEC_SELECTOR)
             ),
-            0 // msg value in call to plugin
+            1
         );
-        vm.expectEmit(true, true, true, true);
-        // exec call
-        emit ReceivedCall(abi.encodePacked(_EXEC_SELECTOR), 0);
-        vm.expectEmit(true, true, true, true);
-        // post hook call
-        emit ReceivedCall(
+        vm.expectCall(address(mockPlugin1), abi.encodePacked(_EXEC_SELECTOR), 1);
+        vm.expectCall(
+            address(mockPlugin1),
             abi.encodeCall(
                 IPlugin.postExecutionHook, (_POST_HOOK_FUNCTION_ID_2, abi.encode(_PRE_HOOK_FUNCTION_ID_1))
             ),
-            0 // msg value in call to plugin
+            1
         );
 
         (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
@@ -287,12 +379,9 @@ contract UpgradeableModularAccountExecHooksTest is Test {
 
         vm.startPrank(owner1);
 
-        vm.expectEmit(true, true, true, true);
-        emit ReceivedCall(
-            abi.encodeCall(IPlugin.postExecutionHook, (_POST_HOOK_FUNCTION_ID_2, "")),
-            0 // msg value in call to plugin
+        vm.expectCall(
+            address(mockPlugin1), abi.encodeCall(IPlugin.postExecutionHook, (_POST_HOOK_FUNCTION_ID_2, "")), 1
         );
-
         (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
         assertTrue(success);
 
@@ -311,936 +400,6 @@ contract UpgradeableModularAccountExecHooksTest is Test {
         vm.stopPrank();
     }
 
-    /// @dev Plugin 1 hook pair: [1, null]
-    ///      Plugin 2 hook pair: [1, null]
-    ///      Expected execution: [1, null]
-    function test_overlappingPreExecHooks_install() public {
-        vm.startPrank(owner1);
-
-        // Install the first plugin.
-        _installPlugin1WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _PRE_HOOK_FUNCTION_ID_1,
-                dependencyIndex: 0
-            }),
-            ManifestFunction({functionType: ManifestAssociatedFunctionType.NONE, functionId: 0, dependencyIndex: 0})
-        );
-
-        // Install a second plugin that applies the first plugin's hook to the same selector.
-        FunctionReference[] memory dependencies = new FunctionReference[](1);
-        dependencies[0] = FunctionReferenceLib.pack(address(mockPlugin1), _PRE_HOOK_FUNCTION_ID_1);
-        _installPlugin2WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.DEPENDENCY,
-                functionId: 0,
-                dependencyIndex: 0
-            }),
-            ManifestFunction({functionType: ManifestAssociatedFunctionType.NONE, functionId: 0, dependencyIndex: 0}),
-            dependencies
-        );
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, null]
-    ///      Plugin 2 hook pair: [1, null]
-    ///      Expected execution: [1, null]
-    function test_overlappingPreExecHooks_run() public {
-        test_overlappingPreExecHooks_install();
-
-        vm.startPrank(owner1);
-
-        // Expect the pre hook to be called just once.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_1,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(_EXEC_SELECTOR)
-            ),
-            1
-        );
-
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, null]
-    ///      Plugin 2 hook pair: [1, null]
-    ///      Expected execution: [1, null]
-    function test_overlappingPreExecHooks_uninstall() public {
-        test_overlappingPreExecHooks_install();
-
-        vm.startPrank(owner1);
-
-        // Uninstall the second plugin.
-        _uninstallPlugin(mockPlugin2);
-
-        // Expect the pre hook to still exist after uninstalling a plugin with a duplicate hook.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_1,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(_EXEC_SELECTOR)
-            ),
-            1
-        );
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        // Uninstall the first plugin.
-        _uninstallPlugin(mockPlugin1);
-
-        // Execution selector should no longer exist.
-        (success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertFalse(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [1, 2]
-    ///      Expected execution: [1, 2]
-    function test_overlappingExecHookPairs_install() public {
-        vm.startPrank(owner1);
-
-        // Install the first plugin.
-        _installPlugin1WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _PRE_HOOK_FUNCTION_ID_1,
-                dependencyIndex: 0
-            }),
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _POST_HOOK_FUNCTION_ID_2,
-                dependencyIndex: 0
-            })
-        );
-
-        // Install a second plugin that applies the first plugin's hook pair to the same selector.
-        FunctionReference[] memory dependencies = new FunctionReference[](2);
-        dependencies[0] = FunctionReferenceLib.pack(address(mockPlugin1), _PRE_HOOK_FUNCTION_ID_1);
-        dependencies[1] = FunctionReferenceLib.pack(address(mockPlugin1), _POST_HOOK_FUNCTION_ID_2);
-        _installPlugin2WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.DEPENDENCY,
-                functionId: 0,
-                dependencyIndex: 0
-            }),
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.DEPENDENCY,
-                functionId: 0,
-                dependencyIndex: 1
-            }),
-            dependencies
-        );
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [1, 2]
-    ///      Expected execution: [1, 2]
-    function test_overlappingExecHookPairs_run() public {
-        test_overlappingExecHookPairs_install();
-
-        vm.startPrank(owner1);
-
-        // Expect the pre hook to be called just once.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_1,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(_EXEC_SELECTOR)
-            ),
-            1
-        );
-
-        // Expect the post hook to be called just once, with the expected data.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                abi.encode(_PRE_HOOK_FUNCTION_ID_1) // preExecHookData
-            ),
-            1
-        );
-
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [1, 2]
-    ///      Expected execution: [1, 2]
-    function test_overlappingExecHookPairs_uninstall() public {
-        test_overlappingExecHookPairs_install();
-
-        vm.startPrank(owner1);
-
-        // Uninstall the second plugin.
-        _uninstallPlugin(mockPlugin2);
-
-        // Expect the pre/post hooks to still exist after uninstalling a plugin with a duplicate hook.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_1,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(_EXEC_SELECTOR)
-            ),
-            1
-        );
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                abi.encode(_PRE_HOOK_FUNCTION_ID_1) // preExecHookData
-            ),
-            1
-        );
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        // Uninstall the first plugin.
-        _uninstallPlugin(mockPlugin1);
-
-        // Execution selector should no longer exist.
-        (success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertFalse(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [3, 2]
-    ///      Expected execution: [1, 2], [3, 2]
-    function test_overlappingExecHookPairsOnPost_install() public {
-        vm.startPrank(owner1);
-
-        // Install the first plugin.
-        _installPlugin1WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _PRE_HOOK_FUNCTION_ID_1,
-                dependencyIndex: 0
-            }),
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _POST_HOOK_FUNCTION_ID_2,
-                dependencyIndex: 0
-            })
-        );
-
-        // Install the second plugin.
-        FunctionReference[] memory dependencies = new FunctionReference[](1);
-        dependencies[0] = FunctionReferenceLib.pack(address(mockPlugin1), _POST_HOOK_FUNCTION_ID_2);
-        _installPlugin2WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _PRE_HOOK_FUNCTION_ID_3,
-                dependencyIndex: 0
-            }),
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.DEPENDENCY,
-                functionId: 0,
-                dependencyIndex: 0
-            }),
-            dependencies
-        );
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [3, 2]
-    ///      Expected execution: [1, 2], [3, 2]
-    function test_overlappingExecHookPairsOnPost_run() public {
-        test_overlappingExecHookPairsOnPost_install();
-
-        vm.startPrank(owner1);
-
-        // Expect each pre hook to be called once.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_1,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(_EXEC_SELECTOR)
-            ),
-            1
-        );
-        vm.expectCall(
-            address(mockPlugin2),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_3,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(_EXEC_SELECTOR)
-            ),
-            1
-        );
-
-        // Expect the post hook to be called twice, with the expected data.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                abi.encode(_PRE_HOOK_FUNCTION_ID_1) // preExecHookData
-            ),
-            1
-        );
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                abi.encode(_PRE_HOOK_FUNCTION_ID_3) // preExecHookData
-            ),
-            1
-        );
-
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [3, 2]
-    ///      Expected execution: [1, 2], [3, 2]
-    function test_overlappingExecHookPairsOnPost_uninstall() public {
-        test_overlappingExecHookPairsOnPost_install();
-
-        vm.startPrank(owner1);
-
-        // Uninstall the second plugin.
-        _uninstallPlugin(mockPlugin2);
-
-        // Expect the pre/post hooks to still exist after uninstalling a plugin with a duplicate hook.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_1,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(_EXEC_SELECTOR)
-            ),
-            1
-        );
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                abi.encode(_PRE_HOOK_FUNCTION_ID_1) // preExecHookData
-            ),
-            1
-        );
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        // Uninstall the first plugin.
-        _uninstallPlugin(mockPlugin1);
-
-        // Execution selector should no longer exist.
-        (success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertFalse(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [1, 4]
-    ///      Expected execution: [1, 2], [1, 4]
-    function test_overlappingExecHookPairsOnPre_install() public {
-        vm.startPrank(owner1);
-
-        // Install the first plugin.
-        _installPlugin1WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _PRE_HOOK_FUNCTION_ID_1,
-                dependencyIndex: 0
-            }),
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _POST_HOOK_FUNCTION_ID_2,
-                dependencyIndex: 0
-            })
-        );
-
-        // Install the second plugin.
-        FunctionReference[] memory dependencies = new FunctionReference[](1);
-        dependencies[0] = FunctionReferenceLib.pack(address(mockPlugin1), _PRE_HOOK_FUNCTION_ID_1);
-        _installPlugin2WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.DEPENDENCY,
-                functionId: 0,
-                dependencyIndex: 0
-            }),
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _POST_HOOK_FUNCTION_ID_4,
-                dependencyIndex: 0
-            }),
-            dependencies
-        );
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [1, 4]
-    ///      Expected execution: [1, 2], [null, 4]
-    function test_overlappingExecHookPairsOnPre_run() public {
-        test_overlappingExecHookPairsOnPre_install();
-
-        vm.startPrank(owner1);
-
-        // Expect the pre hook to be called twice, each passing data over to their respective post hooks.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_1,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(_EXEC_SELECTOR)
-            ),
-            1
-        );
-
-        // Expect each post hook to be called once, with the expected data.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                abi.encode(_PRE_HOOK_FUNCTION_ID_1) // preExecHookData
-            ),
-            1
-        );
-        vm.expectCall(
-            address(mockPlugin2),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_4,
-                abi.encode(_PRE_HOOK_FUNCTION_ID_1) // preExecHookData
-            ),
-            1
-        );
-
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [1, 4]
-    ///      Expected execution: [1, 2], [1, 4]
-    function test_overlappingExecHookPairsOnPre_uninstall() public {
-        test_overlappingExecHookPairsOnPre_install();
-
-        vm.startPrank(owner1);
-
-        // Uninstall the second plugin.
-        _uninstallPlugin(mockPlugin2);
-
-        // Expect the pre/post hooks to still exist after uninstalling a plugin with a duplicate hook.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_1,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(_EXEC_SELECTOR)
-            ),
-            1
-        );
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                abi.encode(_PRE_HOOK_FUNCTION_ID_1) // preExecHookData
-            ),
-            1
-        );
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        // Uninstall the first plugin.
-        _uninstallPlugin(mockPlugin1);
-
-        // Execution selector should no longer exist.
-        (success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertFalse(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [1, null]
-    ///      Expected execution: [1, 2]
-    function test_overlappingExecHookPairsOnPreWithNullPost_install() public {
-        vm.startPrank(owner1);
-
-        // Install the first plugin.
-        _installPlugin1WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _PRE_HOOK_FUNCTION_ID_1,
-                dependencyIndex: 0
-            }),
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _POST_HOOK_FUNCTION_ID_2,
-                dependencyIndex: 0
-            })
-        );
-
-        // Install the second plugin.
-        FunctionReference[] memory dependencies = new FunctionReference[](1);
-        dependencies[0] = FunctionReferenceLib.pack(address(mockPlugin1), _PRE_HOOK_FUNCTION_ID_1);
-        _installPlugin2WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.DEPENDENCY,
-                functionId: 0,
-                dependencyIndex: 0
-            }),
-            ManifestFunction({functionType: ManifestAssociatedFunctionType.NONE, functionId: 0, dependencyIndex: 0}),
-            dependencies
-        );
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [1, null]
-    ///      Expected execution: [1, 2]
-    function test_overlappingExecHookPairsOnPreWithNullPost_run() public {
-        test_overlappingExecHookPairsOnPreWithNullPost_install();
-
-        vm.startPrank(owner1);
-
-        // Expect the pre hook to be called just once.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_1,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(_EXEC_SELECTOR)
-            ),
-            1
-        );
-
-        // Expect the post hook to be called just once, with the expected data.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                abi.encode(_PRE_HOOK_FUNCTION_ID_1) // preExecHookData
-            ),
-            1
-        );
-
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [1, null]
-    ///      Expected execution: [1, 2]
-    function test_overlappingExecHookPairsOnPreWithNullPost_uninstall() public {
-        test_overlappingExecHookPairsOnPreWithNullPost_install();
-
-        vm.startPrank(owner1);
-
-        // Uninstall the second plugin.
-        _uninstallPlugin(mockPlugin2);
-
-        // Expect the pre/post hooks to still exist after uninstalling a plugin with a duplicate hook.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_1,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(_EXEC_SELECTOR)
-            ),
-            1
-        );
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                abi.encode(_PRE_HOOK_FUNCTION_ID_1) // preExecHookData
-            ),
-            1
-        );
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        // Uninstall the first plugin.
-        _uninstallPlugin(mockPlugin1);
-
-        // Execution selector should no longer exist.
-        (success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertFalse(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [null, 2]
-    ///      Expected execution: [1, 2], [null, 2]
-    function test_overlappingExecHookPairsOnPostWithNullPre_install() public {
-        vm.startPrank(owner1);
-
-        // Install the first plugin.
-        _installPlugin1WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _PRE_HOOK_FUNCTION_ID_1,
-                dependencyIndex: 0
-            }),
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _POST_HOOK_FUNCTION_ID_2,
-                dependencyIndex: 0
-            })
-        );
-
-        // Install the second plugin.
-        FunctionReference[] memory dependencies = new FunctionReference[](1);
-        dependencies[0] = FunctionReferenceLib.pack(address(mockPlugin1), _POST_HOOK_FUNCTION_ID_2);
-        _installPlugin2WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({functionType: ManifestAssociatedFunctionType.NONE, functionId: 0, dependencyIndex: 0}),
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.DEPENDENCY,
-                functionId: 0,
-                dependencyIndex: 0
-            }),
-            dependencies
-        );
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [null, 2]
-    ///      Expected execution: [1, 2], [null, 2]
-    function test_overlappingExecHookPairsOnPostWithNullPre_run() public {
-        test_overlappingExecHookPairsOnPostWithNullPre_install();
-
-        vm.startPrank(owner1);
-
-        // Expect the pre hook to be called just once.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_1,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(_EXEC_SELECTOR)
-            ),
-            1
-        );
-
-        // Expect the post hook to be called twice, with the expected data.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                abi.encode(_PRE_HOOK_FUNCTION_ID_1) // preExecHookData
-            ),
-            1
-        );
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                "" // preExecHookData
-            ),
-            1
-        );
-
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [null, 2]
-    ///      Expected execution: [1, 2], [null, 2]
-    function test_overlappingExecHookPairsOnPostWithNullPre_uninstall() public {
-        test_overlappingExecHookPairsOnPostWithNullPre_install();
-
-        vm.startPrank(owner1);
-
-        // Uninstall the second plugin.
-        _uninstallPlugin(mockPlugin2);
-
-        // Expect the pre/post hooks to still exist after uninstalling a plugin with a duplicate hook.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_1,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(_EXEC_SELECTOR)
-            ),
-            1
-        );
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                abi.encode(_PRE_HOOK_FUNCTION_ID_1) // preExecHookData
-            ),
-            1
-        );
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        // Uninstall the first plugin.
-        _uninstallPlugin(mockPlugin1);
-
-        // Execution selector should no longer exist.
-        (success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertFalse(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [null, 2]
-    ///      Plugin 2 hook pair: [null, 2]
-    ///      Expected execution: [null, 2]
-    function test_overlappingPostExecHooks_install() public {
-        vm.startPrank(owner1);
-
-        // Install the first plugin.
-        _installPlugin1WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({functionType: ManifestAssociatedFunctionType.NONE, functionId: 0, dependencyIndex: 0}),
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _POST_HOOK_FUNCTION_ID_2,
-                dependencyIndex: 0
-            })
-        );
-
-        // Install the second plugin.
-        FunctionReference[] memory dependencies = new FunctionReference[](1);
-        dependencies[0] = FunctionReferenceLib.pack(address(mockPlugin1), _POST_HOOK_FUNCTION_ID_2);
-        _installPlugin2WithHooks(
-            _EXEC_SELECTOR,
-            ManifestFunction({functionType: ManifestAssociatedFunctionType.NONE, functionId: 0, dependencyIndex: 0}),
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.DEPENDENCY,
-                functionId: 0,
-                dependencyIndex: 0
-            }),
-            dependencies
-        );
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [null, 2]
-    ///      Plugin 2 hook pair: [null, 2]
-    ///      Expected execution: [null, 2]
-    function test_overlappingPostExecHooks_run() public {
-        test_overlappingPostExecHooks_install();
-
-        vm.startPrank(owner1);
-
-        // Expect the post hook to be called just once.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                "" // preExecHookData
-            ),
-            1
-        );
-
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [null, 2]
-    ///      Plugin 2 hook pair: [null, 2]
-    ///      Expected execution: [null, 2]
-    function test_overlappingPostExecHooks_uninstall() public {
-        test_overlappingPostExecHooks_install();
-
-        vm.startPrank(owner1);
-
-        // Uninstall the second plugin.
-        _uninstallPlugin(mockPlugin2);
-
-        // Expect the pre/post hooks to still exist after uninstalling a plugin with a duplicate hook.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                "" // preExecHookData
-            ),
-            1
-        );
-        (bool success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertTrue(success);
-
-        // Uninstall the first plugin.
-        _uninstallPlugin(mockPlugin1);
-
-        // Execution selector should no longer exist.
-        (success,) = address(account1).call(abi.encodeWithSelector(_EXEC_SELECTOR));
-        assertFalse(success);
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [null, 2]
-    ///      Expected execution: [1, 2], [null, 2]
-    function test_execHooksWithPostOnlyForNativeFunction_install() public {
-        vm.startPrank(owner1);
-
-        // Install the first plugin.
-        _installPlugin1WithHooks(
-            UpgradeableModularAccount.execute.selector,
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _PRE_HOOK_FUNCTION_ID_1,
-                dependencyIndex: 0
-            }),
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.SELF,
-                functionId: _POST_HOOK_FUNCTION_ID_2,
-                dependencyIndex: 0
-            })
-        );
-
-        // Install the second plugin.
-        FunctionReference[] memory dependencies = new FunctionReference[](1);
-        dependencies[0] = FunctionReferenceLib.pack(address(mockPlugin1), _POST_HOOK_FUNCTION_ID_2);
-        _installPlugin2WithHooks(
-            UpgradeableModularAccount.execute.selector,
-            ManifestFunction({functionType: ManifestAssociatedFunctionType.NONE, functionId: 0, dependencyIndex: 0}),
-            ManifestFunction({
-                functionType: ManifestAssociatedFunctionType.DEPENDENCY,
-                functionId: 0,
-                dependencyIndex: 0
-            }),
-            dependencies
-        );
-
-        vm.stopPrank();
-    }
-
-    /// @dev Plugin 1 hook pair: [1, 2]
-    ///      Plugin 2 hook pair: [null, 2]
-    ///      Expected execution: [1, 2], [null, 2]
-    function test_execHooksWithPostOnlyForNativeFunction_run() public {
-        test_execHooksWithPostOnlyForNativeFunction_install();
-
-        vm.startPrank(owner1);
-
-        // Expect the pre hook to be called just once.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.preExecutionHook.selector,
-                _PRE_HOOK_FUNCTION_ID_1,
-                owner1, // caller
-                0, // msg.value in call to account
-                abi.encodeWithSelector(UpgradeableModularAccount.execute.selector, address(0), 0, "")
-            ),
-            1
-        );
-
-        // Expect the post hook to be called twice, with the expected data.
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                abi.encode(_PRE_HOOK_FUNCTION_ID_1) // preExecHookData
-            ),
-            1
-        );
-        vm.expectCall(
-            address(mockPlugin1),
-            abi.encodeWithSelector(
-                IPlugin.postExecutionHook.selector,
-                _POST_HOOK_FUNCTION_ID_2,
-                "" // preExecHookData
-            ),
-            1
-        );
-
-        account1.execute(address(0), 0, "");
-
-        vm.stopPrank();
-    }
-
     function _installPlugin1WithHooks(
         bytes4 selector,
         ManifestFunction memory preHook,
@@ -1250,8 +409,7 @@ contract UpgradeableModularAccountExecHooksTest is Test {
         mockPlugin1 = new MockPlugin(m1);
         manifestHash1 = keccak256(abi.encode(mockPlugin1.pluginManifest()));
 
-        vm.expectEmit(true, true, true, true);
-        emit ReceivedCall(abi.encodeCall(IPlugin.onInstall, (bytes(""))), 0);
+        vm.expectCall(address(mockPlugin1), abi.encodeCall(IPlugin.onInstall, (bytes(""))), 1);
         vm.expectEmit(true, true, true, true);
         emit PluginInstalled(address(mockPlugin1), manifestHash1, new FunctionReference[](0));
 
@@ -1271,6 +429,27 @@ contract UpgradeableModularAccountExecHooksTest is Test {
         ManifestFunction memory postHook,
         FunctionReference[] memory dependencies
     ) internal {
+        _installPlugin2WithHooksInternal(selector, preHook, postHook, dependencies, true);
+    }
+
+    function installPlugin2WithHooksNoSuccessCheck(
+        bytes4 selector,
+        ManifestFunction memory preHook,
+        ManifestFunction memory postHook,
+        FunctionReference[] memory dependencies
+    ) external {
+        _installPlugin2WithHooksInternal(selector, preHook, postHook, dependencies, false);
+    }
+
+    function _installPlugin2WithHooksInternal(
+        bytes4 selector,
+        ManifestFunction memory preHook,
+        ManifestFunction memory postHook,
+        FunctionReference[] memory dependencies,
+        bool expectSuccess
+    ) internal {
+        vm.startPrank(owner1);
+
         if (preHook.functionType == ManifestAssociatedFunctionType.DEPENDENCY) {
             m2.dependencyInterfaceIds.push(type(IPlugin).interfaceId);
         }
@@ -1283,10 +462,11 @@ contract UpgradeableModularAccountExecHooksTest is Test {
         mockPlugin2 = new MockPlugin(m2);
         manifestHash2 = keccak256(abi.encode(mockPlugin2.pluginManifest()));
 
-        vm.expectEmit(true, true, true, true);
-        emit ReceivedCall(abi.encodeCall(IPlugin.onInstall, (bytes(""))), 0);
-        vm.expectEmit(true, true, true, true);
-        emit PluginInstalled(address(mockPlugin2), manifestHash2, dependencies);
+        if (expectSuccess) {
+            vm.expectCall(address(mockPlugin2), abi.encodeCall(IPlugin.onInstall, (bytes(""))), 1);
+            vm.expectEmit(true, true, true, true);
+            emit PluginInstalled(address(mockPlugin2), manifestHash2, dependencies);
+        }
 
         account1.installPlugin({
             plugin: address(mockPlugin2),
@@ -1294,11 +474,12 @@ contract UpgradeableModularAccountExecHooksTest is Test {
             pluginInitData: bytes(""),
             dependencies: dependencies
         });
+
+        vm.stopPrank();
     }
 
     function _uninstallPlugin(MockPlugin plugin) internal {
-        vm.expectEmit(true, true, true, true);
-        emit ReceivedCall(abi.encodeCall(IPlugin.onUninstall, (bytes(""))), 0);
+        vm.expectCall(address(plugin), abi.encodeCall(IPlugin.onUninstall, (bytes(""))), 1);
         vm.expectEmit(true, true, true, true);
         emit PluginUninstalled(address(plugin), true);
 

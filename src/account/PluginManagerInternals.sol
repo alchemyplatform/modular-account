@@ -386,6 +386,9 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
             );
         }
 
+        // Passed to _resolveManifestFunction when DEPENDENCY is not a valid function type.
+        FunctionReference[] memory noDependencies = new FunctionReference[](0);
+
         // Add pre user operation validation hooks
         length = manifest.preUserOpValidationHooks.length;
         for (uint256 i = 0; i < length; ++i) {
@@ -395,7 +398,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                 _resolveManifestFunction(
                     mh.associatedFunction,
                     plugin,
-                    dependencies,
+                    noDependencies,
                     ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY
                 )
             );
@@ -410,7 +413,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                 _resolveManifestFunction(
                     mh.associatedFunction,
                     plugin,
-                    dependencies,
+                    noDependencies,
                     ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY
                 )
             );
@@ -423,10 +426,10 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
             _addExecHooks(
                 mh.executionSelector,
                 _resolveManifestFunction(
-                    mh.preExecHook, plugin, dependencies, ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY
+                    mh.preExecHook, plugin, noDependencies, ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY
                 ),
                 _resolveManifestFunction(
-                    mh.postExecHook, plugin, dependencies, ManifestAssociatedFunctionType.NONE
+                    mh.postExecHook, plugin, noDependencies, ManifestAssociatedFunctionType.NONE
                 )
             );
         }
@@ -496,6 +499,9 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
 
         // Remove components according to the manifest, in reverse order (by component type) of their installation.
 
+        // Passed to _resolveManifestFunction when DEPENDENCY is not a valid function type.
+        FunctionReference[] memory noDependencies = new FunctionReference[](0);
+
         // Remove pre and post execution function hooks
         length = args.manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
@@ -503,10 +509,13 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
             _removeExecHooks(
                 mh.executionSelector,
                 _resolveManifestFunction(
-                    mh.preExecHook, args.plugin, dependencies, ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY
+                    mh.preExecHook,
+                    args.plugin,
+                    noDependencies,
+                    ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY
                 ),
                 _resolveManifestFunction(
-                    mh.postExecHook, args.plugin, dependencies, ManifestAssociatedFunctionType.NONE
+                    mh.postExecHook, args.plugin, noDependencies, ManifestAssociatedFunctionType.NONE
                 )
             );
         }
@@ -521,7 +530,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                 _resolveManifestFunction(
                     mh.associatedFunction,
                     args.plugin,
-                    dependencies,
+                    noDependencies,
                     ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY
                 )
             );
@@ -537,7 +546,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
                 _resolveManifestFunction(
                     mh.associatedFunction,
                     args.plugin,
-                    dependencies,
+                    noDependencies,
                     ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY
                 )
             );
@@ -630,6 +639,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
     function _resolveManifestFunction(
         ManifestFunction memory manifestFunction,
         address plugin,
+        // Can be empty to indicate that type DEPENDENCY is invalid for this function.
         FunctionReference[] memory dependencies,
         // Indicates which magic value, if any, is permissible for the function to resolve.
         ManifestAssociatedFunctionType allowedMagicValue
@@ -637,7 +647,12 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         if (manifestFunction.functionType == ManifestAssociatedFunctionType.SELF) {
             return FunctionReferenceLib.pack(plugin, manifestFunction.functionId);
         } else if (manifestFunction.functionType == ManifestAssociatedFunctionType.DEPENDENCY) {
-            return dependencies[manifestFunction.dependencyIndex];
+            uint256 index = manifestFunction.dependencyIndex;
+            if (index < dependencies.length) {
+                return dependencies[manifestFunction.dependencyIndex];
+            } else {
+                revert InvalidPluginManifest();
+            }
         } else if (manifestFunction.functionType == ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW)
         {
             if (allowedMagicValue == ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW) {
