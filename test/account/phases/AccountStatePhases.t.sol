@@ -10,7 +10,7 @@ import {UpgradeableModularAccount} from "../../../src/account/UpgradeableModular
 import {MultiOwnerPlugin} from "../../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {IEntryPoint} from "../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
-import {IPluginManager} from "../../../src/interfaces/IPluginManager.sol";
+import {FunctionReference, IPluginManager} from "../../../src/interfaces/IPluginManager.sol";
 import {IStandardExecutor, Call} from "../../../src/interfaces/IStandardExecutor.sol";
 import {
     IPlugin,
@@ -20,7 +20,7 @@ import {
     ManifestAssociatedFunctionType,
     ManifestAssociatedFunction
 } from "../../../src/interfaces/IPlugin.sol";
-import {FunctionReference, FunctionReferenceLib} from "../../../src/libraries/FunctionReferenceLib.sol";
+import {FunctionReferenceLib} from "../../../src/libraries/FunctionReferenceLib.sol";
 import {MultiOwnerMSCAFactory} from "../../../src/factory/MultiOwnerMSCAFactory.sol";
 
 import {AccountStateMutatingPlugin} from "../../mocks/plugins/AccountStateMutatingPlugin.sol";

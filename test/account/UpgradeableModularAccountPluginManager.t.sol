@@ -16,10 +16,10 @@ import {TokenReceiverPlugin} from "../../src/plugins/TokenReceiverPlugin.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {PluginManifest} from "../../src/interfaces/IPlugin.sol";
 import {IAccountLoupe} from "../../src/interfaces/IAccountLoupe.sol";
-import {IPluginManager} from "../../src/interfaces/IPluginManager.sol";
+import {FunctionReference, IPluginManager} from "../../src/interfaces/IPluginManager.sol";
 import {IStandardExecutor} from "../../src/interfaces/IStandardExecutor.sol";
 import {Call} from "../../src/interfaces/IStandardExecutor.sol";
-import {FunctionReference, FunctionReferenceLib} from "../../src/libraries/FunctionReferenceLib.sol";
+import {FunctionReferenceLib} from "../../src/libraries/FunctionReferenceLib.sol";
 import {IPlugin, PluginManifest} from "../../src/interfaces/IPlugin.sol";
 
 import {Counter} from "../mocks/Counter.sol";

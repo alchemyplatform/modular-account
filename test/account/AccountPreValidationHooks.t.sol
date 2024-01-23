@@ -11,7 +11,8 @@ import {IMultiOwnerPlugin} from "../../src/plugins/owner/IMultiOwnerPlugin.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../src/interfaces/erc4337/UserOperation.sol";
-import {FunctionReference, FunctionReferenceLib} from "../../src/libraries/FunctionReferenceLib.sol";
+import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
+import {FunctionReferenceLib} from "../../src/libraries/FunctionReferenceLib.sol";
 import {
     IPlugin,
     PluginManifest,

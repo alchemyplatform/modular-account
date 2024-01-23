@@ -13,9 +13,9 @@ import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Re
 import {TokenReceiverPlugin} from "../../src/plugins/TokenReceiverPlugin.sol";
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
+import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
 import {AccountStorageV1} from "../../src/libraries/AccountStorageV1.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
-import {FunctionReference} from "../../src/libraries/FunctionReferenceLib.sol";
 
 import {MockERC777} from "../mocks/tokens/MockERC777.sol";
 import {MockERC1155} from "../mocks/tokens/MockERC1155.sol";

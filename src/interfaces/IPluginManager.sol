@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
-import {FunctionReference} from "../libraries/FunctionReferenceLib.sol";
+type FunctionReference is bytes21;
 
 /// @title Plugin Manager Interface
 interface IPluginManager {
