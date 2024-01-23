@@ -354,48 +354,58 @@ library AssociatedLinkedListSetLib {
     /// @notice Gets all elements in a set.
     /// @dev This is an O(n) operation, where n is the number of elements in the set.
     /// @param set The set to get the elements of.
-    /// @return res An array of all elements in the set.
+    /// @return ret An array of all elements in the set.
     function getAll(AssociatedLinkedListSet storage set, address associated)
         internal
         view
-        returns (SetValue[] memory res)
+        returns (SetValue[] memory ret)
     {
         TempBytesMemory keyBuffer = _allocateTempKeyBuffer(set, associated);
+        uint256 size;
+        bytes32 cursor = _load(_mapLookup(keyBuffer, SENTINEL_VALUE));
 
-        StoragePointer sentinelSlot = _mapLookup(keyBuffer, SENTINEL_VALUE);
-        bytes32 cursor = _load(sentinelSlot);
+        // Dynamically allocate the returned array as we iterate through the set, since we don't know the size
+        // beforehand.
+        // This is accomplished by first writing to memory after the free memory pointer,
+        // then updating the free memory pointer to cover the newly-allocated data.
+        // To the compiler, writes to memory after the free memory pointer are considered "memory safe".
+        // See https://docs.soliditylang.org/en/v0.8.22/assembly.html#memory-safety
+        // Stack variable lifting done when compiling with via-ir will only ever place variables into memory
+        // locations below the current free memory pointer, so it is safe to compile this library with via-ir.
+        // See https://docs.soliditylang.org/en/v0.8.22/yul.html#memoryguard
+        assembly ("memory-safe") {
+            // It is critical that no other memory allocations occur between:
+            // -  loading the value of the free memory pointer into `ret`
+            // -  updating the free memory pointer to point to the newly-allocated data, which is done after all
+            // the values have been written.
+            ret := mload(0x40)
+            // Add an extra offset of 4 words to account for the length of the keyBuffer, since it will be used
+            // for each lookup. This effectively converts the keyBuffer into a "bytes memory" type.
+            ret := add(ret, 0x80)
+        }
 
-        uint256 count;
         while (!isSentinel(cursor) && cursor != bytes32(0)) {
             unchecked {
-                ++count;
+                ++size;
             }
             bytes32 cleared = clearFlags(cursor);
-
+            // Place the item into the return array manually. Since the size was just incremented, it will point to
+            // the next location to write to.
+            assembly ("memory-safe") {
+                mstore(add(ret, mul(size, 0x20)), cleared)
+            }
             if (hasNext(cursor)) {
-                StoragePointer cursorSlot = _mapLookup(keyBuffer, cleared);
-                cursor = _load(cursorSlot);
+                cursor = _load(_mapLookup(keyBuffer, cleared));
             } else {
                 cursor = bytes32(0);
             }
         }
 
-        res = new SetValue[](count);
-
-        if (count == 0) {
-            return res;
-        }
-
-        // Re-allocate the key buffer because we just overwrote it!
-        keyBuffer = _allocateTempKeyBuffer(set, associated);
-
-        cursor = SENTINEL_VALUE;
-        for (uint256 i = 0; i < count; ++i) {
-            StoragePointer cursorSlot = _mapLookup(keyBuffer, cursor);
-            bytes32 cursorValue = _load(cursorSlot);
-            bytes32 cleared = clearFlags(cursorValue);
-            res[i] = SetValue.wrap(bytes30(cleared));
-            cursor = cleared;
+        assembly ("memory-safe") {
+            // Update the free memory pointer with the now-known length of the array.
+            mstore(0x40, add(ret, mul(add(size, 1), 0x20)))
+            // Set the length of the array.
+            mstore(ret, size)
         }
     }
 
