@@ -380,7 +380,9 @@ library AssociatedLinkedListSetLib {
             // the values have been written.
             ret := mload(0x40)
             // Add an extra offset of 4 words to account for the length of the keyBuffer, since it will be used
-            // for each lookup. This effectively converts the keyBuffer into a "bytes memory" type.
+            // for each lookup. If this value were written back to the free memory pointer, it would effectively
+            // convert the keyBuffer into a "bytes memory" type. However, we don't actually write to the free
+            // memory pointer until after all we've also allocated the entire return array.
             ret := add(ret, 0x80)
         }
 
