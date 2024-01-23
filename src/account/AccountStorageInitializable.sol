@@ -3,7 +3,7 @@ pragma solidity ^0.8.22;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
-import {AccountStorageV1} from "../libraries/AccountStorageV1.sol";
+import {AccountStorageV1} from "../account/AccountStorageV1.sol";
 
 /// @title Account Storage Initializable
 /// @author Alchemy

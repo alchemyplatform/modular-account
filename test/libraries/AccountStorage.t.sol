@@ -2,10 +2,12 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-import {AccountStorageV1} from "../../src/libraries/AccountStorageV1.sol";
-import {AccountStorageInitializable} from "../../src/account/AccountStorageInitializable.sol";
-import {MockDiamondStorageContract} from "../mocks/MockDiamondStorageContract.sol";
+
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
+import {AccountStorageInitializable} from "../../src/account/AccountStorageInitializable.sol";
+import {AccountStorageV1} from "../../src/account/AccountStorageV1.sol";
+import {MockDiamondStorageContract} from "../mocks/MockDiamondStorageContract.sol";
 
 // Test implementation of AccountStorageInitializable which is contained in UpgradeableModularAccount
 contract AccountStorageTest is Test, AccountStorageV1 {
