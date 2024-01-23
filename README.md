@@ -63,4 +63,6 @@ forge script script/Deploy.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast
 
 The Modular Account libraries (i.e., all code inside the [src/libraries](src/libraries) directory) is licensed under the MIT License, also included in our repository in [src/libraries/LICENSE](src/libraries/LICENSE).
 
+All other code for Modular Account is licensed under the GNU General Public License v3.0, also included in our repository in [COPYING](COPYING).
+
 Alchemy Insights, Inc., 548 Market St., PMB 49099, San Francisco, CA 94104; legal@alchemy.com
