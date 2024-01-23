@@ -65,7 +65,7 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
     uint256 public constant VERIFICATION_GAS_LIMIT = 1000000;
 
     event PluginInstalled(address indexed plugin, bytes32 manifestHash, FunctionReference[] dependencies);
-    event PluginUninstalled(address indexed plugin, bool indexed callbacksSucceeded);
+    event PluginUninstalled(address indexed plugin, bool indexed onUninstallSucceeded);
 
     function setUp() public {
         entryPoint = IEntryPoint(address(new EntryPoint()));

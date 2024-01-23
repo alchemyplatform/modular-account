@@ -85,7 +85,7 @@ contract AccountStatePhasesTest is Test {
 
     // Event re-declarations for vm.expectEmit
     event PluginInstalled(address indexed plugin, bytes32 manifestHash, FunctionReference[] dependencies);
-    event PluginUninstalled(address indexed plugin, bool indexed callbacksSucceeded);
+    event PluginUninstalled(address indexed plugin, bool indexed onUninstallSucceeded);
     event ReceivedCall(bytes msgData, uint256 msgValue);
 
     // Empty arrays for convenience

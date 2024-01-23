@@ -67,7 +67,7 @@ contract UpgradeableModularAccount is
         // plugin manifest has changed. If empty, uses the default behavior of
         // calling the plugin to get its current manifest.
         bytes serializedManifest;
-        // If true, will complete the uninstall even if `onUninstall` callbacks revert. Available as an escape
+        // If true, will complete the uninstall even if the `onUninstall` callback reverts. Available as an escape
         // hatch if a plugin is blocking uninstall.
         bool forceUninstall;
         // Maximum amount of gas allowed for each uninstall callback function

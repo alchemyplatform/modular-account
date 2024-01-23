@@ -76,8 +76,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
     uint256 public constant VERIFICATION_GAS_LIMIT = 2000000;
 
     event PluginInstalled(address indexed plugin, bytes32 manifestHash, FunctionReference[] dependencies);
-    event PluginUninstalled(address indexed plugin, bool indexed callbacksSucceeded);
-    event PluginIgnoredUninstallCallbackFailure(address indexed plugin);
+    event PluginUninstalled(address indexed plugin, bool indexed onUninstallSucceeded);
     event ReceivedCall(bytes msgData, uint256 msgValue);
 
     function setUp() public {
@@ -553,8 +552,6 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
                 callbackGasLimit: 3000
             })
         );
-        vm.expectEmit(true, true, true, true);
-        emit PluginIgnoredUninstallCallbackFailure(plugin);
         vm.expectEmit(true, true, true, true);
         emit PluginUninstalled(plugin, false);
         IPluginManager(account2).uninstallPlugin{gas: 100_000}({

@@ -6,8 +6,7 @@ type FunctionReference is bytes21;
 /// @title Plugin Manager Interface
 interface IPluginManager {
     event PluginInstalled(address indexed plugin, bytes32 manifestHash, FunctionReference[] dependencies);
-    event PluginUninstalled(address indexed plugin, bool indexed callbacksSucceeded);
-    event PluginIgnoredUninstallCallbackFailure(address indexed plugin);
+    event PluginUninstalled(address indexed plugin, bool indexed onUninstallSucceeded);
 
     /// @notice Install a plugin to the modular account.
     /// @param plugin The plugin to install.
