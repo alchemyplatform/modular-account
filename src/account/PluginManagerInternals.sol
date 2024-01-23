@@ -477,7 +477,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         emit PluginInstalled(plugin, manifestHash, dependencies);
     }
 
-    function _uninstallPlugin(UninstallPluginArgs memory args, bytes calldata uninstallData) internal {
+    function _uninstallPlugin(UninstallPluginArgs memory args, bytes calldata pluginUninstallData) internal {
         AccountStorage storage storage_ = _getAccountStorage();
 
         // Check if the plugin exists.
@@ -628,18 +628,17 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         }
 
         // Clear the plugin storage for the account.
-        bool callbacksSucceeded = true;
+        bool onUninstallSucceeded = true;
         // solhint-disable-next-line no-empty-blocks
-        try IPlugin(args.plugin).onUninstall{gas: args.callbackGasLimit}(uninstallData) {}
+        try IPlugin(args.plugin).onUninstall{gas: args.callbackGasLimit}(pluginUninstallData) {}
         catch (bytes memory revertReason) {
             if (!args.forceUninstall) {
                 revert PluginUninstallCallbackFailed(args.plugin, revertReason);
             }
-            callbacksSucceeded = false;
-            emit PluginIgnoredUninstallCallbackFailure(args.plugin);
+            onUninstallSucceeded = false;
         }
 
-        emit PluginUninstalled(args.plugin, callbacksSucceeded);
+        emit PluginUninstalled(args.plugin, onUninstallSucceeded);
     }
 
     function _isValidPluginManifest(PluginManifest memory manifest, bytes32 manifestHash)
