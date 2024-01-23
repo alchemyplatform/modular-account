@@ -587,8 +587,8 @@ contract UpgradeableModularAccount is
 
         if (hasPostOnlyExecHooks) {
             // If we have post-only hooks, we allocate an single FunctionReference[] for them, and one element
-            // in the args for their empty `bytes` argument. We put this into the first element of the post
-            // hooks in order to have it run last.
+            // in the args for their empty `bytes` argument. We put this into the last element of the post
+            // hooks, which means post-only hooks will run before any other post hooks.
             postHooksToRun[postHooksToRunLength - 1] =
                 CastLib.toFunctionReferenceArray(selectorData.executionHooks.postOnlyHooks.getAll());
         }
