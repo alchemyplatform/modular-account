@@ -86,7 +86,6 @@ contract UpgradeableModularAccount is
     event ModularAccountInitialized(IEntryPoint indexed entryPoint);
 
     error AlwaysDenyRule();
-    error AuthorizeUpgradeReverted(bytes revertReason);
     error ExecFromPluginNotPermitted(address plugin, bytes4 selector);
     error ExecFromPluginExternalNotPermitted(address plugin, address target, uint256 value, bytes data);
     error NativeTokenSpendingNotPermitted(address plugin);

@@ -40,15 +40,15 @@ contract AccountStorageV1 {
         mapping(bytes24 => bool) callPermitted;
         // keys = address(calling plugin), target address
         mapping(IPlugin => mapping(address => PermittedExternalCallData)) permittedExternalCalls;
-        // For ERC165 introspection, each count indicates support from account or an installed plugin
-        // 0 indicate the account does not support the interface and all plugins that support this interface have
-        // been uninstalled
+        // For ERC165 introspection, each count indicates support from account or an installed plugin.
+        // 0 indicates the account does not support the interface and all plugins that support this interface have
+        // been uninstalled.
         mapping(bytes4 => uint256) supportedInterfaces;
     }
 
     struct PluginData {
         bool anyExternalAddressPermitted;
-        // boolean to indicate if the plugin can spend native tokens, if any of the execution function can spend
+        // A boolean to indicate if the plugin can spend native tokens, if any of the execution function can spend
         // native tokens, a plugin is considered to be able to spend native tokens of the accounts
         bool canSpendNativeToken;
         bytes32 manifestHash;
