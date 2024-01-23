@@ -9,6 +9,7 @@ import {LinkedListSet} from "../libraries/LinkedListSetLib.sol";
 /// @title Account Storage V1
 /// @author Alchemy
 /// @notice Contains the storage layout for upgradeable modular accounts.
+/// @dev `||` for variables in comments refers to the concat operator
 contract AccountStorageV1 {
     /// @custom:storage-location erc7201:Alchemy.UpgradeableModularAccount.Storage_V1
     struct AccountStorage {

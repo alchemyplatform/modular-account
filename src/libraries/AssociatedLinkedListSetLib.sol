@@ -438,6 +438,7 @@ library AssociatedLinkedListSetLib {
         returns (TempBytesMemory key)
     {
         // Key derivation for an entry
+        // Note: `||` refers to the concat operator
         // associated addr (left-padded) || prefix || uint224(0) batchIndex || set storage slot || entry
         // Word 1:
         // | zeros              | 0x000000000000000000000000________________________________________ |
