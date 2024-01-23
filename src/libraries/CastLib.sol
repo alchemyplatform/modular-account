@@ -8,6 +8,8 @@ import {SetValue} from "./LinkedListSetUtils.sol";
 /// @author Alchemy
 /// @notice Library for various data type conversions.
 library CastLib {
+    /// @dev Input array is not verified. If called with non FunctionReference type array input, return data will
+    /// be incorrect.
     function toFunctionReferenceArray(SetValue[] memory vals)
         internal
         pure
@@ -18,6 +20,7 @@ library CastLib {
         }
     }
 
+    /// @dev Input array is not verified. If used with non address type array input, return data will be incorrect.
     function toAddressArray(SetValue[] memory values) internal pure returns (address[] memory addresses) {
         bytes32[] memory valuesBytes;
 
