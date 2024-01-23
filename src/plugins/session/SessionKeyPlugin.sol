@@ -35,9 +35,7 @@ import {Call, IStandardExecutor} from "../../interfaces/IStandardExecutor.sol";
 import {
     AssociatedLinkedListSet, AssociatedLinkedListSetLib
 } from "../../libraries/AssociatedLinkedListSetLib.sol";
-import {
-    SetValue, SENTINEL_VALUE, SIG_VALIDATION_PASSED, SIG_VALIDATION_FAILED
-} from "../../libraries/Constants.sol";
+import {SetValue, SENTINEL_VALUE, SIG_VALIDATION_FAILED} from "../../libraries/Constants.sol";
 import {BasePlugin} from "../BasePlugin.sol";
 import {ISessionKeyPlugin} from "./ISessionKeyPlugin.sol";
 import {SessionKeyPermissions} from "./permissions/SessionKeyPermissions.sol";
