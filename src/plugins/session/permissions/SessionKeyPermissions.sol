@@ -10,6 +10,7 @@ import {SessionKeyPermissionsLoupe} from "./SessionKeyPermissionsLoupe.sol";
 
 import {IStandardExecutor} from "../../../interfaces/IStandardExecutor.sol";
 import {UserOperation} from "../../../interfaces/erc4337/UserOperation.sol";
+import {SIG_VALIDATION_PASSED, SIG_VALIDATION_FAILED} from "../../../libraries/Constants.sol";
 
 /// @title Session Key Permissions
 /// @author Alchemy
@@ -128,8 +129,8 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         // otherwise a packed struct of the aggregator address (0 here), and two
         // 6-byte timestamps indicating the start and end times at which the op
         // is valid.
-        return uint160(validationSuccess ? 0 : 1) | (uint256(validUntil) << 160)
-            | (uint256(currentValidAfter) << (208));
+        return uint160(validationSuccess ? SIG_VALIDATION_PASSED : SIG_VALIDATION_FAILED)
+            | (uint256(validUntil) << 160) | (uint256(currentValidAfter) << (208));
     }
 
     /// @dev Checks permissions on a per-call basis. Should be run during user op validation once per `Call` struct
