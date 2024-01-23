@@ -73,19 +73,19 @@ contract ValidationIntersectionTest is Test {
         account1.installPlugin({
             plugin: address(noHookPlugin),
             manifestHash: keccak256(abi.encode(noHookPlugin.pluginManifest())),
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
         account1.installPlugin({
             plugin: address(oneHookPlugin),
             manifestHash: keccak256(abi.encode(oneHookPlugin.pluginManifest())),
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
         account1.installPlugin({
             plugin: address(twoHookPlugin),
             manifestHash: keccak256(abi.encode(twoHookPlugin.pluginManifest())),
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
         vm.stopPrank();

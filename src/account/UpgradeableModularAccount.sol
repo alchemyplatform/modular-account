@@ -330,11 +330,11 @@ contract UpgradeableModularAccount is
     function installPlugin(
         address plugin,
         bytes32 manifestHash,
-        bytes calldata pluginInitData,
+        bytes calldata pluginInstallData,
         FunctionReference[] calldata dependencies
     ) external override {
         (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
-        _installPlugin(plugin, manifestHash, pluginInitData, dependencies);
+        _installPlugin(plugin, manifestHash, pluginInstallData, dependencies);
         _postNativeFunction(postExecHooks, postHookArgs);
     }
 

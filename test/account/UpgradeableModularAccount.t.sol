@@ -489,7 +489,7 @@ contract UpgradeableModularAccountTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(plugin),
             manifestHash: manifestHash,
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
         vm.stopPrank();

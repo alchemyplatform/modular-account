@@ -7,19 +7,19 @@ type FunctionReference is bytes21;
 interface IPluginManager {
     event PluginInstalled(address indexed plugin, bytes32 manifestHash, FunctionReference[] dependencies);
     event PluginUninstalled(address indexed plugin, bool indexed callbacksSucceeded);
-    event PluginIgnoredHookUnapplyCallbackFailure(address indexed plugin, address indexed providingPlugin);
     event PluginIgnoredUninstallCallbackFailure(address indexed plugin);
 
     /// @notice Install a plugin to the modular account.
     /// @param plugin The plugin to install.
     /// @param manifestHash The hash of the plugin manifest.
-    /// @param pluginInitData Optional data to be decoded and used by the plugin to setup initial plugin data for
-    /// the modular account.
-    /// @param dependencies The dependencies of the plugin, as described in the manifest.
+    /// @param pluginInstallData Optional data to be decoded and used by the plugin to setup initial plugin data
+    /// for the modular account.
+    /// @param dependencies The dependencies of the plugin, as described in the manifest. Each FunctionReference
+    /// MUST be composed of an installed plugin's address and a function ID of its validation function.
     function installPlugin(
         address plugin,
         bytes32 manifestHash,
-        bytes calldata pluginInitData,
+        bytes calldata pluginInstallData,
         FunctionReference[] calldata dependencies
     ) external;
 

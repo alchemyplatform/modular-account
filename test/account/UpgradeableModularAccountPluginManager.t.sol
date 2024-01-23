@@ -77,7 +77,6 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
 
     event PluginInstalled(address indexed plugin, bytes32 manifestHash, FunctionReference[] dependencies);
     event PluginUninstalled(address indexed plugin, bool indexed callbacksSucceeded);
-    event PluginIgnoredHookUnapplyCallbackFailure(address indexed plugin, address indexed providingPlugin);
     event PluginIgnoredUninstallCallbackFailure(address indexed plugin);
     event ReceivedCall(bytes msgData, uint256 msgValue);
 
@@ -138,7 +137,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
-            pluginInitData: abi.encode(
+            pluginInstallData: abi.encode(
                 sessionKeys, new bytes32[](sessionKeys.length), new bytes[][](sessionKeys.length)
                 ),
             dependencies: dependencies
@@ -150,7 +149,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(tokenReceiverPlugin),
             manifestHash: manifestHash,
-            pluginInitData: abi.encode(uint48(1 days)),
+            pluginInstallData: abi.encode(uint48(1 days)),
             dependencies: new FunctionReference[](0)
         });
 
@@ -176,7 +175,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(mockPluginWithBadPermittedExec),
             manifestHash: manifestHash,
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
     }
@@ -188,7 +187,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(tokenReceiverPlugin),
             manifestHash: bytes32(0),
-            pluginInitData: abi.encode(uint48(1 days)),
+            pluginInstallData: abi.encode(uint48(1 days)),
             dependencies: new FunctionReference[](0)
         });
     }
@@ -203,7 +202,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(badPlugin),
             manifestHash: bytes32(0),
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
     }
@@ -215,7 +214,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(tokenReceiverPlugin),
             manifestHash: manifestHash,
-            pluginInitData: abi.encode(uint48(1 days)),
+            pluginInstallData: abi.encode(uint48(1 days)),
             dependencies: new FunctionReference[](0)
         });
 
@@ -227,7 +226,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(tokenReceiverPlugin),
             manifestHash: manifestHash,
-            pluginInitData: abi.encode(uint48(1 days)),
+            pluginInstallData: abi.encode(uint48(1 days)),
             dependencies: new FunctionReference[](0)
         });
     }
@@ -249,7 +248,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(mockPluginBad),
             manifestHash: manifestHashBad,
-            pluginInitData: bytes(""),
+            pluginInstallData: bytes(""),
             dependencies: new FunctionReference[](0)
         });
     }
@@ -271,7 +270,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(mockPluginBad),
             manifestHash: manifestHashBad,
-            pluginInitData: bytes(""),
+            pluginInstallData: bytes(""),
             dependencies: new FunctionReference[](0)
         });
     }
@@ -289,7 +288,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(mockPluginBad),
             manifestHash: manifestHashBad,
-            pluginInitData: bytes(""),
+            pluginInstallData: bytes(""),
             dependencies: new FunctionReference[](0)
         });
     }
@@ -312,7 +311,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(mockPluginBad),
             manifestHash: manifestHashBad,
-            pluginInitData: bytes(""),
+            pluginInstallData: bytes(""),
             dependencies: new FunctionReference[](0)
         });
     }
@@ -334,7 +333,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(newPlugin),
             manifestHash: manifestHash,
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: dependencies
         });
 
@@ -348,7 +347,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(newPlugin),
             manifestHash: manifestHash,
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: dependencies
         });
     }
@@ -361,7 +360,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(plugin),
             manifestHash: manifestHash,
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
 
@@ -382,7 +381,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(plugin),
             manifestHash: manifestHash,
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
 
@@ -410,7 +409,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(plugin),
             manifestHash: manifestHash,
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
 
@@ -455,7 +454,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(plugin),
             manifestHash: manifestHash,
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
 
@@ -648,7 +647,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         account2.installPlugin({
             plugin: address(plugin),
             manifestHash: manifestHash,
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
     }
@@ -664,7 +663,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(plugin),
             manifestHash: manifestHash,
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
 
@@ -679,7 +678,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(plugin),
             manifestHash: manifestHash,
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
         return address(plugin);
@@ -695,14 +694,14 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         IPluginManager(account2).installPlugin({
             plugin: address(hooksPlugin),
             manifestHash: keccak256(abi.encode(hooksPlugin.pluginManifest())),
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
         MockPlugin plugin = new MockPlugin(manifest);
         IPluginManager(account2).installPlugin({
             plugin: address(plugin),
             manifestHash: keccak256(abi.encode(plugin.pluginManifest())),
-            pluginInitData: "",
+            pluginInstallData: "",
             dependencies: new FunctionReference[](0)
         });
         return (address(plugin), address(hooksPlugin));

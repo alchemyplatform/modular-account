@@ -92,7 +92,7 @@ contract SessionKeyGasLimitsTest is Test {
         account1.installPlugin({
             plugin: address(sessionKeyPlugin),
             manifestHash: manifestHash,
-            pluginInitData: abi.encode(new address[](0), new bytes32[](0), new bytes[][](0)),
+            pluginInstallData: abi.encode(new address[](0), new bytes32[](0), new bytes[][](0)),
             dependencies: dependencies
         });
 
