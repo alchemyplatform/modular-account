@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
+import {SetValue} from "../libraries/Constants.sol";
 import {FunctionReference} from "./FunctionReferenceLib.sol";
-import {SetValue} from "./Constants.sol";
 
 /// @title Cast Library
 /// @author Alchemy

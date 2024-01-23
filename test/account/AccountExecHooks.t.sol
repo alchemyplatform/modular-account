@@ -3,15 +3,14 @@ pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
 
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {PluginManagerInternals} from "../../src/account/PluginManagerInternals.sol";
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
+import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
+import {FunctionReferenceLib} from "../../src/helpers/FunctionReferenceLib.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
-import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
-import {FunctionReferenceLib} from "../../src/libraries/FunctionReferenceLib.sol";
 import {
     IPlugin,
     ManifestExecutionHook,
@@ -20,8 +19,8 @@ import {
     ManifestAssociatedFunctionType,
     ManifestAssociatedFunction
 } from "../../src/interfaces/IPlugin.sol";
-
-import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
+import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
+import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {MockPlugin} from "../mocks/MockPlugin.sol";
 
 contract UpgradeableModularAccountExecHooksTest is Test {

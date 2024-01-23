@@ -3,15 +3,14 @@ pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
 
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {UpgradeableModularAccount} from "../../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerPlugin} from "../../../src/plugins/owner/MultiOwnerPlugin.sol";
+import {MultiOwnerMSCAFactory} from "../../../src/factory/MultiOwnerMSCAFactory.sol";
+import {FunctionReferenceLib} from "../../../src/helpers/FunctionReferenceLib.sol";
 import {IEntryPoint} from "../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
-import {FunctionReference, IPluginManager} from "../../../src/interfaces/IPluginManager.sol";
-import {IStandardExecutor, Call} from "../../../src/interfaces/IStandardExecutor.sol";
 import {
     IPlugin,
     ManifestExecutionHook,
@@ -20,11 +19,11 @@ import {
     ManifestAssociatedFunctionType,
     ManifestAssociatedFunction
 } from "../../../src/interfaces/IPlugin.sol";
-import {FunctionReferenceLib} from "../../../src/libraries/FunctionReferenceLib.sol";
-import {MultiOwnerMSCAFactory} from "../../../src/factory/MultiOwnerMSCAFactory.sol";
-
-import {AccountStateMutatingPlugin} from "../../mocks/plugins/AccountStateMutatingPlugin.sol";
+import {FunctionReference, IPluginManager} from "../../../src/interfaces/IPluginManager.sol";
+import {IStandardExecutor, Call} from "../../../src/interfaces/IStandardExecutor.sol";
+import {MultiOwnerPlugin} from "../../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {MockPlugin} from "../../mocks/MockPlugin.sol";
+import {AccountStateMutatingPlugin} from "../../mocks/plugins/AccountStateMutatingPlugin.sol";
 
 // A test suite that verifies how the account caches the state of plugins. This is intended to ensure consistency
 // of execution flow when either hooks or plugins change installation state within a single call to the account.

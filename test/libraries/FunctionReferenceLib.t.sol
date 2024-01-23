@@ -2,8 +2,9 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
+
+import {FunctionReferenceLib} from "../../src/helpers/FunctionReferenceLib.sol";
 import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
-import {FunctionReferenceLib} from "../../src/libraries/FunctionReferenceLib.sol";
 
 contract FunctionReferenceLibTest is Test {
     using FunctionReferenceLib for FunctionReference;

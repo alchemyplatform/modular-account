@@ -3,27 +3,26 @@ pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
 
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {IMultiOwnerPlugin} from "../../src/plugins/owner/IMultiOwnerPlugin.sol";
-import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
+import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
+import {FunctionReferenceLib} from "../../src/helpers/FunctionReferenceLib.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
+import {IAccountLoupe} from "../../src/interfaces/IAccountLoupe.sol";
 import {
     ManifestAssociatedFunctionType,
     ManifestExecutionHook,
     ManifestFunction,
     PluginManifest
 } from "../../src/interfaces/IPlugin.sol";
-import {IAccountLoupe} from "../../src/interfaces/IAccountLoupe.sol";
 import {FunctionReference, IPluginManager} from "../../src/interfaces/IPluginManager.sol";
 import {IStandardExecutor} from "../../src/interfaces/IStandardExecutor.sol";
-import {FunctionReferenceLib} from "../../src/libraries/FunctionReferenceLib.sol";
-
-import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
-import {ComprehensivePlugin} from "../mocks/plugins/ComprehensivePlugin.sol";
+import {IMultiOwnerPlugin} from "../../src/plugins/owner/IMultiOwnerPlugin.sol";
+import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {MockPlugin} from "../mocks/MockPlugin.sol";
+import {ComprehensivePlugin} from "../mocks/plugins/ComprehensivePlugin.sol";
 
 contract AccountLoupeTest is Test {
     IEntryPoint public entryPoint;
