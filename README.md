@@ -1,16 +1,20 @@
 # Modular Account
 
-Alchemy's Modular Account is a maximally modular smart contract account. It is compatible with [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337), upgradeable, and is in-line with [ERC-6900](https://eips.ethereum.org/EIPS/eip-6900).
+Alchemy's Modular Account is a maximally modular, upgradeable Smart Contract Account that is compatible with [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337) and [ERC-6900](https://eips.ethereum.org/EIPS/eip-6900).
 
 ## Overview
 
 This repository contains:
 * The [Modular Account](https://github.com/alchemyplatform/modular-account/src/account)
 * [Factory contracts for the Modular Account](https://github.com/alchemyplatform/modular-account/src/factory)
-* 3 Modular Account compatible plugins:
+* 3 ERC-6900 compatible plugins:
     * [MultiOwnerPlugin](https://github.com/alchemyplatform/modular-account/src/plugins/owner) is a plugin supporting 1+ ECDSA owners. 
     * [TokenReceiverPlugin](https://github.com/alchemyplatform/modular-account/src/plugins/TokenReceiverPlugin.sol) contains ERC721/ERC777/ERC1155 token receivers. 
-    * [SessionKeyPlugin](https://github.com/alchemyplatform/modular-account/src/plugins/session) enables session keys with additonal optional restrictions such as time ranges, token spend limits, and gas spend limits. 
+    * [SessionKeyPlugin](https://github.com/alchemyplatform/modular-account/src/plugins/session) enables session keys with optional permissions such as time ranges, token spend limits, and gas spend limits.
+
+The account and plugins conform to these ERC versions:
+* ERC-4337: 0.6.0
+* ERC-6900: 0.7.0
 
 ## Development
 
@@ -29,7 +33,7 @@ FOUNDRY_PROFILE=lite forge build
 FOUNDRY_PROFILE=optimized-build forge build --sizes
 
 # Lint
-pnpm lint:src && pnpm lint:test
+pnpm lint
 
 # Test Options
 forge test -vvv
