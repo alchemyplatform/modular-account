@@ -5,8 +5,8 @@ Alchemy's Modular Account is a maximally modular, upgradeable Smart Contract Acc
 ## Overview
 
 This repository contains:
-* The [Modular Account](https://github.com/alchemyplatform/modular-account/src/account)
-* [Factory contracts for the Modular Account](https://github.com/alchemyplatform/modular-account/src/factory)
+* [Modular Account implementation](src/account)
+* [Modular Account factories](src/factory)
 * 3 ERC-6900 compatible plugins:
     * [MultiOwnerPlugin](https://github.com/alchemyplatform/modular-account/src/plugins/owner) is a plugin supporting 1+ ECDSA owners. 
     * [TokenReceiverPlugin](https://github.com/alchemyplatform/modular-account/src/plugins/TokenReceiverPlugin.sol) contains ERC721/ERC777/ERC1155 token receivers. 
