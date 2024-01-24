@@ -44,7 +44,7 @@ FOUNDRY_PROFILE=lite forge test -vvv
 
 A deployment script can be found in the `scripts/` folder
 ```bash
-forge script script/Deploy.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast
+forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast
 ```
 
 ## Security and Audits
