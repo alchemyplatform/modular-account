@@ -77,6 +77,7 @@ contract UpgradeableModularAccount is
         uint256 callbackGasLimit;
     }
 
+    // ERC-4337 v0.6.0 entrypoint address only
     IEntryPoint private immutable _ENTRY_POINT;
 
     // As per the EIP-165 spec, no interface should ever match 0xffffffff
