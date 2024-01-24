@@ -6,6 +6,7 @@
 
 pragma solidity ^0.8.22;
 
+// Treats the first 20 bytes as an address, and the last byte as a function identifier.
 type FunctionReference is bytes21;
 
 /// @title Plugin Manager Interface
