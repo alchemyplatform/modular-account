@@ -16,7 +16,8 @@ enum ManifestAssociatedFunctionType {
     NONE,
     // Function belongs to this plugin.
     SELF,
-    // Function belongs to an external plugin provided as a dependency during plugin installation.
+    // Function belongs to an external plugin provided as a dependency during plugin installation. Plugins MAY depend
+    // on external validation functions. It MUST NOT depend on external hooks, or installation will fail.
     DEPENDENCY,
     // Resolves to a magic value to always bypass runtime validation for a given function.
     // This is only assignable on runtime validation functions. If it were to be used on a user op validation function,
@@ -71,7 +72,7 @@ struct PluginMetadata {
     // The author field SHOULD be a username representing the identity of the user or organization
     // that created this plugin.
     string author;
-    // String desciptions of the relative sensitivity of specific functions. The selectors MUST be selectors for
+    // String descriptions of the relative sensitivity of specific functions. The selectors MUST be selectors for
     // functions implemented by this plugin.
     SelectorPermission[] permissionDescriptors;
 }
