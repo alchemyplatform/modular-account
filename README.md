@@ -53,7 +53,7 @@ We have done 2 audits from Spearbit and Quantstamp and will upload the reports s
 
 ## License
 
-The Modular Account libraries (all code inside the [src/libraries](src/libraries) directory) are licensed under the MIT License, also included in our repository in [LICENSE](LICENSE).
+The Modular Account libraries (all code inside the [src/libraries](src/libraries) directory) are licensed under the MIT License, also included in our repository in [LICENSE-MIT](LICENSE-MIT).
 
 The Modular Account and ERC-6900 interfaces (all code inside the [src/interfaces](src/interfaces) directory) are licensed under the CC0 1.0 Universal License.
 
