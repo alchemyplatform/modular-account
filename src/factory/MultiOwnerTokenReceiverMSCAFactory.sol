@@ -166,4 +166,7 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
             keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(IMPL, "")))
         );
     }
+
+    /// @notice Overriding to disable renounce ownership in Ownable
+    function renounceOwnership() public override onlyOwner {}
 }
