@@ -37,7 +37,6 @@ import {Call} from "../../src/interfaces/IStandardExecutor.sol";
 import {IMultiOwnerPlugin} from "../../src/plugins/owner/IMultiOwnerPlugin.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {SessionKeyPlugin} from "../../src/plugins/session/SessionKeyPlugin.sol";
-import {TokenReceiverPlugin} from "../../src/plugins/TokenReceiverPlugin.sol";
 import {Counter} from "../mocks/Counter.sol";
 import {MockPlugin} from "../mocks/MockPlugin.sol";
 import {
@@ -52,7 +51,6 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
     IEntryPoint public entryPoint;
     address payable public beneficiary;
     MultiOwnerPlugin public multiOwnerPlugin;
-    TokenReceiverPlugin public tokenReceiverPlugin;
     SessionKeyPlugin public sessionKeyPlugin;
     MultiOwnerMSCAFactory public factory;
     address public implementation;
@@ -86,7 +84,6 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         vm.deal(beneficiary, 1 wei);
 
         multiOwnerPlugin = new MultiOwnerPlugin();
-        tokenReceiverPlugin = new TokenReceiverPlugin();
         sessionKeyPlugin = new SessionKeyPlugin();
         implementation = address(new UpgradeableModularAccount(entryPoint));
         bytes32 manifestHash = keccak256(abi.encode(multiOwnerPlugin.pluginManifest()));
@@ -142,21 +139,10 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
             dependencies: dependencies
         });
 
-        manifestHash = keccak256(abi.encode(tokenReceiverPlugin.pluginManifest()));
-        vm.expectEmit(true, true, true, true);
-        emit PluginInstalled(address(tokenReceiverPlugin), manifestHash, new FunctionReference[](0));
-        IPluginManager(account2).installPlugin({
-            plugin: address(tokenReceiverPlugin),
-            manifestHash: manifestHash,
-            pluginInstallData: abi.encode(uint48(1 days)),
-            dependencies: new FunctionReference[](0)
-        });
-
         address[] memory plugins = IAccountLoupe(account2).getInstalledPlugins();
-        assertEq(plugins.length, 3);
-        assertEq(plugins[0], address(tokenReceiverPlugin));
-        assertEq(plugins[1], address(sessionKeyPlugin));
-        assertEq(plugins[2], address(multiOwnerPlugin));
+        assertEq(plugins.length, 2);
+        assertEq(plugins[0], address(sessionKeyPlugin));
+        assertEq(plugins[1], address(multiOwnerPlugin));
     }
 
     function test_installPlugin_ExecuteFromPlugin_PermittedExecSelectorNotInstalled() public {
@@ -184,9 +170,9 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(PluginManagerInternals.InvalidPluginManifest.selector));
         IPluginManager(account2).installPlugin({
-            plugin: address(tokenReceiverPlugin),
+            plugin: address(sessionKeyPlugin),
             manifestHash: bytes32(0),
-            pluginInstallData: abi.encode(uint48(1 days)),
+            pluginInstallData: abi.encode(owners1),
             dependencies: new FunctionReference[](0)
         });
     }
@@ -209,23 +195,17 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
     function test_installPlugin_alreadyInstalled() public {
         vm.startPrank(owner2);
 
-        bytes32 manifestHash = keccak256(abi.encode(tokenReceiverPlugin.pluginManifest()));
-        IPluginManager(account2).installPlugin({
-            plugin: address(tokenReceiverPlugin),
-            manifestHash: manifestHash,
-            pluginInstallData: abi.encode(uint48(1 days)),
-            dependencies: new FunctionReference[](0)
-        });
+        bytes32 manifestHash = keccak256(abi.encode(multiOwnerPlugin.pluginManifest()));
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                PluginManagerInternals.PluginAlreadyInstalled.selector, address(tokenReceiverPlugin)
+                PluginManagerInternals.PluginAlreadyInstalled.selector, address(multiOwnerPlugin)
             )
         );
         IPluginManager(account2).installPlugin({
-            plugin: address(tokenReceiverPlugin),
+            plugin: address(multiOwnerPlugin),
             manifestHash: manifestHash,
-            pluginInstallData: abi.encode(uint48(1 days)),
+            pluginInstallData: abi.encode(owners1),
             dependencies: new FunctionReference[](0)
         });
     }

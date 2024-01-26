@@ -17,6 +17,9 @@
 
 pragma solidity ^0.8.22;
 
+import {IERC1155Receiver} from "@openzeppelin/contracts/interfaces/IERC1155Receiver.sol";
+import {IERC777Recipient} from "@openzeppelin/contracts/interfaces/IERC777Recipient.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {UUPSUpgradeable} from "../../ext/UUPSUpgradeable.sol";
@@ -51,6 +54,9 @@ contract UpgradeableModularAccount is
     IAccountInitializable,
     IAccountView,
     IERC165,
+    IERC721Receiver,
+    IERC777Recipient,
+    IERC1155Receiver,
     IPluginExecutor,
     IStandardExecutor,
     UUPSUpgradeable
@@ -397,6 +403,39 @@ contract UpgradeableModularAccount is
     /// @inheritdoc IAccountView
     function getNonce() public view virtual override returns (uint256) {
         return _ENTRY_POINT.getNonce(address(this), 0);
+    }
+
+    /// @inheritdoc IERC777Recipient
+    function tokensReceived(address, address, address, uint256, bytes calldata, bytes calldata)
+        external
+        pure
+        override
+    // solhint-disable-next-line no-empty-blocks
+    {}
+
+    /// @inheritdoc IERC721Receiver
+    function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
+    }
+
+    /// @inheritdoc IERC1155Receiver
+    function onERC1155Received(address, address, uint256, uint256, bytes calldata)
+        external
+        pure
+        override
+        returns (bytes4)
+    {
+        return IERC1155Receiver.onERC1155Received.selector;
+    }
+
+    /// @inheritdoc IERC1155Receiver
+    function onERC1155BatchReceived(address, address, uint256[] calldata, uint256[] calldata, bytes calldata)
+        external
+        pure
+        override
+        returns (bytes4)
+    {
+        return IERC1155Receiver.onERC1155BatchReceived.selector;
     }
 
     // INTERNAL FUNCTIONS
