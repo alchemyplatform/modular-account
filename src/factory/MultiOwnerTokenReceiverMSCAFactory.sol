@@ -45,6 +45,7 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
     error OwnersArrayEmpty();
     error OwnersLimitExceeded();
     error TransferFailed();
+    error InvalidAction();
 
     /// @notice Constructor for the factory
     constructor(
@@ -168,5 +169,7 @@ contract MultiOwnerTokenReceiverMSCAFactory is Ownable2Step {
     }
 
     /// @notice Overriding to disable renounce ownership in Ownable
-    function renounceOwnership() public override onlyOwner {}
+    function renounceOwnership() public override onlyOwner {
+        revert InvalidAction();
+    }
 }
