@@ -39,11 +39,11 @@ contract MultiOwnerMSCAFactory is Ownable2Step {
     bytes32 internal immutable _MULTI_OWNER_PLUGIN_MANIFEST_HASH;
     uint256 internal constant _MAX_OWNERS_ON_CREATION = 100;
 
+    error InvalidAction();
     error InvalidOwner();
     error OwnersArrayEmpty();
     error OwnersLimitExceeded();
     error TransferFailed();
-    error InvalidAction();
 
     /// @notice Constructor for the factory
     constructor(
