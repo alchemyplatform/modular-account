@@ -7,7 +7,7 @@ out = 'out'
 test = 'test'
 libs = ['lib']
 optimizer = true
-optimizer_runs = 1600
+optimizer_runs = 1000
 ignored_error_codes = []
 
 [fuzz]

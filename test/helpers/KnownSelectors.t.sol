@@ -22,7 +22,10 @@ import {Test} from "forge-std/Test.sol";
 import {BaseAccount} from "@eth-infinitism/account-abstraction/core/BaseAccount.sol";
 import {IAggregator} from "@eth-infinitism/account-abstraction/interfaces/IAggregator.sol";
 import {IPaymaster} from "@eth-infinitism/account-abstraction/interfaces/IPaymaster.sol";
+import {IERC1155Receiver} from "@openzeppelin/contracts/interfaces/IERC1155Receiver.sol";
+import {IERC777Recipient} from "@openzeppelin/contracts/interfaces/IERC777Recipient.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {KnownSelectors} from "../../src/helpers/KnownSelectors.sol";
@@ -67,6 +70,17 @@ contract KnownSelectorsTest is Test {
         assertTrue(KnownSelectors.isNativeFunction(IAccountLoupe.getExecutionHooks.selector));
         assertTrue(KnownSelectors.isNativeFunction(IAccountLoupe.getPreValidationHooks.selector));
         assertTrue(KnownSelectors.isNativeFunction(IAccountLoupe.getInstalledPlugins.selector));
+
+        // TokenReceiver methods
+        assertTrue(KnownSelectors.isNativeFunction(IAccountLoupe.getExecutionFunctionConfig.selector));
+        assertTrue(KnownSelectors.isNativeFunction(IAccountLoupe.getExecutionHooks.selector));
+        assertTrue(KnownSelectors.isNativeFunction(IAccountLoupe.getPreValidationHooks.selector));
+        assertTrue(KnownSelectors.isNativeFunction(IAccountLoupe.getInstalledPlugins.selector));
+
+        assertTrue(KnownSelectors.isNativeFunction(IERC777Recipient.tokensReceived.selector));
+        assertTrue(KnownSelectors.isNativeFunction(IERC721Receiver.onERC721Received.selector));
+        assertTrue(KnownSelectors.isNativeFunction(IERC1155Receiver.onERC1155Received.selector));
+        assertTrue(KnownSelectors.isNativeFunction(IERC1155Receiver.onERC1155BatchReceived.selector));
 
         assertFalse(KnownSelectors.isNativeFunction(IPaymaster.validatePaymasterUserOp.selector));
     }

@@ -64,7 +64,7 @@ library KnownSelectors {
             || selector == IAccountLoupe.getExecutionHooks.selector
             || selector == IAccountLoupe.getPreValidationHooks.selector
             || selector == IAccountLoupe.getInstalledPlugins.selector
-        // check against token receiver methods
+        // check against TokenReceiver methods
         || selector == IERC777Recipient.tokensReceived.selector
             || selector == IERC721Receiver.onERC721Received.selector
             || selector == IERC1155Receiver.onERC1155Received.selector

@@ -7,7 +7,7 @@ Alchemy's Modular Account is a maximally modular, upgradeable Smart Contract Acc
 This repository contains:
 
 - [Modular Account implementation](src/account)
-- [Modular Account factories](src/factory)
+- [Modular Account factory](src/factory)
 - 2 ERC-6900 compatible plugins:
   - [MultiOwnerPlugin](src/plugins/owner) is a plugin supporting 1+ ECDSA owners.
   - [SessionKeyPlugin](src/plugins/session) enables session keys with optional permissions such as time ranges, token spend limits, and gas spend limits.

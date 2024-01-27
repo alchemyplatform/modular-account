@@ -17,9 +17,6 @@
 
 pragma solidity ^0.8.22;
 
-import {IERC1155Receiver} from "@openzeppelin/contracts/interfaces/IERC1155Receiver.sol";
-import {IERC777Recipient} from "@openzeppelin/contracts/interfaces/IERC777Recipient.sol";
-import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {UUPSUpgradeable} from "../../ext/UUPSUpgradeable.sol";
@@ -41,6 +38,7 @@ import {AccountExecutor} from "./AccountExecutor.sol";
 import {AccountLoupe} from "./AccountLoupe.sol";
 import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {PluginManagerInternals} from "./PluginManagerInternals.sol";
+import {TokenReceiver} from "./TokenReceiver.sol";
 
 /// @title Upgradeable Modular Account
 /// @author Alchemy
@@ -50,13 +48,10 @@ contract UpgradeableModularAccount is
     AccountLoupe,
     AccountStorageInitializable,
     PluginManagerInternals,
+    TokenReceiver,
     IAccount,
     IAccountInitializable,
     IAccountView,
-    IERC165,
-    IERC721Receiver,
-    IERC777Recipient,
-    IERC1155Receiver,
     IPluginExecutor,
     IStandardExecutor,
     UUPSUpgradeable
@@ -376,23 +371,20 @@ contract UpgradeableModularAccount is
         _postNativeFunction(postExecHooks, postHookArgs);
     }
 
-    /// @inheritdoc IERC165
-    function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
-        if (interfaceId == _INTERFACE_ID_INVALID) {
-            return false;
-        }
-        if (interfaceId == _IERC165_INTERFACE_ID) {
-            return true;
-        }
-
-        return _getAccountStorage().supportedInterfaces[interfaceId] > 0;
-    }
-
     /// @inheritdoc UUPSUpgradeable
     function upgradeToAndCall(address newImplementation, bytes calldata data) public payable override onlyProxy {
         (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
         UUPSUpgradeable.upgradeToAndCall(newImplementation, data);
         _postNativeFunction(postExecHooks, postHookArgs);
+    }
+
+    /// @inheritdoc IERC165
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        if (interfaceId == _INTERFACE_ID_INVALID) {
+            return false;
+        }
+        return interfaceId == _IERC165_INTERFACE_ID || super.supportsInterface(interfaceId)
+            || _getAccountStorage().supportedInterfaces[interfaceId] > 0;
     }
 
     /// @inheritdoc IAccountView
@@ -403,39 +395,6 @@ contract UpgradeableModularAccount is
     /// @inheritdoc IAccountView
     function getNonce() public view virtual override returns (uint256) {
         return _ENTRY_POINT.getNonce(address(this), 0);
-    }
-
-    /// @inheritdoc IERC777Recipient
-    function tokensReceived(address, address, address, uint256, bytes calldata, bytes calldata)
-        external
-        pure
-        override
-    // solhint-disable-next-line no-empty-blocks
-    {}
-
-    /// @inheritdoc IERC721Receiver
-    function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {
-        return IERC721Receiver.onERC721Received.selector;
-    }
-
-    /// @inheritdoc IERC1155Receiver
-    function onERC1155Received(address, address, uint256, uint256, bytes calldata)
-        external
-        pure
-        override
-        returns (bytes4)
-    {
-        return IERC1155Receiver.onERC1155Received.selector;
-    }
-
-    /// @inheritdoc IERC1155Receiver
-    function onERC1155BatchReceived(address, address, uint256[] calldata, uint256[] calldata, bytes calldata)
-        external
-        pure
-        override
-        returns (bytes4)
-    {
-        return IERC1155Receiver.onERC1155BatchReceived.selector;
     }
 
     // INTERNAL FUNCTIONS
