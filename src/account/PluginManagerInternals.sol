@@ -67,10 +67,10 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
     error DuplicatePreUserOpValidationHookLimitExceeded(bytes4 selector, FunctionReference hook);
     error Erc4337FunctionNotAllowed(bytes4 selector);
     error ExecutionFunctionAlreadySet(bytes4 selector);
-    error IPluginFunctionNotAllowed(bytes4 selector);
-    error IPluginInterfaceNotAllowed();
+    error InterfaceNotAllowed();
     error InvalidDependenciesProvided();
     error InvalidPluginManifest();
+    error IPluginFunctionNotAllowed(bytes4 selector);
     error MissingPluginDependency(address dependency);
     error NativeFunctionNotAllowed(bytes4 selector);
     error NullFunctionReference();
@@ -456,7 +456,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         for (uint256 i = 0; i < length; ++i) {
             bytes4 interfaceId = manifest.interfaceIds[i];
             if (interfaceId == type(IPlugin).interfaceId || interfaceId == _INVALID_INTERFACE_ID) {
-                revert IPluginInterfaceNotAllowed();
+                revert InterfaceNotAllowed();
             }
             storage_.supportedInterfaces[interfaceId] += 1;
         }

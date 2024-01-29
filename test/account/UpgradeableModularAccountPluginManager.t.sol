@@ -263,7 +263,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         MockPlugin mockPluginBad = new MockPlugin(manifestBad);
         bytes32 manifestHashBad = keccak256(abi.encode(mockPluginBad.pluginManifest()));
 
-        vm.expectRevert(PluginManagerInternals.IPluginInterfaceNotAllowed.selector);
+        vm.expectRevert(PluginManagerInternals.InterfaceNotAllowed.selector);
         IPluginManager(account2).installPlugin({
             plugin: address(mockPluginBad),
             manifestHash: manifestHashBad,
