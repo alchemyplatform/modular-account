@@ -18,6 +18,9 @@
 pragma solidity ^0.8.22;
 
 import {UUPSUpgradeable} from "../../ext/UUPSUpgradeable.sol";
+import {IERC1155Receiver} from "@openzeppelin/contracts/interfaces/IERC1155Receiver.sol";
+import {IERC777Recipient} from "@openzeppelin/contracts/interfaces/IERC777Recipient.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {IAccount} from "../../src/interfaces/erc4337/IAccount.sol";
@@ -60,7 +63,12 @@ library KnownSelectors {
         || selector == IAccountLoupe.getExecutionFunctionConfig.selector
             || selector == IAccountLoupe.getExecutionHooks.selector
             || selector == IAccountLoupe.getPreValidationHooks.selector
-            || selector == IAccountLoupe.getInstalledPlugins.selector;
+            || selector == IAccountLoupe.getInstalledPlugins.selector
+        // check against token receiver methods
+        || selector == IERC777Recipient.tokensReceived.selector
+            || selector == IERC721Receiver.onERC721Received.selector
+            || selector == IERC1155Receiver.onERC1155Received.selector
+            || selector == IERC1155Receiver.onERC1155BatchReceived.selector;
     }
 
     function isErc4337Function(bytes4 selector) internal pure returns (bool) {

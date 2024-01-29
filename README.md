@@ -5,16 +5,17 @@ Alchemy's Modular Account is a maximally modular, upgradeable Smart Contract Acc
 ## Overview
 
 This repository contains:
-* [Modular Account implementation](src/account)
-* [Modular Account factories](src/factory)
-* 3 ERC-6900 compatible plugins:
-    * [MultiOwnerPlugin](src/plugins/owner) is a plugin supporting 1+ ECDSA owners.
-    * [TokenReceiverPlugin](src/plugins/TokenReceiverPlugin.sol) contains ERC721/ERC777/ERC1155 token receivers.
-    * [SessionKeyPlugin](src/plugins/session) enables session keys with optional permissions such as time ranges, token spend limits, and gas spend limits.
+
+- [Modular Account implementation](src/account)
+- [Modular Account factory](src/factory)
+- 2 ERC-6900 compatible plugins:
+  - [MultiOwnerPlugin](src/plugins/owner) is a plugin supporting 1+ ECDSA owners.
+  - [SessionKeyPlugin](src/plugins/session) enables session keys with optional permissions such as time ranges, token spend limits, and gas spend limits.
 
 The account and plugins conform to these ERC versions:
-* ERC-4337: 0.6.0
-* ERC-6900: 0.7.0
+
+- ERC-4337: 0.6.0
+- ERC-6900: 0.7.0
 
 ## Development
 
@@ -43,6 +44,7 @@ FOUNDRY_PROFILE=lite forge test -vvv
 ### Deployment
 
 A deployment script can be found in the `scripts/` folder
+
 ```bash
 forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast
 ```

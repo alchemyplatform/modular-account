@@ -36,7 +36,6 @@ import {Call} from "../../src/interfaces/IStandardExecutor.sol";
 import {IMultiOwnerPlugin} from "../../src/plugins/owner/IMultiOwnerPlugin.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {SessionKeyPlugin} from "../../src/plugins/session/SessionKeyPlugin.sol";
-import {TokenReceiverPlugin} from "../../src/plugins/TokenReceiverPlugin.sol";
 import {Counter} from "../mocks/Counter.sol";
 import {MockPlugin} from "../mocks/MockPlugin.sol";
 
@@ -46,7 +45,6 @@ contract UpgradeableModularAccountTest is Test {
     IEntryPoint public entryPoint;
     address payable public beneficiary;
     MultiOwnerPlugin public multiOwnerPlugin;
-    TokenReceiverPlugin public tokenReceiverPlugin;
     SessionKeyPlugin public sessionKeyPlugin;
     MultiOwnerMSCAFactory public factory;
     address public accountImplementation;
@@ -76,7 +74,6 @@ contract UpgradeableModularAccountTest is Test {
         vm.deal(beneficiary, 1 wei);
 
         multiOwnerPlugin = new MultiOwnerPlugin();
-        tokenReceiverPlugin = new TokenReceiverPlugin();
         sessionKeyPlugin = new SessionKeyPlugin();
         accountImplementation = address(new UpgradeableModularAccount(entryPoint));
         bytes32 manifestHash = keccak256(abi.encode(multiOwnerPlugin.pluginManifest()));
