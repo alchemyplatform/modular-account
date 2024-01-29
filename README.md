@@ -53,10 +53,10 @@ We have done 2 audits from Spearbit and Quantstamp and will upload the reports s
 
 ## License
 
-The Modular Account libraries (all code inside the [src/libraries](src/libraries) directory) are licensed under the MIT License, also included in our repository in [LICENSE](LICENSE).
+The Modular Account libraries (all code inside the [src/libraries](src/libraries) directory) are licensed under the MIT License, also included in our repository in [LICENSE-MIT](LICENSE-MIT).
 
-The Modular Account and ERC-6900 interfaces (all code inside the [src/interfaces](src/interfaces) directory) are licensed under the CC0 1.0 Universal License.
+The Modular Account interfaces and ERC-6900 interfaces (all code inside the [src/interfaces](src/interfaces) directory) are licensed under the CC0 1.0 Universal License.
 
-All other code for Modular Account is licensed under the GNU General Public License v3.0, also included in our repository in [COPYING](COPYING).
+All other code for Modular Account is licensed under the GNU General Public License v3.0, also included in our repository in [LICENSE-GPL](LICENSE-GPL).
 
 Alchemy Insights, Inc., 548 Market St., PMB 49099, San Francisco, CA 94104; legal@alchemy.com
