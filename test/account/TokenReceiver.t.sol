@@ -29,7 +29,16 @@ import {IERC777Recipient} from "@openzeppelin/contracts/token/ERC777/IERC777Reci
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
 import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
+import {
+    IPlugin,
+    ManifestExecutionHook,
+    ManifestAssociatedFunctionType,
+    ManifestFunction,
+    PluginManifest
+} from "../../src/interfaces/IPlugin.sol";
+import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
+import {MockPlugin} from "../mocks/MockPlugin.sol";
 import {MockERC1155} from "../mocks/tokens/MockERC1155.sol";
 import {MockERC777} from "../mocks/tokens/MockERC777.sol";
 
@@ -39,6 +48,7 @@ contract TokenReceiverTest is Test, IERC1155Receiver {
     ERC721PresetMinterPauserAutoId public t0;
     MockERC777 public t1;
     MockERC1155 public t2;
+    MockPlugin public mockPlugin;
     MultiOwnerMSCAFactory public factory;
     MultiOwnerPlugin public multiOwnerPlugin;
     IEntryPoint public entryPoint;
@@ -128,6 +138,156 @@ contract TokenReceiverTest is Test, IERC1155Receiver {
         assertEq(isSupported, true);
         isSupported = acct.supportsInterface(type(IERC1155Receiver).interfaceId);
         assertEq(isSupported, true);
+    }
+
+    function test_hookOnERC721Transfer() public {
+        uint8 preHookId = 1;
+        uint8 postHookId = 2;
+        _installHookOnSelector(IERC721Receiver.onERC721Received.selector, preHookId, postHookId);
+
+        vm.expectCall(
+            address(mockPlugin),
+            abi.encodeWithSelector(
+                IPlugin.preExecutionHook.selector,
+                preHookId,
+                address(t0), // caller
+                0, // msg.value in call to account
+                abi.encodeWithSelector(
+                    IERC721Receiver.onERC721Received.selector, address(this), address(this), _TOKEN_ID, ""
+                )
+            ),
+            1
+        );
+        vm.expectCall(
+            address(mockPlugin),
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector, postHookId, abi.encode(preHookId)),
+            1
+        );
+
+        t0.safeTransferFrom(address(this), address(acct), _TOKEN_ID);
+    }
+
+    function test_hookOnERC777Transfer() public {
+        uint8 preHookId = 1;
+        uint8 postHookId = 2;
+        _installHookOnSelector(IERC777Recipient.tokensReceived.selector, preHookId, postHookId);
+
+        vm.expectCall(
+            address(mockPlugin),
+            abi.encodeWithSelector(
+                IPlugin.preExecutionHook.selector,
+                preHookId,
+                address(t1), // caller
+                0, // msg.value in call to account
+                abi.encodeWithSelector(
+                    IERC777Recipient.tokensReceived.selector,
+                    address(this),
+                    address(this),
+                    address(acct),
+                    _TOKEN_AMOUNT,
+                    "",
+                    ""
+                )
+            ),
+            1
+        );
+        vm.expectCall(
+            address(mockPlugin),
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector, postHookId, abi.encode(preHookId)),
+            1
+        );
+
+        t1.transfer(address(acct), _TOKEN_AMOUNT);
+    }
+
+    function test_hookOnERC1155Transfer() public {
+        uint8 preHookId = 1;
+        uint8 postHookId = 2;
+        _installHookOnSelector(IERC1155Receiver.onERC1155Received.selector, preHookId, postHookId);
+
+        vm.expectCall(
+            address(mockPlugin),
+            abi.encodeWithSelector(
+                IPlugin.preExecutionHook.selector,
+                preHookId,
+                address(t2), // caller
+                0, // msg.value in call to account
+                abi.encodeWithSelector(
+                    IERC1155Receiver.onERC1155Received.selector,
+                    address(this),
+                    address(this),
+                    _TOKEN_ID,
+                    _TOKEN_AMOUNT,
+                    ""
+                )
+            ),
+            1
+        );
+        vm.expectCall(
+            address(mockPlugin),
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector, postHookId, abi.encode(preHookId)),
+            1
+        );
+
+        t2.safeTransferFrom(address(this), address(acct), _TOKEN_ID, _TOKEN_AMOUNT, "");
+    }
+
+    function test_hookOnERC1155BatchTransfer() public {
+        uint8 preHookId = 1;
+        uint8 postHookId = 2;
+        _installHookOnSelector(IERC1155Receiver.onERC1155BatchReceived.selector, preHookId, postHookId);
+
+        vm.expectCall(
+            address(mockPlugin),
+            abi.encodeWithSelector(
+                IPlugin.preExecutionHook.selector,
+                preHookId,
+                address(t2), // caller
+                0, // msg.value in call to account
+                abi.encodeWithSelector(
+                    IERC1155Receiver.onERC1155BatchReceived.selector,
+                    address(this),
+                    address(this),
+                    tokenIds,
+                    tokenAmts,
+                    ""
+                )
+            ),
+            1
+        );
+        vm.expectCall(
+            address(mockPlugin),
+            abi.encodeWithSelector(IPlugin.postExecutionHook.selector, postHookId, abi.encode(preHookId)),
+            1
+        );
+
+        t2.safeBatchTransferFrom(address(this), address(acct), tokenIds, tokenAmts, "");
+    }
+
+    function _installHookOnSelector(bytes4 selector, uint8 preHookId, uint8 postHookId) internal {
+        PluginManifest memory m;
+        m.executionHooks = new ManifestExecutionHook[](1);
+        m.executionHooks[0].executionSelector = selector;
+        m.executionHooks[0].preExecHook = ManifestFunction({
+            functionType: ManifestAssociatedFunctionType.SELF,
+            functionId: preHookId,
+            dependencyIndex: 0
+        });
+        m.executionHooks[0].postExecHook = ManifestFunction({
+            functionType: ManifestAssociatedFunctionType.SELF,
+            functionId: postHookId,
+            dependencyIndex: 0
+        });
+
+        mockPlugin = new MockPlugin(m);
+
+        vm.prank(owner);
+        acct.installPlugin({
+            plugin: address(mockPlugin),
+            manifestHash: keccak256(abi.encode(m)),
+            pluginInstallData: bytes(""),
+            dependencies: new FunctionReference[](0)
+        });
     }
 
     /**
