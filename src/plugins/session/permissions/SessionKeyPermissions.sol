@@ -469,7 +469,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
             revert InvalidPermissionsUpdate(updateSelector);
         }
 
-        // If/else chain to find the right interal update function to perform.
+        // If/else chain to find the right internal update function to perform.
         if (updateSelector == ISessionKeyPermissionsUpdates.setAccessListType.selector) {
             ContractAccessControlType contractAccessControlType =
                 abi.decode(update[4:], (ContractAccessControlType));
