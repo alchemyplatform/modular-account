@@ -86,8 +86,6 @@ contract UpgradeableModularAccount is
     // ERC-4337 v0.6.0 entrypoint address only
     IEntryPoint private immutable _ENTRY_POINT;
 
-    // As per the EIP-165 spec, no interface should ever match 0xffffffff
-    bytes4 internal constant _INTERFACE_ID_INVALID = 0xffffffff;
     bytes4 internal constant _IERC165_INTERFACE_ID = 0x01ffc9a7;
 
     event ModularAccountInitialized(IEntryPoint indexed entryPoint);
@@ -439,7 +437,7 @@ contract UpgradeableModularAccount is
 
     /// @inheritdoc IERC165
     function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
-        if (interfaceId == _INTERFACE_ID_INVALID) {
+        if (interfaceId == _INVALID_INTERFACE_ID) {
             return false;
         }
         return interfaceId == _IERC165_INTERFACE_ID || interfaceId == type(IERC721Receiver).interfaceId

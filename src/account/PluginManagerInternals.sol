@@ -53,6 +53,9 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         uint256 callbackGasLimit;
     }
 
+    // As per the EIP-165 spec, no interface should ever match 0xffffffff
+    bytes4 internal constant _INVALID_INTERFACE_ID = 0xffffffff;
+
     // These flags are used in LinkedListSet values to optimize lookups.
     // It's important that they don't overlap with bit 1 and bit 2, which are reserved bits used to indicate
     // the sentinel value and the existence of a next value, respectively.
@@ -452,7 +455,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         length = manifest.interfaceIds.length;
         for (uint256 i = 0; i < length; ++i) {
             bytes4 interfaceId = manifest.interfaceIds[i];
-            if (interfaceId == type(IPlugin).interfaceId) {
+            if (interfaceId == type(IPlugin).interfaceId || interfaceId == _INVALID_INTERFACE_ID) {
                 revert IPluginInterfaceNotAllowed();
             }
             storage_.supportedInterfaces[interfaceId] += 1;
