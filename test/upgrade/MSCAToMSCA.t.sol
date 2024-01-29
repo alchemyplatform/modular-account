@@ -22,11 +22,10 @@ import {Test} from "forge-std/Test.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerTokenReceiverMSCAFactory} from "../../src/factory/MultiOwnerTokenReceiverMSCAFactory.sol";
+import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {Call} from "../../src/interfaces/IStandardExecutor.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
-import {TokenReceiverPlugin} from "../../src/plugins/TokenReceiverPlugin.sol";
 import {MockERC20} from "../mocks/tokens/MockERC20.sol";
 import {Utils} from "../Utils.sol";
 
@@ -39,7 +38,6 @@ contract MSCAToMSCATest is Test {
     UpgradeableModularAccount public msca;
 
     MultiOwnerPlugin public multiOwnerPlugin;
-    TokenReceiverPlugin public tokenReceiverPlugin;
     address public mscaImpl1;
     address public mscaImpl2;
 
@@ -52,17 +50,9 @@ contract MSCAToMSCATest is Test {
         mscaImpl1 = address(new UpgradeableModularAccount(entryPoint));
         mscaImpl2 = address(new UpgradeableModularAccount(entryPoint));
         multiOwnerPlugin = new MultiOwnerPlugin();
-        tokenReceiverPlugin = new TokenReceiverPlugin();
         bytes32 ownerManifestHash = keccak256(abi.encode(multiOwnerPlugin.pluginManifest()));
-        bytes32 tokenReceiverManifestHash = keccak256(abi.encode(tokenReceiverPlugin.pluginManifest()));
-        MultiOwnerTokenReceiverMSCAFactory factory = new MultiOwnerTokenReceiverMSCAFactory(
-            address(this),
-            address(multiOwnerPlugin),
-            address(tokenReceiverPlugin),
-            mscaImpl1,
-            ownerManifestHash,
-            tokenReceiverManifestHash,
-            entryPoint
+        MultiOwnerMSCAFactory factory = new MultiOwnerMSCAFactory(
+            address(this), address(multiOwnerPlugin), mscaImpl1, ownerManifestHash, entryPoint
         );
         msca = UpgradeableModularAccount(payable(factory.createAccount(0, owners)));
         vm.deal(address(msca), 2 ether);

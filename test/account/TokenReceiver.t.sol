@@ -26,19 +26,15 @@ import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Re
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC777Recipient} from "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
 
-import {AccountStorageV1} from "../../src/account/AccountStorageV1.sol";
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
 import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
-import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
-import {TokenReceiverPlugin} from "../../src/plugins/TokenReceiverPlugin.sol";
 import {MockERC1155} from "../mocks/tokens/MockERC1155.sol";
 import {MockERC777} from "../mocks/tokens/MockERC777.sol";
 
-contract TokenReceiverPluginTest is Test, IERC1155Receiver, AccountStorageV1 {
+contract TokenReceiverTest is Test, IERC1155Receiver {
     UpgradeableModularAccount public acct;
-    TokenReceiverPlugin public plugin;
 
     ERC721PresetMinterPauserAutoId public t0;
     MockERC777 public t1;
@@ -74,7 +70,6 @@ contract TokenReceiverPluginTest is Test, IERC1155Receiver, AccountStorageV1 {
         owners = new address[](1);
         owners[0] = owner;
         acct = UpgradeableModularAccount(payable(factory.createAccount(0, owners)));
-        plugin = new TokenReceiverPlugin();
 
         t0 = new ERC721PresetMinterPauserAutoId("t0", "t0", "");
         t0.mint(address(this));
@@ -92,44 +87,13 @@ contract TokenReceiverPluginTest is Test, IERC1155Receiver, AccountStorageV1 {
         }
     }
 
-    function _initPlugin() internal {
-        vm.startPrank(owner);
-        acct.installPlugin(
-            address(plugin), keccak256(abi.encode(plugin.pluginManifest())), bytes(""), new FunctionReference[](0)
-        );
-        vm.stopPrank();
-    }
-
-    function test_failERC721Transfer() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                UpgradeableModularAccount.RuntimeValidationFunctionMissing.selector,
-                IERC721Receiver.onERC721Received.selector
-            )
-        );
-        t0.safeTransferFrom(address(this), address(acct), _TOKEN_ID);
-    }
-
     function test_passERC721Transfer() public {
-        _initPlugin();
         assertEq(t0.ownerOf(_TOKEN_ID), address(this));
         t0.safeTransferFrom(address(this), address(acct), _TOKEN_ID);
         assertEq(t0.ownerOf(_TOKEN_ID), address(acct));
     }
 
-    function test_failERC777Transfer() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                UpgradeableModularAccount.RuntimeValidationFunctionMissing.selector,
-                IERC777Recipient.tokensReceived.selector
-            )
-        );
-        t1.transfer(address(acct), _TOKEN_AMOUNT);
-    }
-
     function test_passERC777Transfer() public {
-        _initPlugin();
-
         assertEq(t1.balanceOf(address(this)), _TOKEN_AMOUNT);
         assertEq(t1.balanceOf(address(acct)), 0);
         t1.transfer(address(acct), _TOKEN_AMOUNT);
@@ -137,19 +101,7 @@ contract TokenReceiverPluginTest is Test, IERC1155Receiver, AccountStorageV1 {
         assertEq(t1.balanceOf(address(acct)), _TOKEN_AMOUNT);
     }
 
-    function test_failERC1155Transfer() public {
-        // for 1155, reverts are caught in a try catch and bubbled up with a diff reason
-        vm.expectRevert("ERC1155: transfer to non-ERC1155Receiver implementer");
-        t2.safeTransferFrom(address(this), address(acct), _TOKEN_ID, _TOKEN_AMOUNT, "");
-
-        // for 1155, reverts are caught in a try catch and bubbled up with a diff reason
-        vm.expectRevert("ERC1155: transfer to non-ERC1155Receiver implementer");
-        t2.safeBatchTransferFrom(address(this), address(acct), tokenIds, tokenAmts, "");
-    }
-
     function test_passERC1155Transfer() public {
-        _initPlugin();
-
         assertEq(t2.balanceOf(address(this), _TOKEN_ID), _TOKEN_AMOUNT);
         assertEq(t2.balanceOf(address(acct), _TOKEN_ID), 0);
         t2.safeTransferFrom(address(this), address(acct), _TOKEN_ID, _TOKEN_AMOUNT, "");
@@ -167,20 +119,7 @@ contract TokenReceiverPluginTest is Test, IERC1155Receiver, AccountStorageV1 {
         }
     }
 
-    function test_failIntrospection() public {
-        bool isSupported;
-
-        isSupported = acct.supportsInterface(type(IERC721Receiver).interfaceId);
-        assertEq(isSupported, false);
-        isSupported = acct.supportsInterface(type(IERC777Recipient).interfaceId);
-        assertEq(isSupported, false);
-        isSupported = acct.supportsInterface(type(IERC1155Receiver).interfaceId);
-        assertEq(isSupported, false);
-    }
-
     function test_passIntrospection() public {
-        _initPlugin();
-
         bool isSupported;
 
         isSupported = acct.supportsInterface(type(IERC721Receiver).interfaceId);

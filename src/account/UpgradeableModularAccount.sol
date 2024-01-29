@@ -17,6 +17,9 @@
 
 pragma solidity ^0.8.22;
 
+import {IERC1155Receiver} from "@openzeppelin/contracts/interfaces/IERC1155Receiver.sol";
+import {IERC777Recipient} from "@openzeppelin/contracts/interfaces/IERC777Recipient.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {UUPSUpgradeable} from "../../ext/UUPSUpgradeable.sol";
@@ -51,6 +54,9 @@ contract UpgradeableModularAccount is
     IAccountInitializable,
     IAccountView,
     IERC165,
+    IERC721Receiver,
+    IERC777Recipient,
+    IERC1155Receiver,
     IPluginExecutor,
     IStandardExecutor,
     UUPSUpgradeable
@@ -80,8 +86,6 @@ contract UpgradeableModularAccount is
     // ERC-4337 v0.6.0 entrypoint address only
     IEntryPoint private immutable _ENTRY_POINT;
 
-    // As per the EIP-165 spec, no interface should ever match 0xffffffff
-    bytes4 internal constant _INTERFACE_ID_INVALID = 0xffffffff;
     bytes4 internal constant _IERC165_INTERFACE_ID = 0x01ffc9a7;
 
     event ModularAccountInitialized(IEntryPoint indexed entryPoint);
@@ -370,16 +374,58 @@ contract UpgradeableModularAccount is
         _postNativeFunction(postExecHooks, postHookArgs);
     }
 
-    /// @inheritdoc IERC165
-    function supportsInterface(bytes4 interfaceId) external view override returns (bool) {
-        if (interfaceId == _INTERFACE_ID_INVALID) {
-            return false;
-        }
-        if (interfaceId == _IERC165_INTERFACE_ID) {
-            return true;
-        }
+    /// @inheritdoc IERC777Recipient
+    /// @dev Runtime validation is bypassed for this function, but we still allow pre and post exec hooks to be
+    /// assigned and run.
+    function tokensReceived(address, address, address, uint256, bytes calldata, bytes calldata)
+        external
+        override
+    {
+        (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) =
+            _doPreExecHooks(_getAccountStorage().selectorData[msg.sig], "");
+        _postNativeFunction(postExecHooks, postHookArgs);
+    }
 
-        return _getAccountStorage().supportedInterfaces[interfaceId] > 0;
+    /// @inheritdoc IERC721Receiver
+    /// @dev Runtime validation is bypassed for this function, but we still allow pre and post exec hooks to be
+    /// assigned and run.
+    function onERC721Received(address, address, uint256, bytes calldata)
+        external
+        override
+        returns (bytes4 selector)
+    {
+        (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) =
+            _doPreExecHooks(_getAccountStorage().selectorData[msg.sig], "");
+        selector = IERC721Receiver.onERC721Received.selector;
+        _postNativeFunction(postExecHooks, postHookArgs);
+    }
+
+    /// @inheritdoc IERC1155Receiver
+    /// @dev Runtime validation is bypassed for this function, but we still allow pre and post exec hooks to be
+    /// assigned and run.
+    function onERC1155Received(address, address, uint256, uint256, bytes calldata)
+        external
+        override
+        returns (bytes4 selector)
+    {
+        (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) =
+            _doPreExecHooks(_getAccountStorage().selectorData[msg.sig], "");
+        selector = IERC1155Receiver.onERC1155Received.selector;
+        _postNativeFunction(postExecHooks, postHookArgs);
+    }
+
+    /// @inheritdoc IERC1155Receiver
+    /// @dev Runtime validation is bypassed for this function, but we still allow pre and post exec hooks to be
+    /// assigned and run.
+    function onERC1155BatchReceived(address, address, uint256[] calldata, uint256[] calldata, bytes calldata)
+        external
+        override
+        returns (bytes4 selector)
+    {
+        (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) =
+            _doPreExecHooks(_getAccountStorage().selectorData[msg.sig], "");
+        selector = IERC1155Receiver.onERC1155BatchReceived.selector;
+        _postNativeFunction(postExecHooks, postHookArgs);
     }
 
     /// @inheritdoc UUPSUpgradeable
@@ -387,6 +433,16 @@ contract UpgradeableModularAccount is
         (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) = _preNativeFunction();
         UUPSUpgradeable.upgradeToAndCall(newImplementation, data);
         _postNativeFunction(postExecHooks, postHookArgs);
+    }
+
+    /// @inheritdoc IERC165
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        if (interfaceId == _INVALID_INTERFACE_ID) {
+            return false;
+        }
+        return interfaceId == _IERC165_INTERFACE_ID || interfaceId == type(IERC721Receiver).interfaceId
+            || interfaceId == type(IERC777Recipient).interfaceId || interfaceId == type(IERC1155Receiver).interfaceId
+            || _getAccountStorage().supportedInterfaces[interfaceId] > 0;
     }
 
     /// @inheritdoc IAccountView
@@ -417,7 +473,7 @@ contract UpgradeableModularAccount is
     }
 
     /// @dev Wraps execution of a native function with runtime validation and hooks. Used for upgradeToAndCall,
-    /// execute, executeBatch, installPlugin, uninstallPlugin.
+    /// execute, executeBatch, installPlugin, uninstallPlugin, and the token receiver functions.
     function _postNativeFunction(FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs)
         internal
     {
