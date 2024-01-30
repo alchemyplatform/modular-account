@@ -23,15 +23,15 @@ import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.so
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
+import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 
-contract MultiOwnerMSCAFactoryTest is Test {
+contract MultiOwnerModularAccountFactoryTest is Test {
     using ECDSA for bytes32;
 
     EntryPoint public entryPoint;
-    MultiOwnerMSCAFactory public factory;
+    MultiOwnerModularAccountFactory public factory;
     MultiOwnerPlugin public multiOwnerPlugin;
     address public impl;
 
@@ -54,7 +54,7 @@ contract MultiOwnerMSCAFactoryTest is Test {
         impl = address(new UpgradeableModularAccount(IEntryPoint(address(entryPoint))));
         multiOwnerPlugin = new MultiOwnerPlugin();
         bytes32 manifestHash = keccak256(abi.encode(multiOwnerPlugin.pluginManifest()));
-        factory = new MultiOwnerMSCAFactory(
+        factory = new MultiOwnerModularAccountFactory(
             address(this), address(multiOwnerPlugin), impl, manifestHash, IEntryPoint(address(entryPoint))
         );
         for (uint160 i = 0; i < _MAX_OWNERS_ON_CREATION; i++) {
@@ -105,18 +105,18 @@ contract MultiOwnerMSCAFactoryTest is Test {
     }
 
     function test_badOwnersArray() public {
-        vm.expectRevert(MultiOwnerMSCAFactory.OwnersArrayEmpty.selector);
+        vm.expectRevert(MultiOwnerModularAccountFactory.OwnersArrayEmpty.selector);
         factory.getAddress(0, new address[](0));
 
         address[] memory badOwners = new address[](2);
 
-        vm.expectRevert(MultiOwnerMSCAFactory.InvalidOwner.selector);
+        vm.expectRevert(MultiOwnerModularAccountFactory.InvalidOwner.selector);
         factory.getAddress(0, badOwners);
 
         badOwners[0] = address(1);
         badOwners[1] = address(1);
 
-        vm.expectRevert(MultiOwnerMSCAFactory.InvalidOwner.selector);
+        vm.expectRevert(MultiOwnerModularAccountFactory.InvalidOwner.selector);
         factory.getAddress(0, badOwners);
     }
 
@@ -167,7 +167,7 @@ contract MultiOwnerMSCAFactoryTest is Test {
 
     function test_getAddressWithTooManyOwners() public {
         largeOwners.push(address(101));
-        vm.expectRevert(MultiOwnerMSCAFactory.OwnersLimitExceeded.selector);
+        vm.expectRevert(MultiOwnerModularAccountFactory.OwnersLimitExceeded.selector);
         factory.getAddress(0, largeOwners);
     }
 
@@ -175,7 +175,7 @@ contract MultiOwnerMSCAFactoryTest is Test {
         address[] memory tempOwners = new address[](2);
         tempOwners[0] = address(2);
         tempOwners[1] = address(1);
-        vm.expectRevert(MultiOwnerMSCAFactory.InvalidOwner.selector);
+        vm.expectRevert(MultiOwnerModularAccountFactory.InvalidOwner.selector);
         factory.getAddress(0, tempOwners);
     }
 
@@ -183,7 +183,7 @@ contract MultiOwnerMSCAFactoryTest is Test {
         address[] memory tempOwners = new address[](2);
         tempOwners[0] = address(1);
         tempOwners[1] = address(1);
-        vm.expectRevert(MultiOwnerMSCAFactory.InvalidOwner.selector);
+        vm.expectRevert(MultiOwnerModularAccountFactory.InvalidOwner.selector);
         factory.createAccount(0, tempOwners);
     }
 
@@ -191,7 +191,7 @@ contract MultiOwnerMSCAFactoryTest is Test {
         address[] memory tempOwners = new address[](2);
         tempOwners[0] = address(2);
         tempOwners[1] = address(1);
-        vm.expectRevert(MultiOwnerMSCAFactory.InvalidOwner.selector);
+        vm.expectRevert(MultiOwnerModularAccountFactory.InvalidOwner.selector);
         factory.createAccount(0, tempOwners);
     }
 

@@ -24,7 +24,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {PluginManagerInternals} from "../../src/account/PluginManagerInternals.sol";
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
+import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {FunctionReferenceLib} from "../../src/helpers/FunctionReferenceLib.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {
@@ -44,7 +44,7 @@ contract UpgradeableModularAccountExecHooksTest is Test {
 
     IEntryPoint public entryPoint;
     MultiOwnerPlugin public multiOwnerPlugin;
-    MultiOwnerMSCAFactory public factory;
+    MultiOwnerModularAccountFactory public factory;
     MockPlugin public mockPlugin1;
     MockPlugin public mockPlugin2;
     bytes32 public manifestHash1;
@@ -73,7 +73,7 @@ contract UpgradeableModularAccountExecHooksTest is Test {
         (owner1, owner1Key) = makeAddrAndKey("owner1");
         address impl = address(new UpgradeableModularAccount(IEntryPoint(address(entryPoint))));
 
-        factory = new MultiOwnerMSCAFactory(
+        factory = new MultiOwnerModularAccountFactory(
             address(this),
             address(multiOwnerPlugin),
             impl,

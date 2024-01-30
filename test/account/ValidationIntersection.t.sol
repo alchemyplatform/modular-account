@@ -22,7 +22,7 @@ import {Test} from "forge-std/Test.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
+import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../src/interfaces/erc4337/UserOperation.sol";
 import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
@@ -52,7 +52,7 @@ contract ValidationIntersectionTest is Test {
         MultiOwnerPlugin multiOwnerPlugin = new MultiOwnerPlugin();
         address impl = address(new UpgradeableModularAccount(entryPoint));
 
-        MultiOwnerMSCAFactory factory = new MultiOwnerMSCAFactory(
+        MultiOwnerModularAccountFactory factory = new MultiOwnerModularAccountFactory(
             address(this),
             address(multiOwnerPlugin),
             impl,

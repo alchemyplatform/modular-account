@@ -25,7 +25,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ISessionKeyPermissionsUpdates} from
     "../../../src/plugins/session/permissions/ISessionKeyPermissionsUpdates.sol";
 import {UpgradeableModularAccount} from "../../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerMSCAFactory} from "../../../src/factory/MultiOwnerMSCAFactory.sol";
+import {MultiOwnerModularAccountFactory} from "../../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {FunctionReferenceLib} from "../../../src/helpers/FunctionReferenceLib.sol";
 import {IEntryPoint} from "../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
@@ -43,7 +43,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
     IEntryPoint entryPoint;
     address payable beneficiary;
     MultiOwnerPlugin multiOwnerPlugin;
-    MultiOwnerMSCAFactory factory;
+    MultiOwnerModularAccountFactory factory;
     SessionKeyPlugin sessionKeyPlugin;
 
     address owner1;
@@ -72,7 +72,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         multiOwnerPlugin = new MultiOwnerPlugin();
         address impl = address(new UpgradeableModularAccount(entryPoint));
 
-        factory = new MultiOwnerMSCAFactory(
+        factory = new MultiOwnerModularAccountFactory(
             address(this),
             address(multiOwnerPlugin),
             impl,

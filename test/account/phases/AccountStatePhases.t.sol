@@ -23,7 +23,7 @@ import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.so
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {UpgradeableModularAccount} from "../../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerMSCAFactory} from "../../../src/factory/MultiOwnerMSCAFactory.sol";
+import {MultiOwnerModularAccountFactory} from "../../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {FunctionReferenceLib} from "../../../src/helpers/FunctionReferenceLib.sol";
 import {IEntryPoint} from "../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
@@ -62,7 +62,7 @@ contract AccountStatePhasesTest is Test {
 
     IEntryPoint public entryPoint;
     MultiOwnerPlugin public multiOwnerPlugin;
-    MultiOwnerMSCAFactory public factory;
+    MultiOwnerModularAccountFactory public factory;
     address payable beneficiary;
 
     address public owner1;
@@ -104,7 +104,7 @@ contract AccountStatePhasesTest is Test {
         beneficiary = payable(makeAddr("beneficiary"));
         address accountImpl = address(new UpgradeableModularAccount(IEntryPoint(address(entryPoint))));
 
-        factory = new MultiOwnerMSCAFactory(
+        factory = new MultiOwnerModularAccountFactory(
             address(this),
             address(multiOwnerPlugin),
             accountImpl,
