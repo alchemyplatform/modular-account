@@ -377,54 +377,61 @@ contract UpgradeableModularAccount is
     /// @inheritdoc IERC777Recipient
     /// @dev Runtime validation is bypassed for this function, but we still allow pre and post exec hooks to be
     /// assigned and run.
-    function tokensReceived(address, address, address, uint256, bytes calldata, bytes calldata)
-        external
-        override
-    {
+    function tokensReceived(
+        address operator,
+        address from,
+        address to,
+        uint256 amount,
+        bytes calldata userData,
+        bytes calldata operatorData
+    ) external override {
         (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) =
             _doPreExecHooks(_getAccountStorage().selectorData[msg.sig], "");
+        _tokensReceived(operator, from, to, amount, userData, operatorData);
         _postNativeFunction(postExecHooks, postHookArgs);
     }
 
     /// @inheritdoc IERC721Receiver
     /// @dev Runtime validation is bypassed for this function, but we still allow pre and post exec hooks to be
     /// assigned and run.
-    function onERC721Received(address, address, uint256, bytes calldata)
+    function onERC721Received(address operator, address from, uint256 tokenId, bytes calldata data)
         external
         override
         returns (bytes4 selector)
     {
         (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) =
             _doPreExecHooks(_getAccountStorage().selectorData[msg.sig], "");
-        selector = IERC721Receiver.onERC721Received.selector;
+        selector = _onERC721Received(operator, from, tokenId, data);
         _postNativeFunction(postExecHooks, postHookArgs);
     }
 
     /// @inheritdoc IERC1155Receiver
     /// @dev Runtime validation is bypassed for this function, but we still allow pre and post exec hooks to be
     /// assigned and run.
-    function onERC1155Received(address, address, uint256, uint256, bytes calldata)
+    function onERC1155Received(address operator, address from, uint256 id, uint256 value, bytes calldata data)
         external
         override
         returns (bytes4 selector)
     {
         (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) =
             _doPreExecHooks(_getAccountStorage().selectorData[msg.sig], "");
-        selector = IERC1155Receiver.onERC1155Received.selector;
+        selector = _onERC1155Received(operator, from, id, value, data);
         _postNativeFunction(postExecHooks, postHookArgs);
     }
 
     /// @inheritdoc IERC1155Receiver
     /// @dev Runtime validation is bypassed for this function, but we still allow pre and post exec hooks to be
     /// assigned and run.
-    function onERC1155BatchReceived(address, address, uint256[] calldata, uint256[] calldata, bytes calldata)
-        external
-        override
-        returns (bytes4 selector)
-    {
+    function onERC1155BatchReceived(
+        address operator,
+        address from,
+        uint256[] calldata ids,
+        uint256[] calldata values,
+        bytes calldata data
+    ) external override returns (bytes4 selector) {
         (FunctionReference[][] memory postExecHooks, bytes[] memory postHookArgs) =
             _doPreExecHooks(_getAccountStorage().selectorData[msg.sig], "");
-        selector = IERC1155Receiver.onERC1155BatchReceived.selector;
+        selector = _onERC1155BatchReceived(operator, from, ids, values, data);
         _postNativeFunction(postExecHooks, postHookArgs);
     }
 
@@ -672,7 +679,8 @@ contract UpgradeableModularAccount is
         if (callBuffer.length == 0) {
             // Allocate the call buffer for preExecHook. This case MUST NOT be reached by `executeFromPlugin`,
             // otherwise the call will execute with the wrong calldata. This case should only be reachable by
-            // native functions with no runtime validation (i.e. being calling via a user operation).
+            // native functions with no runtime validation (e.g., token receiver functions or functions called via
+            // a user operation).
             callBuffer = _allocateRuntimeCallBuffer(msg.data);
         }
         _updatePluginCallBufferSelector(callBuffer, IPlugin.preExecutionHook.selector);
@@ -738,6 +746,40 @@ contract UpgradeableModularAccount is
     /// @inheritdoc UUPSUpgradeable
     // solhint-disable-next-line no-empty-blocks
     function _authorizeUpgrade(address newImplementation) internal override {}
+
+    /// @dev Override to implement custom behavior.
+    function _tokensReceived(address, address, address, uint256, bytes calldata, bytes calldata)
+        internal
+        virtual
+    // solhint-disable-next-line no-empty-blocks
+    {}
+
+    /// @dev Override to implement custom behavior.
+    function _onERC721Received(address, address, uint256, bytes calldata)
+        internal
+        virtual
+        returns (bytes4 selector)
+    {
+        selector = IERC721Receiver.onERC721Received.selector;
+    }
+
+    /// @dev Override to implement custom behavior.
+    function _onERC1155Received(address, address, uint256, uint256, bytes calldata)
+        internal
+        virtual
+        returns (bytes4 selector)
+    {
+        selector = IERC1155Receiver.onERC1155Received.selector;
+    }
+
+    /// @dev Override to implement custom behavior.
+    function _onERC1155BatchReceived(address, address, uint256[] calldata, uint256[] calldata, bytes calldata)
+        internal
+        virtual
+        returns (bytes4 selector)
+    {
+        selector = IERC1155Receiver.onERC1155BatchReceived.selector;
+    }
 
     /// @dev Loads the associated post hooks for the given pre-exec hooks in the `postHooks` array, starting at 0.
     function _cacheAssociatedPostHooks(
