@@ -148,7 +148,8 @@ contract SessionKeyPermissionsTest is Test {
         // Remove the allowlist
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType,
+            (ISessionKeyPlugin.ContractAccessControlType.ALLOW_ALL_ACCESS)
         );
         vm.prank(owner1);
         SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
@@ -369,7 +370,8 @@ contract SessionKeyPermissionsTest is Test {
         // Remove the default allowlist
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType,
+            (ISessionKeyPlugin.ContractAccessControlType.ALLOW_ALL_ACCESS)
         );
         vm.prank(owner1);
         SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
@@ -458,7 +460,8 @@ contract SessionKeyPermissionsTest is Test {
         // Disable the allowlist and disable native token spend checking.
         bytes[] memory updates = new bytes[](2);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType,
+            (ISessionKeyPlugin.ContractAccessControlType.ALLOW_ALL_ACCESS)
         );
         updates[1] = abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (type(uint256).max, 0));
 
@@ -517,7 +520,8 @@ contract SessionKeyPermissionsTest is Test {
         // Disable the allowlist
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType,
+            (ISessionKeyPlugin.ContractAccessControlType.ALLOW_ALL_ACCESS)
         );
         vm.prank(owner1);
         SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
@@ -598,7 +602,8 @@ contract SessionKeyPermissionsTest is Test {
 
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType,
+            (ISessionKeyPlugin.ContractAccessControlType.ALLOW_ALL_ACCESS)
         );
         vm.prank(owner1);
         SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
@@ -608,7 +613,7 @@ contract SessionKeyPermissionsTest is Test {
 
         assertEq(
             uint8(accessControlType1),
-            uint8(ISessionKeyPlugin.ContractAccessControlType.NONE),
+            uint8(ISessionKeyPlugin.ContractAccessControlType.ALLOW_ALL_ACCESS),
             "sessionKey1 should now have no allowlist"
         );
         assertEq(
