@@ -104,7 +104,8 @@ contract SessionKeyGasLimitsTest is Test {
 
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType,
+            (ISessionKeyPlugin.ContractAccessControlType.ALLOW_ALL_ACCESS)
         );
         vm.prank(owner1);
         SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);

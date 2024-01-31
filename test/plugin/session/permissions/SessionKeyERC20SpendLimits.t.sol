@@ -114,7 +114,8 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         // Disable the allowlist
         bytes[] memory updates = new bytes[](1);
         updates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType,
+            (ISessionKeyPlugin.ContractAccessControlType.ALLOW_ALL_ACCESS)
         );
         vm.prank(owner1);
         SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
@@ -137,7 +138,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         // correctly
         assertTrue(
             sessionKeyPlugin.getAccessControlType(address(account1), sessionKey1)
-                == ISessionKeyPlugin.ContractAccessControlType.NONE
+                == ISessionKeyPlugin.ContractAccessControlType.ALLOW_ALL_ACCESS
         );
     }
 

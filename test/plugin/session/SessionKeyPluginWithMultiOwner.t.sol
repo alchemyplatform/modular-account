@@ -282,7 +282,8 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         // Disable the allowlist and native token spend checking
         bytes[] memory permissionUpdates = new bytes[](2);
         permissionUpdates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType,
+            (ISessionKeyPlugin.ContractAccessControlType.ALLOW_ALL_ACCESS)
         );
         permissionUpdates[1] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (type(uint256).max, 0));
@@ -544,7 +545,8 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         // To disable the allowlist and native token spend checking
         bytes[] memory permissionUpdates = new bytes[](2);
         permissionUpdates[0] = abi.encodeCall(
-            ISessionKeyPermissionsUpdates.setAccessListType, (ISessionKeyPlugin.ContractAccessControlType.NONE)
+            ISessionKeyPermissionsUpdates.setAccessListType,
+            (ISessionKeyPlugin.ContractAccessControlType.ALLOW_ALL_ACCESS)
         );
         permissionUpdates[1] =
             abi.encodeCall(ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit, (type(uint256).max, 0));
