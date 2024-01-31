@@ -27,9 +27,11 @@ interface ISessionKeyPlugin {
 
     // Valid access control types for contract access control lists.
     enum ContractAccessControlType {
-        ALLOWLIST, // Allowlist is default
+        // Allowlist is default
+        ALLOWLIST,
         DENYLIST,
-        NONE
+        // Disables contract access control
+        ALLOW_ALL_ACCESS
     }
 
     // Struct returned by view functions to provide information about a session key's spend limit.
