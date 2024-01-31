@@ -27,7 +27,7 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 import {IERC777Recipient} from "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
 
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
+import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {
     IPlugin,
@@ -49,7 +49,7 @@ contract TokenReceiverTest is Test, IERC1155Receiver {
     MockERC777 public t1;
     MockERC1155 public t2;
     MockPlugin public mockPlugin;
-    MultiOwnerMSCAFactory public factory;
+    MultiOwnerModularAccountFactory public factory;
     MultiOwnerPlugin public multiOwnerPlugin;
     IEntryPoint public entryPoint;
 
@@ -69,7 +69,7 @@ contract TokenReceiverTest is Test, IERC1155Receiver {
     function setUp() public {
         entryPoint = IEntryPoint(address(new EntryPoint()));
         multiOwnerPlugin = new MultiOwnerPlugin();
-        factory = new MultiOwnerMSCAFactory(
+        factory = new MultiOwnerModularAccountFactory(
             address(this),
             address(multiOwnerPlugin),
             address(new UpgradeableModularAccount(entryPoint)),

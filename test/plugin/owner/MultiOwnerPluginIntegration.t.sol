@@ -24,7 +24,7 @@ import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {UpgradeableModularAccount} from "../../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerMSCAFactory} from "../../../src/factory/MultiOwnerMSCAFactory.sol";
+import {MultiOwnerModularAccountFactory} from "../../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {IEntryPoint} from "../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
 import {FunctionReference} from "../../../src/interfaces/IPluginManager.sol";
@@ -43,7 +43,7 @@ contract MultiOwnerPluginIntegration is Test {
 
     IEntryPoint public entryPoint;
     MultiOwnerPlugin public multiOwnerPlugin;
-    MultiOwnerMSCAFactory public factory;
+    MultiOwnerModularAccountFactory public factory;
 
     Counter public counter;
     address payable public beneficiary;
@@ -70,7 +70,7 @@ contract MultiOwnerPluginIntegration is Test {
 
         // setup plugins and factory
         multiOwnerPlugin = new MultiOwnerPlugin();
-        factory = new MultiOwnerMSCAFactory(
+        factory = new MultiOwnerModularAccountFactory(
             address(this),
             address(multiOwnerPlugin),
             address(new UpgradeableModularAccount(IEntryPoint(address(entryPoint)))),
@@ -78,7 +78,7 @@ contract MultiOwnerPluginIntegration is Test {
             entryPoint
         );
 
-        // setup account with MultiOwnerMSCAFactory
+        // setup account with MultiOwnerModularAccountFactory
         owners = new address[](2);
         owners[0] = owner1 > owner2 ? owner2 : owner1;
         owners[1] = owner2 > owner1 ? owner2 : owner1;

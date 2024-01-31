@@ -25,7 +25,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ISessionKeyPermissionsUpdates} from
     "../../../../src/plugins/session/permissions/ISessionKeyPermissionsUpdates.sol";
 import {UpgradeableModularAccount} from "../../../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerMSCAFactory} from "../../../../src/factory/MultiOwnerMSCAFactory.sol";
+import {MultiOwnerModularAccountFactory} from "../../../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {FunctionReferenceLib} from "../../../../src/helpers/FunctionReferenceLib.sol";
 import {IEntryPoint} from "../../../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../../../src/interfaces/erc4337/UserOperation.sol";
@@ -44,7 +44,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
     address payable beneficiary;
 
     MultiOwnerPlugin public multiOwnerPlugin;
-    MultiOwnerMSCAFactory public factory;
+    MultiOwnerModularAccountFactory public factory;
     SessionKeyPlugin sessionKeyPlugin;
 
     address owner1;
@@ -73,7 +73,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         vm.deal(beneficiary, 1 wei);
 
         multiOwnerPlugin = new MultiOwnerPlugin();
-        factory = new MultiOwnerMSCAFactory(
+        factory = new MultiOwnerModularAccountFactory(
             address(this),
             address(multiOwnerPlugin),
             address(new UpgradeableModularAccount(entryPoint)),

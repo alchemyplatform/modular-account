@@ -24,7 +24,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {PluginManagerInternals} from "../../src/account/PluginManagerInternals.sol";
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
+import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {FunctionReferenceLib} from "../../src/helpers/FunctionReferenceLib.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {UserOperation} from "../../src/interfaces/erc4337/UserOperation.sol";
@@ -46,7 +46,7 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
     IEntryPoint public entryPoint;
     address payable public beneficiary;
     MultiOwnerPlugin public multiOwnerPlugin;
-    MultiOwnerMSCAFactory public factory;
+    MultiOwnerModularAccountFactory public factory;
     MockPlugin public mockPlugin1;
     MockPlugin public mockPlugin2;
     bytes32 public manifestHash1;
@@ -77,7 +77,7 @@ contract UpgradeableModularAccountPreValidationHooksTest is Test {
 
         address impl = address(new UpgradeableModularAccount(entryPoint));
 
-        factory = new MultiOwnerMSCAFactory(
+        factory = new MultiOwnerModularAccountFactory(
             address(this),
             address(multiOwnerPlugin),
             impl,

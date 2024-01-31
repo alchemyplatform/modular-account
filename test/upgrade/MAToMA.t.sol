@@ -22,24 +22,24 @@ import {Test} from "forge-std/Test.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
+import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {Call} from "../../src/interfaces/IStandardExecutor.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {MockERC20} from "../mocks/tokens/MockERC20.sol";
 import {Utils} from "../Utils.sol";
 
-contract MSCAToMSCATest is Test {
+contract MAToMATest is Test {
     IEntryPoint public entryPoint;
 
     MockERC20 public token1;
 
     address[] public owners;
-    UpgradeableModularAccount public msca;
+    UpgradeableModularAccount public ma;
 
     MultiOwnerPlugin public multiOwnerPlugin;
-    address public mscaImpl1;
-    address public mscaImpl2;
+    address public maImpl1;
+    address public maImpl2;
 
     event Upgraded(address indexed implementation);
 
@@ -47,40 +47,39 @@ contract MSCAToMSCATest is Test {
         owners.push(makeAddr("owner2"));
         owners.push(makeAddr("owner1"));
         entryPoint = IEntryPoint(address(new EntryPoint()));
-        mscaImpl1 = address(new UpgradeableModularAccount(entryPoint));
-        mscaImpl2 = address(new UpgradeableModularAccount(entryPoint));
+        maImpl1 = address(new UpgradeableModularAccount(entryPoint));
+        maImpl2 = address(new UpgradeableModularAccount(entryPoint));
         multiOwnerPlugin = new MultiOwnerPlugin();
         bytes32 ownerManifestHash = keccak256(abi.encode(multiOwnerPlugin.pluginManifest()));
-        MultiOwnerMSCAFactory factory = new MultiOwnerMSCAFactory(
-            address(this), address(multiOwnerPlugin), mscaImpl1, ownerManifestHash, entryPoint
+        MultiOwnerModularAccountFactory factory = new MultiOwnerModularAccountFactory(
+            address(this), address(multiOwnerPlugin), maImpl1, ownerManifestHash, entryPoint
         );
-        msca = UpgradeableModularAccount(payable(factory.createAccount(0, owners)));
-        vm.deal(address(msca), 2 ether);
+        ma = UpgradeableModularAccount(payable(factory.createAccount(0, owners)));
+        vm.deal(address(ma), 2 ether);
 
         // setup mock tokens
         token1 = new MockERC20("T1");
-        token1.mint(address(msca), 1 ether);
+        token1.mint(address(ma), 1 ether);
     }
 
     function test_sameStorageSlot_upgradeToAndCall() public {
         vm.startPrank(owners[0]);
 
-        // upgrade to mscaImpl2
+        // upgrade to maImpl2
         vm.expectEmit(true, true, true, true);
-        emit Upgraded(mscaImpl2);
-        msca.upgradeToAndCall(mscaImpl2, "");
+        emit Upgraded(maImpl2);
+        ma.upgradeToAndCall(maImpl2, "");
 
         // verify account storage is the same
-        (, bytes memory returnData) = address(multiOwnerPlugin).call(
-            abi.encodeWithSelector(MultiOwnerPlugin.ownersOf.selector, address(msca))
-        );
+        (, bytes memory returnData) =
+            address(multiOwnerPlugin).call(abi.encodeWithSelector(MultiOwnerPlugin.ownersOf.selector, address(ma)));
         address[] memory returnedOwners = abi.decode(returnData, (address[]));
         assertEq(Utils.reverseAddressArray(returnedOwners), owners);
-        assertEq(token1.balanceOf(address(msca)), 1 ether);
+        assertEq(token1.balanceOf(address(ma)), 1 ether);
 
         // verify can do basic transaction
-        msca.execute(owners[0], 1 ether, "");
-        assertEq(payable(msca).balance, 1 ether);
+        ma.execute(owners[0], 1 ether, "");
+        assertEq(payable(ma).balance, 1 ether);
         assertEq(payable(owners[0]).balance, 1 ether);
 
         vm.stopPrank();
@@ -91,20 +90,19 @@ contract MSCAToMSCATest is Test {
 
         Call[] memory calls = new Call[](2);
         calls[0] = Call(
-            address(msca),
+            address(ma),
             0,
             abi.encodeCall(
                 UpgradeableModularAccount.uninstallPlugin, (address(multiOwnerPlugin), bytes(""), bytes(""))
             )
         );
 
-        calls[1] =
-            Call(address(msca), 0, abi.encodeCall(UpgradeableModularAccount.upgradeToAndCall, (mscaImpl2, "")));
+        calls[1] = Call(address(ma), 0, abi.encodeCall(UpgradeableModularAccount.upgradeToAndCall, (maImpl2, "")));
 
-        emit Upgraded(mscaImpl2);
+        emit Upgraded(maImpl2);
         // In practice, you would want upgradeToAndCall to call `initialize`.
-        // But that fails when we use the same storage slot for both MSCAs
+        // But that fails when we use the same storage slot for both MAs
         // This test is still useful in proving that `upgradeToAndCall` succeeded with no installed plugins
-        msca.executeBatch(calls);
+        ma.executeBatch(calls);
     }
 }
