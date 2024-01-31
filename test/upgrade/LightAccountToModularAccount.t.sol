@@ -29,7 +29,7 @@ import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {MockERC20} from "../mocks/tokens/MockERC20.sol";
 
-contract LightAccountToMATest is Test {
+contract LightAccountToModularAccountTest is Test {
     I4337EntryPoint public entryPoint;
     IEntryPoint public maEntryPoint;
 
