@@ -25,7 +25,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {PluginManagerInternals} from "../../src/account/PluginManagerInternals.sol";
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
+import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {FunctionReferenceLib} from "../../src/helpers/FunctionReferenceLib.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {IAccountLoupe} from "../../src/interfaces/IAccountLoupe.sol";
@@ -52,7 +52,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
     address payable public beneficiary;
     MultiOwnerPlugin public multiOwnerPlugin;
     SessionKeyPlugin public sessionKeyPlugin;
-    MultiOwnerMSCAFactory public factory;
+    MultiOwnerModularAccountFactory public factory;
     address public implementation;
 
     address public owner1;
@@ -87,7 +87,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
         sessionKeyPlugin = new SessionKeyPlugin();
         implementation = address(new UpgradeableModularAccount(entryPoint));
         bytes32 manifestHash = keccak256(abi.encode(multiOwnerPlugin.pluginManifest()));
-        factory = new MultiOwnerMSCAFactory(
+        factory = new MultiOwnerModularAccountFactory(
             address(this), address(multiOwnerPlugin), implementation, manifestHash, entryPoint
         );
 

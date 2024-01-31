@@ -51,7 +51,7 @@ forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast
 
 ## Security and Audits
 
-We have done 2 audits from Spearbit and Quantstamp and will upload the reports shortly.
+We have done 2 audits from Spearbit and Quantstamp and will upload the reports shortly. Note that these audit reports may contain references to "MSCA". This was the name we used for Modular Account previously.
 
 ## License
 

@@ -20,11 +20,11 @@ pragma solidity ^0.8.22;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/Test.sol";
 
-import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
+import {IEntryPoint as I4337EntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {UpgradeableModularAccount} from "../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerMSCAFactory} from "../src/factory/MultiOwnerMSCAFactory.sol";
-import {IEntryPoint as IMSCAEntryPoint} from "../src/interfaces/erc4337/IEntryPoint.sol";
+import {MultiOwnerModularAccountFactory} from "../src/factory/MultiOwnerModularAccountFactory.sol";
+import {IEntryPoint} from "../src/interfaces/erc4337/IEntryPoint.sol";
 import {BasePlugin} from "../src/plugins/BasePlugin.sol";
 import {MultiOwnerPlugin} from "../src/plugins/owner/MultiOwnerPlugin.sol";
 import {SessionKeyPlugin} from "../src/plugins/session/SessionKeyPlugin.sol";
@@ -32,16 +32,15 @@ import {SessionKeyPlugin} from "../src/plugins/session/SessionKeyPlugin.sol";
 contract Deploy is Script {
     // Load entrypoint from env
     address public entryPointAddr = vm.envAddress("ENTRYPOINT");
-    IMSCAEntryPoint public entryPoint = IMSCAEntryPoint(payable(entryPointAddr));
+    IEntryPoint public entryPoint = IEntryPoint(payable(entryPointAddr));
 
     // Load factory owner from env
     address public owner = vm.envAddress("OWNER");
 
     // Load core contract, if not in env, deploy new contract
-    address public mscaImpl = vm.envOr("MSCA_IMPL", address(0));
+    address public maImpl = vm.envOr("MA_IMPL", address(0));
     address public ownerFactoryAddr = vm.envOr("OWNER_FACTORY", address(0));
-    address public ownerAndTokenReceiverFactoryAddr = vm.envOr("OWNER_TOKEN_RECEIVER_FACTORY", address(0));
-    MultiOwnerMSCAFactory ownerFactory;
+    MultiOwnerModularAccountFactory ownerFactory;
 
     // Load plugins contract, if not in env, deploy new contract
     address public multiOwnerPlugin = vm.envOr("OWNER_PLUGIN", address(0));
@@ -57,13 +56,13 @@ contract Deploy is Script {
         uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        // Deploy msca impl
-        if (mscaImpl == address(0)) {
-            UpgradeableModularAccount msca = new UpgradeableModularAccount(entryPoint);
-            mscaImpl = address(msca);
-            console.log("New MSCA impl: ", mscaImpl);
+        // Deploy ma impl
+        if (maImpl == address(0)) {
+            UpgradeableModularAccount ma = new UpgradeableModularAccount(entryPoint);
+            maImpl = address(ma);
+            console.log("New MA impl: ", maImpl);
         } else {
-            console.log("Exist MSCA impl: ", mscaImpl);
+            console.log("Exist MA impl: ", maImpl);
         }
 
         // Deploy multi owner plugin, and set plugin hash
@@ -76,17 +75,17 @@ contract Deploy is Script {
         }
         multiOwnerPluginManifestHash = keccak256(abi.encode(BasePlugin(multiOwnerPlugin).pluginManifest()));
 
-        // Deploy MultiOwnerMSCAFactory, and add stake with EP
+        // Deploy MultiOwnerModularAccountFactory, and add stake with EP
 
         if (ownerFactoryAddr == address(0)) {
-            ownerFactory = new MultiOwnerMSCAFactory(
-                owner, multiOwnerPlugin, mscaImpl, multiOwnerPluginManifestHash, entryPoint
+            ownerFactory = new MultiOwnerModularAccountFactory(
+                owner, multiOwnerPlugin, maImpl, multiOwnerPluginManifestHash, entryPoint
             );
 
             ownerFactoryAddr = address(ownerFactory);
-            console.log("New MultiOwnerMSCAFactory: ", ownerFactoryAddr);
+            console.log("New MultiOwnerModularAccountFactory: ", ownerFactoryAddr);
         } else {
-            console.log("Exist MultiOwnerMSCAFactory: ", ownerFactoryAddr);
+            console.log("Exist MultiOwnerModularAccountFactory: ", ownerFactoryAddr);
         }
         _addStakeForFactory(ownerFactoryAddr, entryPoint);
 
@@ -103,19 +102,21 @@ contract Deploy is Script {
         vm.stopBroadcast();
     }
 
-    function _addStakeForFactory(address factoryAddr, IMSCAEntryPoint anEntryPoint) internal {
+    function _addStakeForFactory(address factoryAddr, IEntryPoint anEntryPoint) internal {
         uint32 unstakeDelaySec = uint32(vm.envOr("UNSTAKE_DELAY_SEC", uint32(60)));
         uint256 requiredStakeAmount = vm.envUint("REQUIRED_STAKE_AMOUNT") * 1 ether;
-        uint256 currentStakedAmount = IEntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake;
+        uint256 currentStakedAmount = I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake;
         uint256 stakeAmount = requiredStakeAmount - currentStakedAmount;
         // since all factory share the same addStake method, it does not matter which contract we use to cast the
         // address
-        MultiOwnerMSCAFactory(payable(factoryAddr)).addStake{value: stakeAmount}(unstakeDelaySec, stakeAmount);
+        MultiOwnerModularAccountFactory(payable(factoryAddr)).addStake{value: stakeAmount}(
+            unstakeDelaySec, stakeAmount
+        );
         console.log("******** Add Stake Verify *********");
         console.log("Staked factory: ", factoryAddr);
-        console.log("Stake amount: ", IEntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake);
+        console.log("Stake amount: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake);
         console.log(
-            "Unstake delay: ", IEntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).unstakeDelaySec
+            "Unstake delay: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).unstakeDelaySec
         );
         console.log("******** Stake Verify Done *********");
     }

@@ -22,7 +22,7 @@ import {Test} from "forge-std/Test.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerMSCAFactory} from "../../src/factory/MultiOwnerMSCAFactory.sol";
+import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
 import {Call} from "../../src/interfaces/IStandardExecutor.sol";
@@ -37,7 +37,7 @@ import {
 contract AccountReturnDataTest is Test {
     IEntryPoint public entryPoint; // Just to be able to construct the factory
     MultiOwnerPlugin public multiOwnerPlugin;
-    MultiOwnerMSCAFactory public factory;
+    MultiOwnerModularAccountFactory public factory;
 
     RegularResultContract public regularResultContract;
     ResultCreatorPlugin public resultCreatorPlugin;
@@ -50,7 +50,7 @@ contract AccountReturnDataTest is Test {
         multiOwnerPlugin = new MultiOwnerPlugin();
         address impl = address(new UpgradeableModularAccount(entryPoint));
 
-        factory = new MultiOwnerMSCAFactory(
+        factory = new MultiOwnerModularAccountFactory(
             address(this),
             address(multiOwnerPlugin),
             impl,

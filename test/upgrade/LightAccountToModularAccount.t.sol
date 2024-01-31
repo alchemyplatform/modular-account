@@ -22,16 +22,16 @@ import {Test} from "forge-std/Test.sol";
 import {LightAccount} from "@alchemy/light-account/src/LightAccount.sol";
 import {LightAccountFactory} from "@alchemy/light-account/src/LightAccountFactory.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
-import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
+import {IEntryPoint as I4337EntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {IEntryPoint as IMSCAEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
+import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {MockERC20} from "../mocks/tokens/MockERC20.sol";
 
-contract LightAccountToMSCATest is Test {
-    IEntryPoint public entryPoint;
-    IMSCAEntryPoint public mscaEntryPoint;
+contract LightAccountToModularAccountTest is Test {
+    I4337EntryPoint public entryPoint;
+    IEntryPoint public maEntryPoint;
 
     MockERC20 public token1;
 
@@ -40,13 +40,13 @@ contract LightAccountToMSCATest is Test {
     LightAccount public lightAccount;
 
     MultiOwnerPlugin public multiOwnerPlugin;
-    address public mscaImpl;
+    address public maImpl;
 
-    event ModularAccountInitialized(IMSCAEntryPoint indexed entryPoint);
+    event ModularAccountInitialized(IEntryPoint indexed entryPoint);
 
     function setUp() public {
-        entryPoint = IEntryPoint(address(new EntryPoint()));
-        mscaEntryPoint = IMSCAEntryPoint(address(entryPoint));
+        entryPoint = I4337EntryPoint(address(new EntryPoint()));
+        maEntryPoint = IEntryPoint(address(entryPoint));
         (owner,) = makeAddrAndKey("owner");
 
         // set up light account
@@ -58,9 +58,9 @@ contract LightAccountToMSCATest is Test {
         token1 = new MockERC20("T1");
         token1.mint(address(lightAccount), 1 ether);
 
-        // setup MSCA
+        // setup modular account
         multiOwnerPlugin = new MultiOwnerPlugin();
-        mscaImpl = address(new UpgradeableModularAccount(mscaEntryPoint));
+        maImpl = address(new UpgradeableModularAccount(maEntryPoint));
     }
 
     function test_verifySetup() public {
@@ -74,7 +74,7 @@ contract LightAccountToMSCATest is Test {
     }
 
     function test_upgrade() public {
-        // setup data for msca upgrade
+        // setup data for modular account upgrade
         owners = new address[](1);
         owners[0] = owner;
         address[] memory plugins = new address[](1);
@@ -84,12 +84,12 @@ contract LightAccountToMSCATest is Test {
         bytes[] memory pluginInitBytes = new bytes[](1);
         pluginInitBytes[0] = abi.encode(owners);
 
-        // upgrade to msca
+        // upgrade to modular account
         vm.startPrank(owner);
         vm.expectEmit(true, true, true, true);
-        emit ModularAccountInitialized(mscaEntryPoint);
+        emit ModularAccountInitialized(maEntryPoint);
         lightAccount.upgradeToAndCall(
-            mscaImpl,
+            maImpl,
             abi.encodeCall(
                 UpgradeableModularAccount.initialize, (plugins, abi.encode(manifestHashes, pluginInitBytes))
             )

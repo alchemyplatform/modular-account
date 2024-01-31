@@ -27,12 +27,12 @@ import {FactoryHelpers} from "../helpers/FactoryHelpers.sol";
 import {IEntryPoint} from "../interfaces/erc4337/IEntryPoint.sol";
 import {IAccountInitializable} from "../interfaces/IAccountInitializable.sol";
 
-/// @title Multi Owner Plugin MSCA (Modular Smart Contract Account) Factory
+/// @title Multi Owner Plugin Modular Account Factory
 /// @author Alchemy
 /// @notice Factory for upgradeable modular accounts with MultiOwnerPlugin installed.
 /// @dev There is a reliance on the assumption that the plugin manifest will remain static, following ERC-6900. If
 /// this assumption is broken then account deployments would be bricked.
-contract MultiOwnerMSCAFactory is Ownable2Step {
+contract MultiOwnerModularAccountFactory is Ownable2Step {
     IEntryPoint public immutable ENTRYPOINT;
     address public immutable MULTI_OWNER_PLUGIN;
     address public immutable IMPL;
