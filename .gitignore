@@ -10,3 +10,7 @@ lcov.info
 
 # secret
 .env
+
+# deployments
+broadcast/**/run-latest.json
+broadcast/**/dry-run/**/*
