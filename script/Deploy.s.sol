@@ -92,7 +92,7 @@ contract Deploy is Script {
         }
         multiOwnerPluginManifestHash = keccak256(abi.encode(BasePlugin(multiOwnerPlugin).pluginManifest()));
 
-        // Deploy owner factory
+        // Deploy factory
         if (factory == address(0)) {
             factory = address(
                 new MultiOwnerModularAccountFactory{salt: factorySalt}(
