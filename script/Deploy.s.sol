@@ -39,8 +39,7 @@ contract Deploy is Script {
 
     // Load core contract, if not in env, deploy new contract
     address public maImpl = vm.envOr("MA_IMPL", address(0));
-    address public ownerFactoryAddr = vm.envOr("OWNER_FACTORY", address(0));
-    MultiOwnerModularAccountFactory ownerFactory;
+    address public factory = vm.envOr("FACTORY", address(0));
 
     // Load plugins contract, if not in env, deploy new contract
     address public multiOwnerPlugin = vm.envOr("OWNER_PLUGIN", address(0));
@@ -73,7 +72,7 @@ contract Deploy is Script {
             maImpl = address(new UpgradeableModularAccount{salt: maImplSalt}(entryPoint));
 
             if (expectedMaImpl != address(0)) {
-                require(maImpl == expectedMaImpl, "MA impl address mismatch");
+                require(maImpl == expectedMaImpl, "UpgradeableModularAccount address mismatch");
             }
             console.log("New MA impl: ", maImpl);
         } else {
@@ -85,7 +84,7 @@ contract Deploy is Script {
             multiOwnerPlugin = address(new MultiOwnerPlugin{salt: multiOwnerPluginSalt}());
 
             if (expectedMultiOwnerPlugin != address(0)) {
-                require(multiOwnerPlugin == expectedMultiOwnerPlugin, "Multi owner plugin address mismatch");
+                require(multiOwnerPlugin == expectedMultiOwnerPlugin, "MultiOwnerPlugin address mismatch");
             }
             console.log("New MultiOwnerPlugin: ", multiOwnerPlugin);
         } else {
@@ -94,20 +93,20 @@ contract Deploy is Script {
         multiOwnerPluginManifestHash = keccak256(abi.encode(BasePlugin(multiOwnerPlugin).pluginManifest()));
 
         // Deploy owner factory
-        if (ownerFactoryAddr == address(0)) {
-            ownerFactoryAddr = address(
+        if (factory == address(0)) {
+            factory = address(
                 new MultiOwnerModularAccountFactory{salt: factorySalt}(
                     owner, multiOwnerPlugin, maImpl, multiOwnerPluginManifestHash, entryPoint
                 )
             );
 
             if (expectedFactory != address(0)) {
-                require(ownerFactoryAddr == expectedFactory, "Factory address mismatch");
+                require(factory == expectedFactory, "MultiOwnerModularAccountFactory address mismatch");
             }
-            _addStakeForFactory(ownerFactoryAddr, entryPoint);
-            console.log("New MultiOwnerModularAccountFactory: ", ownerFactoryAddr);
+            _addStakeForFactory(factory, entryPoint);
+            console.log("New MultiOwnerModularAccountFactory: ", factory);
         } else {
-            console.log("Exist MultiOwnerModularAccountFactory: ", ownerFactoryAddr);
+            console.log("Exist MultiOwnerModularAccountFactory: ", factory);
         }
 
         // Deploy SessionKeyPlugin
