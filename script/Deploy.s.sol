@@ -104,11 +104,11 @@ contract Deploy is Script {
             if (expectedFactory != address(0)) {
                 require(ownerFactoryAddr == expectedFactory, "Factory address mismatch");
             }
+            _addStakeForFactory(ownerFactoryAddr, entryPoint);
             console.log("New MultiOwnerModularAccountFactory: ", ownerFactoryAddr);
         } else {
             console.log("Exist MultiOwnerModularAccountFactory: ", ownerFactoryAddr);
         }
-        _addStakeForFactory(ownerFactoryAddr, entryPoint);
 
         // Deploy SessionKeyPlugin
         if (sessionKeyPlugin == address(0)) {
