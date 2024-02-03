@@ -1,6 +1,6 @@
 # Modular Account
 
-Alchemy's Modular Account is a maximally modular, upgradeable Smart Contract Account that is compatible with [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337) and [ERC-6900](https://eips.ethereum.org/EIPS/eip-6900).
+Alchemy's Modular Account is a maximally modular, upgradeable smart contract account that is compatible with [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337) and [ERC-6900](https://eips.ethereum.org/EIPS/eip-6900).
 
 ## Overview
 
@@ -9,7 +9,7 @@ This repository contains:
 - [Modular Account implementation](src/account)
 - [Modular Account factory](src/factory)
 - 2 ERC-6900 compatible plugins:
-  - [MultiOwnerPlugin](src/plugins/owner) is a plugin supporting 1+ ECDSA owners.
+  - [MultiOwnerPlugin](src/plugins/owner) is a plugin supporting 1+ ECDSA or contract owners.
   - [SessionKeyPlugin](src/plugins/session) enables session keys with optional permissions such as time ranges, token spend limits, and gas spend limits.
 
 The account and plugins conform to these ERC versions:
@@ -25,7 +25,7 @@ The account and plugins conform to these ERC versions:
 - `validation` and `validationFunction` are used to replace `validator`.
 - `associated` and `associatedFunction` are used to represents `validationFunction` and `hook`
 
-### Building and Testing
+### Building and testing
 
 ```bash
 # Build options
@@ -49,9 +49,9 @@ A deployment script can be found in the `scripts/` folder
 forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast
 ```
 
-## Security and Audits
+## Security and audits
 
-We have done 2 audits from Spearbit and Quantstamp and will upload the reports shortly. Note that these audit reports may contain references to "MSCA". This was the name we used for Modular Account previously.
+Our audit reports from Spearbit and Quantstamp can be found in [audits](/audits). Note that the reports may contain references to the term MSCA, which stands for modular smart contract account, as defined in the [terms for ERC-6900](https://eips.ethereum.org/EIPS/eip-6900#terms). This is synonymous with modular account.
 
 ## License
 
