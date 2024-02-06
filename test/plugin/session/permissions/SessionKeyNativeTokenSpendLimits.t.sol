@@ -88,10 +88,10 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         bytes32 manifestHash = keccak256(abi.encode(sessionKeyPlugin.pluginManifest()));
         FunctionReference[] memory dependencies = new FunctionReference[](2);
         dependencies[0] = FunctionReferenceLib.pack(
-            address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.USER_OP_VALIDATION_OWNER)
+            address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.RUNTIME_VALIDATION_OWNER_OR_SELF)
         );
         dependencies[1] = FunctionReferenceLib.pack(
-            address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.RUNTIME_VALIDATION_OWNER_OR_SELF)
+            address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.USER_OP_VALIDATION_OWNER)
         );
         vm.prank(owner1);
         account1.installPlugin({
