@@ -95,12 +95,12 @@ contract SessionKeyPermissionsTest is Test {
         bytes32 manifestHash = keccak256(abi.encode(sessionKeyPlugin.pluginManifest()));
         dependencies.push(
             FunctionReferenceLib.pack(
-                address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.USER_OP_VALIDATION_OWNER)
+                address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.RUNTIME_VALIDATION_OWNER_OR_SELF)
             )
         );
         dependencies.push(
             FunctionReferenceLib.pack(
-                address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.RUNTIME_VALIDATION_OWNER_OR_SELF)
+                address(multiOwnerPlugin), uint8(IMultiOwnerPlugin.FunctionId.USER_OP_VALIDATION_OWNER)
             )
         );
         vm.prank(owner1);
