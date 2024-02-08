@@ -64,8 +64,7 @@ contract Deploy is Script {
         console.log("EP: ", entryPointAddr);
         console.log("Factory owner: ", owner);
 
-        uint256 deployerPrivateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
-        vm.startBroadcast(deployerPrivateKey);
+        vm.startBroadcast();
 
         // Deploy ma impl
         if (maImpl == address(0)) {
@@ -127,7 +126,7 @@ contract Deploy is Script {
 
     function _addStakeForFactory(address factoryAddr, IEntryPoint anEntryPoint) internal {
         uint32 unstakeDelaySec = uint32(vm.envOr("UNSTAKE_DELAY_SEC", uint32(86400)));
-        uint256 requiredStakeAmount = vm.envUint("REQUIRED_STAKE_AMOUNT") * 1 ether;
+        uint256 requiredStakeAmount = vm.envUint("REQUIRED_STAKE_AMOUNT");
         uint256 currentStakedAmount = I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake;
         uint256 stakeAmount = requiredStakeAmount - currentStakedAmount;
         // since all factory share the same addStake method, it does not matter which contract we use to cast the
