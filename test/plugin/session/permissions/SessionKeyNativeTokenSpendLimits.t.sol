@@ -187,7 +187,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(
             calls,
             sessionKey1Private,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
 
         // Run a user op that spends 0 wei, should succeed
@@ -233,7 +233,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(
             calls,
             sessionKey1Private,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
     }
 
@@ -258,7 +258,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(
             calls,
             sessionKey1Private,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
     }
 
@@ -302,7 +302,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(
             calls,
             sessionKey1Private,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
 
         // Assert that the limit is NOT updated
@@ -360,7 +360,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(
             calls,
             sessionKey1Private,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
 
         // Assert that the limit is NOT updated
@@ -702,7 +702,7 @@ contract SessionKeyNativeTokenSpendLimitsTest is Test {
         _runSessionKeyUserOp(
             calls,
             sessionKey1Private,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
 
         // Assert that limits are NOT updated

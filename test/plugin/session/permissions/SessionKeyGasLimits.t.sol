@@ -166,7 +166,7 @@ contract SessionKeyGasLimitsTest is Test {
             1,
             200_000 wei,
             sessionKey1Private,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
     }
 
@@ -206,7 +206,7 @@ contract SessionKeyGasLimitsTest is Test {
             1_000 gwei,
             0.6 ether,
             sessionKey1Private,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
     }
 
@@ -223,7 +223,7 @@ contract SessionKeyGasLimitsTest is Test {
             100_000, 300_000, 1_000 gwei, 0.4 ether, sessionKey1Private, uint256(nonceKey << 64)
         );
 
-        vm.expectRevert(abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error"));
+        vm.expectRevert(abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)"));
         entryPoint.handleOps(userOps, beneficiary);
     }
 
@@ -240,7 +240,7 @@ contract SessionKeyGasLimitsTest is Test {
             2_000 gwei,
             1.2 ether,
             sessionKey1Private,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
     }
 
@@ -289,7 +289,7 @@ contract SessionKeyGasLimitsTest is Test {
 
         // Run the user ops
         // The second op (index 1) should be the one that fails signature validation.
-        vm.expectRevert(abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 1, "AA24 signature error"));
+        vm.expectRevert(abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 1, "AA23 reverted (or OOG)"));
         entryPoint.handleOps(userOps, beneficiary);
 
         // The lack of usage update should be reflected in the limits
@@ -492,7 +492,7 @@ contract SessionKeyGasLimitsTest is Test {
         // actually usable.
         skip(1 days + 1 minutes);
 
-        vm.expectRevert(abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 2, "AA24 signature error"));
+        vm.expectRevert(abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 2, "AA23 reverted (or OOG)"));
         entryPoint.handleOps(userOps, beneficiary);
     }
 

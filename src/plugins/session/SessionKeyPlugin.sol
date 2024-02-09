@@ -35,7 +35,9 @@ import {Call, IStandardExecutor} from "../../interfaces/IStandardExecutor.sol";
 import {
     AssociatedLinkedListSet, AssociatedLinkedListSetLib
 } from "../../libraries/AssociatedLinkedListSetLib.sol";
-import {SetValue, SENTINEL_VALUE, SIG_VALIDATION_FAILED} from "../../libraries/Constants.sol";
+import {
+    SetValue, SENTINEL_VALUE, SIG_VALIDATION_PASSED, SIG_VALIDATION_FAILED
+} from "../../libraries/Constants.sol";
 import {BasePlugin} from "../BasePlugin.sol";
 import {ISessionKeyPlugin} from "./ISessionKeyPlugin.sol";
 import {SessionKeyPermissions} from "./permissions/SessionKeyPermissions.sol";
@@ -183,10 +185,13 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
 
             (address recoveredSig, ECDSA.RecoverError err) = hash.tryRecover(userOp.signature);
             if (err == ECDSA.RecoverError.NoError) {
-                if (
-                    _sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey)) && sessionKey == recoveredSig
-                ) {
-                    return _checkUserOpPermissions(userOp, calls, sessionKey);
+                if (_sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey))) {
+                    uint256 validation = _checkUserOpPermissions(userOp, calls, sessionKey);
+                    if (uint160(validation) > 0) {
+                        revert PermissionsCheckFailed();
+                    }
+                    return
+                        validation | (sessionKey == recoveredSig ? SIG_VALIDATION_PASSED : SIG_VALIDATION_FAILED);
                 }
                 return SIG_VALIDATION_FAILED;
             }
