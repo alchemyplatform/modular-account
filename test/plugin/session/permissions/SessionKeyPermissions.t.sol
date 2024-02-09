@@ -399,7 +399,7 @@ contract SessionKeyPermissionsTest is Test {
             sessionKey1Private,
             abi.encodeCall(Counter.increment, ()),
             0 wei,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
 
         // Attempting to use the new key should succeed

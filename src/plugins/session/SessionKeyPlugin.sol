@@ -184,18 +184,19 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
             bytes32 hash = userOpHash.toEthSignedMessageHash();
 
             (address recoveredSig, ECDSA.RecoverError err) = hash.tryRecover(userOp.signature);
-            if (err == ECDSA.RecoverError.NoError) {
-                if (_sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey))) {
-                    uint256 validation = _checkUserOpPermissions(userOp, calls, sessionKey);
-                    if (uint160(validation) > 0) {
-                        revert PermissionsCheckFailed();
-                    }
-                    return
-                        validation | (sessionKey == recoveredSig ? SIG_VALIDATION_PASSED : SIG_VALIDATION_FAILED);
-                }
-                return SIG_VALIDATION_FAILED;
+            if (err != ECDSA.RecoverError.NoError) {
+                revert InvalidSignature(sessionKey);
             }
-            revert InvalidSignature(sessionKey);
+
+            if (!_sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey))) {
+                revert InvalidSignature(sessionKey);
+            }
+
+            uint256 validation = _checkUserOpPermissions(userOp, calls, sessionKey);
+            if (uint160(validation) > 0) {
+                revert PermissionsCheckFailed();
+            }
+            return validation | (sessionKey == recoveredSig ? SIG_VALIDATION_PASSED : SIG_VALIDATION_FAILED);
         }
         revert NotImplemented(msg.sig, functionId);
     }
