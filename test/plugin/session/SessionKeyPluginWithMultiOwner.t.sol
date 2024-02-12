@@ -406,7 +406,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         userOp.signature = abi.encodePacked(r, s, v);
 
         vm.startPrank(address(account1));
-        vm.expectRevert(abi.encodeWithSelector(ISessionKeyPlugin.InvalidSignature.selector, signer));
+        vm.expectRevert(ISessionKeyPlugin.PermissionsCheckFailed.selector);
         sessionKeyPlugin.userOpValidationFunction(
             uint8(ISessionKeyPlugin.FunctionId.USER_OP_VALIDATION_SESSION_KEY), userOp, userOpHash
         );

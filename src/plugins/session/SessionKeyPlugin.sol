@@ -189,7 +189,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
             }
 
             if (!_sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey))) {
-                revert InvalidSignature(sessionKey);
+                revert PermissionsCheckFailed();
             }
 
             uint256 validation = _checkUserOpPermissions(userOp, calls, sessionKey);
