@@ -193,9 +193,10 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
             }
 
             uint256 validation = _checkUserOpPermissions(userOp, calls, sessionKey);
-            if (uint160(validation) > 0) {
+            if (uint160(validation) != uint160(SIG_VALIDATION_PASSED)) {
                 revert PermissionsCheckFailed();
             }
+            // return SIG_VALIDATION_FAILED on sig validation failure only, all other failure modes should revert
             return validation | (sessionKey == recoveredSig ? SIG_VALIDATION_PASSED : SIG_VALIDATION_FAILED);
         }
         revert NotImplemented(msg.sig, functionId);
