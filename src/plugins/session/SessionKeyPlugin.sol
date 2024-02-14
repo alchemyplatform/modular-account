@@ -35,7 +35,9 @@ import {Call, IStandardExecutor} from "../../interfaces/IStandardExecutor.sol";
 import {
     AssociatedLinkedListSet, AssociatedLinkedListSetLib
 } from "../../libraries/AssociatedLinkedListSetLib.sol";
-import {SetValue, SENTINEL_VALUE, SIG_VALIDATION_FAILED} from "../../libraries/Constants.sol";
+import {
+    SetValue, SENTINEL_VALUE, SIG_VALIDATION_PASSED, SIG_VALIDATION_FAILED
+} from "../../libraries/Constants.sol";
 import {BasePlugin} from "../BasePlugin.sol";
 import {ISessionKeyPlugin} from "./ISessionKeyPlugin.sol";
 import {SessionKeyPermissions} from "./permissions/SessionKeyPermissions.sol";
@@ -182,15 +184,20 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
             bytes32 hash = userOpHash.toEthSignedMessageHash();
 
             (address recoveredSig, ECDSA.RecoverError err) = hash.tryRecover(userOp.signature);
-            if (err == ECDSA.RecoverError.NoError) {
-                if (
-                    _sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey)) && sessionKey == recoveredSig
-                ) {
-                    return _checkUserOpPermissions(userOp, calls, sessionKey);
-                }
-                return SIG_VALIDATION_FAILED;
+            if (err != ECDSA.RecoverError.NoError) {
+                revert InvalidSignature(sessionKey);
             }
-            revert InvalidSignature(sessionKey);
+
+            if (!_sessionKeys.contains(msg.sender, CastLib.toSetValue(sessionKey))) {
+                revert PermissionsCheckFailed();
+            }
+
+            uint256 validation = _checkUserOpPermissions(userOp, calls, sessionKey);
+            if (uint160(validation) != uint160(SIG_VALIDATION_PASSED)) {
+                revert PermissionsCheckFailed();
+            }
+            // return SIG_VALIDATION_FAILED on sig validation failure only, all other failure modes should revert
+            return validation | (sessionKey == recoveredSig ? SIG_VALIDATION_PASSED : SIG_VALIDATION_FAILED);
         }
         revert NotImplemented(msg.sig, functionId);
     }

@@ -76,6 +76,7 @@ interface ISessionKeyPlugin {
     error InvalidToken(address token);
     error LengthMismatch();
     error NativeTokenSpendLimitExceeded(address account, address sessionKey);
+    error PermissionsCheckFailed();
     error SessionKeyNotFound(address sessionKey);
 
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓

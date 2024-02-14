@@ -220,7 +220,7 @@ contract SessionKeyERC20SpendLimitsTest is Test {
         _runSessionKeyUserOp(
             calls,
             sessionKey1Private,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
     }
 

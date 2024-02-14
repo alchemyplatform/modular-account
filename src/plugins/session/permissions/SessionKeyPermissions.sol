@@ -140,12 +140,10 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
             address userOpPaymaster = address(bytes20(userOp.paymasterAndData));
             validationSuccess = validationSuccess && (userOpPaymaster == sessionKeyData.requiredPaymaster);
         }
-        // Validation return data is 1 in the case of an invalid signature,
-        // otherwise a packed struct of the aggregator address (0 here), and two
-        // 6-byte timestamps indicating the start and end times at which the op
-        // is valid.
+        // A packed struct of: SIG_VALIDATION_PASSED or SIG_VALIDATION_FAILED, and two
+        // 6-byte timestamps indicating the start and end times at which the op is valid.
         return uint160(validationSuccess ? SIG_VALIDATION_PASSED : SIG_VALIDATION_FAILED)
-            | (uint256(validUntil) << 160) | (uint256(currentValidAfter) << (208));
+            | (uint256(validUntil) << 160) | (uint256(currentValidAfter) << 208);
     }
 
     /// @dev Checks permissions on a per-call basis. Should be run during user op validation once per `Call` struct
