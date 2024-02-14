@@ -372,7 +372,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         assertEq(result, 0);
     }
 
-    function testFuzz_sessionKey_userOpValidation_mismathcedSig(uint8 sessionKeysSeed, uint64 signerSeed) public {
+    function testFuzz_sessionKey_userOpValidation_mismatchedSig(uint8 sessionKeysSeed, uint64 signerSeed) public {
         _createSessionKeys(sessionKeysSeed);
 
         (address signer, uint256 signerPrivate) =
@@ -405,12 +405,11 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivate, userOpHash.toEthSignedMessageHash());
         userOp.signature = abi.encodePacked(r, s, v);
 
-        vm.prank(address(account1));
-        uint256 result = sessionKeyPlugin.userOpValidationFunction(
+        vm.startPrank(address(account1));
+        vm.expectRevert(ISessionKeyPlugin.PermissionsCheckFailed.selector);
+        sessionKeyPlugin.userOpValidationFunction(
             uint8(ISessionKeyPlugin.FunctionId.USER_OP_VALIDATION_SESSION_KEY), userOp, userOpHash
         );
-
-        assertEq(result, 1);
     }
 
     function testFuzz_sessionKey_userOpValidation_invalidSig(uint8 sessionKeysSeed, uint64 signerSeed) public {

@@ -139,7 +139,7 @@ contract SessionKeyPermissionsTest is Test {
             sessionKey1Private,
             abi.encodeCall(Counter.increment, ()),
             0 wei,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
 
         // Call should fail before removing the allowlist
@@ -198,7 +198,7 @@ contract SessionKeyPermissionsTest is Test {
             sessionKey1Private,
             abi.encodeCall(Counter.increment, ()),
             0 wei,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
 
         assertEq(counter2.number(), 1);
@@ -223,7 +223,7 @@ contract SessionKeyPermissionsTest is Test {
             sessionKey1Private,
             abi.encodeCall(Counter.increment, ()),
             0 wei,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
 
         assertEq(counter1.number(), 1);
@@ -284,7 +284,7 @@ contract SessionKeyPermissionsTest is Test {
             sessionKey1Private,
             abi.encodeCall(Counter.setNumber, (5)),
             0 wei,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
 
         assertEq(counter1.number(), 2);
@@ -314,7 +314,7 @@ contract SessionKeyPermissionsTest is Test {
             sessionKey1Private,
             abi.encodeCall(Counter.increment, ()),
             0 wei,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
 
         assertEq(counter1.number(), 1);
@@ -328,8 +328,12 @@ contract SessionKeyPermissionsTest is Test {
     }
 
     function testFuzz_sessionKeyTimeRange(uint48 startTime, uint48 endTime) public {
-        bytes[] memory updates = new bytes[](1);
+        bytes[] memory updates = new bytes[](2);
         updates[0] = abi.encodeCall(ISessionKeyPermissionsUpdates.updateTimeRange, (startTime, endTime));
+        updates[1] = abi.encodeCall(
+            ISessionKeyPermissionsUpdates.setAccessListType,
+            (ISessionKeyPlugin.ContractAccessControlType.ALLOW_ALL_ACCESS)
+        );
 
         vm.prank(owner1);
         SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates);
@@ -395,7 +399,7 @@ contract SessionKeyPermissionsTest is Test {
             sessionKey1Private,
             abi.encodeCall(Counter.increment, ()),
             0 wei,
-            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error")
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA23 reverted (or OOG)")
         );
 
         // Attempting to use the new key should succeed
@@ -504,15 +508,16 @@ contract SessionKeyPermissionsTest is Test {
         vm.prank(owner1);
         SessionKeyPlugin(address(account1)).updateKeyPermissions(sessionKey1, updates2);
 
-        vm.prank(address(entryPoint));
-        validationData = account1.validateUserOp(userOp, userOpHash, 0);
+        vm.startPrank(address(entryPoint));
 
         if (requiredPaymaster == providedPaymaster || requiredPaymaster == address(0)) {
             // Assert that validation passes
+            validationData = account1.validateUserOp(userOp, userOpHash, 0);
             assertEq(uint160(validationData), 0);
         } else {
             // Assert that validation fails
-            assertEq(uint160(validationData), 1);
+            vm.expectRevert(ISessionKeyPlugin.PermissionsCheckFailed.selector);
+            validationData = account1.validateUserOp(userOp, userOpHash, 0);
         }
     }
 
