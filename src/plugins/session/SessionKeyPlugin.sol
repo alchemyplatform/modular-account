@@ -55,7 +55,7 @@ contract SessionKeyPlugin is ISessionKeyPlugin, SessionKeyPermissions, BasePlugi
     using AssociatedLinkedListSetLib for AssociatedLinkedListSet;
 
     string internal constant _NAME = "Session Key Plugin";
-    string internal constant _VERSION = "1.0.0";
+    string internal constant _VERSION = "1.0.1";
     string internal constant _AUTHOR = "Alchemy";
 
     // Constants used in the manifest
