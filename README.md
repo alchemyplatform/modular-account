@@ -1,3 +1,13 @@
+# Modular Account
+
+[![gh_ci_badge]][gh_ci_link]
+[![tg_badge]][tg_link]
+
+[gh_ci_badge]: https://github.com/alchemyplatform/modular-account/actions/workflows/test.yml/badge.svg
+[gh_ci_link]: https://github.com/alchemyplatform/modular-account/actions/workflows/test.yml
+[tg_badge]: https://img.shields.io/endpoint?color=neon&logo=telegram&label=chat&url=https://mogyo.ro/quart-apis/tgmembercount?chat_id=modular_account_standards
+[tg_link]: https://t.me/modular_account_standards
+
 ![](./img/ma.png)
 
 Alchemy's Modular Account is a maximally modular, upgradeable smart contract account that is compatible with [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337) and [ERC-6900](https://eips.ethereum.org/EIPS/eip-6900).
