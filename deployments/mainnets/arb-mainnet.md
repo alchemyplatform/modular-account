@@ -23,4 +23,5 @@ Chain Id: 42161
 
 | Version | Address | Explorer Link | Salt | Deploy Script Run |
 | ------- | ------------------------------------------ | ---------------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------- |
+| v1.0.1  | 0x0000003E0000a96de4058e1E02a62FaaeCf23d8d | [explorer](https://arbiscan.io/address/0x0000003E0000a96de4058e1E02a62FaaeCf23d8d) | `0x4e59b44847b379578588920ca78fbf26c0b4956c1689983b8c7f38000288670c` | [run](../../broadcast/Deploy.s.sol/42161/run-1708463537.json) |
 | v1.0.0  | 0x000000e30a00f600823700E975f1b1ac387f0017 | [explorer](https://arbiscan.io/address/0x000000e30a00f600823700E975f1b1ac387f0017) | `0x27f40fd3b6cb45339dbcecac` | [run](../../broadcast/Deploy.s.sol/42161/run-1707341559.json) |

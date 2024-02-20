@@ -26,5 +26,6 @@ Chain Id: 137
 
 | Version | Address | Explorer Link | Salt | Deploy Script Run |
 | --------------- | ------------------------------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------- |
+| v1.0.1          | 0x0000003E0000a96de4058e1E02a62FaaeCf23d8d | [explorer](https://polygonscan.com/address/0x0000003E0000a96de4058e1E02a62FaaeCf23d8d) | `0x4e59b44847b379578588920ca78fbf26c0b4956c1689983b8c7f38000288670c` | [run](../../broadcast/Deploy.s.sol/137/run-1708463552.json) |
 | v1.0.0          | 0x000000e30a00f600823700E975f1b1ac387f0017 | [explorer](https://polygonscan.com/address/0x000000e30a00f600823700E975f1b1ac387f0017) | `0x27f40fd3b6cb45339dbcecac`                                         | [run](../../broadcast/Deploy.s.sol/137/run-1707339917.json) |
 | v1.0.0-alpha.1  | 0x000000AAF83f4cbd58193D30643025ffD6C9e724 | [explorer](https://polygonscan.com/address/0x000000AAF83f4cbd58193D30643025ffD6C9e724) | `0x4e59b44847b379578588920ca78fbf26c0b4956cf3b65a380cd6110000b01942` | [run](../../broadcast/Deploy.s.sol/137/run-1706829813.json) |
