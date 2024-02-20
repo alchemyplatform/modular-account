@@ -1,4 +1,4 @@
-# Modular Account
+![](./img/ma.png)
 
 Alchemy's Modular Account is a maximally modular, upgradeable smart contract account that is compatible with [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337) and [ERC-6900](https://eips.ethereum.org/EIPS/eip-6900).
 
