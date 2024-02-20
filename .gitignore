@@ -14,3 +14,7 @@ lcov.info
 # deployments
 broadcast/**/run-latest.json
 broadcast/**/dry-run/**/*
+
+# misc
+.DS_Store
+**/.DS_Store
