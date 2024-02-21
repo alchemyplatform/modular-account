@@ -24,16 +24,16 @@ This repository contains:
 
 The account and plugins conform to these ERC versions:
 
-- ERC-4337: 0.6.0
-- ERC-6900: 0.7.0
+- ERC-4337: [0.6.0](https://github.com/eth-infinitism/account-abstraction/blob/releases/v0.6/eip/EIPS/eip-4337.md)
+- ERC-6900: [0.7.0](https://github.com/erc6900/reference-implementation/blob/v0.7.x/standard/ERCs/erc-6900.md)
 
 ## Development
 
 ### Naming convention
 
 - `selector` is used for all function selectors.
-- `validation` and `validationFunction` are used to replace `validator`.
-- `associated` and `associatedFunction` are used to represents `validationFunction` and `hook`
+- `validation` and `validationFunction` are used to represent `validator`.
+- `associated` and `associatedFunction` are used to represent `validationFunction` and `hook`.
 
 ### Building and testing
 
