@@ -63,6 +63,10 @@ forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast
 
 Our audit reports from Spearbit and Quantstamp can be found in [audits](/audits). Note that the reports may contain references to the term MSCA, which stands for modular smart contract account, as defined in the [terms for ERC-6900](https://eips.ethereum.org/EIPS/eip-6900#terms). This is synonymous with modular account.
 
+### Bug bounty
+
+Details of our bug bounty program can be found at https://hackerone.com/alchemyplatform.
+
 ## License
 
 The Modular Account libraries (all code inside the [src/libraries](src/libraries) directory) are licensed under the MIT License, also included in our repository in [LICENSE-MIT](LICENSE-MIT).
