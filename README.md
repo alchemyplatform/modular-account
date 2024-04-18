@@ -76,3 +76,4 @@ The Modular Account interfaces and ERC-6900 interfaces (all code inside the [src
 All other code for Modular Account is licensed under the GNU General Public License v3.0, also included in our repository in [LICENSE-GPL](LICENSE-GPL).
 
 Alchemy Insights, Inc., 548 Market St., PMB 49099, San Francisco, CA 94104; legal@alchemy.com
+ 
