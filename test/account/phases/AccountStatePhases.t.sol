@@ -310,7 +310,7 @@ contract AccountStatePhasesTest is Test {
             value: 0 ether,
             data: abi.encodeCall(
                 IPluginManager.installPlugin, (address(mockPlugin1), manifestHash1, "", _EMPTY_DEPENDENCIES)
-                )
+            )
         });
         return calls;
     }
