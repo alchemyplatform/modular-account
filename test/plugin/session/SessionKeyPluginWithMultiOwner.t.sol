@@ -299,7 +299,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
             initCode: "",
             callData: abi.encodeCall(
                 ISessionKeyPlugin(address(sessionKeyPlugin)).executeWithSessionKey, (calls, sessionKey1)
-                ),
+            ),
             callGasLimit: CALL_GAS_LIMIT,
             verificationGasLimit: VERIFICATION_GAS_LIMIT,
             preVerificationGas: 0,
@@ -350,7 +350,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
             initCode: "",
             callData: abi.encodeCall(
                 ISessionKeyPlugin(address(sessionKeyPlugin)).executeWithSessionKey, (calls, signerAddress)
-                ),
+            ),
             callGasLimit: CALL_GAS_LIMIT,
             verificationGasLimit: VERIFICATION_GAS_LIMIT,
             preVerificationGas: 0,
@@ -391,7 +391,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
             initCode: "",
             callData: abi.encodeCall(
                 ISessionKeyPlugin(address(sessionKeyPlugin)).executeWithSessionKey, (calls, signer)
-                ),
+            ),
             callGasLimit: CALL_GAS_LIMIT,
             verificationGasLimit: VERIFICATION_GAS_LIMIT,
             preVerificationGas: 0,
@@ -430,7 +430,7 @@ contract SessionKeyPluginWithMultiOwnerTest is Test {
             initCode: "",
             callData: abi.encodeCall(
                 ISessionKeyPlugin(address(sessionKeyPlugin)).executeWithSessionKey, (calls, signer)
-                ),
+            ),
             callGasLimit: CALL_GAS_LIMIT,
             verificationGasLimit: VERIFICATION_GAS_LIMIT,
             preVerificationGas: 0,

@@ -152,7 +152,7 @@ contract CompareSimpleAccountTest is Test {
             initCode: "",
             callData: abi.encodeCall(
                 SimpleAccount.execute, (address(counter), 0, abi.encodeCall(Counter.increment, ()))
-                ),
+            ),
             callGasLimit: 5000000,
             verificationGasLimit: 5000000,
             preVerificationGas: 0,

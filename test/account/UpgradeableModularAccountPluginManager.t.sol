@@ -135,7 +135,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
             manifestHash: manifestHash,
             pluginInstallData: abi.encode(
                 sessionKeys, new bytes32[](sessionKeys.length), new bytes[][](sessionKeys.length)
-                ),
+            ),
             dependencies: dependencies
         });
 
@@ -563,7 +563,7 @@ contract UpgradeableModularAccountPluginManagerTest is Test {
             value: 0,
             data: abi.encodeCall(
                 IPluginManager.installPlugin, (address(plugin), manifestHash, "", new FunctionReference[](0))
-                )
+            )
         });
         vm.expectEmit(true, true, true, true);
         emit PluginUninstalled(address(multiOwnerPlugin), true);

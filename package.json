@@ -1,4 +1,6 @@
 {
+  "name": "modular-account",
+  "version": "v1.0.1",
   "devDependencies": {
     "pnpm": "^8.7.5",
     "solhint": "^3.6.2"

@@ -237,7 +237,7 @@ contract UpgradeableModularAccountTest is Test {
             initCode: "",
             callData: abi.encodeCall(
                 UpgradeableModularAccount.execute, (address(counter), 0, abi.encodeCall(counter.increment, ()))
-                ),
+            ),
             callGasLimit: CALL_GAS_LIMIT,
             verificationGasLimit: VERIFICATION_GAS_LIMIT,
             preVerificationGas: 0,
