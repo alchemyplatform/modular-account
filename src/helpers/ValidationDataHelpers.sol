@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.22;
 
-import {SIG_VALIDATION_FAILED} from "../libraries/Constants.sol";
+import {SIG_VALIDATION_FAILED} from "modular-account-libs/libraries/Constants.sol";
 
 /// @dev This helper function assumes that uint160(validationData1) and uint160(validationData2) can only be 0 or 1
 // solhint-disable-next-line private-vars-leading-underscore

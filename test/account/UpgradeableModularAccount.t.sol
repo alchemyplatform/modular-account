@@ -28,11 +28,11 @@ import {PluginManagerInternals} from "../../src/account/PluginManagerInternals.s
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
 import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
-import {UserOperation} from "../../src/interfaces/erc4337/UserOperation.sol";
+import {UserOperation} from "modular-account-libs/interfaces/UserOperation.sol";
 import {IAccountInitializable} from "../../src/interfaces/IAccountInitializable.sol";
-import {IPlugin, PluginManifest} from "../../src/interfaces/IPlugin.sol";
-import {FunctionReference, IPluginManager} from "../../src/interfaces/IPluginManager.sol";
-import {Call} from "../../src/interfaces/IStandardExecutor.sol";
+import {IPlugin, PluginManifest} from "modular-account-libs/interfaces/IPlugin.sol";
+import {FunctionReference, IPluginManager} from "modular-account-libs/interfaces/IPluginManager.sol";
+import {Call} from "modular-account-libs/interfaces/IStandardExecutor.sol";
 import {IMultiOwnerPlugin} from "../../src/plugins/owner/IMultiOwnerPlugin.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {SessionKeyPlugin} from "../../src/plugins/session/SessionKeyPlugin.sol";

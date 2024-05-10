@@ -24,17 +24,17 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeab
 
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
 import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
-import {FunctionReferenceLib} from "../../src/helpers/FunctionReferenceLib.sol";
+import {FunctionReferenceLib} from "modular-account-libs/libraries/FunctionReferenceLib.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
-import {IAccountLoupe} from "../../src/interfaces/IAccountLoupe.sol";
+import {IAccountLoupe} from "modular-account-libs/interfaces/IAccountLoupe.sol";
 import {
     ManifestAssociatedFunctionType,
     ManifestExecutionHook,
     ManifestFunction,
     PluginManifest
-} from "../../src/interfaces/IPlugin.sol";
-import {FunctionReference, IPluginManager} from "../../src/interfaces/IPluginManager.sol";
-import {IStandardExecutor} from "../../src/interfaces/IStandardExecutor.sol";
+} from "modular-account-libs/interfaces/IPlugin.sol";
+import {FunctionReference, IPluginManager} from "modular-account-libs/interfaces/IPluginManager.sol";
+import {IStandardExecutor} from "modular-account-libs/interfaces/IStandardExecutor.sol";
 import {IMultiOwnerPlugin} from "../../src/plugins/owner/IMultiOwnerPlugin.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {MockPlugin} from "../mocks/MockPlugin.sol";
@@ -185,7 +185,7 @@ contract AccountLoupeTest is Test {
 
         _assertHookEq(
             hooks[1],
-            FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE,
+            FunctionReferenceLib.EMPTY_FUNCTION_REFERENCE,
             FunctionReferenceLib.pack(
                 address(comprehensivePlugin), uint8(ComprehensivePlugin.FunctionId.POST_EXECUTION_HOOK)
             )
@@ -242,7 +242,7 @@ contract AccountLoupeTest is Test {
 
         _assertHookEq(
             hooks[2],
-            FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE,
+            FunctionReferenceLib.EMPTY_FUNCTION_REFERENCE,
             FunctionReferenceLib.pack(
                 address(comprehensivePlugin), uint8(ComprehensivePlugin.FunctionId.POST_EXECUTION_HOOK)
             )
@@ -472,7 +472,7 @@ contract AccountLoupeTest is Test {
         _assertHookEq(
             hooks[3],
             FunctionReferenceLib.pack(address(mockPlugin), uint8(0)),
-            FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE
+            FunctionReferenceLib.EMPTY_FUNCTION_REFERENCE
         );
 
         _assertHookEq(
@@ -488,13 +488,13 @@ contract AccountLoupeTest is Test {
         // [null, 2]
         _assertHookEq(
             hooks[5],
-            FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE,
+            FunctionReferenceLib.EMPTY_FUNCTION_REFERENCE,
             FunctionReferenceLib.pack(address(mockPlugin), uint8(2))
         );
 
         _assertHookEq(
             hooks[6],
-            FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE,
+            FunctionReferenceLib.EMPTY_FUNCTION_REFERENCE,
             FunctionReferenceLib.pack(
                 address(comprehensivePlugin), uint8(ComprehensivePlugin.FunctionId.POST_EXECUTION_HOOK)
             )

@@ -35,8 +35,8 @@ import {
     ManifestAssociatedFunctionType,
     ManifestFunction,
     PluginManifest
-} from "../../src/interfaces/IPlugin.sol";
-import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
+} from "modular-account-libs/interfaces/IPlugin.sol";
+import {FunctionReference} from "modular-account-libs/interfaces/IPluginManager.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {MockPlugin} from "../mocks/MockPlugin.sol";
 import {MockERC1155} from "../mocks/tokens/MockERC1155.sol";

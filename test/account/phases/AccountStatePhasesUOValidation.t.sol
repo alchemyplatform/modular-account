@@ -19,9 +19,9 @@ pragma solidity ^0.8.22;
 
 import {AccountStatePhasesTest} from "./AccountStatePhases.t.sol";
 
-import {IPluginManager} from "../../../src/interfaces/IPluginManager.sol";
-import {IPlugin} from "../../../src/interfaces/IPlugin.sol";
-import {IStandardExecutor, Call} from "../../../src/interfaces/IStandardExecutor.sol";
+import {IPluginManager} from "modular-account-libs/interfaces/IPluginManager.sol";
+import {IPlugin} from "modular-account-libs/interfaces/IPlugin.sol";
+import {IStandardExecutor, Call} from "modular-account-libs/interfaces/IStandardExecutor.sol";
 
 import {AccountStateMutatingPlugin} from "../../mocks/plugins/AccountStateMutatingPlugin.sol";
 

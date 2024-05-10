@@ -19,8 +19,10 @@ pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
 
-import {AssociatedLinkedListSetHandler} from "./handlers/AssociatedLinkedListSetHandler.sol";
-import {LinkedListSetHandler} from "./handlers/LinkedListSetHandler.sol";
+import {AssociatedLinkedListSetHandler} from
+    "node_modules/modular-account-libs/test/invariant/handlers/AssociatedLinkedListSetHandler.sol";
+import {LinkedListSetHandler} from
+    "node_modules/modular-account-libs/test/invariant/handlers/LinkedListSetHandler.sol";
 
 contract LLSLReproTest is Test {
     LinkedListSetHandler public handler;

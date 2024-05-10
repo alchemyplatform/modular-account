@@ -24,8 +24,8 @@ import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.so
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
 import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
-import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
-import {Call} from "../../src/interfaces/IStandardExecutor.sol";
+import {FunctionReference} from "modular-account-libs/interfaces/IPluginManager.sol";
+import {Call} from "modular-account-libs/interfaces/IStandardExecutor.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {
     RegularResultContract,

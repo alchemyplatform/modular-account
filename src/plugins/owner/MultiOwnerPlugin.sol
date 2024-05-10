@@ -23,7 +23,7 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 
 import {UpgradeableModularAccount, UUPSUpgradeable} from "../../account/UpgradeableModularAccount.sol";
 import {CastLib} from "../../helpers/CastLib.sol";
-import {UserOperation} from "../../interfaces/erc4337/UserOperation.sol";
+import {UserOperation} from "modular-account-libs/interfaces/UserOperation.sol";
 import {
     ManifestAssociatedFunction,
     ManifestAssociatedFunctionType,
@@ -31,12 +31,15 @@ import {
     PluginManifest,
     PluginMetadata,
     SelectorPermission
-} from "../../interfaces/IPlugin.sol";
-import {IStandardExecutor} from "../../interfaces/IStandardExecutor.sol";
+} from "modular-account-libs/interfaces/IPlugin.sol";
+import {IStandardExecutor} from "modular-account-libs/interfaces/IStandardExecutor.sol";
 import {
-    AssociatedLinkedListSet, AssociatedLinkedListSetLib
-} from "../../libraries/AssociatedLinkedListSetLib.sol";
-import {SetValue, SIG_VALIDATION_PASSED, SIG_VALIDATION_FAILED} from "../../libraries/Constants.sol";
+    AssociatedLinkedListSet,
+    AssociatedLinkedListSetLib
+} from "modular-account-libs/libraries/AssociatedLinkedListSetLib.sol";
+import {
+    SetValue, SIG_VALIDATION_PASSED, SIG_VALIDATION_FAILED
+} from "modular-account-libs/libraries/Constants.sol";
 import {BasePlugin} from "../BasePlugin.sol";
 import {IMultiOwnerPlugin} from "./IMultiOwnerPlugin.sol";
 

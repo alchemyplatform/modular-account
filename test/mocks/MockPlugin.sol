@@ -19,7 +19,7 @@ pragma solidity ^0.8.22;
 
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import {PluginManifest, PluginMetadata, IPlugin} from "../../src/interfaces/IPlugin.sol";
+import {PluginManifest, PluginMetadata, IPlugin} from "modular-account-libs/interfaces/IPlugin.sol";
 
 contract MockPlugin is ERC165 {
     // It's super inefficient to hold the entire abi-encoded manifest in storage, but this is fine since it's

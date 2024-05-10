@@ -17,13 +17,13 @@
 
 pragma solidity ^0.8.22;
 
-import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
+import {UserOperation} from "modular-account-libs/interfaces/UserOperation.sol";
 import {
     ManifestFunction,
     ManifestAssociatedFunctionType,
     ManifestAssociatedFunction,
     PluginManifest
-} from "../../../src/interfaces/IPlugin.sol";
+} from "modular-account-libs/interfaces/IPlugin.sol";
 import {BaseTestPlugin} from "./BaseTestPlugin.sol";
 
 abstract contract MockBaseUserOpValidationPlugin is BaseTestPlugin {

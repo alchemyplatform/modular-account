@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.22;
 
-import {UserOperation} from "../../interfaces/erc4337/UserOperation.sol";
+import {UserOperation} from "modular-account-libs/interfaces/UserOperation.sol";
 
 interface IMultiOwnerPlugin {
     enum FunctionId {

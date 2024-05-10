@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.22;
 
-import {PluginMetadata} from "../../../src/interfaces/IPlugin.sol";
+import {PluginMetadata} from "modular-account-libs/interfaces/IPlugin.sol";
 import {BasePlugin} from "../../../src/plugins/BasePlugin.sol";
 
 contract BaseTestPlugin is BasePlugin {

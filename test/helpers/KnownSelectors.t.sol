@@ -30,11 +30,11 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {KnownSelectors} from "../../src/helpers/KnownSelectors.sol";
 import {IAccountInitializable} from "../../src/interfaces/IAccountInitializable.sol";
-import {IAccountLoupe} from "../../src/interfaces/IAccountLoupe.sol";
-import {IPlugin} from "../../src/interfaces/IPlugin.sol";
-import {IPluginExecutor} from "../../src/interfaces/IPluginExecutor.sol";
-import {IPluginManager} from "../../src/interfaces/IPluginManager.sol";
-import {IStandardExecutor} from "../../src/interfaces/IStandardExecutor.sol";
+import {IAccountLoupe} from "modular-account-libs/interfaces/IAccountLoupe.sol";
+import {IPlugin} from "modular-account-libs/interfaces/IPlugin.sol";
+import {IPluginExecutor} from "modular-account-libs/interfaces/IPluginExecutor.sol";
+import {IPluginManager} from "modular-account-libs/interfaces/IPluginManager.sol";
+import {IStandardExecutor} from "modular-account-libs/interfaces/IStandardExecutor.sol";
 
 contract KnownSelectorsTest is Test {
     function test_isNativeFunction() public {

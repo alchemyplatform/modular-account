@@ -6,7 +6,7 @@
 
 pragma solidity ^0.8.22;
 
-import {UserOperation} from "./UserOperation.sol";
+import {UserOperation} from "modular-account-libs/interfaces/UserOperation.sol";
 
 /// @notice Interface for the ERC-4337 entry point
 interface IEntryPoint {

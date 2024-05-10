@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.22;
 
-import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
+import {UserOperation} from "modular-account-libs/interfaces/UserOperation.sol";
 import {
     ManifestExecutionHook,
     ManifestFunction,
@@ -25,8 +25,8 @@ import {
     ManifestAssociatedFunction,
     PluginManifest,
     PluginMetadata
-} from "../../../src/interfaces/IPlugin.sol";
-import {IStandardExecutor} from "../../../src/interfaces/IStandardExecutor.sol";
+} from "modular-account-libs/interfaces/IPlugin.sol";
+import {IStandardExecutor} from "modular-account-libs/interfaces/IStandardExecutor.sol";
 import {BaseTestPlugin} from "./BaseTestPlugin.sol";
 
 contract ComprehensivePlugin is BaseTestPlugin {
