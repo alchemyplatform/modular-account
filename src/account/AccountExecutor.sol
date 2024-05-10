@@ -17,10 +17,9 @@
 
 pragma solidity ^0.8.22;
 
-import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-
 import {UserOperation} from "modular-account-libs/interfaces/UserOperation.sol";
 import {IPlugin} from "modular-account-libs/interfaces/IPlugin.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 /// @title Account Executor
 /// @author Alchemy

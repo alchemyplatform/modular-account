@@ -17,8 +17,6 @@
 
 pragma solidity ^0.8.22;
 
-import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
-
 import {
     ManifestFunction,
     ManifestAssociatedFunctionType,
@@ -26,6 +24,8 @@ import {
     PluginManifest,
     PluginMetadata
 } from "modular-account-libs/interfaces/IPlugin.sol";
+import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
+
 import {BaseTestPlugin} from "./BaseTestPlugin.sol";
 
 /// Mock plugin that reverts in its uninstall callbacks. Can be configured to

@@ -17,9 +17,8 @@
 
 pragma solidity ^0.8.22;
 
-import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-
 import {UserOperation} from "modular-account-libs/interfaces/UserOperation.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IPlugin, PluginManifest, PluginMetadata} from "modular-account-libs/interfaces/IPlugin.sol";
 
 /// @title Base contract for plugins

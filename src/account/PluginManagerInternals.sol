@@ -17,8 +17,6 @@
 
 pragma solidity ^0.8.22;
 
-import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-
 import {FunctionReferenceLib} from "modular-account-libs/libraries/FunctionReferenceLib.sol";
 import {
     IPlugin,
@@ -32,9 +30,10 @@ import {
 import {FunctionReference, IPluginManager} from "modular-account-libs/interfaces/IPluginManager.sol";
 import {CountableLinkedListSetLib} from "modular-account-libs/libraries/CountableLinkedListSetLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "modular-account-libs/libraries/LinkedListSetLib.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
-import {KnownSelectors} from "../helpers/KnownSelectors.sol";
 import {AccountStorageV1} from "../account/AccountStorageV1.sol";
+import {KnownSelectors} from "../helpers/KnownSelectors.sol";
 import {CastLib} from "../helpers/CastLib.sol";
 import {FunctionReferenceHelpers} from "../helpers/FunctionReferenceHelpers.sol";
 

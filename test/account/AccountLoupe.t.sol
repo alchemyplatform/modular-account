@@ -18,14 +18,8 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-
-import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {FunctionReferenceLib} from "modular-account-libs/libraries/FunctionReferenceLib.sol";
-import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {IAccountLoupe} from "modular-account-libs/interfaces/IAccountLoupe.sol";
 import {
     ManifestAssociatedFunctionType,
@@ -35,6 +29,11 @@ import {
 } from "modular-account-libs/interfaces/IPlugin.sol";
 import {FunctionReference, IPluginManager} from "modular-account-libs/interfaces/IPluginManager.sol";
 import {IStandardExecutor} from "modular-account-libs/interfaces/IStandardExecutor.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+
+import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
+import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
+import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {IMultiOwnerPlugin} from "../../src/plugins/owner/IMultiOwnerPlugin.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {MockPlugin} from "../mocks/MockPlugin.sol";

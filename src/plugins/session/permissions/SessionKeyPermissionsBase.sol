@@ -18,6 +18,7 @@
 pragma solidity ^0.8.22;
 
 import {PluginStorageLib, StoragePointer} from "modular-account-libs/libraries/PluginStorageLib.sol";
+
 import {ISessionKeyPlugin} from "../ISessionKeyPlugin.sol";
 
 abstract contract SessionKeyPermissionsBase is ISessionKeyPlugin {

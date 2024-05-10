@@ -18,14 +18,13 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
+import {FunctionReference} from "modular-account-libs/interfaces/IPluginManager.sol";
 
 import {PluginManagerInternals} from "../../src/account/PluginManagerInternals.sol";
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
 import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
-import {FunctionReference} from "modular-account-libs/interfaces/IPluginManager.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {
     BadValidationMagicValue_UserOp_Plugin,
