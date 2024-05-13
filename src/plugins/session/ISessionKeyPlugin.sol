@@ -17,8 +17,8 @@
 
 pragma solidity ^0.8.22;
 
-import {UserOperation} from "../../interfaces/erc4337/UserOperation.sol";
-import {Call} from "../../interfaces/IStandardExecutor.sol";
+import {UserOperation} from "modular-account-libs/interfaces/UserOperation.sol";
+import {Call} from "modular-account-libs/interfaces/IStandardExecutor.sol";
 
 interface ISessionKeyPlugin {
     enum FunctionId {

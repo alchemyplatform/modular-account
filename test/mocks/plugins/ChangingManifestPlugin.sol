@@ -26,7 +26,7 @@ import {
     ManifestAssociatedFunction,
     PluginManifest,
     PluginMetadata
-} from "../../../src/interfaces/IPlugin.sol";
+} from "modular-account-libs/interfaces/IPlugin.sol";
 import {BasePlugin} from "../../../src/plugins/BasePlugin.sol";
 
 contract CanChangeManifestPluginFactory {

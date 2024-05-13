@@ -18,10 +18,17 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-
+import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
+import {FunctionReference} from "modular-account-libs/interfaces/IPluginManager.sol";
+import {
+    IPlugin,
+    ManifestExecutionHook,
+    ManifestAssociatedFunctionType,
+    ManifestFunction,
+    PluginManifest
+} from "modular-account-libs/interfaces/IPlugin.sol";
 import {ERC721PresetMinterPauserAutoId} from
     "@openzeppelin/contracts/token/ERC721/presets/ERC721PresetMinterPauserAutoId.sol";
-import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC777Recipient} from "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
@@ -29,14 +36,6 @@ import {IERC777Recipient} from "@openzeppelin/contracts/token/ERC777/IERC777Reci
 import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
 import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
-import {
-    IPlugin,
-    ManifestExecutionHook,
-    ManifestAssociatedFunctionType,
-    ManifestFunction,
-    PluginManifest
-} from "../../src/interfaces/IPlugin.sol";
-import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {MockPlugin} from "../mocks/MockPlugin.sol";
 import {MockERC1155} from "../mocks/tokens/MockERC1155.sol";

@@ -17,8 +17,8 @@
 
 pragma solidity ^0.8.22;
 
-import {SetValue} from "../libraries/Constants.sol";
-import {FunctionReference} from "./FunctionReferenceLib.sol";
+import {SetValue} from "modular-account-libs/libraries/Constants.sol";
+import {FunctionReference} from "modular-account-libs/libraries/FunctionReferenceLib.sol";
 
 /// @title Cast Library
 /// @author Alchemy

@@ -24,9 +24,10 @@ import {
     ManifestAssociatedFunction,
     PluginManifest,
     PluginMetadata
-} from "../../../src/interfaces/IPlugin.sol";
-import {IPluginExecutor} from "../../../src/interfaces/IPluginExecutor.sol";
-import {IStandardExecutor} from "../../../src/interfaces/IStandardExecutor.sol";
+} from "modular-account-libs/interfaces/IPlugin.sol";
+import {IPluginExecutor} from "modular-account-libs/interfaces/IPluginExecutor.sol";
+import {IStandardExecutor} from "modular-account-libs/interfaces/IStandardExecutor.sol";
+
 import {IMultiOwnerPlugin} from "../../../src/plugins/owner/IMultiOwnerPlugin.sol";
 import {BaseTestPlugin} from "./BaseTestPlugin.sol";
 

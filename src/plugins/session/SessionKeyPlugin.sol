@@ -17,11 +17,8 @@
 
 pragma solidity ^0.8.22;
 
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-
-import {CastLib} from "../../helpers/CastLib.sol";
-import {UserOperation} from "../../interfaces/erc4337/UserOperation.sol";
-import {IPlugin} from "../../interfaces/IPlugin.sol";
+import {UserOperation} from "modular-account-libs/interfaces/UserOperation.sol";
+import {IPlugin} from "modular-account-libs/interfaces/IPlugin.sol";
 import {
     ManifestFunction,
     ManifestAssociatedFunctionType,
@@ -29,16 +26,23 @@ import {
     PluginManifest,
     PluginMetadata,
     SelectorPermission
-} from "../../interfaces/IPlugin.sol";
-import {IPluginExecutor} from "../../interfaces/IPluginExecutor.sol";
-import {Call, IStandardExecutor} from "../../interfaces/IStandardExecutor.sol";
+} from "modular-account-libs/interfaces/IPlugin.sol";
+import {IPluginExecutor} from "modular-account-libs/interfaces/IPluginExecutor.sol";
+import {Call, IStandardExecutor} from "modular-account-libs/interfaces/IStandardExecutor.sol";
 import {
-    AssociatedLinkedListSet, AssociatedLinkedListSetLib
-} from "../../libraries/AssociatedLinkedListSetLib.sol";
+    AssociatedLinkedListSet,
+    AssociatedLinkedListSetLib
+} from "modular-account-libs/libraries/AssociatedLinkedListSetLib.sol";
 import {
-    SetValue, SENTINEL_VALUE, SIG_VALIDATION_PASSED, SIG_VALIDATION_FAILED
-} from "../../libraries/Constants.sol";
-import {BasePlugin} from "../BasePlugin.sol";
+    SetValue,
+    SENTINEL_VALUE,
+    SIG_VALIDATION_PASSED,
+    SIG_VALIDATION_FAILED
+} from "modular-account-libs/libraries/Constants.sol";
+import {BasePlugin} from "modular-account-libs/plugins/BasePlugin.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+
+import {CastLib} from "../../helpers/CastLib.sol";
 import {ISessionKeyPlugin} from "./ISessionKeyPlugin.sol";
 import {SessionKeyPermissions} from "./permissions/SessionKeyPermissions.sol";
 

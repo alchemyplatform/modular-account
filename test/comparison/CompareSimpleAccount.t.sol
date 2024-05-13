@@ -22,10 +22,10 @@ import {Test} from "forge-std/Test.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 import {SimpleAccount} from "@eth-infinitism/account-abstraction/samples/SimpleAccount.sol";
 import {SimpleAccountFactory} from "@eth-infinitism/account-abstraction/samples/SimpleAccountFactory.sol";
+import {UserOperation} from "modular-account-libs/interfaces/UserOperation.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
-import {UserOperation} from "../../src/interfaces/erc4337/UserOperation.sol";
 import {Counter} from "../mocks/Counter.sol";
 
 contract CompareSimpleAccountTest is Test {

@@ -9,5 +9,8 @@
     "lint": "pnpm lint:src && pnpm lint:test",
     "lint:src": "solhint -c .solhint-src.json ./src/**/*.sol",
     "lint:test": "solhint -c .solhint-test.json ./test/**/*.sol"
+  },
+  "dependencies": {
+    "modular-account-libs": "github:erc6900/modular-account-libs#v0.7.0"
   }
 }

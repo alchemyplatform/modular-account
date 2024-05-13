@@ -73,6 +73,14 @@ jobs:
       - name: Install forge dependencies
         run: forge install
 
+      - name: "Install Pnpm"
+        uses: "pnpm/action-setup@v2"
+        with:
+          version: "8"
+
+      - name: "Install Node.js dependencies"
+        run: "pnpm install"
+
       - name: Build project
         run: forge build --sizes
 
@@ -93,6 +101,14 @@ jobs:
 
       - name: Install forge dependencies
         run: forge install
+
+      - name: "Install Pnpm"
+        uses: "pnpm/action-setup@v2"
+        with:
+          version: "8"
+
+      - name: "Install Node.js dependencies"
+        run: "pnpm install"
 
       - name: Build project
         run: FOUNDRY_PROFILE=lite forge build

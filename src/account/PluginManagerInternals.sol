@@ -17,12 +17,7 @@
 
 pragma solidity ^0.8.22;
 
-import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-
-import {AccountStorageV1} from "../account/AccountStorageV1.sol";
-import {CastLib} from "../helpers/CastLib.sol";
-import {FunctionReferenceLib} from "../helpers/FunctionReferenceLib.sol";
-import {KnownSelectors} from "../helpers/KnownSelectors.sol";
+import {FunctionReferenceLib} from "modular-account-libs/libraries/FunctionReferenceLib.sol";
 import {
     IPlugin,
     ManifestAssociatedFunction,
@@ -31,10 +26,16 @@ import {
     ManifestExternalCallPermission,
     ManifestFunction,
     PluginManifest
-} from "../interfaces/IPlugin.sol";
-import {FunctionReference, IPluginManager} from "../interfaces/IPluginManager.sol";
-import {CountableLinkedListSetLib} from "../libraries/CountableLinkedListSetLib.sol";
-import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
+} from "modular-account-libs/interfaces/IPlugin.sol";
+import {FunctionReference, IPluginManager} from "modular-account-libs/interfaces/IPluginManager.sol";
+import {CountableLinkedListSetLib} from "modular-account-libs/libraries/CountableLinkedListSetLib.sol";
+import {LinkedListSet, LinkedListSetLib} from "modular-account-libs/libraries/LinkedListSetLib.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+
+import {AccountStorageV1} from "../account/AccountStorageV1.sol";
+import {KnownSelectors} from "../helpers/KnownSelectors.sol";
+import {CastLib} from "../helpers/CastLib.sol";
+import {FunctionReferenceHelpers} from "../helpers/FunctionReferenceHelpers.sol";
 
 /// @title Plugin Manager Internals
 /// @author Alchemy
@@ -574,7 +575,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         for (uint256 i = 0; i < length; ++i) {
             bytes4 executionSelector = args.manifest.runtimeValidationFunctions[i].executionSelector;
             storage_.selectorData[executionSelector].runtimeValidation =
-                FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE;
+                FunctionReferenceLib.EMPTY_FUNCTION_REFERENCE;
         }
 
         // Remove user op validation function hooks
@@ -582,7 +583,7 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         for (uint256 i = 0; i < length; ++i) {
             bytes4 executionSelector = args.manifest.userOpValidationFunctions[i].executionSelector;
             storage_.selectorData[executionSelector].userOpValidation =
-                FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE;
+                FunctionReferenceLib.EMPTY_FUNCTION_REFERENCE;
         }
 
         // Remove permitted external call permissions, anyExternalAddressPermitted is cleared when pluginData being
@@ -672,17 +673,17 @@ abstract contract PluginManagerInternals is IPluginManager, AccountStorageV1 {
         }
         if (manifestFunction.functionType == ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW) {
             if (allowedMagicValue == ManifestAssociatedFunctionType.RUNTIME_VALIDATION_ALWAYS_ALLOW) {
-                return FunctionReferenceLib._RUNTIME_VALIDATION_ALWAYS_ALLOW;
+                return FunctionReferenceHelpers._RUNTIME_VALIDATION_ALWAYS_ALLOW;
             }
             revert InvalidPluginManifest();
         }
         if (manifestFunction.functionType == ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY) {
             if (allowedMagicValue == ManifestAssociatedFunctionType.PRE_HOOK_ALWAYS_DENY) {
-                return FunctionReferenceLib._PRE_HOOK_ALWAYS_DENY;
+                return FunctionReferenceHelpers._PRE_HOOK_ALWAYS_DENY;
             }
             revert InvalidPluginManifest();
         }
-        return FunctionReferenceLib._EMPTY_FUNCTION_REFERENCE; // Empty checks are done elsewhere
+        return FunctionReferenceLib.EMPTY_FUNCTION_REFERENCE; // Empty checks are done elsewhere
     }
 
     function _assertNotNullFunction(FunctionReference functionReference) internal pure {

@@ -18,24 +18,23 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-
-import {PluginManagerInternals} from "../../src/account/PluginManagerInternals.sol";
-import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
-import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
-import {FunctionReferenceLib} from "../../src/helpers/FunctionReferenceLib.sol";
-import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
-import {UserOperation} from "../../src/interfaces/erc4337/UserOperation.sol";
+import {FunctionReferenceLib} from "modular-account-libs/libraries/FunctionReferenceLib.sol";
+import {UserOperation} from "modular-account-libs/interfaces/UserOperation.sol";
 import {
     IPlugin,
     PluginManifest,
     ManifestFunction,
     ManifestAssociatedFunctionType,
     ManifestAssociatedFunction
-} from "../../src/interfaces/IPlugin.sol";
-import {FunctionReference} from "../../src/interfaces/IPluginManager.sol";
+} from "modular-account-libs/interfaces/IPlugin.sol";
+import {FunctionReference} from "modular-account-libs/interfaces/IPluginManager.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+
+import {PluginManagerInternals} from "../../src/account/PluginManagerInternals.sol";
+import {UpgradeableModularAccount} from "../../src/account/UpgradeableModularAccount.sol";
+import {MultiOwnerModularAccountFactory} from "../../src/factory/MultiOwnerModularAccountFactory.sol";
+import {IEntryPoint} from "../../src/interfaces/erc4337/IEntryPoint.sol";
 import {IMultiOwnerPlugin} from "../../src/plugins/owner/IMultiOwnerPlugin.sol";
 import {MultiOwnerPlugin} from "../../src/plugins/owner/MultiOwnerPlugin.sol";
 import {MockPlugin} from "../mocks/MockPlugin.sol";

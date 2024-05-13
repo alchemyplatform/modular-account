@@ -18,13 +18,12 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
+import {UserOperation} from "modular-account-libs/interfaces/UserOperation.sol";
+import {PluginManifest} from "modular-account-libs/interfaces/IPlugin.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 import {IEntryPoint} from "../../../src/interfaces/erc4337/IEntryPoint.sol";
-import {UserOperation} from "../../../src/interfaces/erc4337/UserOperation.sol";
-import {PluginManifest} from "../../../src/interfaces/IPlugin.sol";
 import {BasePlugin} from "../../../src/plugins/BasePlugin.sol";
 import {IMultiOwnerPlugin} from "../../../src/plugins/owner/IMultiOwnerPlugin.sol";
 import {MultiOwnerPlugin} from "../../../src/plugins/owner/MultiOwnerPlugin.sol";

@@ -18,10 +18,14 @@
 pragma solidity ^0.8.22;
 
 import {Test} from "forge-std/Test.sol";
-
 import {BaseAccount} from "@eth-infinitism/account-abstraction/core/BaseAccount.sol";
 import {IAggregator} from "@eth-infinitism/account-abstraction/interfaces/IAggregator.sol";
 import {IPaymaster} from "@eth-infinitism/account-abstraction/interfaces/IPaymaster.sol";
+import {IAccountLoupe} from "modular-account-libs/interfaces/IAccountLoupe.sol";
+import {IPlugin} from "modular-account-libs/interfaces/IPlugin.sol";
+import {IPluginExecutor} from "modular-account-libs/interfaces/IPluginExecutor.sol";
+import {IPluginManager} from "modular-account-libs/interfaces/IPluginManager.sol";
+import {IStandardExecutor} from "modular-account-libs/interfaces/IStandardExecutor.sol";
 import {IERC1155Receiver} from "@openzeppelin/contracts/interfaces/IERC1155Receiver.sol";
 import {IERC777Recipient} from "@openzeppelin/contracts/interfaces/IERC777Recipient.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
@@ -30,11 +34,6 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {KnownSelectors} from "../../src/helpers/KnownSelectors.sol";
 import {IAccountInitializable} from "../../src/interfaces/IAccountInitializable.sol";
-import {IAccountLoupe} from "../../src/interfaces/IAccountLoupe.sol";
-import {IPlugin} from "../../src/interfaces/IPlugin.sol";
-import {IPluginExecutor} from "../../src/interfaces/IPluginExecutor.sol";
-import {IPluginManager} from "../../src/interfaces/IPluginManager.sol";
-import {IStandardExecutor} from "../../src/interfaces/IStandardExecutor.sol";
 
 contract KnownSelectorsTest is Test {
     function test_isNativeFunction() public {
