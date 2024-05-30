@@ -10,6 +10,7 @@ lcov.info
 
 # secret
 .env
+input.json
 
 # deployments
 broadcast/**/run-latest.json

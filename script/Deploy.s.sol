@@ -19,7 +19,7 @@ pragma solidity ^0.8.22;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/Test.sol";
-
+import "forge-std/StdJson.sol";
 import {IEntryPoint as I4337EntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {UpgradeableModularAccount} from "../src/account/UpgradeableModularAccount.sol";
@@ -28,118 +28,141 @@ import {IEntryPoint} from "../src/interfaces/erc4337/IEntryPoint.sol";
 import {BasePlugin} from "../src/plugins/BasePlugin.sol";
 import {MultiOwnerPlugin} from "../src/plugins/owner/MultiOwnerPlugin.sol";
 import {SessionKeyPlugin} from "../src/plugins/session/SessionKeyPlugin.sol";
+import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 contract Deploy is Script {
-    // Load entrypoint from env
-    address public entryPointAddr = vm.envAddress("ENTRYPOINT");
-    IEntryPoint public entryPoint = IEntryPoint(payable(entryPointAddr));
+    using stdJson for string;
 
-    // Load factory owner from env
-    address public owner = vm.envAddress("OWNER");
-
-    // Load core contract, if not in env, deploy new contract
-    address public maImpl = vm.envOr("MA_IMPL", address(0));
-    address public factory = vm.envOr("FACTORY", address(0));
-
-    // Load plugins contract, if not in env, deploy new contract
-    address public multiOwnerPlugin = vm.envOr("OWNER_PLUGIN", address(0));
+    address public entryPointAddr;
+    IEntryPoint public entryPoint;
+    address public owner;
     bytes32 public multiOwnerPluginManifestHash;
-    address public sessionKeyPlugin = vm.envOr("SESSION_KEY_PLUGIN", address(0));
+    uint256 public maImplSalt;
+    uint256 public factorySalt;
+    uint256 public multiOwnerPluginSalt;
+    uint256 public sessionKeyPluginSalt;
+    address public expectedMaImpl;
+    address public expectedFactory;
+    address public expectedMultiOwnerPlugin;
+    address public expectedSessionKeyPlugin;
 
-    // Load optional salts for create2
-    bytes32 public maImplSalt = vm.envOr("MA_IMPL_SALT", bytes32(0));
-    bytes32 public factorySalt = vm.envOr("FACTORY_SALT", bytes32(0));
-    bytes32 public multiOwnerPluginSalt = vm.envOr("MULTI_OWNER_PLUGIN_SALT", bytes32(0));
-    bytes32 public sessionKeyPluginSalt = vm.envOr("SESSION_KEY_PLUGIN_SALT", bytes32(0));
-
-    // Load optional expected addresses during creation, if any
-    address public expectedMaImpl = vm.envOr("EXPECTED_MA_IMPL", address(0));
-    address public expectedFactory = vm.envOr("EXPECTED_FACTORY", address(0));
-    address public expectedMultiOwnerPlugin = vm.envOr("EXPECTED_OWNER_PLUGIN", address(0));
-    address public expectedSessionKeyPlugin = vm.envOr("EXPECTED_SESSION_KEY_PLUGIN", address(0));
+    function readInputsFromPath() internal {
+        string memory json = vm.readFile("input.json");
+        entryPointAddr = json.readAddress("$.entryPoint");
+        entryPoint = IEntryPoint(payable(entryPointAddr));
+        owner = json.readAddress("$.owner");
+        maImplSalt = json.readUint("$.maImplSalt");
+        factorySalt = json.readUint("$.factorySalt");
+        multiOwnerPluginSalt = json.readUint("$.multiOwnerPluginSalt");
+        sessionKeyPluginSalt = json.readUint("$.sessionKeyPluginSalt");
+        expectedMaImpl = json.readAddress("$.maImpl");
+        expectedFactory = json.readAddress("$.factory");
+        expectedMultiOwnerPlugin = json.readAddress("$.multiOwnerPlugin");
+        expectedSessionKeyPlugin = json.readAddress("$.sessionKeyPlugin");
+    }
 
     function run() public {
+        readInputsFromPath();
         console.log("******** Deploying *********");
         console.log("Chain: ", block.chainid);
         console.log("EP: ", entryPointAddr);
         console.log("Factory owner: ", owner);
 
         vm.startBroadcast();
-
-        // Deploy ma impl
-        if (maImpl == address(0)) {
-            maImpl = address(new UpgradeableModularAccount{salt: maImplSalt}(entryPoint));
-
-            if (expectedMaImpl != address(0)) {
-                require(maImpl == expectedMaImpl, "UpgradeableModularAccount address mismatch");
-            }
-            console.log("New MA impl: ", maImpl);
-        } else {
-            console.log("Exist MA impl: ", maImpl);
-        }
-
-        // Deploy multi owner plugin, and set plugin hash
-        if (multiOwnerPlugin == address(0)) {
-            multiOwnerPlugin = address(new MultiOwnerPlugin{salt: multiOwnerPluginSalt}());
-
-            if (expectedMultiOwnerPlugin != address(0)) {
-                require(multiOwnerPlugin == expectedMultiOwnerPlugin, "MultiOwnerPlugin address mismatch");
-            }
-            console.log("New MultiOwnerPlugin: ", multiOwnerPlugin);
-        } else {
-            console.log("Exist MultiOwnerPlugin: ", multiOwnerPlugin);
-        }
+        UpgradeableModularAccount maImpl = deployMA(bytes32(maImplSalt), expectedMaImpl, entryPoint);
+        MultiOwnerPlugin multiOwnerPlugin = deployMAP(bytes32(multiOwnerPluginSalt), expectedMultiOwnerPlugin);
         multiOwnerPluginManifestHash = keccak256(abi.encode(BasePlugin(multiOwnerPlugin).pluginManifest()));
-
-        // Deploy factory
-        if (factory == address(0)) {
-            factory = address(
-                new MultiOwnerModularAccountFactory{salt: factorySalt}(
-                    owner, multiOwnerPlugin, maImpl, multiOwnerPluginManifestHash, entryPoint
-                )
-            );
-
-            if (expectedFactory != address(0)) {
-                require(factory == expectedFactory, "MultiOwnerModularAccountFactory address mismatch");
-            }
-            _addStakeForFactory(factory, entryPoint);
-            console.log("New MultiOwnerModularAccountFactory: ", factory);
-        } else {
-            console.log("Exist MultiOwnerModularAccountFactory: ", factory);
-        }
-
-        // Deploy SessionKeyPlugin
-        if (sessionKeyPlugin == address(0)) {
-            sessionKeyPlugin = address(new SessionKeyPlugin{salt: sessionKeyPluginSalt}());
-
-            if (expectedSessionKeyPlugin != address(0)) {
-                require(sessionKeyPlugin == expectedSessionKeyPlugin, "SessionKeyPlugin address mismatch");
-            }
-            console.log("New SessionKeyPlugin: ", sessionKeyPlugin);
-        } else {
-            console.log("Exist SessionKeyPlugin: ", sessionKeyPlugin);
-        }
+        deployMAFactory(bytes32(factorySalt), expectedFactory, entryPoint, address(multiOwnerPlugin), address(maImpl), owner, multiOwnerPluginManifestHash);
+        deploySK(bytes32(sessionKeyPluginSalt), expectedSessionKeyPlugin);
 
         console.log("******** Deploy Done! *********");
         vm.stopBroadcast();
     }
 
-    function _addStakeForFactory(address factoryAddr, IEntryPoint anEntryPoint) internal {
-        uint32 unstakeDelaySec = uint32(vm.envOr("UNSTAKE_DELAY_SEC", uint32(86400)));
-        uint256 requiredStakeAmount = vm.envUint("REQUIRED_STAKE_AMOUNT");
-        uint256 currentStakedAmount = I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake;
-        uint256 stakeAmount = requiredStakeAmount - currentStakedAmount;
-        // since all factory share the same addStake method, it does not matter which contract we use to cast the
-        // address
-        MultiOwnerModularAccountFactory(payable(factoryAddr)).addStake{value: stakeAmount}(
-            unstakeDelaySec, stakeAmount
+    function deployMAFactory(bytes32 saltBytes, address expected, IEntryPoint ep, address mop, address uma, address own, bytes32 maHash) private returns (MultiOwnerModularAccountFactory) {
+        address addr = Create2.computeAddress(
+            saltBytes, keccak256(abi.encodePacked(type(MultiOwnerModularAccountFactory).creationCode, abi.encode(own, mop, uma, maHash, ep))), CREATE2_FACTORY
         );
-        console.log("******** Add Stake Verify *********");
-        console.log("Staked factory: ", factoryAddr);
-        console.log("Stake amount: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake);
-        console.log(
-            "Unstake delay: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).unstakeDelaySec
-        );
-        console.log("******** Stake Verify Done *********");
+
+        console.logAddress(addr);
+        require(addr == expected, "Expected address is not the same as computed for ma plugin");
+        if (addr.code.length > 0) {
+            console.log("ModualrAccountFactory impl already deployed. Skipping");
+            return MultiOwnerModularAccountFactory(payable(addr));
+        }
+
+        MultiOwnerModularAccountFactory impl = new MultiOwnerModularAccountFactory{salt: saltBytes}(own, mop, uma, maHash, ep);
+        require(address(impl) == addr, "Impl address did not match predicted");
+        return impl;
     }
+
+    function deployMA(bytes32 saltBytes, address expected, IEntryPoint ep) private returns (UpgradeableModularAccount) {
+        address addr = Create2.computeAddress(
+            saltBytes, keccak256(abi.encodePacked(type(UpgradeableModularAccount).creationCode, abi.encode(ep))), CREATE2_FACTORY
+        );
+
+        console.logAddress(addr);
+        require(addr == expected, "Expected address is not the same as computed for ma plugin");
+        if (addr.code.length > 0) {
+            console.log("ModualrAccount impl already deployed. Skipping");
+            return UpgradeableModularAccount(payable(addr));
+        }
+
+        UpgradeableModularAccount impl = new UpgradeableModularAccount{salt: saltBytes}(ep);
+        require(address(impl) == addr, "Impl address did not match predicted");
+        return impl;
+    }
+
+    function deploySK(bytes32 saltBytes, address expected) private returns (SessionKeyPlugin) {
+        address addr = Create2.computeAddress(
+            saltBytes, keccak256(abi.encodePacked(type(SessionKeyPlugin).creationCode)), CREATE2_FACTORY
+        );
+
+        console.logAddress(addr);
+        require(addr == expected, "Expected address is not the same as computed for ma plugin");
+        if (addr.code.length > 0) {
+            console.log("SessionKey impl already deployed. Skipping");
+            return SessionKeyPlugin(payable(addr));
+        }
+
+        SessionKeyPlugin impl = new SessionKeyPlugin{salt: saltBytes}();
+        require(address(impl) == addr, "Impl address did not match predicted");
+        return impl;
+    }
+
+    function deployMAP(bytes32 saltBytes, address expected) private returns (MultiOwnerPlugin) {
+        address addr = Create2.computeAddress(
+            saltBytes, keccak256(abi.encodePacked(type(MultiOwnerPlugin).creationCode)), CREATE2_FACTORY
+        );
+
+        console.logAddress(addr);
+        require(addr == expected, "Expected address is not the same as computed for ma plugin");
+        if (addr.code.length > 0) {
+            console.log("MultiOwnerPlugin impl already deployed. Skipping");
+            return MultiOwnerPlugin(payable(addr));
+        }
+
+        MultiOwnerPlugin impl = new MultiOwnerPlugin{salt: saltBytes}();
+        require(address(impl) == addr, "Impl address did not match predicted");
+        return impl;
+    }
+
+    // function _addStakeForFactory(address factoryAddr, IEntryPoint anEntryPoint) internal {
+    //     uint32 unstakeDelaySec = uint32(vm.envOr("UNSTAKE_DELAY_SEC", uint32(86400)));
+    //     uint256 requiredStakeAmount = vm.envUint("REQUIRED_STAKE_AMOUNT");
+    //     uint256 currentStakedAmount = I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake;
+    //     uint256 stakeAmount = requiredStakeAmount - currentStakedAmount;
+    //     // since all factory share the same addStake method, it does not matter which contract we use to cast the
+    //     // address
+    //     MultiOwnerModularAccountFactory(payable(factoryAddr)).addStake{value: stakeAmount}(
+    //         unstakeDelaySec, stakeAmount
+    //     );
+    //     console.log("******** Add Stake Verify *********");
+    //     console.log("Staked factory: ", factoryAddr);
+    //     console.log("Stake amount: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake);
+    //     console.log(
+    //         "Unstake delay: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).unstakeDelaySec
+    //     );
+    //     console.log("******** Stake Verify Done *********");
+    // }
 }
