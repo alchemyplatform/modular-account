@@ -85,9 +85,9 @@ contract Deploy is Script {
         );
 
         console.logAddress(addr);
-        require(addr == expected, "Expected address is not the same as computed for ma plugin");
+        require(addr == expected, "Expected address is not the same as computed for ma factory");
         if (addr.code.length > 0) {
-            console.log("ModualrAccountFactory impl already deployed. Skipping");
+            console.log("ModularAccountFactory impl already deployed. Skipping");
             return MultiOwnerModularAccountFactory(payable(addr));
         }
 
@@ -102,9 +102,9 @@ contract Deploy is Script {
         );
 
         console.logAddress(addr);
-        require(addr == expected, "Expected address is not the same as computed for ma plugin");
+        require(addr == expected, "Expected address is not the same as computed for ma");
         if (addr.code.length > 0) {
-            console.log("ModualrAccount impl already deployed. Skipping");
+            console.log("ModularAccount impl already deployed. Skipping");
             return UpgradeableModularAccount(payable(addr));
         }
 
@@ -119,7 +119,7 @@ contract Deploy is Script {
         );
 
         console.logAddress(addr);
-        require(addr == expected, "Expected address is not the same as computed for ma plugin");
+        require(addr == expected, "Expected address is not the same as computed for sk plugin");
         if (addr.code.length > 0) {
             console.log("SessionKey impl already deployed. Skipping");
             return SessionKeyPlugin(payable(addr));
@@ -136,7 +136,7 @@ contract Deploy is Script {
         );
 
         console.logAddress(addr);
-        require(addr == expected, "Expected address is not the same as computed for ma plugin");
+        require(addr == expected, "Expected address is not the same as computed for mo plugin");
         if (addr.code.length > 0) {
             console.log("MultiOwnerPlugin impl already deployed. Skipping");
             return MultiOwnerPlugin(payable(addr));
