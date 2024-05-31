@@ -156,15 +156,20 @@ contract Deploy is Script {
         uint256 currentStakedAmount = I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake;
         console.log("Current Stake: ", currentStakedAmount);
         uint256 stakeToAdd = stakeAmount - currentStakedAmount;
-        console.log("Stake to add: ", stakeToAdd);
-        MultiOwnerModularAccountFactory(payable(factoryAddr)).addStake{value: stakeToAdd}(
-            unstakeDelay, stakeToAdd
-        );
-        console.log("Staked factory: ", factoryAddr);
-        console.log("Stake amount: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake);
-        console.log(
-            "Unstake delay: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).unstakeDelaySec
-        );
-        console.log("******** Stake Verify Done *********");
+
+        if (stakeToAdd > 0) {
+            console.log("Stake to add: ", stakeToAdd);
+            MultiOwnerModularAccountFactory(payable(factoryAddr)).addStake{value: stakeToAdd}(
+                unstakeDelay, stakeToAdd
+            );
+            console.log("Staked factory: ", factoryAddr);
+            console.log("Stake amount: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake);
+            console.log(
+                "Unstake delay: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).unstakeDelaySec
+            );
+            console.log("******** Stake Verify Done *********");
+        } else {
+            console.log("Contract already staked");
+        }
     }
 }
