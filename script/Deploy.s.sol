@@ -41,6 +41,8 @@ contract Deploy is Script {
     uint256 public factorySalt;
     uint256 public multiOwnerPluginSalt;
     uint256 public sessionKeyPluginSalt;
+    uint256 public requiredStakeAmount;
+    uint256 public requiredUnstakeDelay;
     address public expectedMaImpl;
     address public expectedFactory;
     address public expectedMultiOwnerPlugin;
@@ -59,6 +61,8 @@ contract Deploy is Script {
         expectedFactory = json.readAddress("$.factory");
         expectedMultiOwnerPlugin = json.readAddress("$.multiOwnerPlugin");
         expectedSessionKeyPlugin = json.readAddress("$.sessionKeyPlugin");
+        requiredUnstakeDelay = json.readUint("$.unstakeDelay");
+        requiredStakeAmount = json.readUint("$.stakeAmount");
     }
 
     function run() public {
@@ -72,8 +76,9 @@ contract Deploy is Script {
         UpgradeableModularAccount maImpl = deployMA(bytes32(maImplSalt), expectedMaImpl, entryPoint);
         MultiOwnerPlugin multiOwnerPlugin = deployMAP(bytes32(multiOwnerPluginSalt), expectedMultiOwnerPlugin);
         multiOwnerPluginManifestHash = keccak256(abi.encode(BasePlugin(multiOwnerPlugin).pluginManifest()));
-        deployMAFactory(bytes32(factorySalt), expectedFactory, entryPoint, address(multiOwnerPlugin), address(maImpl), owner, multiOwnerPluginManifestHash);
+        MultiOwnerModularAccountFactory factory = deployMAFactory(bytes32(factorySalt), expectedFactory, entryPoint, address(multiOwnerPlugin), address(maImpl), owner, multiOwnerPluginManifestHash);
         deploySK(bytes32(sessionKeyPluginSalt), expectedSessionKeyPlugin);
+        _addStakeForFactory(address(factory), entryPoint, uint32(requiredUnstakeDelay), requiredStakeAmount);
 
         console.log("******** Deploy Done! *********");
         vm.stopBroadcast();
@@ -147,22 +152,19 @@ contract Deploy is Script {
         return impl;
     }
 
-    // function _addStakeForFactory(address factoryAddr, IEntryPoint anEntryPoint) internal {
-    //     uint32 unstakeDelaySec = uint32(vm.envOr("UNSTAKE_DELAY_SEC", uint32(86400)));
-    //     uint256 requiredStakeAmount = vm.envUint("REQUIRED_STAKE_AMOUNT");
-    //     uint256 currentStakedAmount = I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake;
-    //     uint256 stakeAmount = requiredStakeAmount - currentStakedAmount;
-    //     // since all factory share the same addStake method, it does not matter which contract we use to cast the
-    //     // address
-    //     MultiOwnerModularAccountFactory(payable(factoryAddr)).addStake{value: stakeAmount}(
-    //         unstakeDelaySec, stakeAmount
-    //     );
-    //     console.log("******** Add Stake Verify *********");
-    //     console.log("Staked factory: ", factoryAddr);
-    //     console.log("Stake amount: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake);
-    //     console.log(
-    //         "Unstake delay: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).unstakeDelaySec
-    //     );
-    //     console.log("******** Stake Verify Done *********");
-    // }
+    function _addStakeForFactory(address factoryAddr, IEntryPoint anEntryPoint, uint32 unstakeDelay, uint256 stakeAmount) internal {
+        uint256 currentStakedAmount = I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake;
+        console.log("Current Stake: ", currentStakedAmount);
+        uint256 stakeToAdd = stakeAmount - currentStakedAmount;
+        console.log("Stake to add: ", stakeToAdd);
+        MultiOwnerModularAccountFactory(payable(factoryAddr)).addStake{value: stakeToAdd}(
+            unstakeDelay, stakeToAdd
+        );
+        console.log("Staked factory: ", factoryAddr);
+        console.log("Stake amount: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake);
+        console.log(
+            "Unstake delay: ", I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).unstakeDelaySec
+        );
+        console.log("******** Stake Verify Done *********");
+    }
 }
