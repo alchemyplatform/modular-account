@@ -138,7 +138,7 @@ abstract contract SessionKeyPermissionsBase is ISessionKeyPlugin {
     {
         SessionKeyId id = _sessionKeyIdOf(associated, sessionKey);
         if (SessionKeyId.unwrap(id) == bytes32(0)) {
-            revert InvalidSessionKey(sessionKey);
+            revert("Unknown session key");
         }
         return id;
     }

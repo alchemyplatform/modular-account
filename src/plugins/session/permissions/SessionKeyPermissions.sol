@@ -25,37 +25,16 @@ import {IStandardExecutor} from "../../../interfaces/IStandardExecutor.sol";
 import {SIG_VALIDATION_PASSED, SIG_VALIDATION_FAILED} from "../../../libraries/Constants.sol";
 import {ISessionKeyPlugin} from "../ISessionKeyPlugin.sol";
 import {ISessionKeyPermissionsUpdates} from "./ISessionKeyPermissionsUpdates.sol";
-import {SessionKeyPermissionsLoupe} from "./SessionKeyPermissionsLoupe.sol";
+import {SessionKeyPermissionsBase} from "./SessionKeyPermissionsBase.sol";
 
 /// @title Session Key Permissions
 /// @author Alchemy
 /// @notice This plugin allows users to configure and enforce permissions on session keys that have been
 /// added by SessionKeyPlugin.
-abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissionsLoupe {
+abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissionsBase {
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    Execution functions    ┃
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-
-    /// @inheritdoc ISessionKeyPlugin
-    function updateKeyPermissions(address sessionKey, bytes[] calldata updates) public override {
-        (SessionKeyData storage sessionKeyData, SessionKeyId keyId) = _loadSessionKeyData(msg.sender, sessionKey);
-
-        uint256 length = updates.length;
-        for (uint256 i = 0; i < length; ++i) {
-            _performSessionKeyPermissionsUpdate(keyId, sessionKeyData, updates[i]);
-        }
-
-        emit PermissionsUpdated(msg.sender, sessionKey, updates);
-    }
-
-    /// @inheritdoc ISessionKeyPlugin
-    function resetSessionKeyGasLimitTimestamp(address account, address sessionKey) external override {
-        (SessionKeyData storage sessionKeyData,) = _loadSessionKeyData(account, sessionKey);
-        if (sessionKeyData.gasLimitResetThisBundle) {
-            sessionKeyData.gasLimitResetThisBundle = false;
-            sessionKeyData.gasLimitTimeInfo.lastUsed = uint48(block.timestamp);
-        }
-    }
 
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    Internal / Private functions    ┃
@@ -81,24 +60,22 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
 
         uint256 callsLength = calls.length;
         // Only return validation success when there is at least one call
-        bool validationSuccess = callsLength > 0;
+        require(callsLength > 0, "Must have at least one call");
         {
             ContractAccessControlType accessControlType = sessionKeyData.contractAccessControlType;
             for (uint256 i = 0; i < callsLength; ++i) {
                 Call memory call = calls[i];
                 nativeTokenSpend += call.value;
-                validationSuccess =
-                    validationSuccess && _checkCallPermissions(accessControlType, keyId, call.target, call.data);
+                _checkCallPermissions(accessControlType, keyId, call.target, call.data);
             }
         }
 
         if (!sessionKeyData.nativeTokenSpendLimitBypassed) {
-            (bool spendLimitSuccess, uint48 spendLimitValidAfter) = _checkSpendLimitUsage(
+            uint48 spendLimitValidAfter = _checkSpendLimitUsage(
                 nativeTokenSpend,
                 sessionKeyData.nativeTokenSpendLimitTimeInfo,
                 sessionKeyData.nativeTokenSpendLimit
             );
-            validationSuccess = validationSuccess && spendLimitSuccess;
             currentValidAfter = _max(currentValidAfter, spendLimitValidAfter);
         }
 
@@ -110,7 +87,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
             // own address as the key portion of the user operation nonce field, in order to guarantee that they
             // are used sequentially.
             if (uint192(userOp.nonce >> 64) != uint192(uint160(sessionKey))) {
-                validationSuccess = false;
+                revert("Must use session key as key portion of nonce when gas limit checking is enabled");
             }
 
             // Multiplier for the verification gas limit is 3 if there is a paymaster, 1 otherwise.
@@ -122,9 +99,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
             uint256 maxGasFee = (
                 userOp.callGasLimit + userOp.verificationGasLimit * multiplier + userOp.preVerificationGas
             ) * userOp.maxFeePerGas;
-            (bool gasLimitSuccess, uint48 gasLimitValidAfter) =
-                _checkAndUpdateGasLimitUsage(maxGasFee, sessionKeyData);
-            validationSuccess = validationSuccess && gasLimitSuccess;
+            (uint48 gasLimitValidAfter) = _checkAndUpdateGasLimitUsage(maxGasFee, sessionKeyData);
             currentValidAfter = _max(currentValidAfter, gasLimitValidAfter);
         }
 
@@ -138,12 +113,11 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
             // sessionKeyData.hasRequiredPaymaster == true and a zero address sessionKeyData.requiredPaymaster, by
             // how the rule's updating function works.
             address userOpPaymaster = address(bytes20(userOp.paymasterAndData));
-            validationSuccess = validationSuccess && (userOpPaymaster == sessionKeyData.requiredPaymaster);
+            require(userOpPaymaster == sessionKeyData.requiredPaymaster, "Must use required paymaster");
         }
         // A packed struct of: SIG_VALIDATION_PASSED or SIG_VALIDATION_FAILED, and two
         // 6-byte timestamps indicating the start and end times at which the op is valid.
-        return uint160(validationSuccess ? SIG_VALIDATION_PASSED : SIG_VALIDATION_FAILED)
-            | (uint256(validUntil) << 160) | (uint256(currentValidAfter) << 208);
+        return uint160(SIG_VALIDATION_PASSED) | (uint256(validUntil) << 160) | (uint256(currentValidAfter) << 208);
     }
 
     /// @dev Checks permissions on a per-call basis. Should be run during user op validation once per `Call` struct
@@ -153,9 +127,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         SessionKeyId keyId,
         address target,
         bytes memory callData
-    ) internal view returns (bool validationSuccess) {
-        validationSuccess = true;
-
+    ) internal view {
         // This right-pads the selector variable if callData is <4 bytes.
         bytes4 selector = bytes4(callData);
 
@@ -163,23 +135,23 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
 
         // Validate access control
         if (accessControlType == ContractAccessControlType.ALLOWLIST) {
-            if (!contractData.isOnList) return false;
-            if (!contractData.checkSelectors) return true;
+            if (!contractData.isOnList) revert("Target address not on allowlist");
+            if (!contractData.checkSelectors) return;
             // If selectors are specified, the function must be on the list.
             FunctionData storage functionData = _functionDataOf(msg.sender, keyId, target, selector);
-            validationSuccess = functionData.isOnList;
+            require(functionData.isOnList, "Function selector not on allowlist");
         } else if (accessControlType == ContractAccessControlType.DENYLIST) {
-            if (!contractData.isOnList) return true;
-            if (!contractData.checkSelectors) return false;
+            if (!contractData.isOnList) return;
+            if (!contractData.checkSelectors) revert("Target address on denylist");
             // If selectors are specified, the function must not be on the list.
             // A denylist with function selectors allows function calls that are not on the list.
             FunctionData storage functionData = _functionDataOf(msg.sender, keyId, target, selector);
-            validationSuccess = !functionData.isOnList;
+            require(!functionData.isOnList, "Function selector on denylist");
         }
 
         // Check the selector in use if the target is a known ERC-20 contract with a spending limit.
         if (contractData.isERC20WithSpendLimit && !isAllowedERC20Function(selector)) {
-            validationSuccess = false;
+            revert("Function selector not allowed for ERC20 contract with spending limit");
         }
     }
 
@@ -209,7 +181,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
                         spendAmount, contractData.erc20SpendLimitTimeInfo, contractData.erc20SpendLimit
                     )
                 ) {
-                    revert ERC20SpendLimitExceeded(msg.sender, sessionKey, call.target);
+                    revert("ERC20 spend limit exceeded");
                 }
             }
         }
@@ -223,7 +195,7 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
                     sessionKeyData.nativeTokenSpendLimit
                 )
             ) {
-                revert NativeTokenSpendLimitExceeded(msg.sender, sessionKey);
+                revert("Spend limit exceeded");
             }
         }
 
@@ -243,9 +215,8 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
     function _checkSpendLimitUsage(uint256 newUsage, SpendLimitTimeInfo storage timeInfo, SpendLimit storage limit)
         internal
         view
-        returns (bool, uint48)
+        returns (uint48)
     {
-        bool validationSuccess;
         // This value will be coalesced with the overall key's start time to return the max value, so it is ok to
         // declare it as zero here and only use it if needed.
         uint48 validAfter;
@@ -262,44 +233,41 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
             newTotalUsage = newUsage + currentUsage;
             if (newTotalUsage < newUsage) {
                 // If we overflow, fail early.
-                return (false, 0);
+                revert("Spend limit overflow");
             }
         }
 
         if (refreshInterval == 0) {
             // We don't have a refresh interval reset, so just check that the spend limits are not exceeded.
             // The limits are not updated until the pre exec hook, in order to use `block.timestamp`.
-            validationSuccess = (newTotalUsage <= spendLimit);
+            require(newTotalUsage <= spendLimit, "Spend limit exceeded");
         }
         // RefreshInterval != 0, meaning we have a time period over which the spend limit resets.
         else if (newTotalUsage <= spendLimit) {
             // The spend amount here fits within the existing interval,
             // so we're OK to just accept the result.
-            validationSuccess = true;
         }
         // The spend amount does not fit within the current interval.
         // It may or may not fit into the next one.
         else if (newUsage <= spendLimit) {
             // The spend amount fits into the next interval, so we're OK to accept the result, if we
             // wait until the refresh and start of the next interval.
-            validationSuccess = true;
             validAfter = lastUsed + refreshInterval;
         } else {
             // The spend amount does not fit, even into the next interval,
             // so we must reject the operation.
-            validationSuccess = false;
+            revert("Spend limit exceeded, even including next interval");
         }
 
-        return (validationSuccess, validAfter);
+        return (validAfter);
     }
 
     /// @dev For use within user op validation. Gas limits are both checked and updated within the user op
     /// validation phase.
     function _checkAndUpdateGasLimitUsage(uint256 newUsage, SessionKeyData storage keyData)
         internal
-        returns (bool, uint48)
+        returns (uint48)
     {
-        bool validationSuccess;
         uint48 validAfter;
 
         uint48 lastUsed = keyData.gasLimitTimeInfo.lastUsed;
@@ -316,24 +284,21 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
             newTotalUsage = newUsage + currentUsage;
             if (newTotalUsage < newUsage) {
                 // If we overflow, fail early.
-                return (false, 0);
+                revert("Gas limit overflow");
             }
         }
 
         if (refreshInterval == 0) {
             // We don't have a refresh interval reset, so just check that the gas limits are not exceeded and
             // update their amounts.
-            validationSuccess = newTotalUsage <= gasLimit;
-            if (validationSuccess) {
-                // Conditionally update as a gas optimization for the failure case.
-                keyData.gasLimit.limitUsed = newTotalUsage;
-            }
+            require(newTotalUsage <= gasLimit, "Gas limit exceeded");
+            // Conditionally update as a gas optimization for the failure case.
+            keyData.gasLimit.limitUsed = newTotalUsage;
         }
         // RefreshInterval != 0, meaning we have a time period over which the gas limit resets.
         else if (newTotalUsage <= gasLimit) {
             // The gas amount here fits within the existing refresh interval,
             // so we're OK to just accept the result.
-            validationSuccess = true;
             keyData.gasLimit.limitUsed = newTotalUsage;
             // If this is an incremental usage after a failed "reset" attempt, then enforce this existing
             // validAfter window.
@@ -344,7 +309,6 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         else if (newUsage <= gasLimit && !gasLimitResetThisBundle) {
             // The gas amount fits into the next refresh interval, so we're OK to accept the result, if we
             // wait until the start of the next refresh interval.
-            validationSuccess = true;
             validAfter = lastUsed + refreshInterval;
 
             // NOTE: This section is different than the other spend limit checks, due to how gas limits are
@@ -364,10 +328,10 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         } else {
             // The gas amount does not fit, even into the next refresh interval,
             // so we must reject the operation.
-            validationSuccess = false;
+            revert("Gas limit exceeded");
         }
 
-        return (validationSuccess, validAfter);
+        return (validAfter);
     }
 
     /// @dev Re-check and update the spend limit during the execution phase.
@@ -452,141 +416,6 @@ abstract contract SessionKeyPermissions is ISessionKeyPlugin, SessionKeyPermissi
         }
         // Unrecognized function selector
         return 0;
-    }
-
-    // Permissions updating functions
-
-    function _performSessionKeyPermissionsUpdate(
-        SessionKeyId keyId,
-        SessionKeyData storage sessionKeyData,
-        bytes calldata update
-    ) internal {
-        bytes4 updateSelector = bytes4(update);
-
-        if (update.length < 4) {
-            revert InvalidPermissionsUpdate(updateSelector);
-        }
-
-        // If/else chain to find the right internal update function to perform.
-        if (updateSelector == ISessionKeyPermissionsUpdates.setAccessListType.selector) {
-            ContractAccessControlType contractAccessControlType =
-                abi.decode(update[4:], (ContractAccessControlType));
-            _setAccessListType(sessionKeyData, contractAccessControlType);
-        } else if (updateSelector == ISessionKeyPermissionsUpdates.updateAccessListAddressEntry.selector) {
-            (address contractAddress, bool isOnList, bool checkSelectors) =
-                abi.decode(update[4:], (address, bool, bool));
-            _updateAccessListAddressEntry(keyId, contractAddress, isOnList, checkSelectors);
-        } else if (updateSelector == ISessionKeyPermissionsUpdates.updateAccessListFunctionEntry.selector) {
-            (address contractAddress, bytes4 selector, bool isOnList) =
-                abi.decode(update[4:], (address, bytes4, bool));
-            _updateAccessListFunctionEntry(keyId, contractAddress, selector, isOnList);
-        } else if (updateSelector == ISessionKeyPermissionsUpdates.updateTimeRange.selector) {
-            (uint48 validAfter, uint48 validUntil) = abi.decode(update[4:], (uint48, uint48));
-            _updateTimeRange(sessionKeyData, validAfter, validUntil);
-        } else if (updateSelector == ISessionKeyPermissionsUpdates.setNativeTokenSpendLimit.selector) {
-            (uint256 ethSpendLimit, uint48 refreshInterval) = abi.decode(update[4:], (uint256, uint48));
-            _setNativeTokenSpendLimit(sessionKeyData, ethSpendLimit, refreshInterval);
-        } else if (updateSelector == ISessionKeyPermissionsUpdates.setERC20SpendLimit.selector) {
-            (address token, uint256 spendLimit, uint48 refreshInterval) =
-                abi.decode(update[4:], (address, uint256, uint48));
-            _setERC20SpendLimit(keyId, token, spendLimit, refreshInterval);
-        } else if (updateSelector == ISessionKeyPermissionsUpdates.setGasSpendLimit.selector) {
-            (uint256 spendLimit, uint48 refreshInterval) = abi.decode(update[4:], (uint256, uint48));
-            _setGasSpendLimit(sessionKeyData, spendLimit, refreshInterval);
-        } else if (updateSelector == ISessionKeyPermissionsUpdates.setRequiredPaymaster.selector) {
-            address requiredPaymaster = abi.decode(update[4:], (address));
-            _setRequiredPaymaster(sessionKeyData, requiredPaymaster);
-        } else {
-            revert InvalidPermissionsUpdate(updateSelector);
-        }
-    }
-
-    function _setAccessListType(
-        SessionKeyData storage sessionKeyData,
-        ContractAccessControlType contractAccessControlType
-    ) internal {
-        sessionKeyData.contractAccessControlType = contractAccessControlType;
-    }
-
-    function _updateAccessListAddressEntry(
-        SessionKeyId keyId,
-        address contractAddress,
-        bool isOnList,
-        bool checkSelectors
-    ) internal {
-        ContractData storage contractData = _contractDataOf(msg.sender, keyId, contractAddress);
-        contractData.isOnList = isOnList;
-        contractData.checkSelectors = checkSelectors;
-    }
-
-    function _updateAccessListFunctionEntry(
-        SessionKeyId keyId,
-        address contractAddress,
-        bytes4 selector,
-        bool isOnList
-    ) internal {
-        FunctionData storage functionData = _functionDataOf(msg.sender, keyId, contractAddress, selector);
-        functionData.isOnList = isOnList;
-    }
-
-    function _updateTimeRange(SessionKeyData storage sessionKeyData, uint48 validAfter, uint48 validUntil)
-        internal
-    {
-        sessionKeyData.validAfter = validAfter;
-        sessionKeyData.validUntil = validUntil;
-    }
-
-    function _setNativeTokenSpendLimit(
-        SessionKeyData storage sessionKeyData,
-        uint256 ethSpendLimit,
-        uint48 refreshInterval
-    ) internal {
-        // The flag we store for native token spend is inverted from other similar flags
-        sessionKeyData.nativeTokenSpendLimitBypassed = !_updateSpendLimits(
-            ethSpendLimit,
-            refreshInterval,
-            sessionKeyData.nativeTokenSpendLimitTimeInfo,
-            sessionKeyData.nativeTokenSpendLimit
-        );
-    }
-
-    function _setERC20SpendLimit(SessionKeyId keyId, address token, uint256 spendLimit, uint48 refreshInterval)
-        internal
-    {
-        if (token == address(0)) {
-            revert InvalidToken(token);
-        }
-
-        ContractData storage tokenContractData = _contractDataOf(msg.sender, keyId, token);
-
-        tokenContractData.isERC20WithSpendLimit = _updateSpendLimits(
-            spendLimit,
-            refreshInterval,
-            tokenContractData.erc20SpendLimitTimeInfo,
-            tokenContractData.erc20SpendLimit
-        );
-    }
-
-    function _setGasSpendLimit(SessionKeyData storage sessionKeyData, uint256 spendLimit, uint48 refreshInterval)
-        internal
-    {
-        // Start by clearing the reset flag, if set.
-        if (sessionKeyData.gasLimitResetThisBundle) {
-            sessionKeyData.gasLimitResetThisBundle = false;
-            // Don't need to update the last used timestamp, since that will be updated within _updateSpendLimits.
-        }
-        sessionKeyData.hasGasLimit = _updateSpendLimits(
-            spendLimit, refreshInterval, sessionKeyData.gasLimitTimeInfo, sessionKeyData.gasLimit
-        );
-    }
-
-    function _setRequiredPaymaster(SessionKeyData storage sessionKeyData, address requiredPaymaster) internal {
-        if (requiredPaymaster == address(0)) {
-            sessionKeyData.hasRequiredPaymaster = false;
-        } else {
-            sessionKeyData.hasRequiredPaymaster = true;
-            sessionKeyData.requiredPaymaster = requiredPaymaster;
-        }
     }
 
     /// @dev A helper function re-used across the spend limit updating functions.
