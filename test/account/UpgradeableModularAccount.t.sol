@@ -516,6 +516,37 @@ contract UpgradeableModularAccountTest is Test {
         vm.stopPrank();
     }
 
+    function testCreate() public {
+        address account = factory.createAccount(0, owners1);
+
+        address expectedAddr = computeCreateAddress(account, vm.getNonce(account));
+        address returnedAddr = account1.performCreate(
+            0, abi.encodePacked(type(UpgradeableModularAccount).creationCode, abi.encode(address(entryPoint)))
+        );
+
+        assertEq(address(UpgradeableModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
+        assertEq(returnedAddr, expectedAddr);
+    }
+
+    function testCreate2() public {
+        address account = factory.createAccount(0, owners1);
+
+        bytes memory initCode =
+            abi.encodePacked(type(UpgradeableModularAccount).creationCode, abi.encode(address(entryPoint)));
+        bytes32 initCodeHash = keccak256(initCode);
+        bytes32 salt = bytes32(hex"01234b");
+
+        address expectedAddr = computeCreate2Address(salt, initCodeHash, address(account));
+        address returnedAddr = account1.performCreate2(0, initCode, salt);
+
+        assertEq(address(UpgradeableModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
+        assertEq(returnedAddr, expectedAddr);
+
+        vm.expectRevert(UpgradeableModularAccount.CreateFailed.selector);
+        // multi-depoly with same salt got reverted
+        account1.performCreate2(0, initCode, salt);
+    }
+
     // Internal Functions
 
     function _printStorageReadsAndWrites(address addr) internal {

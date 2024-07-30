@@ -105,6 +105,7 @@ contract UpgradeableModularAccount is
     error UnrecognizedFunction(bytes4 selector);
     error UserOpNotFromEntryPoint();
     error UserOpValidationFunctionMissing(bytes4 selector);
+    error CreateFailed();
 
     constructor(IEntryPoint anEntryPoint) {
         _ENTRY_POINT = anEntryPoint;
@@ -374,6 +375,52 @@ contract UpgradeableModularAccount is
         _uninstallPlugin(args, pluginUninstallData);
 
         _postNativeFunction(postExecHooks, postHookArgs);
+    }
+
+    ///
+    /// @param value The value to send to the new contract constructor
+    /// @param initCode The initCode to deploy.
+    function performCreate(uint256 value, bytes calldata initCode)
+        external
+        payable
+        virtual
+        returns (address createdAddr)
+    {
+        assembly ("memory-safe") {
+            let fmp := mload(0x40)
+            let len := initCode.length
+            calldatacopy(fmp, initCode.offset, len)
+
+            createdAddr := create(value, fmp, len)
+
+            if iszero(createdAddr) {
+                mstore(0x00, 0x7e16b8cd)
+                revert(0x1c, 0x04)
+            }
+        }
+    }
+
+    ///
+    /// @param value The value to send to the new contract constructor.
+    /// @param initCode The initCode to deploy.
+    /// @param salt The salt to use for the create2 operation.
+    function performCreate2(uint256 value, bytes calldata initCode, bytes32 salt)
+        external
+        payable
+        virtual
+        returns (address createdAddr)
+    {
+        assembly ("memory-safe") {
+            let fmp := mload(0x40)
+            let len := initCode.length
+            calldatacopy(fmp, initCode.offset, len)
+
+            createdAddr := create2(value, fmp, len, salt)
+            if iszero(createdAddr) {
+                mstore(0x00, 0x7e16b8cd)
+                revert(0x1c, 0x04)
+            }
+        }
     }
 
     /// @inheritdoc IERC777Recipient
