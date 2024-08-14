@@ -93,6 +93,7 @@ contract UpgradeableModularAccount is
     event ModularAccountInitialized(IEntryPoint indexed entryPoint);
 
     error AlwaysDenyRule();
+    error CreateFailed();
     error ExecFromPluginNotPermitted(address plugin, bytes4 selector);
     error ExecFromPluginExternalNotPermitted(address plugin, address target, uint256 value, bytes data);
     error NativeTokenSpendingNotPermitted(address plugin);
@@ -105,7 +106,6 @@ contract UpgradeableModularAccount is
     error UnrecognizedFunction(bytes4 selector);
     error UserOpNotFromEntryPoint();
     error UserOpValidationFunctionMissing(bytes4 selector);
-    error CreateFailed();
 
     constructor(IEntryPoint anEntryPoint) {
         _ENTRY_POINT = anEntryPoint;
@@ -377,9 +377,17 @@ contract UpgradeableModularAccount is
         _postNativeFunction(postExecHooks, postHookArgs);
     }
 
-    ///
+    /// @notice Create a contract.
     /// @param value The value to send to the new contract constructor
     /// @param initCode The initCode to deploy.
+    /// @return createdAddr The created contract address.
+    ///
+    /// @dev Assembly procedure:
+    ///     1. Load the free memory pointer.
+    ///     2. Get the initCode length.
+    ///     3. Copy the initCode from callata to memory at the free memory pointer.
+    ///     4. Create the contract.
+    ///     5. If creation failed (the address returned is zero), revert with CreateFailed().
     function performCreate(uint256 value, bytes calldata initCode)
         external
         payable
@@ -400,10 +408,18 @@ contract UpgradeableModularAccount is
         }
     }
 
-    ///
+    /// @notice Creates a contract using create2 deterministic deployment.
     /// @param value The value to send to the new contract constructor.
     /// @param initCode The initCode to deploy.
     /// @param salt The salt to use for the create2 operation.
+    /// @return createdAddr The created contract address.
+    ///
+    /// @dev Assembly procedure:
+    ///     1. Load the free memory pointer.
+    ///     2. Get the initCode length.
+    ///     3. Copy the initCode from callata to memory at the free memory pointer.
+    ///     4. Create the contract using Create2 with the passed salt parameter.
+    ///     5. If creation failed (the address returned is zero), revert with CreateFailed().
     function performCreate2(uint256 value, bytes calldata initCode, bytes32 salt)
         external
         payable

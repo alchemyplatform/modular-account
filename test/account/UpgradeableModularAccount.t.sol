@@ -543,7 +543,7 @@ contract UpgradeableModularAccountTest is Test {
         assertEq(returnedAddr, expectedAddr);
 
         vm.expectRevert(UpgradeableModularAccount.CreateFailed.selector);
-        // multi-depoly with same salt got reverted
+        // multi-deploy with same salt got reverted
         account1.performCreate2(0, initCode, salt);
     }
 
