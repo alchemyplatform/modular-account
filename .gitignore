@@ -4,11 +4,11 @@ out-optimized/
 cache/
 node_modules/
 
-# coverage
+# Coverage
 report/
 lcov.info
 
-# secret
+# env vars
 .env
 
 # deployments

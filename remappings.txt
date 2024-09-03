@@ -2,5 +2,6 @@ ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 modular-account-libs/=node_modules/modular-account-libs/src/
 @eth-infinitism/account-abstraction/=lib/account-abstraction/contracts/
+account-abstraction/=lib/account-abstraction/contracts/
 @openzeppelin/=lib/openzeppelin-contracts/
 @alchemy/light-account/=lib/light-account/

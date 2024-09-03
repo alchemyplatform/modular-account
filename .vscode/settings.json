@@ -1,7 +1,7 @@
 {
   "solidity.packageDefaultDependenciesContractsDirectory": "src",
   "solidity.packageDefaultDependenciesDirectory": "lib",
-  "solidity.compileUsingRemoteVersion": "v0.8.22",
+  "solidity.compileUsingRemoteVersion": "v0.8.26+commit.8a97fa7a",
   "editor.formatOnSave": true,
   "[solidity]": {
     "editor.defaultFormatter": "JuanBlanco.solidity"

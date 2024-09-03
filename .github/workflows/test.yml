@@ -1,4 +1,4 @@
-name: test
+name: Modular Account Test CI
 
 on: [pull_request, workflow_dispatch]
 
@@ -12,106 +12,46 @@ jobs:
     name: Run Linters
     runs-on: ubuntu-latest
     steps:
-      - name: "Check out the repo"
-        uses: "actions/checkout@v3"
+      - uses: actions/checkout@v3
         with:
-          submodules: "recursive"
+          submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
+      - uses: ./.github/workflows/setup-ci
 
-      - name: "Install Pnpm"
-        uses: "pnpm/action-setup@v2"
-        with:
-          version: "8"
-
-      - name: "Install Node.js"
-        uses: "actions/setup-node@v3"
-        with:
-          cache: "pnpm"
-          node-version: "lts/*"
-
-      - name: "Install Node.js dependencies"
-        run: "pnpm install"
-
-      - run: forge fmt --check
+      - name: "Check formatting"
+        run: forge fmt --check
 
       - name: "Lint the contracts"
         run: "pnpm lint"
 
-  # check-inspect:
-  #   name: Verify Inspections
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Install Foundry
-  #       uses: foundry-rs/foundry-toolchain@v1
-  #       with:
-  #         version: nightly
-
-  #     - run: forge install
-  #     - run: bash ./utils/inspect.sh
-
-  #     - run: git status --untracked-files=no --porcelain
-  #     - run: git --no-pager diff
-
-  #     - name: Check Inspections
-  #       run: if [[ -n "$(git status --untracked-files=no --porcelain)" ]]; then echo "Inspection difference detected, verify tests are passing and run \`bash ./utils/inspect.sh\` to fix." && exit 1; fi
-
-  test:
-    name: Run Forge Tests
+  test-optimized-test-deep:
+    name: Run Forge Tests (optimized-test-deep)
     runs-on: ubuntu-latest
     steps:
-      - name: "Check out the repo"
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-
-      - name: Install forge dependencies
-        run: forge install
-
-      - name: "Install Pnpm"
-        uses: "pnpm/action-setup@v2"
-        with:
-          version: "8"
-
-      - name: "Install Node.js dependencies"
-        run: "pnpm install"
+      - uses: ./.github/workflows/setup-ci
 
       - name: Build project
-        run: forge build --sizes
+        run: FOUNDRY_PROFILE=optimized-build forge build
 
       - name: Run tests
-        run: FOUNDRY_PROFILE=deep forge test -vvv
+        run: FOUNDRY_PROFILE=optimized-test-deep forge test -vvv
 
-  test-lite:
-    name: Run Forge Tests [lite build]
+  test-default:
+    name: Run Forge Tests (default)
     runs-on: ubuntu-latest
     steps:
-      - name: "Check out the repo"
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-
-      - name: Install forge dependencies
-        run: forge install
-
-      - name: "Install Pnpm"
-        uses: "pnpm/action-setup@v2"
-        with:
-          version: "8"
-
-      - name: "Install Node.js dependencies"
-        run: "pnpm install"
+      - uses: ./.github/workflows/setup-ci
 
       - name: Build project
-        run: FOUNDRY_PROFILE=lite forge build
+        run: forge build
 
       - name: Run tests
-        run: FOUNDRY_PROFILE=lite forge test -vvv
+        run: forge test -vvv
