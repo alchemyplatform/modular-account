@@ -1,0 +1,29 @@
+name: "Setup CI"
+description: "Reusable setup for multiple CI checks"
+
+runs:
+  using: "composite"
+  steps:
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: "Install Pnpm"
+        uses: "pnpm/action-setup@v2"
+        with:
+          version: "8"
+
+      - name: "Install Node.js"
+        uses: "actions/setup-node@v3"
+        with:
+          cache: "pnpm"
+          node-version: "lts/*"
+      
+      - name: Install Foundry dependencies
+        shell: bash
+        run: forge install
+
+      - name: "Install the Node.js dependencies"
+        shell: bash
+        run: "pnpm install"
