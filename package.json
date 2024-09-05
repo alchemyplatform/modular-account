@@ -2,7 +2,9 @@
   "name": "modular-account",
   "version": "v1.0.1",
   "dependencies": {
-    "modular-account-libs": "github:erc6900/modular-account-libs#v0.7.0"
+    "account-abstraction": "github:eth-infinitism/account-abstraction#v0.7.0",
+    "modular-account-libs": "github:erc6900/modular-account-libs#v0.8.0-rc.0",
+    "reference-implementation": "github:erc6900/reference-implementation#v0.8.0-rc.1"
   },
   "devDependencies": {
     "pnpm": "^8.7.5",
