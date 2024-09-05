@@ -5,7 +5,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 
 import {HookConfig, ModuleEntity} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
 
-// bytes = keccak256("ERC6900.ReferenceModularAccount.Storage")
+// bytes = keccak256("ERC6900.ModularAccount.Storage")
 bytes32 constant _ACCOUNT_STORAGE_SLOT = 0xc531f081ecdb5a90f38c197521797881a6e5c752a7d451780f325a95f8b91f45;
 
 // Represents data associated with a specifc function selector.

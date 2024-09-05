@@ -8,7 +8,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {Call, IModularAccount} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {AccountFactory} from "../../src/account/AccountFactory.sol";
-import {ReferenceModularAccount} from "../../src/account/ReferenceModularAccount.sol";
+import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/helpers/ModuleEntityLib.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
@@ -16,7 +16,7 @@ import {OptimizedTest} from "./OptimizedTest.sol";
 import {TEST_DEFAULT_VALIDATION_ENTITY_ID as EXT_CONST_TEST_DEFAULT_VALIDATION_ENTITY_ID} from
     "./TestConstants.sol";
 
-/// @dev This contract handles common boilerplate setup for tests using ReferenceModularAccount with
+/// @dev This contract handles common boilerplate setup for tests using ModularAccount with
 /// SingleSignerValidationModule.
 abstract contract AccountTestBase is OptimizedTest {
     using ModuleEntityLib for ModuleEntity;
@@ -26,7 +26,7 @@ abstract contract AccountTestBase is OptimizedTest {
     address payable public beneficiary;
 
     SingleSignerValidationModule public singleSignerValidationModule;
-    ReferenceModularAccount public accountImplementation;
+    ModularAccount public accountImplementation;
     SemiModularAccount public semiModularAccountImplementation;
     AccountFactory public factory;
 
@@ -34,7 +34,7 @@ abstract contract AccountTestBase is OptimizedTest {
 
     address public owner1;
     uint256 public owner1Key;
-    ReferenceModularAccount public account1;
+    ModularAccount public account1;
 
     ModuleEntity internal _signerValidation;
 
@@ -65,7 +65,7 @@ abstract contract AccountTestBase is OptimizedTest {
         singleSignerValidationModule = SingleSignerValidationModule(address(type(uint160).max));
         vm.etch(address(singleSignerValidationModule), deployedSingleSignerValidation.code);
 
-        accountImplementation = _deployReferenceModularAccount(entryPoint);
+        accountImplementation = _deployModularAccount(entryPoint);
 
         semiModularAccountImplementation = SemiModularAccount(payable(_deploySemiModularAccount(entryPoint)));
 

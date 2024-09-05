@@ -16,9 +16,9 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 import {LibClone} from "solady/utils/LibClone.sol";
 
 import {ModuleEntityLib} from "../helpers/ModuleEntityLib.sol";
-import {ReferenceModularAccount} from "./ReferenceModularAccount.sol";
+import {ModularAccount} from "./ModularAccount.sol";
 
-contract SemiModularAccount is ReferenceModularAccount {
+contract SemiModularAccount is ModularAccount {
     using MessageHashUtils for bytes32;
     using ModuleEntityLib for ModuleEntity;
 
@@ -51,7 +51,7 @@ contract SemiModularAccount is ReferenceModularAccount {
     error FallbackSignerDisabled();
     error InitializerDisabled();
 
-    constructor(IEntryPoint anEntryPoint) ReferenceModularAccount(anEntryPoint) {}
+    constructor(IEntryPoint anEntryPoint) ModularAccount(anEntryPoint) {}
 
     /// @notice Updates the fallback signer address in storage.
     /// @dev This function causes the fallback signer getter to ignore the bytecode signer if it is nonzero. It can

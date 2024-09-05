@@ -35,7 +35,7 @@ import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
 
-contract ReferenceModularAccount is
+contract ModularAccount is
     IModularAccount,
     AccountExecutor,
     ModularAccountView,

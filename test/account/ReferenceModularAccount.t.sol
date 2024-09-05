@@ -13,8 +13,8 @@ import {ExecutionManifest} from "@erc-6900/reference-implementation/interfaces/I
 import {Call} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ExecutionDataView} from "@erc-6900/reference-implementation/interfaces/IModularAccountView.sol";
 
+import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModuleManagerInternals} from "../../src/account/ModuleManagerInternals.sol";
-import {ReferenceModularAccount} from "../../src/account/ReferenceModularAccount.sol";
 import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
 import {ModuleEntityLib} from "../../src/helpers/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../../src/helpers/ValidationConfigLib.sol";
@@ -28,7 +28,7 @@ import {MockModule} from "../mocks/module/MockModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {TEST_DEFAULT_VALIDATION_ENTITY_ID} from "../utils/TestConstants.sol";
 
-contract ReferenceModularAccountTest is AccountTestBase {
+contract ModularAccountTest is AccountTestBase {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
 
@@ -37,7 +37,7 @@ contract ReferenceModularAccountTest is AccountTestBase {
     // A separate account and owner that isn't deployed yet, used to test initcode
     address public owner2;
     uint256 public owner2Key;
-    ReferenceModularAccount public account2;
+    ModularAccount public account2;
 
     address public ethRecipient;
     Counter public counter;
@@ -53,8 +53,7 @@ contract ReferenceModularAccountTest is AccountTestBase {
         (owner2, owner2Key) = makeAddrAndKey("owner2");
 
         // Compute counterfactual address
-        account2 =
-            ReferenceModularAccount(payable(factory.getAddress(owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID)));
+        account2 = ModularAccount(payable(factory.getAddress(owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID)));
         vm.deal(address(account2), 100 ether);
 
         ethRecipient = makeAddr("ethRecipient");
@@ -72,7 +71,7 @@ contract ReferenceModularAccountTest is AccountTestBase {
             sender: address(account1),
             nonce: 0,
             initCode: "",
-            callData: abi.encodeCall(ReferenceModularAccount.execute, (ethRecipient, 1 wei, "")),
+            callData: abi.encodeCall(ModularAccount.execute, (ethRecipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -97,7 +96,7 @@ contract ReferenceModularAccountTest is AccountTestBase {
         bytes memory callData = vm.envOr("SMA_TEST", false)
             ? abi.encodeCall(SemiModularAccount(payable(account1)).updateFallbackSigner, (owner2))
             : abi.encodeCall(
-                ReferenceModularAccount.execute,
+                ModularAccount.execute,
                 (
                     address(singleSignerValidationModule),
                     0,
@@ -141,7 +140,7 @@ contract ReferenceModularAccountTest is AccountTestBase {
             initCode: abi.encodePacked(
                 address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
             ),
-            callData: abi.encodeCall(ReferenceModularAccount.execute, (recipient, 1 wei, "")),
+            callData: abi.encodeCall(ModularAccount.execute, (recipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -162,12 +161,12 @@ contract ReferenceModularAccountTest is AccountTestBase {
         assertEq(recipient.balance, 1 wei);
     }
 
-    function test_debug_ReferenceModularAccount_storageAccesses() public {
+    function test_debug_ModularAccount_storageAccesses() public {
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
             nonce: 0,
             initCode: "",
-            callData: abi.encodeCall(ReferenceModularAccount.execute, (ethRecipient, 1 wei, "")),
+            callData: abi.encodeCall(ModularAccount.execute, (ethRecipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -204,7 +203,7 @@ contract ReferenceModularAccountTest is AccountTestBase {
             nonce: 0,
             initCode: "",
             callData: abi.encodeCall(
-                ReferenceModularAccount.execute, (address(counter), 0, abi.encodeCall(counter.increment, ()))
+                ModularAccount.execute, (address(counter), 0, abi.encodeCall(counter.increment, ()))
             ),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
@@ -236,7 +235,7 @@ contract ReferenceModularAccountTest is AccountTestBase {
             sender: address(account1),
             nonce: 0,
             initCode: "",
-            callData: abi.encodeCall(ReferenceModularAccount.executeBatch, (calls)),
+            callData: abi.encodeCall(ModularAccount.executeBatch, (calls)),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -362,7 +361,7 @@ contract ReferenceModularAccountTest is AccountTestBase {
 
     function test_upgradeToAndCall() public {
         vm.startPrank(address(entryPoint));
-        ReferenceModularAccount account3 = new ReferenceModularAccount(entryPoint);
+        ModularAccount account3 = new ModularAccount(entryPoint);
         bytes32 slot = account3.proxiableUUID();
 
         // account has impl from factory
@@ -443,9 +442,7 @@ contract ReferenceModularAccountTest is AccountTestBase {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ReferenceModularAccount.SignatureValidationInvalid.selector,
-                singleSignerValidationModule,
-                newEntityId
+                ModularAccount.SignatureValidationInvalid.selector, singleSignerValidationModule, newEntityId
             )
         );
         IERC1271(address(account1)).isValidSignature(message, signature);
@@ -466,7 +463,7 @@ contract ReferenceModularAccountTest is AccountTestBase {
             sender: address(account1),
             nonce: 0,
             initCode: "",
-            callData: abi.encodeCall(ReferenceModularAccount.execute, (ethRecipient, 1 wei, "")),
+            callData: abi.encodeCall(ModularAccount.execute, (ethRecipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -492,9 +489,7 @@ contract ReferenceModularAccountTest is AccountTestBase {
                 0,
                 "AA23 reverted",
                 abi.encodeWithSelector(
-                    ReferenceModularAccount.UserOpValidationInvalid.selector,
-                    singleSignerValidationModule,
-                    newEntityId
+                    ModularAccount.UserOpValidationInvalid.selector, singleSignerValidationModule, newEntityId
                 )
             )
         );
@@ -503,7 +498,7 @@ contract ReferenceModularAccountTest is AccountTestBase {
         //show working rt validation
         vm.startPrank(address(owner1));
         account1.executeWithAuthorization(
-            abi.encodeCall(ReferenceModularAccount.execute, (ethRecipient, 1 wei, "")),
+            abi.encodeCall(ModularAccount.execute, (ethRecipient, 1 wei, "")),
             _encodeSignature(
                 ModuleEntityLib.pack(address(singleSignerValidationModule), newEntityId), GLOBAL_VALIDATION, ""
             )

@@ -5,7 +5,7 @@ import {Test} from "forge-std/Test.sol";
 
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
-import {ReferenceModularAccount} from "../../src/account/ReferenceModularAccount.sol";
+import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
 
 import {TokenReceiverModule} from "../../src/modules/TokenReceiverModule.sol";
@@ -30,27 +30,22 @@ abstract contract OptimizedTest is Test {
         return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
     }
 
-    function _deployReferenceModularAccount(IEntryPoint entryPoint) internal returns (ReferenceModularAccount) {
+    function _deployModularAccount(IEntryPoint entryPoint) internal returns (ModularAccount) {
         return _isOptimizedTest()
-            ? ReferenceModularAccount(
-                payable(
-                    deployCode(
-                        "out-optimized/ReferenceModularAccount.sol/ReferenceModularAccount.json",
-                        abi.encode(entryPoint)
-                    )
-                )
+            ? ModularAccount(
+                payable(deployCode("out-optimized/ModularAccount.sol/ModularAccount.json", abi.encode(entryPoint)))
             )
-            : new ReferenceModularAccount(entryPoint);
+            : new ModularAccount(entryPoint);
     }
 
-    function _deploySemiModularAccount(IEntryPoint entryPoint) internal returns (ReferenceModularAccount) {
+    function _deploySemiModularAccount(IEntryPoint entryPoint) internal returns (ModularAccount) {
         return _isOptimizedTest()
-            ? ReferenceModularAccount(
+            ? ModularAccount(
                 payable(
                     deployCode("out-optimized/SemiModularAccount.sol/SemiModularAccount.json", abi.encode(entryPoint))
                 )
             )
-            : ReferenceModularAccount(new SemiModularAccount(entryPoint));
+            : ModularAccount(new SemiModularAccount(entryPoint));
     }
 
     function _deployTokenReceiverModule() internal returns (TokenReceiverModule) {

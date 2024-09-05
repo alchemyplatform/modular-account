@@ -7,14 +7,14 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
-import {ReferenceModularAccount} from "../account/ReferenceModularAccount.sol";
+import {ModularAccount} from "../account/ModularAccount.sol";
 import {SemiModularAccount} from "../account/SemiModularAccount.sol";
 import {ValidationConfigLib} from "../helpers/ValidationConfigLib.sol";
 
 import {LibClone} from "solady/utils/LibClone.sol";
 
 contract AccountFactory is Ownable {
-    ReferenceModularAccount public immutable ACCOUNT_IMPL;
+    ModularAccount public immutable ACCOUNT_IMPL;
     SemiModularAccount public immutable SEMI_MODULAR_ACCOUNT_IMPL;
     bytes32 private immutable _PROXY_BYTECODE_HASH;
     IEntryPoint public immutable ENTRY_POINT;
@@ -25,7 +25,7 @@ contract AccountFactory is Ownable {
 
     constructor(
         IEntryPoint _entryPoint,
-        ReferenceModularAccount _accountImpl,
+        ModularAccount _accountImpl,
         SemiModularAccount _semiModularImpl,
         address _singleSignerValidationModule,
         address owner
@@ -45,10 +45,7 @@ contract AccountFactory is Ownable {
      * This method returns an existing account address so that entryPoint.getSenderAddress() would work even after
      * account creation
      */
-    function createAccount(address owner, uint256 salt, uint32 entityId)
-        external
-        returns (ReferenceModularAccount)
-    {
+    function createAccount(address owner, uint256 salt, uint32 entityId) external returns (ModularAccount) {
         bytes32 combinedSalt = getSalt(owner, salt, entityId);
         address addr = Create2.computeAddress(combinedSalt, _PROXY_BYTECODE_HASH);
 
@@ -58,7 +55,7 @@ contract AccountFactory is Ownable {
             // not necessary to check return addr since next call will fail if so
             new ERC1967Proxy{salt: combinedSalt}(address(ACCOUNT_IMPL), "");
             // point proxy to actual implementation and init plugins
-            ReferenceModularAccount(payable(addr)).initializeWithValidation(
+            ModularAccount(payable(addr)).initializeWithValidation(
                 ValidationConfigLib.pack(SINGLE_SIGNER_VALIDATION_MODULE, entityId, true, true, true),
                 new bytes4[](0),
                 pluginInstallData,
@@ -67,7 +64,7 @@ contract AccountFactory is Ownable {
             emit ModularAccountDeployed(addr, owner, salt);
         }
 
-        return ReferenceModularAccount(payable(addr));
+        return ModularAccount(payable(addr));
     }
 
     function createSemiModularAccount(address owner, uint256 salt) external returns (SemiModularAccount) {
