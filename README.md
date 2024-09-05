@@ -69,6 +69,10 @@ Our audit reports from Spearbit and Quantstamp can be found in [audits](/audits)
 
 Details of our bug bounty program can be found at https://hackerone.com/alchemyplatform.
 
+### Acknowledgements
+
+The contracts in this repository adhere to the ERC-6900 specification, and are heavily influenced by the design of the ERC-6900 reference implementation. 
+
 ## License
 
 The Modular Account libraries (all code inside the [src/libraries](src/libraries) directory) are licensed under the MIT License, also included in our repository in [LICENSE-MIT](LICENSE-MIT).
