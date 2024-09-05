@@ -10,12 +10,12 @@ runs:
           version: nightly
 
       - name: "Install Pnpm"
-        uses: "pnpm/action-setup@v2"
+        uses: "pnpm/action-setup@v4"
         with:
           version: "8"
 
       - name: "Install Node.js"
-        uses: "actions/setup-node@v3"
+        uses: "actions/setup-node@v4"
         with:
           cache: "pnpm"
           node-version: "lts/*"
