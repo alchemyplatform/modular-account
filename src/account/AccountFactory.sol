@@ -114,7 +114,9 @@ contract AccountFactory is Ownable {
     }
 
     function _getAddressSemiModular(bytes memory immutables, bytes32 salt) internal view returns (address) {
-        return LibClone.predictDeterministicAddressERC1967(address(ACCOUNT_IMPL), immutables, salt, address(this));
+        return LibClone.predictDeterministicAddressERC1967(
+            address(SEMI_MODULAR_ACCOUNT_IMPL), immutables, salt, address(this)
+        );
     }
 
     function _getImmutableArgs(address owner) private pure returns (bytes memory) {

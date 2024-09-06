@@ -10,8 +10,12 @@ import {Call, IModularAccount} from "@erc-6900/reference-implementation/interfac
 import {AccountFactory} from "../../src/account/AccountFactory.sol";
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
+
+import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../src/helpers/Constants.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/helpers/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "../../src/helpers/ValidationConfigLib.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
+
 import {OptimizedTest} from "./OptimizedTest.sol";
 import {TEST_DEFAULT_VALIDATION_ENTITY_ID as EXT_CONST_TEST_DEFAULT_VALIDATION_ENTITY_ID} from
     "./TestConstants.sol";
@@ -77,7 +81,12 @@ abstract contract AccountTestBase is OptimizedTest {
             factoryOwner
         );
 
-        account1 = factory.createAccount(owner1, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID);
+        if (vm.envOr("SMA_TEST", false)) {
+            account1 = factory.createSemiModularAccount(owner1, 0);
+        } else {
+            account1 = factory.createAccount(owner1, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID);
+        }
+
         vm.deal(address(account1), 100 ether);
 
         _signerValidation =
@@ -201,6 +210,22 @@ abstract contract AccountTestBase is OptimizedTest {
                         SingleSignerValidationModule.transferSigner,
                         (TEST_DEFAULT_VALIDATION_ENTITY_ID, address(this))
                     )
+                )
+            ),
+            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
+        );
+    }
+
+    function _allowTestDirectCalls() internal {
+        vm.prank(owner1);
+        account1.executeWithAuthorization(
+            abi.encodeCall(
+                account1.installValidation,
+                (
+                    ValidationConfigLib.pack(address(this), DIRECT_CALL_VALIDATION_ENTITYID, true, false, false),
+                    new bytes4[](0),
+                    "",
+                    new bytes[](0)
                 )
             ),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")

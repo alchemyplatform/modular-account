@@ -98,7 +98,7 @@ contract SemiModularAccount is ModularAccount {
 
     /// @inheritdoc IModularAccount
     function accountId() external pure override returns (string memory) {
-        return "erc6900.reference-semi-modular-account.0.8.0";
+        return "alchemy.semi-modular-account.0.0.1";
     }
 
     function replaySafeHash(bytes32 hash) public view virtual returns (bytes32) {
