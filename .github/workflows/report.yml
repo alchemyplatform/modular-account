@@ -1,0 +1,113 @@
+name: PR Report
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  comment-pr-report:
+    name: Comment PR Report
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - uses: ./.github/workflows/setup-ci
+
+      - name: Run forge coverage
+        id: coverage
+        run: |
+          {
+          echo 'COVERAGE<<EOF'
+          forge coverage --no-match-coverage "(test)" | grep '^|'
+          echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Get new contract sizes
+        id: newsizes
+        # Gets the sizes, filtering out all text before the markdown table, then excluding any libraries (https://github.com/foundry-rs/foundry/issues/1356).
+        # Libraries are detected by either being of size 17 (the size of an internal-only library) or having the case-sensitive substring "Lib" in their name.
+        run: |
+         {
+         echo 'NEWSIZES<<EOF'
+         FOUNDRY_PROFILE=optimized-build forge b --sizes | grep '^|' | grep -v -e '|       17 |' -e 'Lib'
+         echo EOF
+         } >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v3
+        with:
+          ref: develop
+          submodules: recursive
+
+      # Need to re-install dependencies, since they were cleared by the checkout action
+
+      - name: Install Foundry dependencies
+        shell: bash
+        run: forge install
+
+      - name: "Install the Node.js dependencies"
+        shell: bash
+        run: "pnpm install"
+
+      - name: Get old contract sizes
+        id: oldsizes
+        run: |
+         {
+         echo 'OLDSIZES<<EOF'
+         FOUNDRY_PROFILE=optimized-build forge b --sizes | grep '^|' | grep -v -e '|       17 |' -e 'Lib'
+         echo EOF
+         } >> "$GITHUB_OUTPUT"
+
+      - name: Get sizes diff
+        id: diffsizes
+        run: |
+         {
+         echo 'DIFFSIZES<<EOF'
+         echo "${{ steps.newsizes.outputs.NEWSIZES }}" > newsizes.txt
+         echo "${{ steps.oldsizes.outputs.OLDSIZES }}" > oldsizes.txt
+         diff -U 99999999 oldsizes.txt newsizes.txt | grep -e '^ |' -e '^+|' -e '^-|' || true
+         echo EOF
+         } >> "$GITHUB_OUTPUT"
+
+
+      - name: Comment on PR
+        id: comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const {data: comments} = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number, 
+              })
+
+            const botComment = comments.find(comment => comment.user.id === 41898282)
+
+            const coverageOutput = `${{ steps.coverage.outputs.COVERAGE }}`;
+            const sizeDiffOutput = `${{ steps.diffsizes.outputs.DIFFSIZES }}`;
+            const newSizesOuput = `${{ steps.newsizes.outputs.NEWSIZES }}`;
+            const sizesContent = (sizeDiffOutput.trim().length === 0) ? newSizesOuput : sizeDiffOutput;
+            const commentBody = `Contract sizes:\n\`\`\`diff\n${sizesContent}\n\`\`\`\nCode coverage:\n${coverageOutput}\n`;
+
+            if (botComment) {
+              github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: commentBody
+              })
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: commentBody
+              });
+            }

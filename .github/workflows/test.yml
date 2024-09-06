@@ -1,4 +1,4 @@
-name: Modular Account Test CI
+name: Test
 
 on: [pull_request, workflow_dispatch]
 
