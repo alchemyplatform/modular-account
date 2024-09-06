@@ -53,7 +53,7 @@ abstract contract AccountTestBase is OptimizedTest {
     }
 
     constructor() {
-        entryPoint = new EntryPoint();
+        entryPoint = _deployEntryPoint070();
         (owner1, owner1Key) = makeAddrAndKey("owner1");
         factoryOwner = makeAddr("factoryOwner");
         beneficiary = payable(makeAddr("beneficiary"));

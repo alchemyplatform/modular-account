@@ -11,7 +11,8 @@ auto_detect_solc = false
 bytecode_hash = "none"
 auto_detect_remappings = false
 fs_permissions = [
-  { access = "read", path = "./out-optimized" }
+  { access = "read", path = "./out-optimized" },
+  { access = "read", path = "./test/bin" },
 ]
 
 [fuzz]
