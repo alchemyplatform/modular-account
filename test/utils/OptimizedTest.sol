@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 
+import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
@@ -60,5 +61,15 @@ abstract contract OptimizedTest is Test {
                 deployCode("out-optimized/SingleSignerValidationModule.sol/SingleSignerValidationModule.json")
             )
             : new SingleSignerValidationModule();
+    }
+
+    function _deployEntryPoint070() internal returns (EntryPoint) {
+        address deployedEntryPointAddr = 0x0000000071727De22E5E9d8BAf0edAc6f37da032;
+        address deployedSenderCreatorAddr = 0xEFC2c1444eBCC4Db75e7613d20C6a62fF67A167C;
+        bytes memory bytecode = vm.readFileBinary("test/bin/EntryPoint070.bytecode");
+        vm.etch(deployedEntryPointAddr, bytecode);
+        bytecode = vm.readFileBinary("test/bin/SenderCreator070.bytecode");
+        vm.etch(deployedSenderCreatorAddr, bytecode);
+        return EntryPoint(payable(deployedEntryPointAddr));
     }
 }
