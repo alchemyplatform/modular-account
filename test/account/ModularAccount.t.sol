@@ -22,9 +22,8 @@ import {TokenReceiverModule} from "../../src/modules/TokenReceiverModule.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 import {Counter} from "../mocks/Counter.sol";
-
-import {ComprehensiveModule} from "../mocks/module/ComprehensiveModule.sol";
-import {MockModule} from "../mocks/module/MockModule.sol";
+import {ComprehensiveModule} from "../mocks/modules/ComprehensiveModule.sol";
+import {MockModule} from "../mocks/modules/MockModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {TEST_DEFAULT_VALIDATION_ENTITY_ID} from "../utils/TestConstants.sol";
 
@@ -53,7 +52,11 @@ contract ModularAccountTest is AccountTestBase {
         (owner2, owner2Key) = makeAddrAndKey("owner2");
 
         // Compute counterfactual address
-        account2 = ModularAccount(payable(factory.getAddress(owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID)));
+        if (vm.envOr("SMA_TEST", false)) {
+            account2 = ModularAccount(payable(factory.getAddressSemiModular(owner2, 0)));
+        } else {
+            account2 = ModularAccount(payable(factory.getAddress(owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID)));
+        }
         vm.deal(address(account2), 100 ether);
 
         ethRecipient = makeAddr("ethRecipient");
@@ -106,12 +109,16 @@ contract ModularAccountTest is AccountTestBase {
                 )
             );
 
+        bytes memory initCode = vm.envOr("SMA_TEST", false)
+            ? abi.encodePacked(address(factory), abi.encodeCall(factory.createSemiModularAccount, (owner2, 0)))
+            : abi.encodePacked(
+                address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
+            );
+
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account2),
             nonce: 0,
-            initCode: abi.encodePacked(
-                address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
-            ),
+            initCode: initCode,
             callData: callData,
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
@@ -132,14 +139,18 @@ contract ModularAccountTest is AccountTestBase {
     }
 
     function test_standardExecuteEthSend_withInitcode() public {
+        bytes memory initCode = vm.envOr("SMA_TEST", false)
+            ? abi.encodePacked(address(factory), abi.encodeCall(factory.createSemiModularAccount, (owner2, 0)))
+            : abi.encodePacked(
+                address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
+            );
+
         address payable recipient = payable(makeAddr("recipient"));
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account2),
             nonce: 0,
-            initCode: abi.encodePacked(
-                address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
-            ),
+            initCode: initCode,
             callData: abi.encodeCall(ModularAccount.execute, (recipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
@@ -191,9 +202,7 @@ contract ModularAccountTest is AccountTestBase {
         string memory accountId = account1.accountId();
         assertEq(
             accountId,
-            vm.envOr("SMA_TEST", false)
-                ? "erc6900.reference-semi-modular-account.0.8.0"
-                : "erc6900.reference-modular-account.0.8.0"
+            vm.envOr("SMA_TEST", false) ? "alchemy.semi-modular-account.0.0.1" : "alchemy.modular-account.0.0.1"
         );
     }
 
@@ -365,7 +374,14 @@ contract ModularAccountTest is AccountTestBase {
         bytes32 slot = account3.proxiableUUID();
 
         // account has impl from factory
-        assertEq(address(accountImplementation), address(uint160(uint256(vm.load(address(account1), slot)))));
+        if (vm.envOr("SMA_TEST", false)) {
+            assertEq(
+                address(semiModularAccountImplementation),
+                address(uint160(uint256(vm.load(address(account1), slot))))
+            );
+        } else {
+            assertEq(address(accountImplementation), address(uint160(uint256(vm.load(address(account1), slot)))));
+        }
         account1.upgradeToAndCall(address(account3), bytes(""));
         // account has new impl
         assertEq(address(account3), address(uint160(uint256(vm.load(address(account1), slot)))));

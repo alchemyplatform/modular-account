@@ -298,7 +298,7 @@ contract ModularAccount is
 
     /// @inheritdoc IModularAccount
     function accountId() external pure virtual returns (string memory) {
-        return "erc6900.reference-modular-account.0.8.0";
+        return "alchemy.modular-account.0.0.1";
     }
 
     /// @inheritdoc UUPSUpgradeable
