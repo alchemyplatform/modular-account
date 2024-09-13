@@ -1,0 +1,22 @@
+name: Gas
+
+on: [pull_request, workflow_dispatch]
+
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: true
+
+# Runs linter, tests, and inspection checker in parallel
+jobs:
+  lint:
+    name: Check gas snapshot values
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - uses: ./.github/workflows/setup-ci
+
+      - name: "Check gas snapshot"
+        run: pnpm gas:check
