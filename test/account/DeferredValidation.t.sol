@@ -36,7 +36,7 @@ contract DeferredValidationTest is AccountTestBase {
             IEntryPoint.FailedOpWithRevert.selector,
             0,
             "AA23 reverted",
-            abi.encodeWithSignature("Error(string)", ("TEMP: NONCE USED"))
+            abi.encodeWithSelector(ModularAccount.DeferredInstallNonceUsed.selector)
         );
 
         _runUserOpWithCustomSig(encodedCall, expectedRevertdata, _buildSig(0));
@@ -47,7 +47,7 @@ contract DeferredValidationTest is AccountTestBase {
         _runUserOpWithCustomSig(encodedCall, "", _buildSig(0));
     }
 
-    function _buildSig(uint256 nonce) internal returns (bytes memory) {
+    function _buildSig(uint256 nonce) internal view returns (bytes memory) {
         /**
          * Deferred validation signature structure:
          * bytes 0-23: Outer validation moduleEntity (the validation used to validate the installation of the inner
