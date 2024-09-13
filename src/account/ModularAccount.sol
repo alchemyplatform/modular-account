@@ -34,6 +34,7 @@ import {AccountStorage, getAccountStorage, toHookConfig, toSetValue} from "./Acc
 import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 contract ModularAccount is
     IModularAccount,
@@ -58,6 +59,14 @@ contract ModularAccount is
         ModuleEntity postExecHook;
     }
 
+    struct DeferredValidationInstallData {
+        ValidationConfig validationConfig;
+        bytes4[] selectors;
+        bytes installData;
+        bytes[] hooks;
+        uint256 nonce;
+    }
+
     enum ValidationCheckingType {
         GLOBAL,
         SELECTOR,
@@ -65,6 +74,15 @@ contract ModularAccount is
     }
 
     IEntryPoint private immutable _ENTRY_POINT;
+
+    // keccak256("EIP712Domain(uint256 chainId,address verifyingContract)")
+    bytes32 internal constant _DOMAIN_SEPARATOR_TYPEHASH =
+        0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
+
+    // keccak256("InstallValidation(bytes25 validationConfig,bytes4[] selectors,bytes installData,bytes[]
+    // hooks,uint256 nonce)");
+    bytes32 internal constant _INSTALL_VALIDATION_TYPEHASH =
+        0x783428aec78c395af20a06a23dc6f93d818c32ac6c1c15dfcb08547311a4ba8d;
 
     // As per the EIP-165 spec, no interface should ever match 0xffffffff
     bytes4 internal constant _INTERFACE_ID_INVALID = 0xffffffff;
@@ -86,6 +104,8 @@ contract ModularAccount is
     error UnexpectedAggregator(address module, uint32 entityId, address aggregator);
     error UnrecognizedFunction(bytes4 selector);
     error ValidationFunctionMissing(bytes4 selector);
+    error DeferredInstallNonceUsed();
+    error DeferredInstallSignatureInvalid();
 
     // Wraps execution of a native function with runtime validation and hooks
     // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution
@@ -195,7 +215,7 @@ contract ModularAccount is
         payable
         returns (bytes memory)
     {
-        // Revert if the provided `authorization` less than 21 bytes long, rather than right-padding.
+        // Revert if the provided `authorization` less than 24 bytes long, rather than right-padding.
         ModuleEntity runtimeValidationFunction = ModuleEntity.wrap(bytes24(authorization[:24]));
 
         // Check if the runtime validation function is allowed to be called
@@ -296,6 +316,10 @@ contract ModularAccount is
         return getAccountStorage().supportedIfaces[interfaceId] > 0;
     }
 
+    function getDomainSeparator() external view returns (bytes32) {
+        return _domainSeparator();
+    }
+
     /// @inheritdoc IModularAccount
     function accountId() external pure virtual returns (string memory) {
         return "alchemy.modular-account.0.0.1";
@@ -313,35 +337,16 @@ contract ModularAccount is
         super.upgradeToAndCall(newImplementation, data);
     }
 
-    function isValidSignature(bytes32 hash, bytes calldata signature) public view override returns (bytes4) {
-        ModuleEntity sigValidation = ModuleEntity.wrap(bytes24(signature));
-        signature = signature[24:];
-
-        ModuleEntity[] memory preSignatureValidationHooks =
-            getAccountStorage().validationData[sigValidation].preValidationHooks;
-
-        for (uint256 i = 0; i < preSignatureValidationHooks.length; ++i) {
-            (address hookModule, uint32 hookEntityId) = preSignatureValidationHooks[i].unpack();
-
-            bytes memory currentSignatureSegment;
-
-            (currentSignatureSegment, signature) = signature.advanceSegmentIfAtIndex(uint8(i));
-
-            // If this reverts, bubble up revert reason.
-            IValidationHookModule(hookModule).preSignatureValidationHook(
-                hookEntityId, msg.sender, hash, currentSignatureSegment
-            );
-        }
-
-        signature = signature.getFinalSegment();
-
-        return _exec1271Validation(sigValidation, hash, signature);
-    }
-
     /// @notice Gets the entry point for this account
     /// @return entryPoint The entry point for this account
     function entryPoint() public view override returns (IEntryPoint) {
         return _ENTRY_POINT;
+    }
+
+    function isValidSignature(bytes32 hash, bytes calldata signature) public view returns (bytes4) {
+        ModuleEntity sigValidation = ModuleEntity.wrap(bytes24(signature));
+        signature = signature[24:];
+        return _isValidSignature(sigValidation, hash, signature);
     }
 
     // INTERNAL FUNCTIONS
@@ -352,17 +357,81 @@ contract ModularAccount is
         override
         returns (uint256 validationData)
     {
+        // Use outer validation as 1271 validation, then installed validation to validate the rest
         if (userOp.callData.length < 4) {
             revert UnrecognizedFunction(bytes4(userOp.callData));
         }
 
-        // Revert if the provided `authorization` less than 21 bytes long, rather than right-padding.
+        // Revert if the provided `authorization` less than 24 bytes long, rather than right-padding.
         ModuleEntity userOpValidationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
-        bool isGlobalValidation = uint8(userOp.signature[24]) == 1;
+        uint8 validationFlags = uint8(userOp.signature[24]);
+        bool isGlobalValidation = validationFlags & 1 == 1;
+        bool isDeferredInstallValidation = validationFlags & 2 == 2;
+
+        bytes calldata userOpSignature;
+        if (isDeferredInstallValidation) {
+            // Check if the outer validation applies to `installValidation`.
+            _checkIfValidationAppliesSelector(
+                this.installValidation.selector,
+                userOpValidationFunction, // Treated as sig val
+                isGlobalValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
+            );
+
+            // Get the length of the abi-encoded `DeferredValidationInstallData` struct.
+            uint256 encodedDataLength = uint32(bytes4(userOp.signature[25:29]));
+
+            // Load the pointer to the abi-encoded struct.
+            bytes calldata encodedData = userOp.signature[29:29 + encodedDataLength];
+
+            // Decode the struct from the abi-encoded bytes.
+            // (DeferredValidationInstallData memory deferredValidationInstallData) =
+            //     abi.decode(encodedData, (DeferredValidationInstallData));
+            //
+            DeferredValidationInstallData memory deferredValidationInstallData;
+            (
+                deferredValidationInstallData.validationConfig,
+                deferredValidationInstallData.selectors,
+                deferredValidationInstallData.installData,
+                deferredValidationInstallData.hooks,
+                deferredValidationInstallData.nonce
+            ) = abi.decode(encodedData, (ValidationConfig, bytes4[], bytes, bytes[], uint256));
+
+            // Signatures need to stay in calldata, so we decode them as if they were two concatenated byte arrays.
+            // Get the deferred installation signature length.
+            uint256 deferredInstallSigLength =
+                uint32(bytes4(userOp.signature[29 + encodedDataLength:33 + encodedDataLength]));
+
+            // Get the deferred installation signature, which is passed to the outer validation to install the
+            // deferred validation.
+            bytes calldata deferredInstallSig =
+                userOp.signature[33 + encodedDataLength:33 + encodedDataLength + deferredInstallSigLength];
+
+            //Validate the signature.
+            _validateDeferredInstallDataAndSetNonce(
+                userOpValidationFunction, deferredValidationInstallData, deferredInstallSig
+            );
+
+            // Use a self-call to install the deferred validation.
+            this.installValidation(
+                deferredValidationInstallData.validationConfig,
+                deferredValidationInstallData.selectors,
+                deferredValidationInstallData.installData,
+                deferredValidationInstallData.hooks
+            );
+
+            // Update the outer scope functions to use the newly defer-installed validation
+            userOpValidationFunction = deferredValidationInstallData.validationConfig.moduleEntity();
+
+            isGlobalValidation = deferredValidationInstallData.validationConfig.isGlobal();
+
+            userOpSignature = userOp.signature[33 + encodedDataLength + deferredInstallSigLength:];
+        } else {
+            userOpSignature = userOp.signature[25:];
+        }
 
         _checkIfValidationAppliesCallData(
             userOp.callData,
-            userOpValidationFunction,
+            userOpValidationFunction, // Should be newly installed val func
             isGlobalValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
@@ -376,8 +445,38 @@ contract ModularAccount is
         ) {
             revert RequireUserOperationContext();
         }
+        validationData = _doUserOpValidation(userOpValidationFunction, userOp, userOpSignature, userOpHash);
+    }
 
-        validationData = _doUserOpValidation(userOpValidationFunction, userOp, userOp.signature[25:], userOpHash);
+    function _validateDeferredInstallDataAndSetNonce(
+        ModuleEntity sigValidation,
+        DeferredValidationInstallData memory installData,
+        bytes calldata sig
+    ) internal {
+        if (getAccountStorage().deferredInstallNonceUsed[installData.nonce]) {
+            revert DeferredInstallNonceUsed();
+        }
+
+        // Update nonce
+        getAccountStorage().deferredInstallNonceUsed[installData.nonce] = true;
+
+        bytes32 structHash = keccak256(
+            abi.encode(
+                _INSTALL_VALIDATION_TYPEHASH,
+                installData.validationConfig,
+                installData.selectors,
+                installData.installData,
+                installData.hooks,
+                installData.nonce
+            )
+        );
+        // deadline enforced in EP
+
+        bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(_domainSeparator(), structHash);
+
+        if (_isValidSignature(sigValidation, typedDataHash, sig) != _1271_MAGIC_VALUE) {
+            revert DeferredInstallSignatureInvalid();
+        }
     }
 
     // To support gas estimation, we don't fail early when the failure is caused by a signature failure
@@ -630,6 +729,29 @@ contract ModularAccount is
         }
     }
 
+    function _isValidSignature(ModuleEntity sigValidation, bytes32 hash, bytes calldata signature)
+        internal
+        view
+        returns (bytes4)
+    {
+        ModuleEntity[] memory preSignatureValidationHooks =
+            getAccountStorage().validationData[sigValidation].preValidationHooks;
+        for (uint256 i = 0; i < preSignatureValidationHooks.length; ++i) {
+            (address hookModule, uint32 hookEntityId) = preSignatureValidationHooks[i].unpack();
+
+            bytes memory currentSignatureSegment;
+
+            (currentSignatureSegment, signature) = signature.advanceSegmentIfAtIndex(uint8(i));
+
+            // If this reverts, bubble up revert reason.
+            IValidationHookModule(hookModule).preSignatureValidationHook(
+                hookEntityId, msg.sender, hash, currentSignatureSegment
+            );
+        }
+        signature = signature.getFinalSegment();
+        return _exec1271Validation(sigValidation, hash, signature);
+    }
+
     function _exec1271Validation(ModuleEntity sigValidation, bytes32 hash, bytes calldata signature)
         internal
         view
@@ -761,5 +883,9 @@ contract ModularAccount is
         returns (bool)
     {
         return getAccountStorage().validationData[validationFunction].selectors.contains(toSetValue(selector));
+    }
+
+    function _domainSeparator() internal view returns (bytes32) {
+        return keccak256(abi.encode(_DOMAIN_SEPARATOR_TYPEHASH, block.chainid, address(this)));
     }
 }

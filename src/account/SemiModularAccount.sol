@@ -31,10 +31,6 @@ contract SemiModularAccount is ModularAccount {
     uint256 internal constant _SEMI_MODULAR_ACCOUNT_STORAGE_SLOT =
         0x5b9dc9aa943f8fa2653ceceda5e3798f0686455280432166ba472eca0bc17a32;
 
-    // keccak256("EIP712Domain(uint256 chainId,address verifyingContract)")
-    bytes32 private constant _DOMAIN_SEPARATOR_TYPEHASH =
-        0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
-
     // keccak256("ReplaySafeHash(bytes32 hash)")
     bytes32 private constant _REPLAY_SAFE_HASH_TYPEHASH =
         0x294a8735843d4afb4f017c76faf3b7731def145ed0025fc9b1d5ce30adf113ff;
@@ -192,10 +188,6 @@ contract SemiModularAccount is ModularAccount {
         bytes memory appendedData = LibClone.argsOnERC1967(address(this), 0, 20);
 
         return address(uint160(bytes20(appendedData)));
-    }
-
-    function _domainSeparator() internal view returns (bytes32) {
-        return keccak256(abi.encode(_DOMAIN_SEPARATOR_TYPEHASH, block.chainid, address(this)));
     }
 
     function _getSemiModularAccountStorage() internal pure returns (SemiModularAccountStorage storage) {
