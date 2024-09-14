@@ -52,19 +52,18 @@ contract DeferredValidationTest is AccountTestBase {
          * Deferred validation signature structure:
          * bytes 0-23: Outer validation moduleEntity (the validation used to validate the installation of the inner
          * validation)
-         * byte    24: Validation flags (rightmost bit == isGlobal, second-to-rightmost bit ==
+         * byte 24   : Validation flags (rightmost bit == isGlobal, second-to-rightmost bit ==
          * isDeferredValidationInstall)
          *
          * This is where things diverge, if this is a deferred validation install, rather than using the remaining
-         * signature data
-         * as validation data, we decode it as follows:
+         * signature data as validation data, we decode it as follows:
          *
-         * bytes 25-28: uint32, abi-encoded parameters length (e.g. 100)
-         * bytes 29-128: (example) : abi-encoded parameters
-         * bytes 129-132: deferred install validation sig length (e.g. 68)
+         * bytes 25-28            : uint32, abi-encoded parameters length (e.g. 100)
+         * bytes 29-128 (example) : abi-encoded parameters
+         * bytes 129-132          : deferred install validation sig length (e.g. 68)
          * bytes 133-200 (example): install validation sig data (the data passed to the outer validation to
          * validate the deferred installation)
-         * bytes 201...: signature data passed to the newly installed deferred validation to validate the UO
+         * bytes 201...           : signature data passed to the newly installed deferred validation to validate the UO
          */
         uint8 outerValidationFlags = 3;
 

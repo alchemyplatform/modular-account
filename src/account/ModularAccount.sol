@@ -363,7 +363,7 @@ contract ModularAccount is
         }
 
         // Revert if the provided `authorization` less than 24 bytes long, rather than right-padding.
-        ModuleEntity userOpValidationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
+        ModuleEntity validationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
         uint8 validationFlags = uint8(userOp.signature[24]);
         bool isGlobalValidation = validationFlags & 1 == 1;
         bool isDeferredInstallValidation = validationFlags & 2 == 2;
@@ -373,7 +373,7 @@ contract ModularAccount is
             // Check if the outer validation applies to `installValidation`.
             _checkIfValidationAppliesSelector(
                 this.installValidation.selector,
-                userOpValidationFunction, // Treated as sig val
+                validationFunction, // Treated as sig val
                 isGlobalValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
             );
 
@@ -383,11 +383,9 @@ contract ModularAccount is
             // Load the pointer to the abi-encoded struct.
             bytes calldata encodedData = userOp.signature[29:29 + encodedDataLength];
 
-            // Decode the struct from the abi-encoded bytes.
-            // (DeferredValidationInstallData memory deferredValidationInstallData) =
-            //     abi.decode(encodedData, (DeferredValidationInstallData));
-            //
+            // Struct addresses stack too deep issues
             DeferredValidationInstallData memory deferredValidationInstallData;
+
             (
                 deferredValidationInstallData.validationConfig,
                 deferredValidationInstallData.selectors,
@@ -408,7 +406,7 @@ contract ModularAccount is
 
             //Validate the signature.
             _validateDeferredInstallDataAndSetNonce(
-                userOpValidationFunction, deferredValidationInstallData, deferredInstallSig
+                validationFunction, deferredValidationInstallData, deferredInstallSig
             );
 
             // Use a self-call to install the deferred validation.
@@ -420,7 +418,7 @@ contract ModularAccount is
             );
 
             // Update the outer scope functions to use the newly defer-installed validation
-            userOpValidationFunction = deferredValidationInstallData.validationConfig.moduleEntity();
+            validationFunction = deferredValidationInstallData.validationConfig.moduleEntity();
 
             isGlobalValidation = deferredValidationInstallData.validationConfig.isGlobal();
 
@@ -431,7 +429,7 @@ contract ModularAccount is
 
         _checkIfValidationAppliesCallData(
             userOp.callData,
-            userOpValidationFunction, // Should be newly installed val func
+            validationFunction, // Should be newly installed val func
             isGlobalValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
@@ -440,12 +438,12 @@ contract ModularAccount is
         // This check must be here because if context isn't passed, we can't tell in execution which hooks should
         // have ran
         if (
-            getAccountStorage().validationData[userOpValidationFunction].executionHooks.length() > 0
+            getAccountStorage().validationData[validationFunction].executionHooks.length() > 0
                 && bytes4(userOp.callData[:4]) != this.executeUserOp.selector
         ) {
             revert RequireUserOperationContext();
         }
-        validationData = _doUserOpValidation(userOpValidationFunction, userOp, userOpSignature, userOpHash);
+        validationData = _doUserOpValidation(validationFunction, userOp, userOpSignature, userOpHash);
     }
 
     function _validateDeferredInstallDataAndSetNonce(
