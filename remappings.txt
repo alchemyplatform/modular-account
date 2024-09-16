@@ -7,3 +7,4 @@ account-abstraction/=node_modules/account-abstraction/contracts/
 solady=node_modules/solady/src/
 @erc-6900/reference-implementation/=node_modules/reference-implementation/src/
 forge-gas-snapshot/=lib/forge-gas-snapshot/src/
+forge-std/=lib/forge-std/

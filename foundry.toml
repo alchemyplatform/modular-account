@@ -15,9 +15,6 @@ fs_permissions = [
   { access = "read-write", path = "./.forge-snapshots" },
   { access = "read", path = "./test/bin" },
 ]
-remappings = [
-  'forge-std/=lib/forge-std/src/'
-]
 
 [fuzz]
 runs = 500
@@ -60,10 +57,6 @@ optimizer_runs = 10000
 out = 'out-optimized'
 ffi = true
 isolate = true
-# forge-gas-snapshot uses a different remapping for forge-std, so we also need to do this within the gas profile.
-remappings = [
-  'forge-std/=lib/forge-std/',
-]
 
 [fmt]
 line_length = 115

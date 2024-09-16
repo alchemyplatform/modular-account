@@ -16,13 +16,14 @@ import {ModuleEntity, ModuleEntityLib} from "../../src/helpers/ModuleEntityLib.s
 import {ValidationConfigLib} from "../../src/helpers/ValidationConfigLib.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
+import {ModuleSignatureUtils} from "./ModuleSignatureUtils.sol";
 import {OptimizedTest} from "./OptimizedTest.sol";
 import {TEST_DEFAULT_VALIDATION_ENTITY_ID as EXT_CONST_TEST_DEFAULT_VALIDATION_ENTITY_ID} from
     "./TestConstants.sol";
 
 /// @dev This contract handles common boilerplate setup for tests using ModularAccount with
 /// SingleSignerValidationModule.
-abstract contract AccountTestBase is OptimizedTest {
+abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     using ModuleEntityLib for ModuleEntity;
     using MessageHashUtils for bytes32;
 
@@ -42,19 +43,11 @@ abstract contract AccountTestBase is OptimizedTest {
 
     ModuleEntity internal _signerValidation;
 
-    uint8 public constant SELECTOR_ASSOCIATED_VALIDATION = 0;
-    uint8 public constant GLOBAL_VALIDATION = 1;
-
     // Re-declare the constant to prevent derived test contracts from having to import it
     uint32 public constant TEST_DEFAULT_VALIDATION_ENTITY_ID = EXT_CONST_TEST_DEFAULT_VALIDATION_ENTITY_ID;
 
     uint256 public constant CALL_GAS_LIMIT = 100_000;
     uint256 public constant VERIFICATION_GAS_LIMIT = 1_200_000;
-
-    struct PreValidationHookData {
-        uint8 index;
-        bytes validationData;
-    }
 
     constructor() {
         entryPoint = _deployEntryPoint070();
@@ -235,85 +228,5 @@ abstract contract AccountTestBase is OptimizedTest {
     // helper function to compress 2 gas values into a single bytes32
     function _encodeGas(uint256 g1, uint256 g2) internal pure returns (bytes32) {
         return bytes32(uint256((g1 << 128) + uint128(g2)));
-    }
-
-    // helper function to encode a 1271 signature, according to the per-hook and per-validation data format.
-    function _encode1271Signature(
-        ModuleEntity validationFunction,
-        PreValidationHookData[] memory preValidationHookData,
-        bytes memory validationData
-    ) internal pure returns (bytes memory) {
-        bytes memory sig = abi.encodePacked(validationFunction);
-
-        sig = abi.encodePacked(sig, _packPreHookDatas(preValidationHookData));
-
-        sig = abi.encodePacked(sig, _packValidationResWithIndex(255, validationData));
-
-        return sig;
-    }
-
-    // helper function to encode a signature, according to the per-hook and per-validation data format.
-    function _encodeSignature(
-        ModuleEntity validationFunction,
-        uint8 globalOrNot,
-        PreValidationHookData[] memory preValidationHookData,
-        bytes memory validationData
-    ) internal pure returns (bytes memory) {
-        bytes memory sig = abi.encodePacked(validationFunction, globalOrNot);
-
-        sig = abi.encodePacked(sig, _packPreHookDatas(preValidationHookData));
-
-        sig = abi.encodePacked(sig, _packValidationResWithIndex(255, validationData));
-
-        return sig;
-    }
-
-    // overload for the case where there are no pre validation hooks
-    function _encodeSignature(ModuleEntity validationFunction, uint8 globalOrNot, bytes memory validationData)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        PreValidationHookData[] memory emptyPreValidationHookData = new PreValidationHookData[](0);
-        return _encodeSignature(validationFunction, globalOrNot, emptyPreValidationHookData, validationData);
-    }
-
-    // overload for the case where there are no pre validation hooks
-    function _encode1271Signature(ModuleEntity validationFunction, bytes memory validationData)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        PreValidationHookData[] memory emptyPreValidationHookData = new PreValidationHookData[](0);
-        return _encode1271Signature(validationFunction, emptyPreValidationHookData, validationData);
-    }
-
-    // helper function to pack pre validation hook datas, according to the sparse calldata segment spec.
-    function _packPreHookDatas(PreValidationHookData[] memory preValidationHookData)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        bytes memory res = "";
-
-        for (uint256 i = 0; i < preValidationHookData.length; ++i) {
-            res = abi.encodePacked(
-                res,
-                _packValidationResWithIndex(
-                    preValidationHookData[i].index, preValidationHookData[i].validationData
-                )
-            );
-        }
-
-        return res;
-    }
-
-    // helper function to pack validation data with an index, according to the sparse calldata segment spec.
-    function _packValidationResWithIndex(uint8 index, bytes memory validationData)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        return abi.encodePacked(uint32(validationData.length + 1), index, validationData);
     }
 }

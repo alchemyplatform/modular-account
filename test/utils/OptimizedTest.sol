@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {Test} from "forge-std/Test.sol";
+import {Test} from "forge-std/src/Test.sol";
 
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
@@ -39,14 +39,14 @@ abstract contract OptimizedTest is Test {
             : new ModularAccount(entryPoint);
     }
 
-    function _deploySemiModularAccount(IEntryPoint entryPoint) internal returns (ModularAccount) {
+    function _deploySemiModularAccount(IEntryPoint entryPoint) internal returns (SemiModularAccount) {
         return _isOptimizedTest()
-            ? ModularAccount(
+            ? SemiModularAccount(
                 payable(
                     deployCode("out-optimized/SemiModularAccount.sol/SemiModularAccount.json", abi.encode(entryPoint))
                 )
             )
-            : ModularAccount(new SemiModularAccount(entryPoint));
+            : new SemiModularAccount(entryPoint);
     }
 
     function _deployTokenReceiverModule() internal returns (TokenReceiverModule) {
