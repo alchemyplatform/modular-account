@@ -63,7 +63,8 @@ contract DeferredValidationTest is AccountTestBase {
          * bytes 129-132          : deferred install validation sig length (e.g. 68)
          * bytes 133-200 (example): install validation sig data (the data passed to the outer validation to
          * validate the deferred installation)
-         * bytes 201...           : signature data passed to the newly installed deferred validation to validate the UO
+         * bytes 201...           : signature data passed to the newly installed deferred validation to validate
+         * the UO
          */
         uint8 outerValidationFlags = 3;
 
