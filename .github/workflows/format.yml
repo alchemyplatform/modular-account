@@ -1,0 +1,25 @@
+name: Format
+
+on: [pull_request, workflow_dispatch]
+
+concurrency:
+  group: ${{github.workflow}}-${{github.ref}}
+  cancel-in-progress: true
+
+# Runs linter, tests, and inspection checker in parallel
+jobs:
+  lint:
+    name: Check Format and Run Linters
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - uses: ./.github/workflows/setup-ci
+
+      - name: "Check formatting"
+        run: pnpm fmt:check
+
+      - name: "Lint the contracts"
+        run: "pnpm lint"
