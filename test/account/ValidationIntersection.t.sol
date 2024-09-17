@@ -249,7 +249,6 @@ contract ValidationIntersectionTest is AccountTestBase {
 
         vm.prank(address(entryPoint));
         uint256 returnedValidationData = account1.validateUserOp(userOp, uoHash, 1 wei);
-
         assertEq(returnedValidationData, _packValidationRes(goodAuthorizer, start2, end1));
     }
 

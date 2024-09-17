@@ -19,18 +19,21 @@ contract DeferredValidationTest is AccountTestBase {
     using MessageHashUtils for bytes32;
 
     bytes32 private constant _INSTALL_VALIDATION_TYPEHASH = keccak256(
-        "InstallValidation(bytes25 validationConfig,bytes4[] selectors,bytes installData,bytes[] hooks,uint256 nonce)"
+        // solhint-disable-next-line max-line-length
+        "InstallValidation(bytes25 validationConfig,bytes4[] selectors,bytes installData,bytes[] hooks,uint256 nonce,uint48 deadline)"
     );
 
+    bytes internal _encodedCall = abi.encodeCall(ModularAccount.execute, (makeAddr("dead"), 0, ""));
     address internal _mockValidation;
 
     function setUp() external {
         _mockValidation = address(new MockUserOpValidationModule()); // todo consider return data
     }
 
+    // Negatives
+
     function test_fail_deferredValidation_NonceUsed() external {
-        bytes memory encodedCall = abi.encodeCall(ModularAccount.execute, (makeAddr("dead"), 0, ""));
-        _runUserOpWithCustomSig(encodedCall, "", _buildSig(0));
+        _runUserOpWithCustomSig(_encodedCall, "", _buildSig(account1, 0, 0));
 
         bytes memory expectedRevertdata = abi.encodeWithSelector(
             IEntryPoint.FailedOpWithRevert.selector,
@@ -39,15 +42,59 @@ contract DeferredValidationTest is AccountTestBase {
             abi.encodeWithSelector(ModularAccount.DeferredInstallNonceUsed.selector)
         );
 
-        _runUserOpWithCustomSig(encodedCall, expectedRevertdata, _buildSig(0));
+        _runUserOpWithCustomSig(
+            _encodedCall, expectedRevertdata, _buildSig(account1, 0, 0)
+        );
     }
+
+    // TODO: Test deadline
+
+    // Positives
 
     function test_deferredValidation() external {
-        bytes memory encodedCall = abi.encodeCall(ModularAccount.execute, (makeAddr("dead"), 0, ""));
-        _runUserOpWithCustomSig(encodedCall, "", _buildSig(0));
+        _runUserOpWithCustomSig(_encodedCall, "", _buildSig(account1, 0, 0));
     }
 
-    function _buildSig(uint256 nonce) internal view returns (bytes memory) {
+    function test_deferredValidation_initCode() external {
+        ModularAccount account2;
+        bytes memory initCode;
+        if (vm.envOr("SMA_TEST", false)) {
+            account2 = ModularAccount(payable(factory.getAddressSemiModular(owner1, 1)));
+            initCode =
+                abi.encodePacked(address(factory), abi.encodeCall(factory.createSemiModularAccount, (owner1, 1)));
+        } else {
+            account2 = ModularAccount(payable(factory.getAddress(owner1, 1, TEST_DEFAULT_VALIDATION_ENTITY_ID)));
+            initCode = abi.encodePacked(
+                address(factory),
+                abi.encodeCall(factory.createAccount, (owner1, 1, TEST_DEFAULT_VALIDATION_ENTITY_ID))
+            );
+        }
+
+        // prefund
+        vm.deal(address(account2), 100 ether);
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account2),
+            nonce: 0,
+            initCode: initCode,
+            callData: _encodedCall,
+            accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
+            preVerificationGas: 0,
+            gasFees: _encodeGas(1, 2),
+            paymasterAndData: "",
+            signature: _buildSig(account2, 0, 0)
+        });
+
+        _sendOp(userOp, "");
+    }
+
+    // Internal Helpers
+
+    function _buildSig(ModularAccount account, uint256 nonce, uint48 deadline)
+        internal
+        view
+        returns (bytes memory)
+    {
         /**
          * Deferred validation signature structure:
          * bytes 0-23: Outer validation moduleEntity (the validation used to validate the installation of the inner
@@ -76,20 +123,28 @@ contract DeferredValidationTest is AccountTestBase {
             _isUserOpValidation: true
         });
 
-        bytes memory deferredInstallData = abi.encode(deferredConfig, new bytes4[](0), "", new bytes[](0), nonce);
+        bytes memory deferredInstallData =
+            abi.encode(deferredConfig, new bytes4[](0), "", new bytes[](0), nonce, deadline);
 
-        uint32 encodedDeferredInstallDataLength = uint32(deferredInstallData.length);
+        bytes32 domainSeparator;
 
-        bytes32 domainSeparator = account1.getDomainSeparator();
+        // Needed for initCode txs
+        if (address(account).code.length > 0) {
+            domainSeparator = account.getDomainSeparator();
+        } else {
+            domainSeparator = _computeDomainSeparatorNotDeployed(account);
+        }
 
         bytes32 structHash = keccak256(
-            abi.encode(_INSTALL_VALIDATION_TYPEHASH, deferredConfig, new bytes4[](0), "", new bytes[](0), nonce)
+            abi.encode(
+                _INSTALL_VALIDATION_TYPEHASH, deferredConfig, new bytes4[](0), "", new bytes[](0), nonce, deadline
+            )
         );
         bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(domainSeparator, structHash);
 
         bytes32 replaySafeHash = vm.envOr("SMA_TEST", false)
-            ? SemiModularAccount(payable(account1)).replaySafeHash(typedDataHash)
-            : singleSignerValidationModule.replaySafeHash(address(account1), typedDataHash);
+            ? _getSmaReplaySafeHash(account, typedDataHash)
+            : singleSignerValidationModule.replaySafeHash(address(account), typedDataHash);
 
         bytes memory deferredInstallSig = _getDeferredInstallSig(replaySafeHash);
 
@@ -98,7 +153,7 @@ contract DeferredValidationTest is AccountTestBase {
         bytes memory encodedDeferredInstall = abi.encodePacked(
             _signerValidation,
             outerValidationFlags,
-            encodedDeferredInstallDataLength,
+            uint32(deferredInstallData.length),
             deferredInstallData,
             uint32(deferredInstallSig.length),
             deferredInstallSig,
@@ -134,6 +189,10 @@ contract DeferredValidationTest is AccountTestBase {
             signature: sig
         });
 
+        _sendOp(userOp, expectedRevertData);
+    }
+
+    function _sendOp(PackedUserOperation memory userOp, bytes memory expectedRevertData) internal {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
@@ -141,5 +200,39 @@ contract DeferredValidationTest is AccountTestBase {
             vm.expectRevert(expectedRevertData);
         }
         entryPoint.handleOps(userOps, beneficiary);
+    }
+
+    function _computeDomainSeparatorNotDeployed(ModularAccount account) internal view returns (bytes32) {
+        bytes32 domainSeparatorTypehash = 0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
+        return keccak256(abi.encode(domainSeparatorTypehash, block.chainid, address(account)));
+    }
+
+    function _getSmaReplaySafeHash(ModularAccount account, bytes32 typedDataHash)
+        internal
+        view
+        returns (bytes32)
+    {
+        if (address(account).code.length > 0) {
+            return SemiModularAccount(payable(account)).replaySafeHash(typedDataHash);
+        } else {
+            // precompute it as the SMA is not yet deployed
+            // for SMA, the domain separator used for the deferred validation installation is the same as the one
+            // used to compute the replay safe hash.
+            return MessageHashUtils.toTypedDataHash({
+                domainSeparator: _computeDomainSeparatorNotDeployed(account),
+                structHash: _hashStruct(typedDataHash)
+            });
+        }
+    }
+
+    function _hashStruct(bytes32 hash) internal pure virtual returns (bytes32) {
+        bytes32 replaySafeTypehash = keccak256("ReplaySafeHash(bytes32 hash)"); // const 0x.. in contract
+        bytes32 res;
+        assembly ("memory-safe") {
+            mstore(0x00, replaySafeTypehash)
+            mstore(0x20, hash)
+            res := keccak256(0, 0x40)
+        }
+        return res;
     }
 }

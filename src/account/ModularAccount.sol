@@ -65,6 +65,7 @@ contract ModularAccount is
         bytes installData;
         bytes[] hooks;
         uint256 nonce;
+        uint48 deadline;
     }
 
     enum ValidationCheckingType {
@@ -80,9 +81,9 @@ contract ModularAccount is
         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
 
     // keccak256("InstallValidation(bytes25 validationConfig,bytes4[] selectors,bytes installData,bytes[]
-    // hooks,uint256 nonce)");
+    // hooks,uint256 nonce,uint48 deadline)");
     bytes32 internal constant _INSTALL_VALIDATION_TYPEHASH =
-        0x783428aec78c395af20a06a23dc6f93d818c32ac6c1c15dfcb08547311a4ba8d;
+        0xb5b726478a22c87521d285be8b6a8a12e8b0715e5b67a10114b963f2eac36d6c;
 
     // As per the EIP-165 spec, no interface should ever match 0xffffffff
     bytes4 internal constant _INTERFACE_ID_INVALID = 0xffffffff;
@@ -391,8 +392,9 @@ contract ModularAccount is
                 deferredValidationInstallData.selectors,
                 deferredValidationInstallData.installData,
                 deferredValidationInstallData.hooks,
-                deferredValidationInstallData.nonce
-            ) = abi.decode(encodedData, (ValidationConfig, bytes4[], bytes, bytes[], uint256));
+                deferredValidationInstallData.nonce,
+                deferredValidationInstallData.deadline
+            ) = abi.decode(encodedData, (ValidationConfig, bytes4[], bytes, bytes[], uint256, uint48));
 
             // Signatures need to stay in calldata, so we decode them as if they were two concatenated byte arrays.
             // Get the deferred installation signature length.
@@ -423,6 +425,8 @@ contract ModularAccount is
             isGlobalValidation = deferredValidationInstallData.validationConfig.isGlobal();
 
             userOpSignature = userOp.signature[33 + encodedDataLength + deferredInstallSigLength:];
+
+            validationData = uint256(deferredValidationInstallData.deadline << 160);
         } else {
             userOpSignature = userOp.signature[25:];
         }
@@ -443,7 +447,17 @@ contract ModularAccount is
         ) {
             revert RequireUserOperationContext();
         }
-        validationData = _doUserOpValidation(validationFunction, userOp, userOpSignature, userOpHash);
+        uint256 userOpValidationRes = _doUserOpValidation(validationFunction, userOp, userOpSignature, userOpHash);
+
+        // We only coalesce validations if the validation data from deferred installation is nonzero.
+        if (validationData != 0) {
+            // Parameter ordering is important here-- we treat the validationData as pre-validation data because it
+            // may be empty, or it may contain only the deadline from deferred installation, so
+            // `_coalesceValidation()` must treat it as preValidationData.
+            validationData = _coalesceValidation(validationData, userOpValidationRes);
+        } else {
+            validationData = userOpValidationRes;
+        }
     }
 
     function _validateDeferredInstallDataAndSetNonce(
@@ -465,10 +479,10 @@ contract ModularAccount is
                 installData.selectors,
                 installData.installData,
                 installData.hooks,
-                installData.nonce
+                installData.nonce,
+                installData.deadline
             )
         );
-        // deadline enforced in EP
 
         bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(_domainSeparator(), structHash);
 
