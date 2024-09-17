@@ -12,6 +12,8 @@
     "solhint": "^3.6.2"
   },
   "scripts": {
+    "clean": "forge clean && FOUNDRY_PROFILE=optimized-build forge clean",
+    "prep": "pnpm fmt && forge b && pnpm lint && pnpm test && pnpm gas",
     "fmt": "forge fmt && FOUNDRY_PROFILE=gas forge fmt",
     "fmt:check": "forge fmt --check && FOUNDRY_PROFILE=gas forge fmt --check",
     "gas": "FOUNDRY_PROFILE=gas forge test -vv",
@@ -20,6 +22,7 @@
     "lint:src": "solhint --max-warnings 0 -c ./config/solhint-src.json './src/**/*.sol'",
     "lint:test": "solhint --max-warnings 0 -c ./config/solhint-test.json './test/**/*.sol'",
     "lint:gas": "solhint --max-warnings 0 -c ./config/solhint-gas.json './gas/**/*.sol'",
-    "lint:script": "solhint --max-warnings 0 -c ./config/solhint-script.json './script/**/*.sol'"
+    "lint:script": "solhint --max-warnings 0 -c ./config/solhint-script.json './script/**/*.sol'",
+    "test": "forge test && SMA_TEST=true forge test"
   }
 }

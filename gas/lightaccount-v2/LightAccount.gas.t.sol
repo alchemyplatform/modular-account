@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {ILightAccountFactory} from "./ILightAccountFactory.sol";
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {VmSafe} from "forge-std/src/Vm.sol";
 import {console} from "forge-std/src/console.sol";
+
+import {ILightAccount} from "./ILightAccount.sol";
+import {ILightAccountFactory} from "./ILightAccountFactory.sol";
+
+import {MockERC20} from "../../test/mocks/MockERC20.sol";
 
 contract LightAccountGasTest is GasSnapshot {
     address internal constant _LIGHT_ACCOUNT_FACTORY = 0x0000000000400CdFef5E2714E63d8040b700BC24;
@@ -35,5 +39,46 @@ contract LightAccountGasTest is GasSnapshot {
         console.log("gasTotalUsed: ", gas.gasTotalUsed);
 
         snap("LightAccount_Runtime_AccountCreation", gas.gasTotalUsed);
+    }
+
+    function test_lightAccountGas_runtimeNativeTransfer() public {
+        address owner = makeAddr("owner");
+        address recipient = makeAddr("recipient");
+        vm.deal(recipient, 1 wei);
+
+        ILightAccount account = ILightAccount(payable(_factory.createAccount(owner, 0)));
+
+        vm.deal(address(account), 1 ether);
+
+        vm.prank(owner);
+        account.execute(recipient, 0.1 ether, "");
+
+        VmSafe.Gas memory gas = vm.lastCallGas();
+
+        console.log("Runtime: native transfer");
+        console.log("gasTotalUsed: ", gas.gasTotalUsed);
+
+        snap("LightAccount_Runtime_NativeTransfer", gas.gasTotalUsed);
+    }
+
+    function test_lightAccountGas_Erc20Transfer() public {
+        address owner = makeAddr("owner");
+        address recipient = makeAddr("recipient");
+        vm.deal(recipient, 1 wei);
+
+        ILightAccount account = ILightAccount(payable(_factory.createAccount(owner, 0)));
+
+        MockERC20 erc20 = new MockERC20();
+        erc20.mint(address(account), 100 ether);
+
+        vm.prank(owner);
+        account.execute(address(erc20), 0, abi.encodeWithSelector(erc20.transfer.selector, recipient, 10 ether));
+
+        VmSafe.Gas memory gas = vm.lastCallGas();
+
+        console.log("Runtime: erc20 transfer");
+        console.log("gasTotalUsed: ", gas.gasTotalUsed);
+
+        snap("LightAccount_Runtime_Erc20Transfer", gas.gasTotalUsed);
     }
 }
