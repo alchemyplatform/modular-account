@@ -426,7 +426,7 @@ contract ModularAccount is
 
             userOpSignature = userOp.signature[33 + encodedDataLength + deferredInstallSigLength:];
 
-            validationData = uint256(deferredValidationInstallData.deadline << 160);
+            validationData = uint256(deferredValidationInstallData.deadline) << 160;
         } else {
             userOpSignature = userOp.signature[25:];
         }
