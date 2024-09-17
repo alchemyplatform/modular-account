@@ -93,6 +93,8 @@ contract ModularAccount is
     bytes4 internal constant _1271_MAGIC_VALUE = 0x1626ba7e;
     bytes4 internal constant _1271_INVALID = 0xffffffff;
 
+    event DeferredInstallNonceInvalidated(uint256 nonce);
+
     error NotEntryPoint();
     error PostExecHookReverted(address module, uint32 entityId, bytes revertReason);
     error PreExecHookReverted(address module, uint32 entityId, bytes revertReason);
@@ -105,7 +107,7 @@ contract ModularAccount is
     error UnexpectedAggregator(address module, uint32 entityId, address aggregator);
     error UnrecognizedFunction(bytes4 selector);
     error ValidationFunctionMissing(bytes4 selector);
-    error DeferredInstallNonceUsed();
+    error DeferredInstallNonceInvalid();
     error DeferredInstallSignatureInvalid();
 
     // Wraps execution of a native function with runtime validation and hooks
@@ -302,6 +304,12 @@ contract ModularAccount is
         _uninstallValidation(validationFunction, uninstallData, hookUninstallData);
     }
 
+    /// @notice May be validated by a global validation
+    function invalidateDeferredValidationInstallNonce(uint256 nonce) external wrapNativeFunction {
+        getAccountStorage().deferredInstallNonceUsed[nonce] = true;
+        emit DeferredInstallNonceInvalidated(nonce);
+    }
+
     /// @notice ERC165 introspection
     /// @dev returns true for `IERC165.interfaceId` and false for `0xFFFFFFFF`
     /// @param interfaceId interface id to check against
@@ -466,11 +474,12 @@ contract ModularAccount is
         bytes calldata sig
     ) internal {
         if (getAccountStorage().deferredInstallNonceUsed[installData.nonce]) {
-            revert DeferredInstallNonceUsed();
+            revert DeferredInstallNonceInvalid();
         }
 
         // Update nonce
         getAccountStorage().deferredInstallNonceUsed[installData.nonce] = true;
+        emit DeferredInstallNonceInvalidated(installData.nonce);
 
         bytes32 structHash = keccak256(
             abi.encode(
@@ -480,7 +489,7 @@ contract ModularAccount is
                 installData.installData,
                 installData.hooks,
                 installData.nonce,
-                installData.deadline
+                installData.deadline // Note that a zero deadline translates to "no deadline"
             )
         );
 
@@ -792,6 +801,7 @@ contract ModularAccount is
                 || selector == this.installExecution.selector || selector == this.uninstallExecution.selector
                 || selector == this.installValidation.selector || selector == this.uninstallValidation.selector
                 || selector == this.upgradeToAndCall.selector
+                || selector == this.invalidateDeferredValidationInstallNonce.selector
         ) {
             return true;
         }

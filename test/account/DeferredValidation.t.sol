@@ -32,23 +32,53 @@ contract DeferredValidationTest is AccountTestBase {
 
     // Negatives
 
-    function test_fail_deferredValidation_NonceUsed() external {
+    function test_fail_deferredValidation_nonceUsed() external {
         _runUserOpWithCustomSig(_encodedCall, "", _buildSig(account1, 0, 0));
 
         bytes memory expectedRevertdata = abi.encodeWithSelector(
             IEntryPoint.FailedOpWithRevert.selector,
             0,
             "AA23 reverted",
-            abi.encodeWithSelector(ModularAccount.DeferredInstallNonceUsed.selector)
+            abi.encodeWithSelector(ModularAccount.DeferredInstallNonceInvalid.selector)
         );
 
-        _runUserOpWithCustomSig(
-            _encodedCall, expectedRevertdata, _buildSig(account1, 0, 0)
-        );
+        _runUserOpWithCustomSig(_encodedCall, expectedRevertdata, _buildSig(account1, 0, 0));
     }
 
-    // TODO: Test deadline
+    function test_fail_deferredValidation_pastDeadline() external {
+        bytes memory expectedRevertdata =
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA22 expired or not due");
 
+        // Note that a deadline of 0 implies no expiry
+        vm.warp(2);
+        _runUserOpWithCustomSig(_encodedCall, expectedRevertdata, _buildSig(account1, 0, 1));
+    }
+
+    function test_fail_deferredValidation_invalidSig() external {
+        bytes memory expectedRevertData = abi.encodeWithSelector(
+            IEntryPoint.FailedOpWithRevert.selector,
+            0,
+            "AA23 reverted",
+            abi.encodeWithSelector(ModularAccount.DeferredInstallSignatureInvalid.selector)
+        );
+        _runUserOpWithCustomSig(_encodedCall, expectedRevertData, _buildSig(ModularAccount(payable(0)), 0, 0));
+    }
+
+    function test_fail_deferredValidation_nonceInvalidated() external {
+        vm.prank(address(entryPoint));
+        account1.invalidateDeferredValidationInstallNonce(0);
+
+        bytes memory expectedRevertdata = abi.encodeWithSelector(
+            IEntryPoint.FailedOpWithRevert.selector,
+            0,
+            "AA23 reverted",
+            abi.encodeWithSelector(ModularAccount.DeferredInstallNonceInvalid.selector)
+        );
+
+        _runUserOpWithCustomSig(_encodedCall, expectedRevertdata, _buildSig(account1, 0, 0));
+    }
+
+    // TODO: Test with hooks
     // Positives
 
     function test_deferredValidation() external {
@@ -89,7 +119,6 @@ contract DeferredValidationTest is AccountTestBase {
     }
 
     // Internal Helpers
-
     function _buildSig(ModularAccount account, uint256 nonce, uint48 deadline)
         internal
         view
