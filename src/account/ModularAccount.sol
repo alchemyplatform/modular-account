@@ -427,11 +427,11 @@ contract ModularAccount is
                 deferredValidationInstallData.hooks
             );
 
-            // Update the outer scope functions to use the newly defer-installed validation
+            // Update the outer scope functions to use the newly defer-installed validation and its isGlobal flag.
             validationFunction = deferredValidationInstallData.validationConfig.moduleEntity();
-
             isGlobalValidation = deferredValidationInstallData.validationConfig.isGlobal();
 
+            // Update the UserOp signature to the remaining bytes.
             userOpSignature = userOp.signature[33 + encodedDataLength + deferredInstallSigLength:];
 
             validationData = uint256(deferredValidationInstallData.deadline) << 160;
@@ -441,14 +441,13 @@ contract ModularAccount is
 
         _checkIfValidationAppliesCallData(
             userOp.callData,
-            validationFunction, // Should be newly installed val func
+            validationFunction,
             isGlobalValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
         // Check if there are execution hooks associated with the validator, and revert if the call isn't to
-        // `executeUserOp`
-        // This check must be here because if context isn't passed, we can't tell in execution which hooks should
-        // have ran
+        // `executeUserOp`. This check must be here because if context isn't passed, we can't tell in execution
+        // which hooks should have ran.
         if (
             getAccountStorage().validationData[validationFunction].executionHooks.length() > 0
                 && bytes4(userOp.callData[:4]) != this.executeUserOp.selector
@@ -459,7 +458,7 @@ contract ModularAccount is
 
         // We only coalesce validations if the validation data from deferred installation is nonzero.
         if (validationData != 0) {
-            // Parameter ordering is important here-- we treat the validationData as pre-validation data because it
+            // Parameter ordering is important here. We treat the validationData as pre-validation data because it
             // may be empty, or it may contain only the deadline from deferred installation, so
             // `_coalesceValidation()` must treat it as preValidationData.
             validationData = _coalesceValidation(validationData, userOpValidationRes);
@@ -473,14 +472,16 @@ contract ModularAccount is
         DeferredValidationInstallData memory installData,
         bytes calldata sig
     ) internal {
+        // Check that the passed nonce isn't already invalidated.
         if (getAccountStorage().deferredInstallNonceUsed[installData.nonce]) {
             revert DeferredInstallNonceInvalid();
         }
 
-        // Update nonce
+        // Invalidate the nonce.
         getAccountStorage().deferredInstallNonceUsed[installData.nonce] = true;
         emit DeferredInstallNonceInvalidated(installData.nonce);
 
+        // Compute the struct hash to be used to compute the replay safe hash for
         bytes32 structHash = keccak256(
             abi.encode(
                 _INSTALL_VALIDATION_TYPEHASH,
