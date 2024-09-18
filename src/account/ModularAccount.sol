@@ -218,7 +218,7 @@ contract ModularAccount is
         payable
         returns (bytes memory)
     {
-        // Revert if the provided `authorization` less than 24 bytes long, rather than right-padding.
+        // Revert if the provided `authorization` is less than 24 bytes long, rather than right-padding.
         ModuleEntity runtimeValidationFunction = ModuleEntity.wrap(bytes24(authorization[:24]));
 
         // Check if the runtime validation function is allowed to be called
