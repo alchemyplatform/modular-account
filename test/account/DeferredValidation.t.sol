@@ -159,7 +159,7 @@ contract DeferredValidationTest is AccountTestBase {
 
         // Needed for initCode txs
         if (address(account).code.length > 0) {
-            domainSeparator = account.getDomainSeparator();
+            domainSeparator = account.domainSeparator();
         } else {
             domainSeparator = _computeDomainSeparatorNotDeployed(account);
         }

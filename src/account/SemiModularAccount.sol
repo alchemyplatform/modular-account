@@ -99,7 +99,7 @@ contract SemiModularAccount is ModularAccount {
 
     function replaySafeHash(bytes32 hash) public view virtual returns (bytes32) {
         return
-            MessageHashUtils.toTypedDataHash({domainSeparator: _domainSeparator(), structHash: _hashStruct(hash)});
+            MessageHashUtils.toTypedDataHash({domainSeparator: domainSeparator(), structHash: _hashStruct(hash)});
     }
 
     function _execUserOpValidation(

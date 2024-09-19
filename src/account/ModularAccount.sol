@@ -93,6 +93,9 @@ contract ModularAccount is
     bytes4 internal constant _1271_MAGIC_VALUE = 0x1626ba7e;
     bytes4 internal constant _1271_INVALID = 0xffffffff;
 
+    uint8 internal constant _IS_GLOBAL_VALIDATION_BIT = 1;
+    uint8 internal constant _IS_DEFERRED_INSTALL_VALIDATION_BIT = 2;
+
     event DeferredInstallNonceInvalidated(uint256 nonce);
 
     error NotEntryPoint();
@@ -325,10 +328,6 @@ contract ModularAccount is
         return getAccountStorage().supportedIfaces[interfaceId] > 0;
     }
 
-    function getDomainSeparator() external view returns (bytes32) {
-        return _domainSeparator();
-    }
-
     /// @inheritdoc IModularAccount
     function accountId() external pure virtual returns (string memory) {
         return "alchemy.modular-account.0.0.1";
@@ -352,6 +351,10 @@ contract ModularAccount is
         return _ENTRY_POINT;
     }
 
+    function domainSeparator() public view returns (bytes32) {
+        return keccak256(abi.encode(_DOMAIN_SEPARATOR_TYPEHASH, block.chainid, address(this)));
+    }
+
     function isValidSignature(bytes32 hash, bytes calldata signature) public view returns (bytes4) {
         ModuleEntity sigValidation = ModuleEntity.wrap(bytes24(signature));
         signature = signature[24:];
@@ -373,11 +376,24 @@ contract ModularAccount is
 
         // Revert if the provided `authorization` less than 24 bytes long, rather than right-padding.
         ModuleEntity validationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
-        uint8 validationFlags = uint8(userOp.signature[24]);
-        bool isGlobalValidation = validationFlags & 1 == 1;
-        bool isDeferredInstallValidation = validationFlags & 2 == 2;
 
+        // Decode the 25th byte into an 8-bit bitmap (6 bits of which remain unused).
+        uint8 validationFlags = uint8(userOp.signature[24]);
+        bool isGlobalValidation = validationFlags & _IS_GLOBAL_VALIDATION_BIT != 0;
+        bool isDeferredInstallValidation = validationFlags & _IS_DEFERRED_INSTALL_VALIDATION_BIT != 0;
+
+        // Assigned depending on whether the UO uses deferred validation installation or not.
         bytes calldata userOpSignature;
+
+        /// The calldata layout is unique for deferred validation installation.
+        /// Byte indices are [inclusive, exclusive]
+        ///      [25:29] : uint32, encodedDatalength.
+        ///      [29:(29 + encodedDatalength)] : bytes, abi-encoded deferred validation data.
+        ///      [(29 + encodedDataLength):(33 + encodedDataLength)] : uint32, deferredInstallSigLength.
+        ///      [(33 + encodedDataLength):(33 + deferredInstallSigLength + encodedDataLength)] : bytes,
+        ///         deferred install sig. This is the signature passed to the outer validation decoded earlier.
+        ///      [(33 + deferredInstallSigLength + encodedDataLength):] : bytes, userOpSignature. This is the
+        ///         signature passed to the newly installed deferred validation.
         if (isDeferredInstallValidation) {
             // Check if the outer validation applies to `installValidation`.
             _checkIfValidationAppliesSelector(
@@ -389,7 +405,7 @@ contract ModularAccount is
             // Get the length of the abi-encoded `DeferredValidationInstallData` struct.
             uint256 encodedDataLength = uint32(bytes4(userOp.signature[25:29]));
 
-            // Load the pointer to the abi-encoded struct.
+            // Load the pointer to the abi-encoded data.
             bytes calldata encodedData = userOp.signature[29:29 + encodedDataLength];
 
             // Struct addresses stack too deep issues
@@ -404,7 +420,6 @@ contract ModularAccount is
                 deferredValidationInstallData.deadline
             ) = abi.decode(encodedData, (ValidationConfig, bytes4[], bytes, bytes[], uint256, uint48));
 
-            // Signatures need to stay in calldata, so we decode them as if they were two concatenated byte arrays.
             // Get the deferred installation signature length.
             uint256 deferredInstallSigLength =
                 uint32(bytes4(userOp.signature[29 + encodedDataLength:33 + encodedDataLength]));
@@ -494,7 +509,7 @@ contract ModularAccount is
             )
         );
 
-        bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(_domainSeparator(), structHash);
+        bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(domainSeparator(), structHash);
 
         if (_isValidSignature(sigValidation, typedDataHash, sig) != _1271_MAGIC_VALUE) {
             revert DeferredInstallSignatureInvalid();
@@ -906,9 +921,5 @@ contract ModularAccount is
         returns (bool)
     {
         return getAccountStorage().validationData[validationFunction].selectors.contains(toSetValue(selector));
-    }
-
-    function _domainSeparator() internal view returns (bytes32) {
-        return keccak256(abi.encode(_DOMAIN_SEPARATOR_TYPEHASH, block.chainid, address(this)));
     }
 }
