@@ -369,7 +369,6 @@ contract ModularAccount is
         override
         returns (uint256 validationData)
     {
-        // Use outer validation as 1271 validation, then installed validation to validate the rest
         if (userOp.callData.length < 4) {
             revert UnrecognizedFunction(bytes4(userOp.callData));
         }
@@ -395,6 +394,7 @@ contract ModularAccount is
         ///      [(33 + deferredInstallSigLength + encodedDataLength):] : bytes, userOpSignature. This is the
         ///         signature passed to the newly installed deferred validation.
         if (isDeferredInstallValidation) {
+            // Use outer validation as a 1271 validation, then use the installed validation to validate the rest.
             // Check if the outer validation applies to `installValidation`.
             _checkIfValidationAppliesSelector(
                 this.installValidation.selector,
