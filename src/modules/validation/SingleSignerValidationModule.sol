@@ -6,8 +6,8 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
-import {IModule} from "@erc-6900/reference-implementation/interfaces/IModule.sol";
-import {IValidationModule} from "@erc-6900/reference-implementation/interfaces/IValidationModule.sol";
+import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
+import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
 import {BaseModule} from "../BaseModule.sol";
 import {ReplaySafeWrapper} from "../ReplaySafeWrapper.sol";

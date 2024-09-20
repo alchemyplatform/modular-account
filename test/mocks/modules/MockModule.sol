@@ -3,10 +3,10 @@ pragma solidity ^0.8.26;
 
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import {IExecutionHookModule} from "@erc-6900/reference-implementation/interfaces/IExecutionHookModule.sol";
-import {ExecutionManifest} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
-import {IModule} from "@erc-6900/reference-implementation/interfaces/IModule.sol";
-import {IValidationModule} from "@erc-6900/reference-implementation/interfaces/IValidationModule.sol";
+import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
+import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
+import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
 contract MockModule is ERC165 {
     // It's super inefficient to hold the entire abi-encoded manifest in storage, but this is fine since it's

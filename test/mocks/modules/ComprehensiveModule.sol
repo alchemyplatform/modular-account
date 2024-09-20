@@ -3,16 +3,16 @@ pragma solidity ^0.8.26;
 
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {IExecutionHookModule} from "@erc-6900/reference-implementation/interfaces/IExecutionHookModule.sol";
+import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {
     ExecutionManifest,
     IExecutionModule,
     ManifestExecutionFunction,
     ManifestExecutionHook
-} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
-import {IExecutionModule} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
-import {IValidationHookModule} from "@erc-6900/reference-implementation/interfaces/IValidationHookModule.sol";
-import {IValidationModule} from "@erc-6900/reference-implementation/interfaces/IValidationModule.sol";
+} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {IExecutionModule} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
+import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
 import {BaseModule} from "../../../src/modules/BaseModule.sol";
 

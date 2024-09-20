@@ -8,7 +8,7 @@ import {
     IModularAccount,
     ModuleEntity,
     ValidationConfig
-} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";

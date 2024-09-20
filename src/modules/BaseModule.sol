@@ -5,7 +5,7 @@ import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IA
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {ERC165, IERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import {IModule} from "@erc-6900/reference-implementation/interfaces/IModule.sol";
+import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 
 /// @title Base contract for modules
 /// @dev Implements ERC-165 to support IModule's interface, which is a requirement

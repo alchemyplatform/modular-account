@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {Call} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
-import {IModularAccount} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
+import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../src/helpers/Constants.sol";
 import {ValidationConfigLib} from "../../src/helpers/ValidationConfigLib.sol";

@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {IExecutionHookModule} from "@erc-6900/reference-implementation/interfaces/IExecutionHookModule.sol";
+import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {
     ExecutionManifest,
     ManifestExecutionFunction,
     ManifestExecutionHook
-} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
+} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {
     Call, IModularAccount, ModuleEntity
-} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
-import {IValidationHookModule} from "@erc-6900/reference-implementation/interfaces/IValidationHookModule.sol";
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {HookConfigLib} from "../../src/helpers/HookConfigLib.sol";

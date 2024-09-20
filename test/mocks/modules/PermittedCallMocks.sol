@@ -5,7 +5,7 @@ import {
     ExecutionManifest,
     IExecutionModule,
     ManifestExecutionFunction
-} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
+} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 
 import {BaseModule} from "../../../src/modules/BaseModule.sol";
 import {ResultCreatorModule} from "./ReturnDataModuleMocks.sol";
