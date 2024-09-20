@@ -37,4 +37,10 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         account1 = factory.createAccount(owner1, 0, 0);
         signerValidation = ModuleEntityLib.pack(address(singleSignerValidationModule), 0);
     }
+
+    function _deploySemiModularAccount1() internal {
+        account1 = factory.createSemiModularAccount(owner1, 0);
+        // todo: pull this out into a constant and import
+        signerValidation = ModuleEntity.wrap(bytes24(type(uint192).max));
+    }
 }
