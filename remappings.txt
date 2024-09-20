@@ -1,10 +1,10 @@
 ds-test/=lib/forge-std/lib/ds-test/src/
-modular-account-libs/=node_modules/modular-account-libs/src/
+@erc6900/modular-account-libs/=node_modules/@erc6900/modular-account-libs/src/
 @eth-infinitism/account-abstraction/=node_modules/account-abstraction/contracts/
 account-abstraction/=node_modules/account-abstraction/contracts/
 @openzeppelin/=lib/openzeppelin-contracts/
 @alchemy/light-account/=lib/light-account/
 solady=node_modules/solady/src/
-@erc-6900/reference-implementation/=node_modules/reference-implementation/src/
+@erc6900/reference-implementation/=node_modules/@erc6900/reference-implementation/src/
 forge-gas-snapshot/=lib/forge-gas-snapshot/src/
 forge-std/=lib/forge-std/

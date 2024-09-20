@@ -4,20 +4,20 @@ pragma solidity ^0.8.26;
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {IExecutionHookModule} from "@erc-6900/reference-implementation/interfaces/IExecutionHookModule.sol";
+import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {
     ExecutionManifest,
     ManifestExecutionHook
-} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
+} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {
     HookConfig,
     IModularAccount,
     ModuleEntity,
     ValidationConfig
-} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
-import {IModule} from "@erc-6900/reference-implementation/interfaces/IModule.sol";
-import {IValidationHookModule} from "@erc-6900/reference-implementation/interfaces/IValidationHookModule.sol";
-import {IValidationModule} from "@erc-6900/reference-implementation/interfaces/IValidationModule.sol";
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
+import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
+import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
 import {collectReturnData} from "../helpers/CollectReturnData.sol";
 import {MAX_PRE_VALIDATION_HOOKS} from "../helpers/Constants.sol";

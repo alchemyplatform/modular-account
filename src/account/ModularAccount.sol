@@ -11,16 +11,16 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeab
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {IExecutionHookModule} from "@erc-6900/reference-implementation/interfaces/IExecutionHookModule.sol";
-import {ExecutionManifest} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
+import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {
     Call,
     IModularAccount,
     ModuleEntity,
     ValidationConfig
-} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
-import {IValidationHookModule} from "@erc-6900/reference-implementation/interfaces/IValidationHookModule.sol";
-import {IValidationModule} from "@erc-6900/reference-implementation/interfaces/IValidationModule.sol";
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
+import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
 import {collectReturnData} from "../helpers/CollectReturnData.sol";
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../helpers/Constants.sol";

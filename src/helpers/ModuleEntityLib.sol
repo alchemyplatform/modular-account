@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {ModuleEntity} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
+import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 library ModuleEntityLib {
     // Magic value for hooks that should always revert.

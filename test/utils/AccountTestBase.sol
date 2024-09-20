@@ -5,7 +5,7 @@ import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.so
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import {Call, IModularAccount} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
+import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {AccountFactory} from "../../src/account/AccountFactory.sol";
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
