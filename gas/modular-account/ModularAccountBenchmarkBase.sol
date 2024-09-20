@@ -23,7 +23,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
     ModuleEntity public signerValidation;
 
-    constructor() {
+    constructor(string memory accountImplName) BenchmarkBase(accountImplName) {
         accountImpl = _deployModularAccount(IEntryPoint(entryPoint));
         semiModularImpl = _deploySemiModularAccount(IEntryPoint(entryPoint));
         singleSignerValidationModule = _deploySingleSignerValidationModule();

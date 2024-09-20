@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {VmSafe} from "forge-std/src/Vm.sol";
-import {console} from "forge-std/src/console.sol";
-
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
@@ -11,19 +8,18 @@ import {ModularAccount} from "../../src/account/ModularAccount.sol";
 
 import {ModularAccountBenchmarkBase} from "./ModularAccountBenchmarkBase.sol";
 
-contract ModularAccountGasTest is ModularAccountBenchmarkBase {
+contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") {
     function test_modularAccountGas_runtime_accountCreation() public {
         uint256 salt = 0;
         uint32 entityId = 0;
 
-        factory.createAccount(owner1, salt, entityId);
+        uint256 gasUsed = _runtimeBenchmark(
+            owner1, address(factory), abi.encodeCall(factory.createAccount, (owner1, salt, entityId))
+        );
 
-        VmSafe.Gas memory gas = vm.lastCallGas();
+        assertTrue(factory.getAddress(owner1, salt, entityId).code.length > 0);
 
-        console.log("Runtime: account creation: ");
-        console.log("gasTotalUsed: %d", gas.gasTotalUsed);
-
-        snap("ModularAccount_Runtime_AccountCreation", gas.gasTotalUsed);
+        _snap(RUNTIME, "AccountCreation", gasUsed);
     }
 
     function test_modularAccountGas_runtime_nativeTransfer() public {
@@ -31,20 +27,21 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase {
 
         vm.deal(address(account1), 1 ether);
 
-        vm.prank(owner1);
-        account1.executeWithAuthorization(
-            abi.encodeCall(ModularAccount.execute, (recipient, 0.1 ether, "")),
-            _encodeSignature(signerValidation, GLOBAL_VALIDATION, "")
+        uint256 gas = _runtimeBenchmark(
+            owner1,
+            address(account1),
+            abi.encodeCall(
+                ModularAccount.executeWithAuthorization,
+                (
+                    abi.encodeCall(ModularAccount.execute, (recipient, 0.1 ether, "")),
+                    _encodeSignature(signerValidation, GLOBAL_VALIDATION, "")
+                )
+            )
         );
-
-        VmSafe.Gas memory gas = vm.lastCallGas();
 
         assertEq(address(recipient).balance, 0.1 ether + 1 wei);
 
-        console.log("Runtime: native transfer: ");
-        console.log("gasTotalUsed: %d", gas.gasTotalUsed);
-
-        snap("ModularAccount_Runtime_NativeTransfer", gas.gasTotalUsed);
+        _snap(RUNTIME, "NativeTransfer", gas);
     }
 
     function test_modularAccountGas_userOp_nativeTransfer() public {
@@ -52,9 +49,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase {
 
         vm.deal(address(account1), 1 ether);
 
-        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
-
-        userOps[0] = PackedUserOperation({
+        PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
             nonce: 0,
             initCode: "",
@@ -67,21 +62,15 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase {
             signature: ""
         });
 
-        bytes32 userOpHash = entryPoint.getUserOpHash(userOps[0]);
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        userOps[0].signature = _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(r, s, v));
+        userOp.signature = _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(r, s, v));
 
-        vm.prank(beneficiary);
-        entryPoint.handleOps(userOps, beneficiary);
-
-        VmSafe.Gas memory gas = vm.lastCallGas();
+        uint256 gasUsed = _userOpBenchmark(userOp);
 
         assertEq(address(recipient).balance, 0.1 ether + 1 wei);
 
-        console.log("User Op: native transfer: ");
-        console.log("gasTotalUsed: %d", gas.gasTotalUsed);
-
-        snap("ModularAccount_UserOp_NativeTransfer", gas.gasTotalUsed);
+        _snap(USER_OP, "NativeTransfer", gasUsed);
     }
 
     function test_modularAccountGas_runtime_erc20Transfer() public {
@@ -89,23 +78,24 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase {
 
         mockErc20.mint(address(account1), 100 ether);
 
-        vm.prank(owner1);
-        account1.executeWithAuthorization(
+        uint256 gasUsed = _runtimeBenchmark(
+            owner1,
+            address(account1),
             abi.encodeCall(
-                ModularAccount.execute,
-                (address(mockErc20), 0, abi.encodeWithSelector(mockErc20.transfer.selector, recipient, 10 ether))
-            ),
-            _encodeSignature(signerValidation, GLOBAL_VALIDATION, "")
+                ModularAccount.executeWithAuthorization,
+                (
+                    abi.encodeCall(
+                        ModularAccount.execute,
+                        (address(mockErc20), 0, abi.encodeCall(mockErc20.transfer, (recipient, 10 ether)))
+                    ),
+                    _encodeSignature(signerValidation, GLOBAL_VALIDATION, "")
+                )
+            )
         );
-
-        VmSafe.Gas memory gas = vm.lastCallGas();
 
         assertEq(mockErc20.balanceOf(recipient), 10 ether);
 
-        console.log("Runtime: erc20 transfer: ");
-        console.log("gasTotalUsed: %d", gas.gasTotalUsed);
-
-        snap("ModularAccount_Runtime_Erc20Transfer", gas.gasTotalUsed);
+        _snap(RUNTIME, "Erc20Transfer", gasUsed);
     }
 
     function test_modularAccountGas_userOp_erc20Transfer() public {
@@ -115,9 +105,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase {
 
         mockErc20.mint(address(account1), 100 ether);
 
-        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
-
-        userOps[0] = PackedUserOperation({
+        PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
             nonce: 0,
             initCode: "",
@@ -133,20 +121,14 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase {
             signature: ""
         });
 
-        bytes32 userOpHash = entryPoint.getUserOpHash(userOps[0]);
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        userOps[0].signature = _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(r, s, v));
+        userOp.signature = _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(r, s, v));
 
-        vm.prank(beneficiary);
-        entryPoint.handleOps(userOps, beneficiary);
-
-        VmSafe.Gas memory gas = vm.lastCallGas();
+        uint256 gasUsed = _userOpBenchmark(userOp);
 
         assertEq(mockErc20.balanceOf(recipient), 10 ether);
 
-        console.log("User Op: erc20 transfer: ");
-        console.log("gasTotalUsed: %d", gas.gasTotalUsed);
-
-        snap("ModularAccount_UserOp_Erc20Transfer", gas.gasTotalUsed);
+        _snap(USER_OP, "Erc20Transfer", gasUsed);
     }
 }
