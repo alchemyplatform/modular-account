@@ -22,6 +22,7 @@ import {BaseModule, IERC165} from "./BaseModule.sol";
 /// @title ERC20 Token Limit Module
 /// @author Alchemy & ERC-6900 Authors
 /// @notice This module supports ERC20 token spend limits. A few key features/restrictions features:
+///     - This module only provide hooks associated with validations.
 ///     - For any validation function with this hook installed, all ERC20s without limits specified here will be
 /// reverted.
 ///     - Only spending request through the following native execution functions are supported:
