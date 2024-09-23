@@ -3,7 +3,9 @@ pragma solidity ^0.8.26;
 
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {Vm} from "forge-std/src/Vm.sol";
 
+import {AccountFactory} from "../../src/account/AccountFactory.sol";
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 
 import {ModularAccountBenchmarkBase} from "./ModularAccountBenchmarkBase.sol";
@@ -13,11 +15,32 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         uint256 salt = 0;
         uint32 entityId = 0;
 
+        vm.recordLogs();
+
         uint256 gasUsed = _runtimeBenchmark(
             owner1, address(factory), abi.encodeCall(factory.createAccount, (owner1, salt, entityId))
         );
 
-        assertTrue(factory.getAddress(owner1, salt, entityId).code.length > 0);
+        address accountAddress = factory.getAddress(owner1, salt, entityId);
+
+        assertTrue(accountAddress.code.length > 0);
+
+        // Also assert that the event emitted by the factory is correct
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        assertEq(logs.length, 5);
+        // Logs:
+        // 0: ERC1967Proxy `Upgraded`
+        // 1: SingleSignerValidationModule `SignerTransferred` (anonymous)
+        // 2: ModularAccount `ValidationInstalled`
+        // 3: ModularAccount `Initialized`
+        // 4: AccountFactory `ModularAccountDeployed`
+
+        assertEq(logs[4].topics.length, 3);
+        assertEq(logs[4].topics[0], AccountFactory.ModularAccountDeployed.selector);
+        assertEq(logs[4].topics[1], bytes32(uint256(uint160(accountAddress))));
+        assertEq(logs[4].topics[2], bytes32(uint256(uint160(owner1))));
+        assertEq(keccak256(logs[4].data), keccak256(abi.encodePacked(salt)));
 
         _snap(RUNTIME, "AccountCreation", gasUsed);
     }

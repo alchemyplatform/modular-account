@@ -3,7 +3,9 @@ pragma solidity ^0.8.26;
 
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {Vm} from "forge-std/src/Vm.sol";
 
+import {AccountFactory} from "../../src/account/AccountFactory.sol";
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 
 import {ModularAccountBenchmarkBase} from "./ModularAccountBenchmarkBase.sol";
@@ -12,11 +14,26 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     function test_semiModularAccountGas_runtime_accountCreation() public {
         uint256 salt = 0;
 
+        vm.recordLogs();
+
         uint256 gasUsed = _runtimeBenchmark(
             owner1, address(factory), abi.encodeCall(factory.createSemiModularAccount, (owner1, salt))
         );
 
-        assertTrue(factory.getAddressSemiModular(owner1, salt).code.length > 0);
+        address accountAddress = factory.getAddressSemiModular(owner1, salt);
+
+        assertTrue(accountAddress.code.length > 0);
+
+        // Also assert that the event emitted by the factory is correct
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        assertEq(logs.length, 1);
+
+        assertEq(logs[0].topics.length, 3);
+        assertEq(logs[0].topics[0], AccountFactory.SemiModularAccountDeployed.selector);
+        assertEq(logs[0].topics[1], bytes32(uint256(uint160(accountAddress))));
+        assertEq(logs[0].topics[2], bytes32(uint256(uint160(owner1))));
+        assertEq(keccak256(logs[0].data), keccak256(abi.encodePacked(salt)));
 
         _snap(RUNTIME, "AccountCreation", gasUsed);
     }
