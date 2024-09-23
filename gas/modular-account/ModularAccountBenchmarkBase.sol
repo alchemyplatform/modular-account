@@ -7,6 +7,7 @@ import {AccountFactory} from "../../src/account/AccountFactory.sol";
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
 
+import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/helpers/ModuleEntityLib.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
@@ -23,7 +24,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
     ModuleEntity public signerValidation;
 
-    constructor() {
+    constructor(string memory accountImplName) BenchmarkBase(accountImplName) {
         accountImpl = _deployModularAccount(IEntryPoint(entryPoint));
         semiModularImpl = _deploySemiModularAccount(IEntryPoint(entryPoint));
         singleSignerValidationModule = _deploySingleSignerValidationModule();
@@ -36,5 +37,10 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
     function _deployAccount1() internal {
         account1 = factory.createAccount(owner1, 0, 0);
         signerValidation = ModuleEntityLib.pack(address(singleSignerValidationModule), 0);
+    }
+
+    function _deploySemiModularAccount1() internal {
+        account1 = factory.createSemiModularAccount(owner1, 0);
+        signerValidation = FALLBACK_VALIDATION;
     }
 }

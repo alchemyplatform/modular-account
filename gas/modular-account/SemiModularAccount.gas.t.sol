@@ -10,43 +10,36 @@ import {ModularAccount} from "../../src/account/ModularAccount.sol";
 
 import {ModularAccountBenchmarkBase} from "./ModularAccountBenchmarkBase.sol";
 
-contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") {
-    function test_modularAccountGas_runtime_accountCreation() public {
+contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccount") {
+    function test_semiModularAccountGas_runtime_accountCreation() public {
         uint256 salt = 0;
-        uint32 entityId = 0;
 
         vm.recordLogs();
 
         uint256 gasUsed = _runtimeBenchmark(
-            owner1, address(factory), abi.encodeCall(factory.createAccount, (owner1, salt, entityId))
+            owner1, address(factory), abi.encodeCall(factory.createSemiModularAccount, (owner1, salt))
         );
 
-        address accountAddress = factory.getAddress(owner1, salt, entityId);
+        address accountAddress = factory.getAddressSemiModular(owner1, salt);
 
         assertTrue(accountAddress.code.length > 0);
 
         // Also assert that the event emitted by the factory is correct
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        assertEq(logs.length, 5);
-        // Logs:
-        // 0: ERC1967Proxy `Upgraded`
-        // 1: SingleSignerValidationModule `SignerTransferred` (anonymous)
-        // 2: ModularAccount `ValidationInstalled`
-        // 3: ModularAccount `Initialized`
-        // 4: AccountFactory `ModularAccountDeployed`
+        assertEq(logs.length, 1);
 
-        assertEq(logs[4].topics.length, 3);
-        assertEq(logs[4].topics[0], AccountFactory.ModularAccountDeployed.selector);
-        assertEq(logs[4].topics[1], bytes32(uint256(uint160(accountAddress))));
-        assertEq(logs[4].topics[2], bytes32(uint256(uint160(owner1))));
-        assertEq(keccak256(logs[4].data), keccak256(abi.encodePacked(salt)));
+        assertEq(logs[0].topics.length, 3);
+        assertEq(logs[0].topics[0], AccountFactory.SemiModularAccountDeployed.selector);
+        assertEq(logs[0].topics[1], bytes32(uint256(uint160(accountAddress))));
+        assertEq(logs[0].topics[2], bytes32(uint256(uint160(owner1))));
+        assertEq(keccak256(logs[0].data), keccak256(abi.encodePacked(salt)));
 
         _snap(RUNTIME, "AccountCreation", gasUsed);
     }
 
-    function test_modularAccountGas_runtime_nativeTransfer() public {
-        _deployAccount1();
+    function test_semiModularAccountGas_runtime_nativeTransfer() public {
+        _deploySemiModularAccount1();
 
         vm.deal(address(account1), 1 ether);
 
@@ -67,8 +60,8 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         _snap(RUNTIME, "NativeTransfer", gas);
     }
 
-    function test_modularAccountGas_userOp_nativeTransfer() public {
-        _deployAccount1();
+    function test_semiModularAccountGas_userOp_nativeTransfer() public {
+        _deploySemiModularAccount1();
 
         vm.deal(address(account1), 1 ether);
 
@@ -96,8 +89,8 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         _snap(USER_OP, "NativeTransfer", gasUsed);
     }
 
-    function test_modularAccountGas_runtime_erc20Transfer() public {
-        _deployAccount1();
+    function test_semiModularAccountGas_runtime_erc20Transfer() public {
+        _deploySemiModularAccount1();
 
         mockErc20.mint(address(account1), 100 ether);
 
@@ -121,8 +114,8 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         _snap(RUNTIME, "Erc20Transfer", gasUsed);
     }
 
-    function test_modularAccountGas_userOp_erc20Transfer() public {
-        _deployAccount1();
+    function test_semiModularAccountGas_userOp_erc20Transfer() public {
+        _deploySemiModularAccount1();
 
         vm.deal(address(account1), 1 ether);
 
@@ -137,7 +130,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
                 (address(mockErc20), 0, abi.encodeWithSelector(mockErc20.transfer.selector, recipient, 10 ether))
             ),
             // don't over-estimate by a lot here, otherwise a fee is assessed.
-            accountGasLimits: _encodeGasLimits(40_000, 100_000),
+            accountGasLimits: _encodeGasLimits(40_000, 90_000),
             preVerificationGas: 0,
             gasFees: _encodeGasFees(1, 1),
             paymasterAndData: "",

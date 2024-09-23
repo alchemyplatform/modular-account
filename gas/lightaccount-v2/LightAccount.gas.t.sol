@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {VmSafe} from "forge-std/src/Vm.sol";
-import {console} from "forge-std/src/console.sol";
-
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
@@ -12,7 +9,7 @@ import {ILightAccountFactory} from "./ILightAccountFactory.sol";
 
 import {BenchmarkBase} from "../BenchmarkBase.sol";
 
-contract LightAccountGasTest is BenchmarkBase {
+contract LightAccountGasTest is BenchmarkBase("LightAccount") {
     address internal constant _LIGHT_ACCOUNT_FACTORY = 0x0000000000400CdFef5E2714E63d8040b700BC24;
 
     bytes internal constant _LIGHT_ACCOUNT_FACTORY_BYTECODE =
@@ -31,14 +28,12 @@ contract LightAccountGasTest is BenchmarkBase {
     }
 
     function test_lightAccountGas_runtime_accountCreation() public {
-        _factory.createAccount(owner1, 0);
+        uint256 gasUsed =
+            _runtimeBenchmark(owner1, address(_factory), abi.encodeCall(_factory.createAccount, (owner1, 0)));
 
-        VmSafe.Gas memory gas = vm.lastCallGas();
+        assertTrue(_factory.getAddress(owner1, 0).code.length > 0);
 
-        console.log("Runtime: account creation");
-        console.log("gasTotalUsed: ", gas.gasTotalUsed);
-
-        snap("LightAccount_Runtime_AccountCreation", gas.gasTotalUsed);
+        _snap(RUNTIME, "AccountCreation", gasUsed);
     }
 
     function test_lightAccountGas_runtime_nativeTransfer() public {
@@ -46,17 +41,13 @@ contract LightAccountGasTest is BenchmarkBase {
 
         vm.deal(address(account), 1 ether);
 
-        vm.prank(owner1);
-        account.execute(recipient, 0.1 ether, "");
-
-        VmSafe.Gas memory gas = vm.lastCallGas();
+        uint256 gasUsed = _runtimeBenchmark(
+            owner1, address(account), abi.encodeCall(account.execute, (recipient, 0.1 ether, ""))
+        );
 
         assertEq(address(recipient).balance, 0.1 ether + 1 wei);
 
-        console.log("Runtime: native transfer");
-        console.log("gasTotalUsed: ", gas.gasTotalUsed);
-
-        snap("LightAccount_Runtime_NativeTransfer", gas.gasTotalUsed);
+        _snap(RUNTIME, "NativeTransfer", gasUsed);
     }
 
     function test_lightAccountGas_userOp_nativeTransfer() public {
@@ -64,9 +55,7 @@ contract LightAccountGasTest is BenchmarkBase {
 
         vm.deal(address(account1), 1 ether);
 
-        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
-
-        userOps[0] = PackedUserOperation({
+        PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
             nonce: 0,
             initCode: "",
@@ -79,22 +68,16 @@ contract LightAccountGasTest is BenchmarkBase {
             signature: ""
         });
 
-        bytes32 userOpHash = entryPoint.getUserOpHash(userOps[0]);
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         // uint8(0) is LightAccount.SignatureType.EOA. For some reason, the enum does not appear in the ABI.
-        userOps[0].signature = abi.encodePacked(uint8(0), r, s, v);
+        userOp.signature = abi.encodePacked(uint8(0), r, s, v);
 
-        vm.prank(beneficiary);
-        entryPoint.handleOps(userOps, beneficiary);
-
-        VmSafe.Gas memory gas = vm.lastCallGas();
+        uint256 gasUsed = _userOpBenchmark(userOp);
 
         assertEq(address(recipient).balance, 0.1 ether + 1 wei);
 
-        console.log("User Op: native transfer: ");
-        console.log("gasTotalUsed: %d", gas.gasTotalUsed);
-
-        snap("LightAccount_UserOp_NativeTransfer", gas.gasTotalUsed);
+        _snap(USER_OP, "NativeTransfer", gasUsed);
     }
 
     function test_lightAccountGas_runtime_erc20Transfer() public {
@@ -102,19 +85,17 @@ contract LightAccountGasTest is BenchmarkBase {
 
         mockErc20.mint(address(account), 100 ether);
 
-        vm.prank(owner1);
-        account.execute(
-            address(mockErc20), 0, abi.encodeWithSelector(mockErc20.transfer.selector, recipient, 10 ether)
+        uint256 gasUsed = _runtimeBenchmark(
+            owner1,
+            address(account),
+            abi.encodeCall(
+                account.execute, (address(mockErc20), 0, abi.encodeCall(mockErc20.transfer, (recipient, 10 ether)))
+            )
         );
-
-        VmSafe.Gas memory gas = vm.lastCallGas();
 
         assertEq(mockErc20.balanceOf(recipient), 10 ether);
 
-        console.log("Runtime: erc20 transfer");
-        console.log("gasTotalUsed: ", gas.gasTotalUsed);
-
-        snap("LightAccount_Runtime_Erc20Transfer", gas.gasTotalUsed);
+        _snap(RUNTIME, "Erc20Transfer", gasUsed);
     }
 
     function test_lightAccountGas_userOp_erc20Transfer() public {
@@ -124,9 +105,7 @@ contract LightAccountGasTest is BenchmarkBase {
 
         vm.deal(address(account1), 1 ether);
 
-        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
-
-        userOps[0] = PackedUserOperation({
+        PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
             nonce: 0,
             initCode: "",
@@ -142,21 +121,15 @@ contract LightAccountGasTest is BenchmarkBase {
             signature: ""
         });
 
-        bytes32 userOpHash = entryPoint.getUserOpHash(userOps[0]);
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
 
-        userOps[0].signature = abi.encodePacked(uint8(0), r, s, v);
+        userOp.signature = abi.encodePacked(uint8(0), r, s, v);
 
-        vm.prank(beneficiary);
-        entryPoint.handleOps(userOps, beneficiary);
-
-        VmSafe.Gas memory gas = vm.lastCallGas();
+        uint256 gasUsed = _userOpBenchmark(userOp);
 
         assertEq(mockErc20.balanceOf(recipient), 10 ether);
 
-        console.log("User Op: erc20 transfer: ");
-        console.log("gasTotalUsed: %d", gas.gasTotalUsed);
-
-        snap("LightAccount_UserOp_Erc20Transfer", gas.gasTotalUsed);
+        _snap(USER_OP, "Erc20Transfer", gasUsed);
     }
 }

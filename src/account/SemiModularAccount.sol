@@ -15,6 +15,7 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 
 import {LibClone} from "solady/utils/LibClone.sol";
 
+import {FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {ModuleEntityLib} from "../helpers/ModuleEntityLib.sol";
 import {ModularAccount} from "./ModularAccount.sol";
 
@@ -34,8 +35,6 @@ contract SemiModularAccount is ModularAccount {
     // keccak256("ReplaySafeHash(bytes32 hash)")
     bytes32 private constant _REPLAY_SAFE_HASH_TYPEHASH =
         0x294a8735843d4afb4f017c76faf3b7731def145ed0025fc9b1d5ce30adf113ff;
-
-    ModuleEntity internal constant _FALLBACK_VALIDATION = ModuleEntity.wrap(bytes24(type(uint192).max));
 
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
     uint256 internal constant _SIG_VALIDATION_FAILED = 1;
@@ -107,7 +106,7 @@ contract SemiModularAccount is ModularAccount {
         PackedUserOperation memory userOp,
         bytes32 userOpHash
     ) internal override returns (uint256) {
-        if (userOpValidationFunction.eq(_FALLBACK_VALIDATION)) {
+        if (userOpValidationFunction.eq(FALLBACK_VALIDATION)) {
             address fallbackSigner = _getFallbackSigner();
 
             if (
@@ -128,7 +127,7 @@ contract SemiModularAccount is ModularAccount {
         bytes calldata callData,
         bytes calldata authorization
     ) internal override {
-        if (runtimeValidationFunction.eq(_FALLBACK_VALIDATION)) {
+        if (runtimeValidationFunction.eq(FALLBACK_VALIDATION)) {
             address fallbackSigner = _getFallbackSigner();
 
             if (msg.sender != fallbackSigner) {
@@ -145,7 +144,7 @@ contract SemiModularAccount is ModularAccount {
         override
         returns (bytes4)
     {
-        if (sigValidation.eq(_FALLBACK_VALIDATION)) {
+        if (sigValidation.eq(FALLBACK_VALIDATION)) {
             address fallbackSigner = _getFallbackSigner();
 
             if (SignatureChecker.isValidSignatureNow(fallbackSigner, replaySafeHash(hash), signature)) {
@@ -162,7 +161,7 @@ contract SemiModularAccount is ModularAccount {
     }
 
     function _isValidationGlobal(ModuleEntity validationFunction) internal view override returns (bool) {
-        return validationFunction.eq(_FALLBACK_VALIDATION) || super._isValidationGlobal(validationFunction);
+        return validationFunction.eq(FALLBACK_VALIDATION) || super._isValidationGlobal(validationFunction);
     }
 
     function _getFallbackSigner() internal view returns (address) {
