@@ -21,10 +21,12 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 
 import {collectReturnData} from "../helpers/CollectReturnData.sol";
 import {MAX_PRE_VALIDATION_HOOKS} from "../helpers/Constants.sol";
-import {HookConfigLib} from "../helpers/HookConfigLib.sol";
-import {KnownSelectors} from "../helpers/KnownSelectors.sol";
-import {ModuleEntityLib} from "../helpers/ModuleEntityLib.sol";
-import {ValidationConfigLib} from "../helpers/ValidationConfigLib.sol";
+
+import {KnownSelectors} from "../libraries/KnownSelectors.sol";
+
+import {HookConfigLib} from "../libraries/HookConfigLib.sol";
+import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
 import {
     AccountStorage,
     ExecutionData,

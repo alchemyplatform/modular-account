@@ -9,7 +9,7 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 import {ModularAccount} from "../account/ModularAccount.sol";
 import {SemiModularAccount} from "../account/SemiModularAccount.sol";
-import {ValidationConfigLib} from "../helpers/ValidationConfigLib.sol";
+import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
 
 import {LibClone} from "solady/utils/LibClone.sol";
 

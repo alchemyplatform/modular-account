@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {ModuleEntity} from "./ModuleEntityLib.sol";
+import {ModuleEntity} from "../libraries/ModuleEntityLib.sol";
 
 // Index marking the start of the data for the validation function.
 uint8 constant RESERVED_VALIDATION_DATA_INDEX = type(uint8).max;

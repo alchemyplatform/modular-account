@@ -16,7 +16,7 @@ import {
     ValidationDataView
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 
-import {HookConfigLib} from "../helpers/HookConfigLib.sol";
+import {HookConfigLib} from "../libraries/HookConfigLib.sol";
 import {ExecutionData, ValidationData, getAccountStorage, toHookConfig} from "./AccountStorage.sol";
 
 abstract contract ModularAccountView is IModularAccountView {

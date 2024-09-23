@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {ModuleEntity} from "../../src/helpers/ModuleEntityLib.sol";
+import {ModuleEntity} from "../../src/libraries/ModuleEntityLib.sol";
 
 /// @dev Utilities for encoding signatures for modular account validation. Used for encoding user op, runtime, and
 /// 1271 signatures.

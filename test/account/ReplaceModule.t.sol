@@ -13,9 +13,10 @@ import {
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-import {HookConfigLib} from "../../src/helpers/HookConfigLib.sol";
-import {ModuleEntityLib} from "../../src/helpers/ModuleEntityLib.sol";
-import {ValidationConfigLib} from "../../src/helpers/ValidationConfigLib.sol";
+
+import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
+import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 import {MockModule} from "../mocks/modules/MockModule.sol";
