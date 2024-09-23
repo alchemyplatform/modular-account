@@ -6,13 +6,10 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-
-import {SparseCalldataSegmentLib} from "../../src/libraries/SparseCalldataSegmentLib.sol";
-
 import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
+import {SparseCalldataSegmentLib} from "../../src/libraries/SparseCalldataSegmentLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
-
 import {Counter} from "../mocks/Counter.sol";
 import {MockAccessControlHookModule} from "../mocks/modules/MockAccessControlHookModule.sol";
 import {CustomValidationTestBase} from "../utils/CustomValidationTestBase.sol";

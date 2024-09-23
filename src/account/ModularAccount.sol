@@ -24,12 +24,10 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 
 import {collectReturnData} from "../helpers/CollectReturnData.sol";
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../helpers/Constants.sol";
-
-import {SparseCalldataSegmentLib} from "../libraries/SparseCalldataSegmentLib.sol";
-
 import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
 import {HookConfig, HookConfigLib} from "../libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
+import {SparseCalldataSegmentLib} from "../libraries/SparseCalldataSegmentLib.sol";
 import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
 import {AccountExecutor} from "./AccountExecutor.sol";
 import {AccountStorage, getAccountStorage, toHookConfig, toSetValue} from "./AccountStorage.sol";

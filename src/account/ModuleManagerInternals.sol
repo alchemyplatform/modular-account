@@ -21,10 +21,8 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 
 import {collectReturnData} from "../helpers/CollectReturnData.sol";
 import {MAX_PRE_VALIDATION_HOOKS} from "../helpers/Constants.sol";
-
-import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
-
 import {HookConfigLib} from "../libraries/HookConfigLib.sol";
+import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
 import {

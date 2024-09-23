@@ -16,12 +16,10 @@ import {ExecutionDataView} from "@erc6900/reference-implementation/interfaces/IM
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModuleManagerInternals} from "../../src/account/ModuleManagerInternals.sol";
 import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
-
 import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {TokenReceiverModule} from "../../src/modules/TokenReceiverModule.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
-
 import {Counter} from "../mocks/Counter.sol";
 import {ComprehensiveModule} from "../mocks/modules/ComprehensiveModule.sol";
 import {MockModule} from "../mocks/modules/MockModule.sol";
