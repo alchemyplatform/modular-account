@@ -17,7 +17,7 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 
 /// @dev Library to help to check if a selector is a know function selector of the modular account or ERC-4337
 /// contract.
-library KnownSelectors {
+library KnownSelectorsLib {
     function isNativeFunction(bytes4 selector) internal pure returns (bool) {
         return
         // check against IAccount methods
