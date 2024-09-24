@@ -9,10 +9,10 @@ import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IE
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-import {HookConfigLib} from "../../src/helpers/HookConfigLib.sol";
-import {ModuleEntity} from "../../src/helpers/ModuleEntityLib.sol";
-import {ModuleEntityLib} from "../../src/helpers/ModuleEntityLib.sol";
-import {ValidationConfigLib} from "../../src/helpers/ValidationConfigLib.sol";
+import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
+import {ModuleEntity} from "../../src/libraries/ModuleEntityLib.sol";
+import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {ERC20TokenLimitModule} from "../../src/modules/ERC20TokenLimitModule.sol";
 
 import {MockModule} from "../mocks/modules/MockModule.sol";

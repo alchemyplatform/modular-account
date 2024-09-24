@@ -4,11 +4,7 @@ pragma solidity ^0.8.26;
 import {UserOperationLib} from "@eth-infinitism/account-abstraction/core/UserOperationLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {
-    AssociatedLinkedListSet,
-    AssociatedLinkedListSetLib,
-    SetValue
-} from "@erc6900/modular-account-libs/libraries/AssociatedLinkedListSetLib.sol";
+import {SetValue} from "@erc6900/modular-account-libs/libraries/AssociatedLinkedListSetLib.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -33,7 +29,6 @@ import {BaseModule, IERC165} from "./BaseModule.sol";
 contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
     using UserOperationLib for PackedUserOperation;
     using EnumerableSet for EnumerableSet.AddressSet;
-    using AssociatedLinkedListSetLib for AssociatedLinkedListSet;
 
     struct ERC20SpendLimit {
         address token;
@@ -41,7 +36,6 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
     }
 
     mapping(uint32 entityId => mapping(address token => mapping(address account => uint256 limit))) public limits;
-    AssociatedLinkedListSet internal _tokenList;
 
     error ExceededTokenLimit();
     error SelectorNotAllowed();
@@ -53,7 +47,6 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
         if (token == address(0)) {
             revert ERC20NotAllowed(address(0));
         }
-        _tokenList.tryAdd(msg.sender, _toSetValue(token));
         limits[entityId][token][msg.sender] = newLimit;
     }
 
@@ -68,19 +61,11 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
         if (selector == IModularAccount.execute.selector) {
             // when calling execute or ERC20 functions directly
             (address token,, bytes memory innerCalldata) = abi.decode(callData, (address, uint256, bytes));
-            if (_tokenList.contains(msg.sender, _toSetValue(token))) {
-                _decrementLimit(entityId, token, innerCalldata);
-            } else {
-                revert ERC20NotAllowed(token);
-            }
+            _decrementLimit(entityId, token, innerCalldata);
         } else if (selector == IModularAccount.executeBatch.selector) {
             Call[] memory calls = abi.decode(callData, (Call[]));
             for (uint256 i = 0; i < calls.length; i++) {
-                if (_tokenList.contains(msg.sender, _toSetValue(calls[i].target))) {
-                    _decrementLimit(entityId, calls[i].target, calls[i].data);
-                } else {
-                    revert ERC20NotAllowed(calls[i].target);
-                }
+                _decrementLimit(entityId, calls[i].target, calls[i].data);
             }
         } else {
             revert SpendingRequestNotAllowed(selector);
@@ -97,7 +82,6 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
             if (token == address(0)) {
                 revert ERC20NotAllowed(address(0));
             }
-            _tokenList.tryAdd(msg.sender, _toSetValue(token));
             limits[entityId][token][msg.sender] = spendLimits[i].limit;
         }
     }
@@ -108,15 +92,6 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
     function onUninstall(bytes calldata data) external override {
         (address token, uint32 entityId) = abi.decode(data, (address, uint32));
         delete limits[entityId][token][msg.sender];
-    }
-
-    function getTokensForAccount(address account) external view returns (address[] memory tokens) {
-        SetValue[] memory set = _tokenList.getAll(account);
-        tokens = new address[](set.length);
-        for (uint256 i = 0; i < tokens.length; i++) {
-            tokens[i] = address(bytes20(bytes32(SetValue.unwrap(set[i]))));
-        }
-        return tokens;
     }
 
     /// @inheritdoc IExecutionHookModule
@@ -141,7 +116,7 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
 
         bytes4 selector;
         uint256 spend;
-        assembly {
+        assembly ("memory-safe") {
             selector := mload(add(innerCalldata, 32)) // 0:32 is arr len, 32:36 is selector
             spend := mload(add(innerCalldata, 68)) // 36:68 is recipient, 68:100 is spend
         }
@@ -150,7 +125,9 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
             if (spend > limit) {
                 revert ExceededTokenLimit();
             }
-            limits[entityId][token][msg.sender] = limit - spend;
+            unchecked {
+                limits[entityId][token][msg.sender] = limit - spend;
+            }
         } else {
             revert SelectorNotAllowed();
         }
