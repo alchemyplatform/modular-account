@@ -153,4 +153,29 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         _snap(USER_OP, "Erc20Transfer", gasUsed);
     }
+
+    function test_modularAccountGas_userOp_deferredValidationInstall() public {
+        _deployAccount1();
+
+        vm.deal(address(account1), 1 ether);
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: abi.encodeCall(ModularAccount.execute, (recipient, 0.1 ether, "")),
+            // don't over-estimate by a lot here, otherwise a fee is assessed.
+            accountGasLimits: _encodeGasLimits(40_000, 160_000),
+            preVerificationGas: 0,
+            gasFees: _encodeGasFees(1, 1),
+            paymasterAndData: "",
+            signature: _buildFullDeferredInstallSig(false, account1, 0, 0)
+        });
+
+        uint256 gasUsed = _userOpBenchmark(userOp);
+
+        assertEq(address(recipient).balance, 0.1 ether + 1 wei);
+
+        _snap(USER_OP, "deferredValidation", gasUsed);
+    }
 }

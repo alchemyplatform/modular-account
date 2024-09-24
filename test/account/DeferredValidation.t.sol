@@ -16,7 +16,6 @@ import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
 contract DeferredValidationTest is AccountTestBase {
     using ValidationConfigLib for ValidationConfig;
-    using MessageHashUtils for bytes32;
 
     bytes32 private constant _INSTALL_VALIDATION_TYPEHASH = keccak256(
         // solhint-disable-next-line max-line-length
@@ -33,7 +32,7 @@ contract DeferredValidationTest is AccountTestBase {
     // Negatives
 
     function test_fail_deferredValidation_nonceUsed() external {
-        _runUserOpWithCustomSig(_encodedCall, "", _buildSig(account1, 0, 0));
+        _runUserOpWithCustomSig(_encodedCall, "", _buildFullDeferredInstallSig(account1, 0, 0));
 
         bytes memory expectedRevertdata = abi.encodeWithSelector(
             IEntryPoint.FailedOpWithRevert.selector,
@@ -42,7 +41,7 @@ contract DeferredValidationTest is AccountTestBase {
             abi.encodeWithSelector(ModularAccount.DeferredInstallNonceInvalid.selector)
         );
 
-        _runUserOpWithCustomSig(_encodedCall, expectedRevertdata, _buildSig(account1, 0, 0));
+        _runUserOpWithCustomSig(_encodedCall, expectedRevertdata, _buildFullDeferredInstallSig(account1, 0, 0));
     }
 
     function test_fail_deferredValidation_pastDeadline() external {
@@ -51,7 +50,7 @@ contract DeferredValidationTest is AccountTestBase {
 
         // Note that a deadline of 0 implies no expiry
         vm.warp(2);
-        _runUserOpWithCustomSig(_encodedCall, expectedRevertdata, _buildSig(account1, 0, 1));
+        _runUserOpWithCustomSig(_encodedCall, expectedRevertdata, _buildFullDeferredInstallSig(account1, 0, 1));
     }
 
     function test_fail_deferredValidation_invalidSig() external {
@@ -61,7 +60,9 @@ contract DeferredValidationTest is AccountTestBase {
             "AA23 reverted",
             abi.encodeWithSelector(ModularAccount.DeferredInstallSignatureInvalid.selector)
         );
-        _runUserOpWithCustomSig(_encodedCall, expectedRevertData, _buildSig(ModularAccount(payable(0)), 0, 0));
+        _runUserOpWithCustomSig(
+            _encodedCall, expectedRevertData, _buildFullDeferredInstallSig(ModularAccount(payable(0)), 0, 0)
+        );
     }
 
     function test_fail_deferredValidation_nonceInvalidated() external {
@@ -75,14 +76,14 @@ contract DeferredValidationTest is AccountTestBase {
             abi.encodeWithSelector(ModularAccount.DeferredInstallNonceInvalid.selector)
         );
 
-        _runUserOpWithCustomSig(_encodedCall, expectedRevertdata, _buildSig(account1, 0, 0));
+        _runUserOpWithCustomSig(_encodedCall, expectedRevertdata, _buildFullDeferredInstallSig(account1, 0, 0));
     }
 
     // TODO: Test with hooks
     // Positives
 
     function test_deferredValidation() external {
-        _runUserOpWithCustomSig(_encodedCall, "", _buildSig(account1, 0, 0));
+        _runUserOpWithCustomSig(_encodedCall, "", _buildFullDeferredInstallSig(account1, 0, 0));
     }
 
     function test_deferredValidation_initCode() external {
@@ -112,14 +113,14 @@ contract DeferredValidationTest is AccountTestBase {
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 2),
             paymasterAndData: "",
-            signature: _buildSig(account2, 0, 0)
+            signature: _buildFullDeferredInstallSig(account2, 0, 0)
         });
 
         _sendOp(userOp, "");
     }
 
     // Internal Helpers
-    function _buildSig(ModularAccount account, uint256 nonce, uint48 deadline)
+    function _buildFullDeferredInstallSig(ModularAccount account, uint256 nonce, uint48 deadline)
         internal
         view
         returns (bytes memory)
