@@ -30,7 +30,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         assertEq(logs.length, 4);
         // Logs:
-        // 0: SingleSignerValidationModule `SignerTransferred` (anonymous)
+        // 0: ECDSAValidationModule `SignerTransferred` (anonymous)
         // 1: ModularAccount `ValidationInstalled`
         // 2: ModularAccount `Initialized`
         // 3: AccountFactory `ModularAccountDeployed`
@@ -162,7 +162,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         uint32 entityId = 0;
         bytes memory deferredValidationInstallData = abi.encode(entityId, owner1);
         ModuleEntity deferredValidation =
-            ModuleEntityLib.pack(address(_deploySingleSignerValidationModule()), entityId);
+            ModuleEntityLib.pack(address(_deployECDSAValidationModule()), entityId);
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),

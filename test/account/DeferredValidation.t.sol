@@ -8,7 +8,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
-import {AccountTestBase} from "../utils/AccountTestBase.sol";
+import {AccountTestBase, ECDSAValidationModule} from "../utils/AccountTestBase.sol";
 
 contract DeferredValidationTest is AccountTestBase {
     using ValidationConfigLib for ValidationConfig;
@@ -25,7 +25,7 @@ contract DeferredValidationTest is AccountTestBase {
 
     function setUp() external {
         _encodedCall = abi.encodeCall(ModularAccount.execute, (makeAddr("dead"), 0, ""));
-        _deferredValidation = ModuleEntityLib.pack(address(_deploySingleSignerValidationModule()), 0);
+        _deferredValidation = ModuleEntityLib.pack(address(_deployECDSAValidationModule()), 0);
         _isSmaTest = vm.envOr("SMA_TEST", false);
 
         uint32 entityId = 0;

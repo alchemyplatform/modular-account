@@ -16,7 +16,7 @@ import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
-import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
+import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 import {MockModule} from "../mocks/modules/MockModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
@@ -98,8 +98,8 @@ contract UpgradeModuleTest is AccountTestBase {
 
     function test_upgradeModuleValidationFunction() public {
         // Setup new validaiton with pre validation and execution hooks associated with a validator
-        SingleSignerValidationModule validation1 = new SingleSignerValidationModule();
-        SingleSignerValidationModule validation2 = new SingleSignerValidationModule();
+        ECDSAValidationModule validation1 = new ECDSAValidationModule();
+        ECDSAValidationModule validation2 = new ECDSAValidationModule();
         uint32 validationEntityId1 = 10;
         uint32 validationEntityId2 = 11;
 

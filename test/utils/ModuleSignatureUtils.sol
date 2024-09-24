@@ -7,7 +7,7 @@ import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
-import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
+import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 
 import {Vm} from "forge-std/src/Vm.sol";
 
@@ -117,14 +117,14 @@ contract ModuleSignatureUtils {
         uint256 ownerKey,
         bool isSmaTest,
         ModularAccount account,
-        ModuleEntity outerSingleSignerValidation,
+        ModuleEntity outerECDSAValidation,
         ModuleEntity deferredValidation,
         bytes memory deferredValidationInstallData,
         bytes memory deferredValidationSig,
         uint256 nonce,
         uint48 deadline
     ) internal view returns (bytes memory) {
-        uint8 outerSingleSignerValidationFlags = 3;
+        uint8 outerECDSAValidationFlags = 3;
 
         ValidationConfig deferredConfig = ValidationConfigLib.pack({
             _validationFunction: deferredValidation,
@@ -142,7 +142,7 @@ contract ModuleSignatureUtils {
             ownerKey,
             isSmaTest,
             account,
-            outerSingleSignerValidation,
+            outerECDSAValidation,
             deferredConfig,
             deferredValidationInstallData,
             nonce,
@@ -152,8 +152,8 @@ contract ModuleSignatureUtils {
         bytes memory innerUoValidationSig = _packValidationResWithIndex(255, deferredValidationSig);
 
         bytes memory encodedDeferredInstall = abi.encodePacked(
-            outerSingleSignerValidation,
-            outerSingleSignerValidationFlags,
+            outerECDSAValidation,
+            outerECDSAValidationFlags,
             uint32(deferredInstallData.length),
             deferredInstallData,
             uint32(deferredInstallSig.length),
@@ -167,7 +167,7 @@ contract ModuleSignatureUtils {
     function _getReplaySafeHash(
         bool isSmaTest,
         ModularAccount account,
-        ModuleEntity outerSingleSignerValidation,
+        ModuleEntity outerECDSAValidation,
         ValidationConfig deferredConfig,
         bytes memory deferredValidationInstallData,
         uint256 nonce,
@@ -195,13 +195,11 @@ contract ModuleSignatureUtils {
         );
         bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(domainSeparator, structHash);
 
-        (address outerSingleSignerValidationAddr,) = outerSingleSignerValidation.unpack();
+        (address outerECDSAValidationAddr,) = outerECDSAValidation.unpack();
 
         bytes32 replaySafeHash = isSmaTest
             ? _getSmaReplaySafeHash(account, typedDataHash)
-            : SingleSignerValidationModule(outerSingleSignerValidationAddr).replaySafeHash(
-                address(account), typedDataHash
-            );
+            : ECDSAValidationModule(outerECDSAValidationAddr).replaySafeHash(address(account), typedDataHash);
 
         return replaySafeHash;
     }
@@ -234,7 +232,7 @@ contract ModuleSignatureUtils {
         uint256 ownerKey,
         bool isSmaTest,
         ModularAccount account,
-        ModuleEntity outerSingleSignerValidation,
+        ModuleEntity outerECDSAValidation,
         ValidationConfig deferredConfig,
         bytes memory deferredValidationInstallData,
         uint256 nonce,
@@ -243,7 +241,7 @@ contract ModuleSignatureUtils {
         bytes32 replaySafeHash = _getReplaySafeHash(
             isSmaTest,
             account,
-            outerSingleSignerValidation,
+            outerECDSAValidation,
             deferredConfig,
             deferredValidationInstallData,
             nonce,

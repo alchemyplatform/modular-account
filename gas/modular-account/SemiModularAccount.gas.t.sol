@@ -156,7 +156,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
         uint32 entityId = 0;
         bytes memory deferredValidationInstallData = abi.encode(entityId, owner1);
         ModuleEntity deferredValidation =
-            ModuleEntityLib.pack(address(_deploySingleSignerValidationModule()), entityId);
+            ModuleEntityLib.pack(address(_deployECDSAValidationModule()), entityId);
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),

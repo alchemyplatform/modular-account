@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
-interface ISingleSignerValidationModule is IValidationModule {
+interface IECDSAValidationModule is IValidationModule {
     /// @notice This event is emitted when Signer of the account's validation changes.
     /// @param account The account whose validation Signer changed.
     /// @param entityId The entityId for the account and the signer.

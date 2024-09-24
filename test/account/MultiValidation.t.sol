@@ -11,7 +11,7 @@ import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/i
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
-import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
+import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {TEST_DEFAULT_VALIDATION_ENTITY_ID} from "../utils/TestConstants.sol";
 
@@ -19,13 +19,13 @@ contract MultiValidationTest is AccountTestBase {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
 
-    SingleSignerValidationModule public validator2;
+    ECDSAValidationModule public validator2;
 
     address public owner2;
     uint256 public owner2Key;
 
     function setUp() public {
-        validator2 = new SingleSignerValidationModule();
+        validator2 = new ECDSAValidationModule();
 
         (owner2, owner2Key) = makeAddrAndKey("owner2");
     }

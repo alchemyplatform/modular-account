@@ -13,7 +13,7 @@ import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../src/helpers/Constants.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
-import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
+import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 
 import {ModuleSignatureUtils} from "./ModuleSignatureUtils.sol";
 import {OptimizedTest} from "./OptimizedTest.sol";
@@ -21,7 +21,7 @@ import {TEST_DEFAULT_VALIDATION_ENTITY_ID as EXT_CONST_TEST_DEFAULT_VALIDATION_E
     "./TestConstants.sol";
 
 /// @dev This contract handles common boilerplate setup for tests using ModularAccount with
-/// SingleSignerValidationModule.
+/// ECDSAValidationModule.
 abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     using ModuleEntityLib for ModuleEntity;
     using MessageHashUtils for bytes32;
@@ -29,7 +29,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     EntryPoint public entryPoint;
     address payable public beneficiary;
 
-    SingleSignerValidationModule public singleSignerValidationModule;
+    ECDSAValidationModule public ecdsaValidationModule;
     ModularAccount public accountImplementation;
     SemiModularAccount public semiModularAccountImplementation;
     AccountFactory public factory;
@@ -54,12 +54,12 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         factoryOwner = makeAddr("factoryOwner");
         beneficiary = payable(makeAddr("beneficiary"));
 
-        address deployedSingleSignerValidation = address(_deploySingleSignerValidationModule());
+        address deployedECDSAValidationModule = address(_deployECDSAValidationModule());
 
         // We etch the single signer validation to the max address, such that it coincides with the fallback
         // validation module entity for semi modular account tests.
-        singleSignerValidationModule = SingleSignerValidationModule(address(type(uint160).max));
-        vm.etch(address(singleSignerValidationModule), deployedSingleSignerValidation.code);
+        ecdsaValidationModule = ECDSAValidationModule(address(type(uint160).max));
+        vm.etch(address(ecdsaValidationModule), deployedECDSAValidationModule.code);
 
         accountImplementation = _deployModularAccount(entryPoint);
 
@@ -69,7 +69,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
             entryPoint,
             accountImplementation,
             semiModularAccountImplementation,
-            address(singleSignerValidationModule),
+            address(ecdsaValidationModule),
             factoryOwner
         );
 
@@ -81,8 +81,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
 
         vm.deal(address(account1), 100 ether);
 
-        _signerValidation =
-            ModuleEntityLib.pack(address(singleSignerValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
+        _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
     }
 
     function _runExecUserOp(address target, bytes memory callData) internal {
@@ -196,11 +195,10 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
             abi.encodeCall(
                 account1.execute,
                 (
-                    address(singleSignerValidationModule),
+                    address(ecdsaValidationModule),
                     0,
                     abi.encodeCall(
-                        SingleSignerValidationModule.transferSigner,
-                        (TEST_DEFAULT_VALIDATION_ENTITY_ID, address(this))
+                        ECDSAValidationModule.transferSigner, (TEST_DEFAULT_VALIDATION_ENTITY_ID, address(this))
                     )
                 )
             ),
