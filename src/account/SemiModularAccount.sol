@@ -16,7 +16,7 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 import {LibClone} from "solady/utils/LibClone.sol";
 
 import {FALLBACK_VALIDATION} from "../helpers/Constants.sol";
-import {ModuleEntityLib} from "../helpers/ModuleEntityLib.sol";
+import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
 import {ModularAccount} from "./ModularAccount.sol";
 
 contract SemiModularAccount is ModularAccount {

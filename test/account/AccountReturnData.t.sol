@@ -5,7 +5,7 @@ import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount
 import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../src/helpers/Constants.sol";
-import {ValidationConfigLib} from "../../src/helpers/ValidationConfigLib.sol";
+import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 
 import {
     RegularResultContract,

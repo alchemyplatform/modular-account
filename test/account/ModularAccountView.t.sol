@@ -9,8 +9,8 @@ import {
     ValidationDataView
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 
-import {HookConfigLib} from "../../src/helpers/HookConfigLib.sol";
-import {ModuleEntity, ModuleEntityLib} from "../../src/helpers/ModuleEntityLib.sol";
+import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
+import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 
 import {ComprehensiveModule} from "../mocks/modules/ComprehensiveModule.sol";
 import {CustomValidationTestBase} from "../utils/CustomValidationTestBase.sol";

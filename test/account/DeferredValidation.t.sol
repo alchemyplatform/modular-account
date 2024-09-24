@@ -6,7 +6,7 @@ import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
 
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
-import {ValidationConfig, ValidationConfigLib} from "../../src/helpers/ValidationConfigLib.sol";
+import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 
 import {MockUserOpValidationModule} from "../mocks/modules/ValidationModuleMocks.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";

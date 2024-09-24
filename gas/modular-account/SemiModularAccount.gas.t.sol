@@ -5,8 +5,8 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Vm} from "forge-std/src/Vm.sol";
 
-import {AccountFactory} from "../../src/account/AccountFactory.sol";
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 
 import {ModularAccountBenchmarkBase} from "./ModularAccountBenchmarkBase.sol";
 

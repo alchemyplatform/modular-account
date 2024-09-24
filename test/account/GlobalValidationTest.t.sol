@@ -5,7 +5,7 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-import {ModuleEntityLib} from "../../src/helpers/ModuleEntityLib.sol";
+import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
