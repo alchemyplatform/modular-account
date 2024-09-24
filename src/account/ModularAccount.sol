@@ -7,9 +7,10 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
+import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
@@ -335,7 +336,7 @@ contract ModularAccount is
 
     /// @inheritdoc UUPSUpgradeable
     /// @notice May be validated by a global validation.
-    function upgradeToAndCall(address newImplementation, bytes memory data)
+    function upgradeToAndCall(address newImplementation, bytes calldata data)
         public
         payable
         override
