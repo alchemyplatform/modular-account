@@ -23,8 +23,8 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
     using ValidationConfigLib for ValidationConfig;
 
     bytes32 private constant _INSTALL_VALIDATION_TYPEHASH = keccak256(
-        // solhint-disable-next-line max-line-length
-        "InstallValidation(bytes25 validationConfig,bytes4[] selectors,bytes installData,bytes[] hooks,uint256 nonce,uint48 deadline)"
+        "InstallValidation(bytes25 validationConfig,bytes4[] selectors,bytes installData,bytes[] hooks,"
+        "uint256 nonce,uint48 deadline)"
     );
 
     AccountFactory public factory;
