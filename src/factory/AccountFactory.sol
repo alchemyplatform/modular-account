@@ -4,8 +4,6 @@ pragma solidity ^0.8.26;
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
-import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 import {ModularAccount} from "../account/ModularAccount.sol";
 import {SemiModularAccount} from "../account/SemiModularAccount.sol";
@@ -16,7 +14,6 @@ import {LibClone} from "solady/utils/LibClone.sol";
 contract AccountFactory is Ownable {
     ModularAccount public immutable ACCOUNT_IMPL;
     SemiModularAccount public immutable SEMI_MODULAR_ACCOUNT_IMPL;
-    bytes32 private immutable _PROXY_BYTECODE_HASH;
     IEntryPoint public immutable ENTRY_POINT;
     address public immutable SINGLE_SIGNER_VALIDATION_MODULE;
 
@@ -31,8 +28,6 @@ contract AccountFactory is Ownable {
         address owner
     ) Ownable(owner) {
         ENTRY_POINT = _entryPoint;
-        _PROXY_BYTECODE_HASH =
-            keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(address(_accountImpl), "")));
         ACCOUNT_IMPL = _accountImpl;
         SEMI_MODULAR_ACCOUNT_IMPL = _semiModularImpl;
         SINGLE_SIGNER_VALIDATION_MODULE = _singleSignerValidationModule;
@@ -47,24 +42,25 @@ contract AccountFactory is Ownable {
      */
     function createAccount(address owner, uint256 salt, uint32 entityId) external returns (ModularAccount) {
         bytes32 combinedSalt = getSalt(owner, salt, entityId);
-        address addr = Create2.computeAddress(combinedSalt, _PROXY_BYTECODE_HASH);
+
+        // LibClone short-circuits if it's already deployed.
+        (bool alreadyDeployed, address instance) =
+            LibClone.createDeterministicERC1967(address(ACCOUNT_IMPL), combinedSalt);
 
         // short circuit if exists
-        if (addr.code.length == 0) {
-            bytes memory pluginInstallData = abi.encode(entityId, owner);
-            // not necessary to check return addr since next call will fail if so
-            new ERC1967Proxy{salt: combinedSalt}(address(ACCOUNT_IMPL), "");
+        if (!alreadyDeployed) {
+            bytes memory moduleInstallData = abi.encode(entityId, owner);
             // point proxy to actual implementation and init plugins
-            ModularAccount(payable(addr)).initializeWithValidation(
+            ModularAccount(payable(instance)).initializeWithValidation(
                 ValidationConfigLib.pack(SINGLE_SIGNER_VALIDATION_MODULE, entityId, true, true, true),
                 new bytes4[](0),
-                pluginInstallData,
+                moduleInstallData,
                 new bytes[](0)
             );
-            emit ModularAccountDeployed(addr, owner, salt);
+            emit ModularAccountDeployed(instance, owner, salt);
         }
 
-        return ModularAccount(payable(addr));
+        return ModularAccount(payable(instance));
     }
 
     function createSemiModularAccount(address owner, uint256 salt) external returns (SemiModularAccount) {
@@ -100,7 +96,9 @@ contract AccountFactory is Ownable {
      * Calculate the counterfactual address of this account as it would be returned by createAccount()
      */
     function getAddress(address owner, uint256 salt, uint32 entityId) external view returns (address) {
-        return Create2.computeAddress(getSalt(owner, salt, entityId), _PROXY_BYTECODE_HASH);
+        return LibClone.predictDeterministicAddressERC1967(
+            address(ACCOUNT_IMPL), getSalt(owner, salt, entityId), address(this)
+        );
     }
 
     function getAddressSemiModular(address owner, uint256 salt) public view returns (address) {

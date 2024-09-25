@@ -28,19 +28,18 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         // Also assert that the event emitted by the factory is correct
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        assertEq(logs.length, 5);
+        assertEq(logs.length, 4);
         // Logs:
-        // 0: ERC1967Proxy `Upgraded`
-        // 1: SingleSignerValidationModule `SignerTransferred` (anonymous)
-        // 2: ModularAccount `ValidationInstalled`
-        // 3: ModularAccount `Initialized`
-        // 4: AccountFactory `ModularAccountDeployed`
+        // 0: SingleSignerValidationModule `SignerTransferred` (anonymous)
+        // 1: ModularAccount `ValidationInstalled`
+        // 2: ModularAccount `Initialized`
+        // 3: AccountFactory `ModularAccountDeployed`
 
-        assertEq(logs[4].topics.length, 3);
-        assertEq(logs[4].topics[0], AccountFactory.ModularAccountDeployed.selector);
-        assertEq(logs[4].topics[1], bytes32(uint256(uint160(accountAddress))));
-        assertEq(logs[4].topics[2], bytes32(uint256(uint160(owner1))));
-        assertEq(keccak256(logs[4].data), keccak256(abi.encodePacked(salt)));
+        assertEq(logs[3].topics.length, 3);
+        assertEq(logs[3].topics[0], AccountFactory.ModularAccountDeployed.selector);
+        assertEq(logs[3].topics[1], bytes32(uint256(uint160(accountAddress))));
+        assertEq(logs[3].topics[2], bytes32(uint256(uint160(owner1))));
+        assertEq(keccak256(logs[3].data), keccak256(abi.encodePacked(salt)));
 
         _snap(RUNTIME, "AccountCreation", gasUsed);
     }

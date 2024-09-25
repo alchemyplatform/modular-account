@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {BaseAccount} from "@eth-infinitism/account-abstraction/core/BaseAccount.sol";
 import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
+import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
@@ -32,6 +32,7 @@ import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
 import {AccountExecutor} from "./AccountExecutor.sol";
 import {AccountStorage, getAccountStorage, toHookConfig, toSetValue} from "./AccountStorage.sol";
 import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
+import {BaseAccount} from "./BaseAccount.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -98,7 +99,6 @@ contract ModularAccount is
 
     event DeferredInstallNonceInvalidated(uint256 nonce);
 
-    error NotEntryPoint();
     error PostExecHookReverted(address module, uint32 entityId, bytes revertReason);
     error PreExecHookReverted(address module, uint32 entityId, bytes revertReason);
     error PreRuntimeValidationHookFailed(address module, uint32 entityId, bytes revertReason);
@@ -231,9 +231,7 @@ contract ModularAccount is
     /// @notice Execution function that allows UO context to be passed to execution hooks
     /// @dev This function is only callable by the EntryPoint
     function executeUserOp(PackedUserOperation calldata userOp, bytes32) external override {
-        if (msg.sender != address(_ENTRY_POINT)) {
-            revert NotEntryPoint();
-        }
+        _requireFromEntryPoint();
 
         ModuleEntity userOpValidationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
 
@@ -401,7 +399,7 @@ contract ModularAccount is
 
     /// @inheritdoc UUPSUpgradeable
     /// @notice May be validated by a global validation.
-    function upgradeToAndCall(address newImplementation, bytes memory data)
+    function upgradeToAndCall(address newImplementation, bytes calldata data)
         public
         payable
         override
@@ -430,7 +428,7 @@ contract ModularAccount is
     // INTERNAL FUNCTIONS
 
     // Parent function validateUserOp enforces that this call can only be made by the EntryPoint
-    function _validateSignature(PackedUserOperation calldata userOp, bytes32 userOpHash)
+    function _validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash)
         internal
         override
         returns (uint256 validationData)
