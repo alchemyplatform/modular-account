@@ -4,9 +4,7 @@ pragma solidity ^0.8.26;
 import {UserOperationLib} from "@eth-infinitism/account-abstraction/core/UserOperationLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {SetValue} from "@erc6900/modular-account-libs/libraries/AssociatedLinkedListSetLib.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
@@ -28,7 +26,6 @@ import {BaseModule, IERC165} from "./BaseModule.sol";
 /// pair contract is also the LP token contract.
 contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
     using UserOperationLib for PackedUserOperation;
-    using EnumerableSet for EnumerableSet.AddressSet;
 
     struct ERC20SpendLimit {
         address token;
@@ -135,9 +132,5 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
 
     function _isAllowedERC20Function(bytes4 selector) internal pure returns (bool) {
         return selector == IERC20.transfer.selector || selector == IERC20.approve.selector;
-    }
-
-    function _toSetValue(address token) internal pure returns (SetValue) {
-        return SetValue.wrap(bytes30(bytes20(token)));
     }
 }
