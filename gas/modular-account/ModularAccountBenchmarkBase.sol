@@ -13,7 +13,6 @@ import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib
 import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
-import {MockUserOpValidationModule} from "../../test/mocks/modules/ValidationModuleMocks.sol";
 import {ModuleSignatureUtils} from "../../test/utils/ModuleSignatureUtils.sol";
 
 import {BenchmarkBase} from "../BenchmarkBase.sol";
@@ -27,14 +26,11 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
     SingleSignerValidationModule public singleSignerValidationModule;
     ModularAccount public account1;
     ModuleEntity public signerValidation;
-    ModuleEntity public mockValidation;
 
     constructor(string memory accountImplName) BenchmarkBase(accountImplName) {
         accountImpl = _deployModularAccount(IEntryPoint(entryPoint));
         semiModularImpl = _deploySemiModularAccount(IEntryPoint(entryPoint));
         singleSignerValidationModule = _deploySingleSignerValidationModule();
-
-        mockValidation = ModuleEntityLib.pack(address(new MockUserOpValidationModule()), 0);
 
         factory = new AccountFactory(
             entryPoint, accountImpl, semiModularImpl, address(singleSignerValidationModule), address(this)

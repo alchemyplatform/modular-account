@@ -25,11 +25,14 @@ contract DeferredValidationTest is AccountTestBase {
     ModuleEntity internal _mockValidation;
     bool internal _isSmaTest;
     bytes internal _deferredValidationSig;
+    bytes internal _deferredValidationInstallData;
 
     function setUp() external {
         _mockValidation = ModuleEntityLib.pack(address(new MockUserOpValidationModule()), 0); // todo consider
             // return data
         _isSmaTest = vm.envOr("SMA_TEST", false);
+        _deferredValidationInstallData = "";
+        _deferredValidationSig = "";
     }
 
     // Negatives
@@ -45,6 +48,7 @@ contract DeferredValidationTest is AccountTestBase {
                 account1,
                 _signerValidation,
                 _mockValidation,
+                _deferredValidationInstallData,
                 _deferredValidationSig,
                 0,
                 0
@@ -68,6 +72,7 @@ contract DeferredValidationTest is AccountTestBase {
                 account1,
                 _signerValidation,
                 _mockValidation,
+                _deferredValidationInstallData,
                 _deferredValidationSig,
                 0,
                 0
@@ -91,6 +96,7 @@ contract DeferredValidationTest is AccountTestBase {
                 account1,
                 _signerValidation,
                 _mockValidation,
+                _deferredValidationInstallData,
                 _deferredValidationSig,
                 0,
                 1
@@ -115,6 +121,7 @@ contract DeferredValidationTest is AccountTestBase {
                 ModularAccount(payable(0)),
                 _signerValidation,
                 _mockValidation,
+                _deferredValidationInstallData,
                 _deferredValidationSig,
                 0,
                 0
@@ -143,6 +150,7 @@ contract DeferredValidationTest is AccountTestBase {
                 account1,
                 _signerValidation,
                 _mockValidation,
+                _deferredValidationInstallData,
                 _deferredValidationSig,
                 0,
                 0
@@ -164,6 +172,7 @@ contract DeferredValidationTest is AccountTestBase {
                 account1,
                 _signerValidation,
                 _mockValidation,
+                _deferredValidationInstallData,
                 _deferredValidationSig,
                 0,
                 0
@@ -200,7 +209,16 @@ contract DeferredValidationTest is AccountTestBase {
             gasFees: _encodeGas(1, 2),
             paymasterAndData: "",
             signature: _buildFullDeferredInstallSig(
-                vm, owner1Key, _isSmaTest, account2, _signerValidation, _mockValidation, _deferredValidationSig, 0, 0
+                vm,
+                owner1Key,
+                _isSmaTest,
+                account2,
+                _signerValidation,
+                _mockValidation,
+                _deferredValidationInstallData,
+                _deferredValidationSig,
+                0,
+                0
             )
         });
 

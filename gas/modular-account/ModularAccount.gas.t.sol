@@ -7,6 +7,7 @@ import {Vm} from "forge-std/src/Vm.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
+import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 
 import {ModularAccountBenchmarkBase} from "./ModularAccountBenchmarkBase.sol";
 
@@ -159,21 +160,40 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         vm.deal(address(account1), 1 ether);
 
+        uint32 entityId = 0;
+        bytes memory deferredValidationInstallData = abi.encode(entityId, owner1);
+        ModuleEntity deferredValidation =
+            ModuleEntityLib.pack(address(_deploySingleSignerValidationModule()), entityId);
+
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
             nonce: 0,
             initCode: "",
             callData: abi.encodeCall(ModularAccount.execute, (recipient, 0.1 ether, "")),
             // don't over-estimate by a lot here, otherwise a fee is assessed.
-            accountGasLimits: _encodeGasLimits(40_000, 160_000),
+            accountGasLimits: _encodeGasLimits(40_000, 200_000),
             preVerificationGas: 0,
             gasFees: _encodeGasFees(1, 1),
             paymasterAndData: "",
-            signature: _buildFullDeferredInstallSig(
-                vm, owner1Key, false, account1, signerValidation, mockValidation, "", 0, 0
-            )
+            signature: ""
         });
 
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        bytes memory deferredValidationSig = abi.encodePacked(r, s, v);
+
+        userOp.signature = _buildFullDeferredInstallSig(
+            vm,
+            owner1Key,
+            false,
+            account1,
+            signerValidation,
+            deferredValidation,
+            deferredValidationInstallData,
+            deferredValidationSig,
+            0,
+            0
+        );
         uint256 gasUsed = _userOpBenchmark(userOp);
 
         assertEq(address(recipient).balance, 0.1 ether + 1 wei);

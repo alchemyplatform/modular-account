@@ -119,6 +119,7 @@ contract ModuleSignatureUtils {
         ModularAccount account,
         ModuleEntity outerSingleSignerValidation,
         ModuleEntity deferredValidation,
+        bytes memory deferredValidationInstallData,
         bytes memory deferredValidationSig,
         uint256 nonce,
         uint48 deadline
@@ -132,13 +133,21 @@ contract ModuleSignatureUtils {
             _isUserOpValidation: true
         });
 
-        bytes memory deferredInstallData =
-            abi.encode(deferredConfig, new bytes4[](0), "", new bytes[](0), nonce, deadline);
+        bytes memory deferredInstallData = abi.encode(
+            deferredConfig, new bytes4[](0), deferredValidationInstallData, new bytes[](0), nonce, deadline
+        );
 
-        bytes32 replaySafeHash =
-            _getReplaySafeHash(isSmaTest, account, outerSingleSignerValidation, deferredConfig, nonce, deadline);
-
-        bytes memory deferredInstallSig = _getDeferredInstallSig(vm, ownerKey, replaySafeHash);
+        bytes memory deferredInstallSig = _getDeferredInstallSig(
+            vm,
+            ownerKey,
+            isSmaTest,
+            account,
+            outerSingleSignerValidation,
+            deferredConfig,
+            deferredValidationInstallData,
+            nonce,
+            deadline
+        );
 
         bytes memory innerUoValidationSig = _packValidationResWithIndex(255, deferredValidationSig);
 
@@ -160,6 +169,7 @@ contract ModuleSignatureUtils {
         ModularAccount account,
         ModuleEntity outerSingleSignerValidation,
         ValidationConfig deferredConfig,
+        bytes memory deferredValidationInstallData,
         uint256 nonce,
         uint48 deadline
     ) internal view returns (bytes32) {
@@ -174,7 +184,13 @@ contract ModuleSignatureUtils {
 
         bytes32 structHash = keccak256(
             abi.encode(
-                _INSTALL_VALIDATION_TYPEHASH, deferredConfig, new bytes4[](0), "", new bytes[](0), nonce, deadline
+                _INSTALL_VALIDATION_TYPEHASH,
+                deferredConfig,
+                new bytes4[](0),
+                deferredValidationInstallData,
+                new bytes[](0),
+                nonce,
+                deadline
             )
         );
         bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(domainSeparator, structHash);
@@ -213,11 +229,27 @@ contract ModuleSignatureUtils {
         }
     }
 
-    function _getDeferredInstallSig(Vm vm, uint256 ownerKey, bytes32 replaySafeHash)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function _getDeferredInstallSig(
+        Vm vm,
+        uint256 ownerKey,
+        bool isSmaTest,
+        ModularAccount account,
+        ModuleEntity outerSingleSignerValidation,
+        ValidationConfig deferredConfig,
+        bytes memory deferredValidationInstallData,
+        uint256 nonce,
+        uint48 deadline
+    ) internal view returns (bytes memory) {
+        bytes32 replaySafeHash = _getReplaySafeHash(
+            isSmaTest,
+            account,
+            outerSingleSignerValidation,
+            deferredConfig,
+            deferredValidationInstallData,
+            nonce,
+            deadline
+        );
+
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerKey, replaySafeHash);
 
         bytes memory rawDeferredInstallSig = abi.encodePacked(r, s, v);
