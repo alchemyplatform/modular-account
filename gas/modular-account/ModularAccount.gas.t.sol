@@ -169,7 +169,9 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
             preVerificationGas: 0,
             gasFees: _encodeGasFees(1, 1),
             paymasterAndData: "",
-            signature: _buildFullDeferredInstallSig(false, account1, 0, 0)
+            signature: _buildFullDeferredInstallSig(
+                vm, owner1Key, false, account1, signerValidation, mockValidation, "", 0, 0
+            )
         });
 
         uint256 gasUsed = _userOpBenchmark(userOp);
