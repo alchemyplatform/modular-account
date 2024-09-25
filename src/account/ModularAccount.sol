@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {BaseAccount} from "@eth-infinitism/account-abstraction/core/BaseAccount.sol";
 import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
@@ -33,6 +32,7 @@ import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
 import {AccountExecutor} from "./AccountExecutor.sol";
 import {AccountStorage, getAccountStorage, toHookConfig, toSetValue} from "./AccountStorage.sol";
 import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
+import {BaseAccount} from "./BaseAccount.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -99,7 +99,6 @@ contract ModularAccount is
 
     event DeferredInstallNonceInvalidated(uint256 nonce);
 
-    error NotEntryPoint();
     error PostExecHookReverted(address module, uint32 entityId, bytes revertReason);
     error PreExecHookReverted(address module, uint32 entityId, bytes revertReason);
     error PreRuntimeValidationHookFailed(address module, uint32 entityId, bytes revertReason);
@@ -166,9 +165,7 @@ contract ModularAccount is
     /// @notice Execution function that allows UO context to be passed to execution hooks
     /// @dev This function is only callable by the EntryPoint
     function executeUserOp(PackedUserOperation calldata userOp, bytes32) external override {
-        if (msg.sender != address(_ENTRY_POINT)) {
-            revert NotEntryPoint();
-        }
+        _requireFromEntryPoint();
 
         ModuleEntity userOpValidationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
 
@@ -365,7 +362,7 @@ contract ModularAccount is
     // INTERNAL FUNCTIONS
 
     // Parent function validateUserOp enforces that this call can only be made by the EntryPoint
-    function _validateSignature(PackedUserOperation calldata userOp, bytes32 userOpHash)
+    function _validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash)
         internal
         override
         returns (uint256 validationData)
