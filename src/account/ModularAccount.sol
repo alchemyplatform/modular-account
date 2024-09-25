@@ -115,7 +115,8 @@ contract ModularAccount is
     error DeferredInstallSignatureInvalid();
 
     // Wraps execution of a native function with runtime validation and hooks
-    // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution
+    // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution,
+    // performCreate, performCreate2
     modifier wrapNativeFunction() {
         (PostExecToRun[] memory postValidatorExecHooks, PostExecToRun[] memory postSelectorExecHooks) =
             _checkPermittedCallerAndAssociatedHooks();
@@ -177,6 +178,7 @@ contract ModularAccount is
         external
         payable
         virtual
+        wrapNativeFunction
         returns (address createdAddr)
     {
         assembly ("memory-safe") {
@@ -210,6 +212,7 @@ contract ModularAccount is
         external
         payable
         virtual
+        wrapNativeFunction
         returns (address createdAddr)
     {
         assembly ("memory-safe") {

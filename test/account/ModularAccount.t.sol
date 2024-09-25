@@ -525,6 +525,7 @@ contract ModularAccountTest is AccountTestBase {
     function test_performCreate() public {
         address account = address(factory.createAccount(owner1, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID));
         address expectedAddr = vm.computeCreateAddress(account, vm.getNonce(account));
+        vm.prank(address(entryPoint));
         address returnedAddr = account1.performCreate(
             0, abi.encodePacked(type(ModularAccount).creationCode, abi.encode(address(entryPoint)))
         );
@@ -541,6 +542,7 @@ contract ModularAccountTest is AccountTestBase {
         bytes32 salt = bytes32(hex"01234b");
 
         address expectedAddr = vm.computeCreate2Address(salt, initCodeHash, address(account));
+        vm.prank(address(entryPoint));
         address returnedAddr = account1.performCreate2(0, initCode, salt);
 
         assertEq(address(ModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
@@ -548,6 +550,7 @@ contract ModularAccountTest is AccountTestBase {
 
         vm.expectRevert(ModularAccount.CreateFailed.selector);
         // re-deploying with same salt should revert
+        vm.prank(address(entryPoint));
         account1.performCreate2(0, initCode, salt);
     }
 
