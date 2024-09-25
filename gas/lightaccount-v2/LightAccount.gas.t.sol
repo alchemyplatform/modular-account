@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
-import {VmSafe} from "forge-std/src/Vm.sol";
-import {console} from "forge-std/src/console.sol";
+import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ILightAccount} from "./ILightAccount.sol";
 import {ILightAccountFactory} from "./ILightAccountFactory.sol";
 
-import {MockERC20} from "../../test/mocks/MockERC20.sol";
+import {BenchmarkBase} from "../BenchmarkBase.sol";
 
-contract LightAccountGasTest is GasSnapshot {
+contract LightAccountGasTest is BenchmarkBase("LightAccount") {
     address internal constant _LIGHT_ACCOUNT_FACTORY = 0x0000000000400CdFef5E2714E63d8040b700BC24;
 
     bytes internal constant _LIGHT_ACCOUNT_FACTORY_BYTECODE =
@@ -28,57 +27,109 @@ contract LightAccountGasTest is GasSnapshot {
         vm.etch(_LIGHT_ACCOUNT, _LIGHT_ACCOUNT_BYTECODE);
     }
 
-    function test_lightAccountGas_runtimeAccountCreation() public {
-        address owner = makeAddr("owner");
+    function test_lightAccountGas_runtime_accountCreation() public {
+        uint256 gasUsed =
+            _runtimeBenchmark(owner1, address(_factory), abi.encodeCall(_factory.createAccount, (owner1, 0)));
 
-        _factory.createAccount(owner, 0);
+        assertTrue(_factory.getAddress(owner1, 0).code.length > 0);
 
-        VmSafe.Gas memory gas = vm.lastCallGas();
-
-        console.log("Runtime: account creation");
-        console.log("gasTotalUsed: ", gas.gasTotalUsed);
-
-        snap("LightAccount_Runtime_AccountCreation", gas.gasTotalUsed);
+        _snap(RUNTIME, "AccountCreation", gasUsed);
     }
 
-    function test_lightAccountGas_runtimeNativeTransfer() public {
-        address owner = makeAddr("owner");
-        address recipient = makeAddr("recipient");
-        vm.deal(recipient, 1 wei);
-
-        ILightAccount account = ILightAccount(payable(_factory.createAccount(owner, 0)));
+    function test_lightAccountGas_runtime_nativeTransfer() public {
+        ILightAccount account = ILightAccount(payable(_factory.createAccount(owner1, 0)));
 
         vm.deal(address(account), 1 ether);
 
-        vm.prank(owner);
-        account.execute(recipient, 0.1 ether, "");
+        uint256 gasUsed = _runtimeBenchmark(
+            owner1, address(account), abi.encodeCall(account.execute, (recipient, 0.1 ether, ""))
+        );
 
-        VmSafe.Gas memory gas = vm.lastCallGas();
+        assertEq(address(recipient).balance, 0.1 ether + 1 wei);
 
-        console.log("Runtime: native transfer");
-        console.log("gasTotalUsed: ", gas.gasTotalUsed);
-
-        snap("LightAccount_Runtime_NativeTransfer", gas.gasTotalUsed);
+        _snap(RUNTIME, "NativeTransfer", gasUsed);
     }
 
-    function test_lightAccountGas_Erc20Transfer() public {
-        address owner = makeAddr("owner");
-        address recipient = makeAddr("recipient");
-        vm.deal(recipient, 1 wei);
+    function test_lightAccountGas_userOp_nativeTransfer() public {
+        ILightAccount account1 = ILightAccount(payable(_factory.createAccount(owner1, 0)));
 
-        ILightAccount account = ILightAccount(payable(_factory.createAccount(owner, 0)));
+        vm.deal(address(account1), 1 ether);
 
-        MockERC20 erc20 = new MockERC20();
-        erc20.mint(address(account), 100 ether);
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: abi.encodeCall(ILightAccount.execute, (recipient, 0.1 ether, "")),
+            // don't over-estimate by a lot here, otherwise a fee is assessed.
+            accountGasLimits: _encodeGasLimits(40_000, 80_000),
+            preVerificationGas: 0,
+            gasFees: _encodeGasFees(1, 1),
+            paymasterAndData: "",
+            signature: ""
+        });
 
-        vm.prank(owner);
-        account.execute(address(erc20), 0, abi.encodeWithSelector(erc20.transfer.selector, recipient, 10 ether));
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        // uint8(0) is LightAccount.SignatureType.EOA. For some reason, the enum does not appear in the ABI.
+        userOp.signature = abi.encodePacked(uint8(0), r, s, v);
 
-        VmSafe.Gas memory gas = vm.lastCallGas();
+        uint256 gasUsed = _userOpBenchmark(userOp);
 
-        console.log("Runtime: erc20 transfer");
-        console.log("gasTotalUsed: ", gas.gasTotalUsed);
+        assertEq(address(recipient).balance, 0.1 ether + 1 wei);
 
-        snap("LightAccount_Runtime_Erc20Transfer", gas.gasTotalUsed);
+        _snap(USER_OP, "NativeTransfer", gasUsed);
+    }
+
+    function test_lightAccountGas_runtime_erc20Transfer() public {
+        ILightAccount account = ILightAccount(payable(_factory.createAccount(owner1, 0)));
+
+        mockErc20.mint(address(account), 100 ether);
+
+        uint256 gasUsed = _runtimeBenchmark(
+            owner1,
+            address(account),
+            abi.encodeCall(
+                account.execute, (address(mockErc20), 0, abi.encodeCall(mockErc20.transfer, (recipient, 10 ether)))
+            )
+        );
+
+        assertEq(mockErc20.balanceOf(recipient), 10 ether);
+
+        _snap(RUNTIME, "Erc20Transfer", gasUsed);
+    }
+
+    function test_lightAccountGas_userOp_erc20Transfer() public {
+        ILightAccount account1 = ILightAccount(payable(_factory.createAccount(owner1, 0)));
+
+        mockErc20.mint(address(account1), 100 ether);
+
+        vm.deal(address(account1), 1 ether);
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: abi.encodeCall(
+                ILightAccount.execute,
+                (address(mockErc20), 0, abi.encodeCall(mockErc20.transfer, (recipient, 10 ether)))
+            ),
+            // don't over-estimate by a lot here, otherwise a fee is assessed.
+            accountGasLimits: _encodeGasLimits(40_000, 80_000),
+            preVerificationGas: 0,
+            gasFees: _encodeGasFees(1, 1),
+            paymasterAndData: "",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+
+        userOp.signature = abi.encodePacked(uint8(0), r, s, v);
+
+        uint256 gasUsed = _userOpBenchmark(userOp);
+
+        assertEq(mockErc20.balanceOf(recipient), 10 ether);
+
+        _snap(USER_OP, "Erc20Transfer", gasUsed);
     }
 }

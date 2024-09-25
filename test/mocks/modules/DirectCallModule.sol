@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {IExecutionHookModule} from "@erc-6900/reference-implementation/interfaces/IExecutionHookModule.sol";
-import {IModularAccount} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 import {BaseModule} from "../../../src/modules/BaseModule.sol";

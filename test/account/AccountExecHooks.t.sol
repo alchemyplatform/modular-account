@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {IExecutionHookModule} from "@erc-6900/reference-implementation/interfaces/IExecutionHookModule.sol";
+import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {
     ExecutionManifest,
     IModule,
     ManifestExecutionFunction,
     ManifestExecutionHook
-} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
+} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 
 import {MockModule} from "../mocks/modules/MockModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";

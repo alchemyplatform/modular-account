@@ -7,17 +7,17 @@ import {IPaymaster} from "@eth-infinitism/account-abstraction/interfaces/IPaymas
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-import {IExecutionHookModule} from "@erc-6900/reference-implementation/interfaces/IExecutionHookModule.sol";
-import {IExecutionModule} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
-import {IModularAccount} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
-import {IModularAccountView} from "@erc-6900/reference-implementation/interfaces/IModularAccountView.sol";
-import {IModule} from "@erc-6900/reference-implementation/interfaces/IModule.sol";
-import {IValidationHookModule} from "@erc-6900/reference-implementation/interfaces/IValidationHookModule.sol";
-import {IValidationModule} from "@erc-6900/reference-implementation/interfaces/IValidationModule.sol";
+import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
+import {IExecutionModule} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IModularAccountView} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
+import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
+import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
+import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
 /// @dev Library to help to check if a selector is a know function selector of the modular account or ERC-4337
 /// contract.
-library KnownSelectors {
+library KnownSelectorsLib {
     function isNativeFunction(bytes4 selector) internal pure returns (bool) {
         return
         // check against IAccount methods

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {RESERVED_VALIDATION_DATA_INDEX} from "./Constants.sol";
+import {RESERVED_VALIDATION_DATA_INDEX} from "../helpers/Constants.sol";
 
 /// @title Sparse Calldata Segment Library
 /// @notice Library for working with sparsely-packed calldata segments, identified with an index.

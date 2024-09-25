@@ -7,12 +7,11 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 import {
     ExecutionManifest,
     ManifestExecutionFunction
-} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
+} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {
-    ExecutionManifest,
-    IExecutionModule
-} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
-import {IModule} from "@erc-6900/reference-implementation/interfaces/IModule.sol";
+    ExecutionManifest, IExecutionModule
+} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 
 import {BaseModule} from "./BaseModule.sol";
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {HookConfig, ModuleEntity} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
+import {HookConfig, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 // Hook types:
 // Exec hook: bools for hasPre, hasPost

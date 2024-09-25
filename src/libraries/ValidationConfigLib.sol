@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {ModuleEntity, ValidationConfig} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
+import {ModuleEntity, ValidationConfig} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 // Validation config is a packed representation of a validation function and flags for its configuration.
 // Layout:

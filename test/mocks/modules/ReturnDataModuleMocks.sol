@@ -7,9 +7,9 @@ import {
     ExecutionManifest,
     IExecutionModule,
     ManifestExecutionFunction
-} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
-import {IModularAccount} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
-import {IValidationModule} from "@erc-6900/reference-implementation/interfaces/IValidationModule.sol";
+} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../../src/helpers/Constants.sol";
 

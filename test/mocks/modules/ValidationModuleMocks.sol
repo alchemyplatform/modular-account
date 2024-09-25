@@ -7,9 +7,9 @@ import {
     ExecutionManifest,
     IExecutionModule,
     ManifestExecutionFunction
-} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
-import {IValidationHookModule} from "@erc-6900/reference-implementation/interfaces/IValidationHookModule.sol";
-import {IValidationModule} from "@erc-6900/reference-implementation/interfaces/IValidationModule.sol";
+} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
+import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
 import {BaseModule} from "../../../src/modules/BaseModule.sol";
 

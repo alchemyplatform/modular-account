@@ -8,14 +8,15 @@ import {
     IModularAccount,
     ModuleEntity,
     ValidationConfig
-} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 import {LibClone} from "solady/utils/LibClone.sol";
 
-import {ModuleEntityLib} from "../helpers/ModuleEntityLib.sol";
+import {FALLBACK_VALIDATION} from "../helpers/Constants.sol";
+import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
 import {ModularAccount} from "./ModularAccount.sol";
 
 contract SemiModularAccount is ModularAccount {
@@ -31,15 +32,9 @@ contract SemiModularAccount is ModularAccount {
     uint256 internal constant _SEMI_MODULAR_ACCOUNT_STORAGE_SLOT =
         0x5b9dc9aa943f8fa2653ceceda5e3798f0686455280432166ba472eca0bc17a32;
 
-    // keccak256("EIP712Domain(uint256 chainId,address verifyingContract)")
-    bytes32 private constant _DOMAIN_SEPARATOR_TYPEHASH =
-        0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
-
     // keccak256("ReplaySafeHash(bytes32 hash)")
     bytes32 private constant _REPLAY_SAFE_HASH_TYPEHASH =
         0x294a8735843d4afb4f017c76faf3b7731def145ed0025fc9b1d5ce30adf113ff;
-
-    ModuleEntity internal constant _FALLBACK_VALIDATION = ModuleEntity.wrap(bytes24(type(uint192).max));
 
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
     uint256 internal constant _SIG_VALIDATION_FAILED = 1;
@@ -103,7 +98,7 @@ contract SemiModularAccount is ModularAccount {
 
     function replaySafeHash(bytes32 hash) public view virtual returns (bytes32) {
         return
-            MessageHashUtils.toTypedDataHash({domainSeparator: _domainSeparator(), structHash: _hashStruct(hash)});
+            MessageHashUtils.toTypedDataHash({domainSeparator: domainSeparator(), structHash: _hashStruct(hash)});
     }
 
     function _execUserOpValidation(
@@ -111,7 +106,7 @@ contract SemiModularAccount is ModularAccount {
         PackedUserOperation memory userOp,
         bytes32 userOpHash
     ) internal override returns (uint256) {
-        if (userOpValidationFunction.eq(_FALLBACK_VALIDATION)) {
+        if (userOpValidationFunction.eq(FALLBACK_VALIDATION)) {
             address fallbackSigner = _getFallbackSigner();
 
             if (
@@ -132,7 +127,7 @@ contract SemiModularAccount is ModularAccount {
         bytes calldata callData,
         bytes calldata authorization
     ) internal override {
-        if (runtimeValidationFunction.eq(_FALLBACK_VALIDATION)) {
+        if (runtimeValidationFunction.eq(FALLBACK_VALIDATION)) {
             address fallbackSigner = _getFallbackSigner();
 
             if (msg.sender != fallbackSigner) {
@@ -149,7 +144,7 @@ contract SemiModularAccount is ModularAccount {
         override
         returns (bytes4)
     {
-        if (sigValidation.eq(_FALLBACK_VALIDATION)) {
+        if (sigValidation.eq(FALLBACK_VALIDATION)) {
             address fallbackSigner = _getFallbackSigner();
 
             if (SignatureChecker.isValidSignatureNow(fallbackSigner, replaySafeHash(hash), signature)) {
@@ -166,7 +161,7 @@ contract SemiModularAccount is ModularAccount {
     }
 
     function _isValidationGlobal(ModuleEntity validationFunction) internal view override returns (bool) {
-        return validationFunction.eq(_FALLBACK_VALIDATION) || super._isValidationGlobal(validationFunction);
+        return validationFunction.eq(FALLBACK_VALIDATION) || super._isValidationGlobal(validationFunction);
     }
 
     function _getFallbackSigner() internal view returns (address) {
@@ -192,10 +187,6 @@ contract SemiModularAccount is ModularAccount {
         bytes memory appendedData = LibClone.argsOnERC1967(address(this), 0, 20);
 
         return address(uint160(bytes20(appendedData)));
-    }
-
-    function _domainSeparator() internal view returns (bytes32) {
-        return keccak256(abi.encode(_DOMAIN_SEPARATOR_TYPEHASH, block.chainid, address(this)));
     }
 
     function _getSemiModularAccountStorage() internal pure returns (SemiModularAccountStorage storage) {

@@ -9,14 +9,14 @@ import {
     HookConfig,
     IModularAccount,
     ModuleEntity
-} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {
     ExecutionDataView,
     IModularAccountView,
     ValidationDataView
-} from "@erc-6900/reference-implementation/interfaces/IModularAccountView.sol";
+} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 
-import {HookConfigLib} from "../helpers/HookConfigLib.sol";
+import {HookConfigLib} from "../libraries/HookConfigLib.sol";
 import {ExecutionData, ValidationData, getAccountStorage, toHookConfig} from "./AccountStorage.sol";
 
 abstract contract ModularAccountView is IModularAccountView {

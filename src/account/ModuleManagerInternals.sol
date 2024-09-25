@@ -4,27 +4,27 @@ pragma solidity ^0.8.26;
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import {IExecutionHookModule} from "@erc-6900/reference-implementation/interfaces/IExecutionHookModule.sol";
+import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {
     ExecutionManifest,
     ManifestExecutionHook
-} from "@erc-6900/reference-implementation/interfaces/IExecutionModule.sol";
+} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {
     HookConfig,
     IModularAccount,
     ModuleEntity,
     ValidationConfig
-} from "@erc-6900/reference-implementation/interfaces/IModularAccount.sol";
-import {IModule} from "@erc-6900/reference-implementation/interfaces/IModule.sol";
-import {IValidationHookModule} from "@erc-6900/reference-implementation/interfaces/IValidationHookModule.sol";
-import {IValidationModule} from "@erc-6900/reference-implementation/interfaces/IValidationModule.sol";
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
+import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
+import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
 import {collectReturnData} from "../helpers/CollectReturnData.sol";
 import {MAX_PRE_VALIDATION_HOOKS} from "../helpers/Constants.sol";
-import {HookConfigLib} from "../helpers/HookConfigLib.sol";
-import {KnownSelectors} from "../helpers/KnownSelectors.sol";
-import {ModuleEntityLib} from "../helpers/ModuleEntityLib.sol";
-import {ValidationConfigLib} from "../helpers/ValidationConfigLib.sol";
+import {HookConfigLib} from "../libraries/HookConfigLib.sol";
+import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
+import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
 import {
     AccountStorage,
     ExecutionData,
@@ -69,12 +69,12 @@ abstract contract ModuleManagerInternals is IModularAccount {
 
         // Make sure incoming execution function does not collide with any native functions (data are stored on the
         // account implementation contract)
-        if (KnownSelectors.isNativeFunction(selector)) {
+        if (KnownSelectorsLib.isNativeFunction(selector)) {
             revert NativeFunctionNotAllowed(selector);
         }
 
         // Make sure incoming execution function is not a function in IModule
-        if (KnownSelectors.isIModuleFunction(selector)) {
+        if (KnownSelectorsLib.isIModuleFunction(selector)) {
             revert IModuleFunctionNotAllowed(selector);
         }
 
@@ -83,7 +83,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
         // sneaking in a function with the same selector as e.g.
         // `validatePaymasterUserOp` and turning the account into their own
         // personal paymaster.
-        if (KnownSelectors.isErc4337Function(selector)) {
+        if (KnownSelectorsLib.isErc4337Function(selector)) {
             revert Erc4337FunctionNotAllowed(selector);
         }
 
