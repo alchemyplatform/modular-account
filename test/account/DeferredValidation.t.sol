@@ -208,6 +208,45 @@ contract DeferredValidationTest is AccountTestBase {
         _sendOp(userOp, expectedRevertdata);
     }
 
+    function test_fail_deferredValidation_invalidDeferredValidationSig() external {
+        uint256 nonce = entryPoint.getNonce(address(account1), 0);
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: nonce,
+            initCode: hex"",
+            callData: _encodedCall,
+            accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
+            preVerificationGas: 0,
+            gasFees: _encodeGas(1, 1),
+            paymasterAndData: hex"",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v,, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        bytes32 r = keccak256("invalid");
+        bytes memory deferredValidationSig = abi.encodePacked(r, s, v);
+
+        userOp.signature = _buildFullDeferredInstallSig(
+            vm,
+            owner1Key,
+            _isSmaTest,
+            account1,
+            _signerValidation,
+            _deferredValidation,
+            _deferredValidationInstallData,
+            deferredValidationSig,
+            0,
+            0
+        );
+
+        bytes memory expectedRevertdata =
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error");
+
+        _sendOp(userOp, expectedRevertdata);
+    }
+
     // Positives
 
     function test_deferredValidation() external {
