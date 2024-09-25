@@ -40,6 +40,10 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
     error ERC20NotAllowed(address);
     error InvalidCalldataLength();
 
+    /// @notice Update the token limit of a validation
+    /// @param entityId The validation entityId to update
+    /// @param token The token address whose limit will be updated
+    /// @param newLimit The new limit of the token for the validation
     function updateLimits(uint32 entityId, address token, uint256 newLimit) external {
         if (token == address(0)) {
             revert ERC20NotAllowed(address(0));
@@ -71,6 +75,7 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
     }
 
     /// @inheritdoc IModule
+    /// @param data should be encoded with the entityId of the validation and a list of ERC20 spend limits
     function onInstall(bytes calldata data) external override {
         (uint32 entityId, ERC20SpendLimit[] memory spendLimits) = abi.decode(data, (uint32, ERC20SpendLimit[]));
 
@@ -86,6 +91,7 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
     /// @inheritdoc IModule
     /// @notice uninstall this module can only clear limit for one token of one entity. To clear all limits, users
     /// are recommended to use updateLimit for each token and entityId.
+    /// @param data should be encoded with the entityId of the validation and the token address to be uninstalled
     function onUninstall(bytes calldata data) external override {
         (address token, uint32 entityId) = abi.decode(data, (address, uint32));
         delete limits[entityId][token][msg.sender];
