@@ -65,7 +65,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         vm.assume(r != bytes32(sigR));
 
         // build a correctly formatted sig and test it
-        vm.assume(r != 0); // because we special case r=0 and s=0 in the helper function
+        vm.assume(sigR != 0); // because we special case r=0 and s=0 in the helper function
         bytes memory forgedSig = _get1271SigForChallenge(challenge, sigR, sigS);
 
         assertTrue(ReferenceModularAccount(account).isValidSignature(message, forgedSig) == 0xFFFFFFFF);
