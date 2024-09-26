@@ -1,11 +1,21 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {ModuleEntity} from "../../src/libraries/ModuleEntityLib.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+
+import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
+import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
+import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
+import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
+
+import {Vm} from "forge-std/src/Vm.sol";
 
 /// @dev Utilities for encoding signatures for modular account validation. Used for encoding user op, runtime, and
 /// 1271 signatures.
 contract ModuleSignatureUtils {
+    using ModuleEntityLib for ModuleEntity;
+
     struct PreValidationHookData {
         uint8 index;
         bytes validationData;
@@ -13,6 +23,11 @@ contract ModuleSignatureUtils {
 
     uint8 public constant SELECTOR_ASSOCIATED_VALIDATION = 0;
     uint8 public constant GLOBAL_VALIDATION = 1;
+
+    bytes32 private constant _INSTALL_VALIDATION_TYPEHASH = keccak256(
+        "InstallValidation(bytes25 validationConfig,bytes4[] selectors,bytes installData,bytes[] hooks,"
+        "uint256 nonce,uint48 deadline)"
+    );
 
     // helper function to encode a 1271 signature, according to the per-hook and per-validation data format.
     function _encode1271Signature(
@@ -92,5 +107,165 @@ contract ModuleSignatureUtils {
         returns (bytes memory)
     {
         return abi.encodePacked(uint32(validationData.length + 1), index, validationData);
+    }
+
+    // Deferred validation helpers
+
+    // Internal Helpers
+    function _buildFullDeferredInstallSig(
+        Vm vm,
+        uint256 ownerKey,
+        bool isSmaTest,
+        ModularAccount account,
+        ModuleEntity outerSingleSignerValidation,
+        ModuleEntity deferredValidation,
+        bytes memory deferredValidationInstallData,
+        bytes memory deferredValidationSig,
+        uint256 nonce,
+        uint48 deadline
+    ) internal view returns (bytes memory) {
+        uint8 outerSingleSignerValidationFlags = 3;
+
+        ValidationConfig deferredConfig = ValidationConfigLib.pack({
+            _validationFunction: deferredValidation,
+            _isGlobal: true,
+            _isSignatureValidation: false,
+            _isUserOpValidation: true
+        });
+
+        bytes memory deferredInstallData = abi.encode(
+            deferredConfig, new bytes4[](0), deferredValidationInstallData, new bytes[](0), nonce, deadline
+        );
+
+        bytes memory deferredInstallSig = _getDeferredInstallSig(
+            vm,
+            ownerKey,
+            isSmaTest,
+            account,
+            outerSingleSignerValidation,
+            deferredConfig,
+            deferredValidationInstallData,
+            nonce,
+            deadline
+        );
+
+        bytes memory innerUoValidationSig = _packValidationResWithIndex(255, deferredValidationSig);
+
+        bytes memory encodedDeferredInstall = abi.encodePacked(
+            outerSingleSignerValidation,
+            outerSingleSignerValidationFlags,
+            uint32(deferredInstallData.length),
+            deferredInstallData,
+            uint32(deferredInstallSig.length),
+            deferredInstallSig,
+            innerUoValidationSig
+        );
+
+        return encodedDeferredInstall;
+    }
+
+    function _getReplaySafeHash(
+        bool isSmaTest,
+        ModularAccount account,
+        ModuleEntity outerSingleSignerValidation,
+        ValidationConfig deferredConfig,
+        bytes memory deferredValidationInstallData,
+        uint256 nonce,
+        uint48 deadline
+    ) internal view returns (bytes32) {
+        bytes32 domainSeparator;
+
+        // Needed for initCode txs
+        if (address(account).code.length > 0) {
+            domainSeparator = account.domainSeparator();
+        } else {
+            domainSeparator = _computeDomainSeparatorNotDeployed(account);
+        }
+
+        bytes32 structHash = keccak256(
+            abi.encode(
+                _INSTALL_VALIDATION_TYPEHASH,
+                deferredConfig,
+                new bytes4[](0),
+                deferredValidationInstallData,
+                new bytes[](0),
+                nonce,
+                deadline
+            )
+        );
+        bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(domainSeparator, structHash);
+
+        (address outerSingleSignerValidationAddr,) = outerSingleSignerValidation.unpack();
+
+        bytes32 replaySafeHash = isSmaTest
+            ? _getSmaReplaySafeHash(account, typedDataHash)
+            : SingleSignerValidationModule(outerSingleSignerValidationAddr).replaySafeHash(
+                address(account), typedDataHash
+            );
+
+        return replaySafeHash;
+    }
+
+    function _computeDomainSeparatorNotDeployed(ModularAccount account) internal view returns (bytes32) {
+        bytes32 domainSeparatorTypehash = 0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
+        return keccak256(abi.encode(domainSeparatorTypehash, block.chainid, address(account)));
+    }
+
+    function _getSmaReplaySafeHash(ModularAccount account, bytes32 typedDataHash)
+        internal
+        view
+        returns (bytes32)
+    {
+        if (address(account).code.length > 0) {
+            return SemiModularAccount(payable(account)).replaySafeHash(typedDataHash);
+        } else {
+            // precompute it as the SMA is not yet deployed
+            // for SMA, the domain separator used for the deferred validation installation is the same as the one
+            // used to compute the replay safe hash.
+            return MessageHashUtils.toTypedDataHash({
+                domainSeparator: _computeDomainSeparatorNotDeployed(account),
+                structHash: _hashStructReplaySafeHash(typedDataHash)
+            });
+        }
+    }
+
+    function _getDeferredInstallSig(
+        Vm vm,
+        uint256 ownerKey,
+        bool isSmaTest,
+        ModularAccount account,
+        ModuleEntity outerSingleSignerValidation,
+        ValidationConfig deferredConfig,
+        bytes memory deferredValidationInstallData,
+        uint256 nonce,
+        uint48 deadline
+    ) internal view returns (bytes memory) {
+        bytes32 replaySafeHash = _getReplaySafeHash(
+            isSmaTest,
+            account,
+            outerSingleSignerValidation,
+            deferredConfig,
+            deferredValidationInstallData,
+            nonce,
+            deadline
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerKey, replaySafeHash);
+
+        bytes memory rawDeferredInstallSig = abi.encodePacked(r, s, v);
+
+        bytes memory deferredInstallSig = _packValidationResWithIndex(255, rawDeferredInstallSig);
+        return deferredInstallSig;
+    }
+
+    function _hashStructReplaySafeHash(bytes32 hash) internal pure returns (bytes32) {
+        bytes32 replaySafeTypehash = keccak256("ReplaySafeHash(bytes32 hash)"); // const 0x.. in contract
+        bytes32 res;
+        assembly ("memory-safe") {
+            mstore(0x00, replaySafeTypehash)
+            mstore(0x20, hash)
+            res := keccak256(0, 0x40)
+        }
+        return res;
     }
 }
