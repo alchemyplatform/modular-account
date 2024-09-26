@@ -3,13 +3,10 @@ pragma solidity ^0.8.26;
 
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-
 import {Vm} from "forge-std/src/Vm.sol";
-
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
-
 import {ModularAccountBenchmarkBase} from "./ModularAccountBenchmarkBase.sol";
 
 contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccount") {

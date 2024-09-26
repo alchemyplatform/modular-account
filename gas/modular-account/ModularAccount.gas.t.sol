@@ -8,7 +8,6 @@ import {Vm} from "forge-std/src/Vm.sol";
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
-
 import {ModularAccountBenchmarkBase} from "./ModularAccountBenchmarkBase.sol";
 
 contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") {
