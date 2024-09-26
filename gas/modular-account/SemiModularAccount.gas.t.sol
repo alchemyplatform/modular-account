@@ -8,6 +8,7 @@ import {Vm} from "forge-std/src/Vm.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
+
 import {ModularAccountBenchmarkBase} from "./ModularAccountBenchmarkBase.sol";
 
 contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccount") {
@@ -191,5 +192,194 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
         assertEq(address(recipient).balance, 0.1 ether + 1 wei);
 
         _snap(USER_OP, "deferredValidation", gasUsed);
+    }
+
+    function test_semiModularAccountGas_runtime_installSessionKey_case1() public {
+        _deploySemiModularAccountBytecode1();
+
+        uint256 gasUsed = _runtimeBenchmark(
+            owner1,
+            address(account1),
+            abi.encodeCall(
+                ModularAccountBase.executeWithAuthorization,
+                (_getInstallDataSessionKeyCase1(), _encodeSignature(signerValidation, GLOBAL_VALIDATION, ""))
+            )
+        );
+
+        _verifySessionKeyCase1InstallState();
+
+        _snap(RUNTIME, "InstallSessionKey_Case1", gasUsed);
+    }
+
+    function test_semiModularAccountGas_userOp_installSessionKey_case1() public {
+        _deploySemiModularAccountBytecode1();
+
+        vm.deal(address(account1), 1 ether);
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: _getInstallDataSessionKeyCase1(),
+            // don't over-estimate by a lot here, otherwise a fee is assessed.
+            accountGasLimits: _encodeGasLimits(500_000, 100_000),
+            preVerificationGas: 0,
+            gasFees: _encodeGasFees(1, 1),
+            paymasterAndData: "",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        userOp.signature = _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(r, s, v));
+
+        uint256 gasUsed = _userOpBenchmark(userOp);
+
+        _verifySessionKeyCase1InstallState();
+
+        _snap(USER_OP, "InstallSessionKey_Case1", gasUsed);
+    }
+
+    function test_semiModularAccountGas_runtime_useSessionKey_case1_counter() public {
+        _deploySemiModularAccountBytecode1();
+
+        ModuleEntity sessionKeyValidation = _installSessionKey_case1();
+
+        // Jump to within the valid timestamp range
+        vm.warp(200);
+
+        uint256 gasUsed = _runtimeBenchmark(
+            sessionSigner1,
+            address(account1),
+            abi.encodeCall(
+                ModularAccountBase.executeWithAuthorization,
+                (
+                    abi.encodeCall(
+                        ModularAccountBase.execute,
+                        (address(counter), 0 wei, abi.encodeCall(counter.increment, ()))
+                    ),
+                    _encodeSignature(sessionKeyValidation, SELECTOR_ASSOCIATED_VALIDATION, "")
+                )
+            )
+        );
+
+        assertEq(counter.number(), 2);
+
+        _snap(RUNTIME, "UseSessionKey_Case1_Counter", gasUsed);
+    }
+
+    function test_semiModularAccountGas_userOp_useSessionKey_case1_counter() public {
+        _deploySemiModularAccountBytecode1();
+
+        vm.deal(address(account1), 1 ether);
+
+        ModuleEntity sessionKeyValidation = _installSessionKey_case1();
+
+        // Jump to within the valid timestamp range
+        vm.warp(200);
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: abi.encodePacked(
+                ModularAccountBase.executeUserOp.selector,
+                abi.encodeCall(
+                    ModularAccountBase.execute, (address(counter), 0 wei, abi.encodeCall(counter.increment, ()))
+                )
+            ),
+            // don't over-estimate by a lot here, otherwise a fee is assessed.
+            accountGasLimits: _encodeGasLimits(200_000, 200_000),
+            preVerificationGas: 0,
+            gasFees: _encodeGasFees(1, 1),
+            paymasterAndData: "",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) =
+            vm.sign(sessionSigner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        userOp.signature =
+            _encodeSignature(sessionKeyValidation, SELECTOR_ASSOCIATED_VALIDATION, abi.encodePacked(r, s, v));
+
+        uint256 gasUsed = _userOpBenchmark(userOp);
+
+        assertEq(counter.number(), 2);
+
+        _snap(USER_OP, "UseSessionKey_Case1_Counter", gasUsed);
+    }
+
+    function test_semiModularAccountGas_runtime_useSessionKey_case1_token() public {
+        _deploySemiModularAccountBytecode1();
+
+        ModuleEntity sessionKeyValidation = _installSessionKey_case1();
+
+        mockErc20.mint(address(account1), 100 ether);
+
+        // Jump to within the valid timestamp range
+        vm.warp(200);
+
+        uint256 gasUsed = _runtimeBenchmark(
+            sessionSigner1,
+            address(account1),
+            abi.encodeCall(
+                ModularAccountBase.executeWithAuthorization,
+                (
+                    abi.encodeCall(
+                        ModularAccountBase.execute,
+                        (address(mockErc20), 0, abi.encodeCall(mockErc20.transfer, (recipient, 10 ether)))
+                    ),
+                    _encodeSignature(sessionKeyValidation, SELECTOR_ASSOCIATED_VALIDATION, "")
+                )
+            )
+        );
+
+        assertEq(mockErc20.balanceOf(recipient), 10 ether);
+
+        _snap(RUNTIME, "UseSessionKey_Case1_Token", gasUsed);
+    }
+
+    function test_semiModularAccountGas_userOp_useSessionKey_case1_token() public {
+        _deploySemiModularAccountBytecode1();
+
+        vm.deal(address(account1), 1 ether);
+
+        ModuleEntity sessionKeyValidation = _installSessionKey_case1();
+
+        mockErc20.mint(address(account1), 100 ether);
+
+        // Jump to within the valid timestamp range
+        vm.warp(200);
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: abi.encodePacked(
+                ModularAccountBase.executeUserOp.selector,
+                abi.encodeCall(
+                    ModularAccountBase.execute,
+                    (address(mockErc20), 0, abi.encodeCall(mockErc20.transfer, (recipient, 10 ether)))
+                )
+            ),
+            // don't over-estimate by a lot here, otherwise a fee is assessed.
+            accountGasLimits: _encodeGasLimits(200_000, 200_000),
+            preVerificationGas: 0,
+            gasFees: _encodeGasFees(1, 1),
+            paymasterAndData: "",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) =
+            vm.sign(sessionSigner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        userOp.signature =
+            _encodeSignature(sessionKeyValidation, SELECTOR_ASSOCIATED_VALIDATION, abi.encodePacked(r, s, v));
+
+        uint256 gasUsed = _userOpBenchmark(userOp);
+
+        assertEq(mockErc20.balanceOf(recipient), 10 ether);
+
+        _snap(USER_OP, "UseSessionKey_Case1_Token", gasUsed);
     }
 }

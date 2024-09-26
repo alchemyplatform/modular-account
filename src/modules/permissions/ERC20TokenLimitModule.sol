@@ -10,20 +10,21 @@ import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 
-import {BaseModule, IERC165} from "./BaseModule.sol";
+import {BaseModule, IERC165} from "../BaseModule.sol";
 
-/// @title ERC20 Token Limit Module
-/// @author Alchemy & ERC-6900 Authors
-/// @notice This module supports ERC20 token spend limits. A few key features/restrictions features:
-///     - This module only provide hooks associated with validations.
-///     - For any validation function with this hook installed, all ERC20s without limits specified here will be
-/// reverted.
+/// @title ERC-20 Token Limit Module
+/// @author Alchemy
+/// @notice This module supports ERC-20 token spend limits. Note the following features and restrictions:
+///     - This module only provides hooks to be associated with validations.
+///     - For any validation function with this hook installed, only token contracts with a set limit will be
+/// checked, other addresses will be allowed. To protect the account's balance of non-tracked tokens, users are
+/// recommended to also install an allowlist hook, to limit which addresses the validation may perform calls to.
 ///     - Only spending request through the following native execution functions are supported:
 /// IModularAccount.execute, IModularAccount.executeWithAuthorization, IAccountExecute.executeUserOp,
-/// IModularAccount.executeBatch. All other spending request will be reverted.
-///     - this module is opinionated on what selectors (transfer and approve only) can be called for token
-/// contracts to guard against weird edge cases like DAI. You wouldn't be able to use uni v2 pairs directly as the
-/// pair contract is also the LP token contract.
+/// IModularAccount.executeBatch. All other spending request will revert.
+///     - This module is opinionated on what selectors can be called for token contracts: only `transfer` and
+/// `approve` are allowed. This guards against edge cases, where token contracts like DAI have other functions that
+/// result in ERC-20 transfers or allowance changes.
 contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
     using UserOperationLib for PackedUserOperation;
 
@@ -32,24 +33,18 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
         uint256 limit;
     }
 
-    mapping(uint32 entityId => mapping(address token => mapping(address account => uint256 limit))) public limits;
+    struct SpendLimit {
+        bool hasLimit;
+        uint256 limit;
+    }
+
+    mapping(uint32 entityId => mapping(address token => mapping(address account => SpendLimit))) public limits;
 
     error ExceededTokenLimit();
     error SelectorNotAllowed();
     error SpendingRequestNotAllowed(bytes4);
     error ERC20NotAllowed(address);
     error InvalidCalldataLength();
-
-    /// @notice Update the token limit of a validation
-    /// @param entityId The validation entityId to update
-    /// @param token The token address whose limit will be updated
-    /// @param newLimit The new limit of the token for the validation
-    function updateLimits(uint32 entityId, address token, uint256 newLimit) external {
-        if (token == address(0)) {
-            revert ERC20NotAllowed(address(0));
-        }
-        limits[entityId][token][msg.sender] = newLimit;
-    }
 
     /// @inheritdoc IExecutionHookModule
     function preExecutionHook(uint32 entityId, address, uint256, bytes calldata data)
@@ -62,11 +57,11 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
         if (selector == IModularAccount.execute.selector) {
             // when calling execute or ERC20 functions directly
             (address token,, bytes memory innerCalldata) = abi.decode(callData, (address, uint256, bytes));
-            _decrementLimit(entityId, token, innerCalldata);
+            _decrementLimitIfApplies(entityId, token, innerCalldata);
         } else if (selector == IModularAccount.executeBatch.selector) {
             Call[] memory calls = abi.decode(callData, (Call[]));
             for (uint256 i = 0; i < calls.length; i++) {
-                _decrementLimit(entityId, calls[i].target, calls[i].data);
+                _decrementLimitIfApplies(entityId, calls[i].target, calls[i].data);
             }
         } else {
             revert SpendingRequestNotAllowed(selector);
@@ -81,10 +76,7 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
 
         for (uint8 i = 0; i < spendLimits.length; i++) {
             address token = spendLimits[i].token;
-            if (token == address(0)) {
-                revert ERC20NotAllowed(address(0));
-            }
-            limits[entityId][token][msg.sender] = spendLimits[i].limit;
+            updateLimits(entityId, token, true, spendLimits[i].limit);
         }
     }
 
@@ -107,12 +99,29 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
         return "alchemy.erc20-token-limit-module.0.0.1";
     }
 
+    /// @notice Update the token limit of a validation
+    /// @param entityId The validation entityId to update
+    /// @param token The token address whose limit will be updated
+    /// @param newLimit The new limit of the token for the validation
+    function updateLimits(uint32 entityId, address token, bool hasLimit, uint256 newLimit) public {
+        if (token == address(0)) {
+            revert ERC20NotAllowed(address(0));
+        }
+        limits[entityId][token][msg.sender] = SpendLimit({hasLimit: hasLimit, limit: newLimit});
+    }
+
     /// @inheritdoc BaseModule
     function supportsInterface(bytes4 interfaceId) public view override(BaseModule, IERC165) returns (bool) {
         return interfaceId == type(IExecutionHookModule).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    function _decrementLimit(uint32 entityId, address token, bytes memory innerCalldata) internal {
+    function _decrementLimitIfApplies(uint32 entityId, address token, bytes memory innerCalldata) internal {
+        SpendLimit storage spendLimit = limits[entityId][token][msg.sender];
+
+        if (!spendLimit.hasLimit) {
+            return;
+        }
+
         if (innerCalldata.length < 68) {
             revert InvalidCalldataLength();
         }
@@ -124,12 +133,12 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
             spend := mload(add(innerCalldata, 68)) // 36:68 is recipient, 68:100 is spend
         }
         if (_isAllowedERC20Function(selector)) {
-            uint256 limit = limits[entityId][token][msg.sender];
+            uint256 limit = spendLimit.limit;
             if (spend > limit) {
                 revert ExceededTokenLimit();
             }
             unchecked {
-                limits[entityId][token][msg.sender] = limit - spend;
+                spendLimit.limit = limit - spend;
             }
         } else {
             revert SelectorNotAllowed();
