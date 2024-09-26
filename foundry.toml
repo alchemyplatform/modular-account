@@ -1,6 +1,7 @@
 [profile.default]
 solc = '0.8.26'
 via_ir = false
+evm_version = 'paris'
 src = 'src'
 test = 'test'
 libs = ['lib', 'node_modules']
