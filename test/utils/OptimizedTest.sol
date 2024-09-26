@@ -7,7 +7,7 @@ import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.so
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
+import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 
 import {TokenReceiverModule} from "../../src/modules/TokenReceiverModule.sol";
 import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
@@ -39,14 +39,14 @@ abstract contract OptimizedTest is Test {
             : new ModularAccount(entryPoint);
     }
 
-    function _deploySemiModularAccount(IEntryPoint entryPoint) internal returns (SemiModularAccount) {
+    function _deploySemiModularAccount(IEntryPoint entryPoint) internal returns (SemiModularAccountBytecode) {
         return _isOptimizedTest()
-            ? SemiModularAccount(
+            ? SemiModularAccountBytecode(
                 payable(
                     deployCode("out-optimized/SemiModularAccount.sol/SemiModularAccount.json", abi.encode(entryPoint))
                 )
             )
-            : new SemiModularAccount(entryPoint);
+            : new SemiModularAccountBytecode(entryPoint);
     }
 
     function _deployTokenReceiverModule() internal returns (TokenReceiverModule) {

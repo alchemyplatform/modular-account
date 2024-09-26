@@ -8,7 +8,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
+import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../src/helpers/Constants.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
@@ -31,7 +31,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
 
     ECDSAValidationModule public ecdsaValidationModule;
     ModularAccount public accountImplementation;
-    SemiModularAccount public semiModularAccountImplementation;
+    SemiModularAccountBytecode public semiModularAccountImplementation;
     AccountFactory public factory;
 
     address public factoryOwner;
@@ -63,7 +63,8 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
 
         accountImplementation = _deployModularAccount(entryPoint);
 
-        semiModularAccountImplementation = SemiModularAccount(payable(_deploySemiModularAccount(entryPoint)));
+        semiModularAccountImplementation =
+            SemiModularAccountBytecode(payable(_deploySemiModularAccount(entryPoint)));
 
         factory = new AccountFactory(
             entryPoint,
@@ -186,7 +187,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         vm.prank(owner1);
         if (vm.envOr("SMA_TEST", false)) {
             account1.executeWithAuthorization(
-                abi.encodeCall(SemiModularAccount(payable(account1)).updateFallbackSigner, (address(this))),
+                abi.encodeCall(SemiModularAccountBytecode(payable(account1)).updateFallbackSigner, (address(this))),
                 _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
             );
             return;

@@ -15,7 +15,7 @@ import {ExecutionDataView} from "@erc6900/reference-implementation/interfaces/IM
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModuleManagerInternals} from "../../src/account/ModuleManagerInternals.sol";
-import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
+import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {TokenReceiverModule} from "../../src/modules/TokenReceiverModule.sol";
@@ -96,7 +96,7 @@ contract ModularAccountTest is AccountTestBase {
 
     function test_basicUserOp_withInitCode() public {
         bytes memory callData = vm.envOr("SMA_TEST", false)
-            ? abi.encodeCall(SemiModularAccount(payable(account1)).updateFallbackSigner, (owner2))
+            ? abi.encodeCall(SemiModularAccountBytecode(payable(account1)).updateFallbackSigner, (owner2))
             : abi.encodeCall(
                 ModularAccount.execute,
                 (
@@ -410,7 +410,7 @@ contract ModularAccountTest is AccountTestBase {
         bytes32 message = keccak256("hello world");
 
         bytes32 replaySafeHash = vm.envOr("SMA_TEST", false)
-            ? SemiModularAccount(payable(account1)).replaySafeHash(message)
+            ? SemiModularAccountBytecode(payable(account1)).replaySafeHash(message)
             : ecdsaValidationModule.replaySafeHash(address(account1), message);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
@@ -437,7 +437,7 @@ contract ModularAccountTest is AccountTestBase {
         bytes32 message = keccak256("hello world");
 
         bytes32 replaySafeHash = vm.envOr("SMA_TEST", false)
-            ? SemiModularAccount(payable(account1)).replaySafeHash(message)
+            ? SemiModularAccountBytecode(payable(account1)).replaySafeHash(message)
             : ecdsaValidationModule.replaySafeHash(address(account1), message);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
