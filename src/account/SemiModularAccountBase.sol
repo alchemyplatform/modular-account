@@ -4,20 +4,16 @@ pragma solidity ^0.8.26;
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {
-    IModularAccount,
-    ModuleEntity,
-    ValidationConfig
-} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 import {FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
-import {ModularAccount} from "./ModularAccount.sol";
+import {ModularAccountBase} from "./ModularAccountBase.sol";
 
-abstract contract SemiModularAccountBase is ModularAccount {
+abstract contract SemiModularAccountBase is ModularAccountBase {
     using MessageHashUtils for bytes32;
     using ModuleEntityLib for ModuleEntity;
 
@@ -44,7 +40,7 @@ abstract contract SemiModularAccountBase is ModularAccount {
     error FallbackSignerDisabled();
     error InitializerDisabled();
 
-    constructor(IEntryPoint anEntryPoint) ModularAccount(anEntryPoint) {}
+    constructor(IEntryPoint anEntryPoint) ModularAccountBase(anEntryPoint) {}
 
     /// @notice Updates the fallback signer address in storage.
     /// @param fallbackSigner The new signer to set.
@@ -76,15 +72,6 @@ abstract contract SemiModularAccountBase is ModularAccount {
     /// @return The fallback signer address, either overriden in storage, or read from bytecode.
     function getFallbackSigner() external view returns (address) {
         return _retrieveFallbackSignerUnchecked(_getSemiModularAccountStorage());
-    }
-
-    /// Override reverts on initialization, effectively disabling the initializer.
-    function initializeWithValidation(ValidationConfig, bytes4[] calldata, bytes calldata, bytes[] calldata)
-        external
-        pure
-        override
-    {
-        revert InitializerDisabled();
     }
 
     /// @inheritdoc IModularAccount

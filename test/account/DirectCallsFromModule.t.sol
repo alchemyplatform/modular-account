@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
-import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../src/helpers/Constants.sol";
 import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
@@ -180,6 +180,6 @@ contract DirectCallsFromModuleTest is AccountTestBase {
     }
 
     function _buildDirectCallDisallowedError(bytes4 selector) internal pure returns (bytes memory) {
-        return abi.encodeWithSelector(ModularAccount.ValidationFunctionMissing.selector, selector);
+        return abi.encodeWithSelector(ModularAccountBase.ValidationFunctionMissing.selector, selector);
     }
 }

@@ -6,6 +6,7 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
@@ -24,7 +25,7 @@ contract DeferredValidationTest is AccountTestBase {
     bytes internal _deferredValidationInstallData;
 
     function setUp() external {
-        _encodedCall = abi.encodeCall(ModularAccount.execute, (makeAddr("dead"), 0, ""));
+        _encodedCall = abi.encodeCall(ModularAccountBase.execute, (makeAddr("dead"), 0, ""));
         _deferredValidation = ModuleEntityLib.pack(address(_deployECDSAValidationModule()), 0);
         _isSmaTest = vm.envOr("SMA_TEST", false);
 
@@ -72,7 +73,7 @@ contract DeferredValidationTest is AccountTestBase {
             IEntryPoint.FailedOpWithRevert.selector,
             0,
             "AA23 reverted",
-            abi.encodeWithSelector(ModularAccount.DeferredInstallNonceInvalid.selector)
+            abi.encodeWithSelector(ModularAccountBase.DeferredInstallNonceInvalid.selector)
         );
 
         _sendOp(userOp, expectedRevertdata);
@@ -155,7 +156,7 @@ contract DeferredValidationTest is AccountTestBase {
             IEntryPoint.FailedOpWithRevert.selector,
             0,
             "AA23 reverted",
-            abi.encodeWithSelector(ModularAccount.DeferredInstallSignatureInvalid.selector)
+            abi.encodeWithSelector(ModularAccountBase.DeferredInstallSignatureInvalid.selector)
         );
 
         _sendOp(userOp, expectedRevertData);
@@ -200,7 +201,7 @@ contract DeferredValidationTest is AccountTestBase {
             IEntryPoint.FailedOpWithRevert.selector,
             0,
             "AA23 reverted",
-            abi.encodeWithSelector(ModularAccount.DeferredInstallNonceInvalid.selector)
+            abi.encodeWithSelector(ModularAccountBase.DeferredInstallNonceInvalid.selector)
         );
 
         _sendOp(userOp, expectedRevertdata);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 
 import {PermittedCallerModule} from "../mocks/modules/PermittedCallMocks.sol";
 import {ResultCreatorModule} from "../mocks/modules/ReturnDataModuleMocks.sol";
@@ -46,7 +46,7 @@ contract PermittedCallPermissionsTest is AccountTestBase {
     function test_permittedCall_NotAllowed() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccount.ValidationFunctionMissing.selector, ResultCreatorModule.bar.selector
+                ModularAccountBase.ValidationFunctionMissing.selector, ResultCreatorModule.bar.selector
             )
         );
         PermittedCallerModule(address(account1)).usePermittedCallNotAllowed();

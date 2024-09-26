@@ -40,7 +40,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
     }
 
     function _deploySemiModularAccount1() internal {
-        account1 = factory.createSemiModularAccount(owner1, 0);
+        account1 = ModularAccount(payable(factory.createSemiModularAccount(owner1, 0)));
         signerValidation = FALLBACK_VALIDATION;
     }
 }

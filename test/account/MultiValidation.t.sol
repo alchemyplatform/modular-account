@@ -8,7 +8,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 
 import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
-import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
@@ -59,7 +59,7 @@ contract MultiValidationTest is AccountTestBase {
         vm.prank(owner1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccount.RuntimeValidationFunctionReverted.selector,
+                ModularAccountBase.RuntimeValidationFunctionReverted.selector,
                 address(validator2),
                 TEST_DEFAULT_VALIDATION_ENTITY_ID,
                 abi.encodeWithSignature("NotAuthorized()")
@@ -90,7 +90,7 @@ contract MultiValidationTest is AccountTestBase {
             sender: address(account1),
             nonce: 0,
             initCode: "",
-            callData: abi.encodeCall(ModularAccount.execute, (address(0), 0, "")),
+            callData: abi.encodeCall(ModularAccountBase.execute, (address(0), 0, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),

@@ -75,7 +75,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         );
 
         if (vm.envOr("SMA_TEST", false)) {
-            account1 = factory.createSemiModularAccount(owner1, 0);
+            account1 = ModularAccount(payable(factory.createSemiModularAccount(owner1, 0)));
         } else {
             account1 = factory.createAccount(owner1, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID);
         }

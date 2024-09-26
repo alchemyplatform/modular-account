@@ -14,6 +14,7 @@ import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount
 import {ExecutionDataView} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ModuleManagerInternals} from "../../src/account/ModuleManagerInternals.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
@@ -73,7 +74,7 @@ contract ModularAccountTest is AccountTestBase {
             sender: address(account1),
             nonce: 0,
             initCode: "",
-            callData: abi.encodeCall(ModularAccount.execute, (ethRecipient, 1 wei, "")),
+            callData: abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -98,7 +99,7 @@ contract ModularAccountTest is AccountTestBase {
         bytes memory callData = vm.envOr("SMA_TEST", false)
             ? abi.encodeCall(SemiModularAccountBytecode(payable(account1)).updateFallbackSigner, (owner2))
             : abi.encodeCall(
-                ModularAccount.execute,
+                ModularAccountBase.execute,
                 (
                     address(ecdsaValidationModule),
                     0,
@@ -148,7 +149,7 @@ contract ModularAccountTest is AccountTestBase {
             sender: address(account2),
             nonce: 0,
             initCode: initCode,
-            callData: abi.encodeCall(ModularAccount.execute, (recipient, 1 wei, "")),
+            callData: abi.encodeCall(ModularAccountBase.execute, (recipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -174,7 +175,7 @@ contract ModularAccountTest is AccountTestBase {
             sender: address(account1),
             nonce: 0,
             initCode: "",
-            callData: abi.encodeCall(ModularAccount.execute, (ethRecipient, 1 wei, "")),
+            callData: abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -209,7 +210,7 @@ contract ModularAccountTest is AccountTestBase {
             nonce: 0,
             initCode: "",
             callData: abi.encodeCall(
-                ModularAccount.execute, (address(counter), 0, abi.encodeCall(counter.increment, ()))
+                ModularAccountBase.execute, (address(counter), 0, abi.encodeCall(counter.increment, ()))
             ),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
@@ -241,7 +242,7 @@ contract ModularAccountTest is AccountTestBase {
             sender: address(account1),
             nonce: 0,
             initCode: "",
-            callData: abi.encodeCall(ModularAccount.executeBatch, (calls)),
+            callData: abi.encodeCall(ModularAccountBase.executeBatch, (calls)),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -448,7 +449,7 @@ contract ModularAccountTest is AccountTestBase {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccount.SignatureValidationInvalid.selector, ecdsaValidationModule, newEntityId
+                ModularAccountBase.SignatureValidationInvalid.selector, ecdsaValidationModule, newEntityId
             )
         );
         IERC1271(address(account1)).isValidSignature(message, signature);
@@ -469,7 +470,7 @@ contract ModularAccountTest is AccountTestBase {
             sender: address(account1),
             nonce: 0,
             initCode: "",
-            callData: abi.encodeCall(ModularAccount.execute, (ethRecipient, 1 wei, "")),
+            callData: abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -495,7 +496,7 @@ contract ModularAccountTest is AccountTestBase {
                 0,
                 "AA23 reverted",
                 abi.encodeWithSelector(
-                    ModularAccount.UserOpValidationInvalid.selector, ecdsaValidationModule, newEntityId
+                    ModularAccountBase.UserOpValidationInvalid.selector, ecdsaValidationModule, newEntityId
                 )
             )
         );
@@ -504,7 +505,7 @@ contract ModularAccountTest is AccountTestBase {
         //show working rt validation
         vm.startPrank(address(owner1));
         account1.executeWithAuthorization(
-            abi.encodeCall(ModularAccount.execute, (ethRecipient, 1 wei, "")),
+            abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
             _encodeSignature(
                 ModuleEntityLib.pack(address(ecdsaValidationModule), newEntityId), GLOBAL_VALIDATION, ""
             )
