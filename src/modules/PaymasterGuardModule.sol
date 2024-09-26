@@ -16,6 +16,7 @@ import {BaseModule, IERC165} from "./BaseModule.sol";
 /// @author Alchemy & ERC-6900 Authors
 /// @notice This module supports permission checks where an validation is allowed only if a certain paymaster is
 /// used.
+/// - If this hook is installed, and no paymaster is setup, all request will be reverted
 contract PaymasterGuardModule is BaseModule, IValidationHookModule {
     mapping(uint32 entityId => mapping(address account => address paymaster)) public payamsters;
 
