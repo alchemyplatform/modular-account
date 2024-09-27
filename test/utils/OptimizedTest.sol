@@ -10,7 +10,7 @@ import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
 
 import {TokenReceiverModule} from "../../src/modules/TokenReceiverModule.sol";
-import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
+import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 
 /// @dev This contract provides functions to deploy optimized (via IR) precompiled contracts. By compiling just
 /// the source contracts (excluding the test suite) via IR, and using the resulting bytecode within the tests
@@ -55,12 +55,10 @@ abstract contract OptimizedTest is Test {
             : new TokenReceiverModule();
     }
 
-    function _deploySingleSignerValidationModule() internal returns (SingleSignerValidationModule) {
+    function _deployECDSAValidationModule() internal returns (ECDSAValidationModule) {
         return _isOptimizedTest()
-            ? SingleSignerValidationModule(
-                deployCode("out-optimized/SingleSignerValidationModule.sol/SingleSignerValidationModule.json")
-            )
-            : new SingleSignerValidationModule();
+            ? ECDSAValidationModule(deployCode("out-optimized/ECDSAValidationModule.sol/ECDSAValidationModule.json"))
+            : new ECDSAValidationModule();
     }
 
     function _deployEntryPoint070() internal returns (EntryPoint) {

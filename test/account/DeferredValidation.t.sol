@@ -25,7 +25,7 @@ contract DeferredValidationTest is AccountTestBase {
 
     function setUp() external {
         _encodedCall = abi.encodeCall(ModularAccount.execute, (makeAddr("dead"), 0, ""));
-        _deferredValidation = ModuleEntityLib.pack(address(_deploySingleSignerValidationModule()), 0);
+        _deferredValidation = ModuleEntityLib.pack(address(_deployECDSAValidationModule()), 0);
         _isSmaTest = vm.envOr("SMA_TEST", false);
 
         uint32 entityId = 0;

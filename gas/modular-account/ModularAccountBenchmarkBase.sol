@@ -9,7 +9,7 @@ import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
-import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
+import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 import {ModuleSignatureUtils} from "../../test/utils/ModuleSignatureUtils.sol";
 import {BenchmarkBase} from "../BenchmarkBase.sol";
 
@@ -19,23 +19,24 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
     AccountFactory public factory;
     ModularAccount public accountImpl;
     SemiModularAccount public semiModularImpl;
-    SingleSignerValidationModule public singleSignerValidationModule;
+    ECDSAValidationModule public ecdsaValidationModule;
+
     ModularAccount public account1;
     ModuleEntity public signerValidation;
 
     constructor(string memory accountImplName) BenchmarkBase(accountImplName) {
         accountImpl = _deployModularAccount(IEntryPoint(entryPoint));
         semiModularImpl = _deploySemiModularAccount(IEntryPoint(entryPoint));
-        singleSignerValidationModule = _deploySingleSignerValidationModule();
+        ecdsaValidationModule = _deployECDSAValidationModule();
 
         factory = new AccountFactory(
-            entryPoint, accountImpl, semiModularImpl, address(singleSignerValidationModule), address(this)
+            entryPoint, accountImpl, semiModularImpl, address(ecdsaValidationModule), address(this)
         );
     }
 
     function _deployAccount1() internal {
         account1 = factory.createAccount(owner1, 0, 0);
-        signerValidation = ModuleEntityLib.pack(address(singleSignerValidationModule), 0);
+        signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), 0);
     }
 
     function _deploySemiModularAccount1() internal {
