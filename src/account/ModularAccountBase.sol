@@ -37,7 +37,6 @@ import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-// It's like a normal modular account, but with 100% less initializers!
 abstract contract ModularAccountBase is
     IModularAccount,
     AccountExecutor,
