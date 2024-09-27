@@ -18,16 +18,16 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
     AccountFactory public factory;
     ModularAccount public accountImpl;
-    SemiModularAccount public semiModularImpl;
+    SemiModularAccountBytecode public semiModularImpl;
     ECDSAValidationModule public ecdsaValidationModule;
-    
+
     ModularAccount public account1;
     ModuleEntity public signerValidation;
 
     constructor(string memory accountImplName) BenchmarkBase(accountImplName) {
         accountImpl = _deployModularAccount(IEntryPoint(entryPoint));
         semiModularImpl = _deploySemiModularAccountBytecode(IEntryPoint(entryPoint));
-        singleSignerValidationModule = _deployECDSAValidationModule();
+        ecdsaValidationModule = _deployECDSAValidationModule();
 
         factory = new AccountFactory(
             entryPoint, accountImpl, semiModularImpl, address(ecdsaValidationModule), address(this)

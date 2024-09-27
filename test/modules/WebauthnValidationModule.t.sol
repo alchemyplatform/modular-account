@@ -11,6 +11,7 @@ import {WebAuthn} from "webauthn-sol/src/WebAuthn.sol";
 import {Utils, WebAuthnInfo} from "webauthn-sol/test/Utils.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {WebauthnValidationModule} from "../../src/modules/validation/WebauthnValidationModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
@@ -47,7 +48,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         bytes32 challenge = module.replaySafeHash(account, message);
 
         assertTrue(
-            ModularAccount(account).isValidSignature(message, _get1271SigForChallenge(challenge, 0, 0))
+            ModularAccountBase(account).isValidSignature(message, _get1271SigForChallenge(challenge, 0, 0))
                 == 0x1626ba7e
         );
     }
@@ -64,7 +65,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         vm.assume(sigR != 0); // because we special case r=0 and s=0 in the helper function
         bytes memory forgedSig = _get1271SigForChallenge(challenge, sigR, sigS);
 
-        assertTrue(ModularAccount(account).isValidSignature(message, forgedSig) == 0xFFFFFFFF);
+        assertTrue(ModularAccountBase(account).isValidSignature(message, forgedSig) == 0xFFFFFFFF);
     }
 
     function _get1271SigForChallenge(bytes32 challenge, uint256 overrideSigR, uint256 overrideSigS)
@@ -95,19 +96,19 @@ contract WebauthnValidationModuleTest is AccountTestBase {
     function test_uoValidation() external {
         PackedUserOperation memory uo;
         uo.sender = account;
-        uo.callData = abi.encodeCall(ModularAccount.execute, (address(0), 0, new bytes(0)));
+        uo.callData = abi.encodeCall(ModularAccountBase.execute, (address(0), 0, new bytes(0)));
 
         bytes32 uoHash = entryPoint.getUserOpHash(uo);
         uo.signature = _getUOSigForChallenge(uoHash.toEthSignedMessageHash(), 0, 0);
 
         vm.startPrank(address(entryPoint));
-        assertEq(ModularAccount(account).validateUserOp(uo, uoHash, 0), _SIG_VALIDATION_PASSED);
+        assertEq(ModularAccountBase(account).validateUserOp(uo, uoHash, 0), _SIG_VALIDATION_PASSED);
     }
 
     function test_uoValidaton_shouldFail(uint256 sigR, uint256 sigS) external {
         PackedUserOperation memory uo;
         uo.sender = account;
-        uo.callData = abi.encodeCall(ModularAccount.execute, (address(0), 0, new bytes(0)));
+        uo.callData = abi.encodeCall(ModularAccountBase.execute, (address(0), 0, new bytes(0)));
         bytes32 uoHash = entryPoint.getUserOpHash(uo);
 
         // make sure r, s values isn't the right one by accident. checking 1 should be enough
@@ -120,7 +121,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         uo.signature = _getUOSigForChallenge(uoHash.toEthSignedMessageHash(), sigR, sigS);
 
         vm.startPrank(address(entryPoint));
-        assertEq(ModularAccount(account).validateUserOp(uo, uoHash, 0), _SIG_VALIDATION_FAILED);
+        assertEq(ModularAccountBase(account).validateUserOp(uo, uoHash, 0), _SIG_VALIDATION_FAILED);
     }
 
     function _getUOSigForChallenge(bytes32 challenge, uint256 overrideSigR, uint256 overrideSigS)
