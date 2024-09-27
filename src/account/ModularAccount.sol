@@ -885,6 +885,7 @@ contract ModularAccount is
                 || selector == this.installValidation.selector || selector == this.uninstallValidation.selector
                 || selector == this.upgradeToAndCall.selector
                 || selector == this.invalidateDeferredValidationInstallNonce.selector
+                || selector == this.performCreate.selector || selector == this.performCreate2.selector
         ) {
             return true;
         }
