@@ -11,10 +11,10 @@ import {AccountTestBase} from "../utils/AccountTestBase.sol";
 contract PaymasterGuardModuleTest is AccountTestBase {
     PaymasterGuardModule public module = new PaymasterGuardModule();
 
-    address account;
-    address paymaster1;
-    address paymaster2;
-    uint32 constant ENTITY_ID = 1;
+    address public account;
+    address public paymaster1;
+    address public paymaster2;
+    uint32 public constant ENTITY_ID = 1;
 
     function setUp() public {
         account = payable(makeAddr("account"));
@@ -31,7 +31,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
 
     function test_onUinstall() public {
         vm.startPrank(address(account));
-        module.onUninstall(abi.encode(ENTITY_ID, paymaster1));
+        module.onUninstall(abi.encode(ENTITY_ID));
 
         assertEq(address(0), module.payamsters(ENTITY_ID, account));
     }

@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {UserOperationLib} from "@eth-infinitism/account-abstraction/core/UserOperationLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 
@@ -31,10 +27,9 @@ contract PaymasterGuardModule is BaseModule, IValidationHookModule {
     }
 
     /// @inheritdoc IModule
-    /// @param data should be encoded with the entityId of the validation and the paymaster address that guards the
-    /// validation
+    /// @param data should be encoded with the entityId of the validation
     function onUninstall(bytes calldata data) external override {
-        (uint32 entityId, address paymaster) = abi.decode(data, (uint32, address));
+        (uint32 entityId) = abi.decode(data, (uint32));
         delete payamsters[entityId][msg.sender];
     }
 
@@ -54,7 +49,7 @@ contract PaymasterGuardModule is BaseModule, IValidationHookModule {
     }
 
     /// @inheritdoc IValidationHookModule
-    function preRuntimeValidationHook(uint32 entityId, address, uint256, bytes calldata data, bytes calldata)
+    function preRuntimeValidationHook(uint32, address, uint256, bytes calldata, bytes calldata)
         external
         view
         override
