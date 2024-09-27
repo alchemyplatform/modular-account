@@ -43,7 +43,10 @@ abstract contract OptimizedTest is Test {
         return _isOptimizedTest()
             ? SemiModularAccountBytecode(
                 payable(
-                    deployCode("out-optimized/SemiModularAccountBytecode.sol/SemiModularAccountBytecode.json", abi.encode(entryPoint))
+                    deployCode(
+                        "out-optimized/SemiModularAccountBytecode.sol/SemiModularAccountBytecode.json",
+                        abi.encode(entryPoint)
+                    )
                 )
             )
             : new SemiModularAccountBytecode(entryPoint);
