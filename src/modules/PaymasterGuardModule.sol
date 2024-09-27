@@ -16,7 +16,7 @@ import {BaseModule, IERC165} from "./BaseModule.sol";
 contract PaymasterGuardModule is BaseModule, IValidationHookModule {
     mapping(uint32 entityId => mapping(address account => address paymaster)) public payamsters;
 
-    error NotAuthorized();
+    error BadPaymasterSpecified();
 
     /// @inheritdoc IModule
     /// @param data should be encoded with the entityId of the validation and the paymaster address that guards the
@@ -40,11 +40,11 @@ contract PaymasterGuardModule is BaseModule, IValidationHookModule {
         override
         returns (uint256)
     {
-        address payingPaymaster = address(bytes20(userOp.paymasterAndData));
+        address payingPaymaster = address(bytes20(userOp.paymasterAndData[:20]));
         if (payingPaymaster == payamsters[entityId][msg.sender]) {
             return 0;
         } else {
-            revert NotAuthorized();
+            revert BadPaymasterSpecified();
         }
     }
 
@@ -53,9 +53,8 @@ contract PaymasterGuardModule is BaseModule, IValidationHookModule {
         external
         view
         override
-    {
-        revert NotImplemented();
-    }
+    // solhint-disable-next-line no-empty-blocks
+    {}
 
     // solhint-disable-next-line no-empty-blocks
     function preSignatureValidationHook(uint32, address, bytes32, bytes calldata) external pure override {}

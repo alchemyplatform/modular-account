@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {BaseModule} from "../../src/modules/BaseModule.sol";
 import {PaymasterGuardModule} from "../../src/modules/PaymasterGuardModule.sol";
 
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
@@ -37,7 +36,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
     }
 
     function test_preUserOpValidationHook_success() public {
-        PackedUserOperation memory uo = _packUO();
+        PackedUserOperation memory uo = _packUO(abi.encodePacked(paymaster1, ""));
 
         vm.startPrank(address(account));
         // install the right paymaster
@@ -47,27 +46,34 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         assertEq(res, 0);
     }
 
-    function test_preUserOpValidationHook_fail() public {
-        PackedUserOperation memory uo = _packUO();
+    function test_preUserOpValidationHook_failWithInvalidData() public {
+        PackedUserOperation memory uo = _packUO("");
 
         vm.startPrank(address(account));
-        // install the wrong paymaster
-        module.onInstall(abi.encode(ENTITY_ID, paymaster2));
+        module.onInstall(abi.encode(ENTITY_ID, paymaster1));
 
-        vm.expectRevert(abi.encodeWithSelector(PaymasterGuardModule.NotAuthorized.selector));
+        vm.expectRevert();
         module.preUserOpValidationHook(ENTITY_ID, uo, "");
     }
 
-    function test_preRuntimeValidationHook_fail() public {
+    function test_preUserOpValidationHook_fail() public {
+        PackedUserOperation memory uo = _packUO(abi.encodePacked(paymaster1, ""));
+
         vm.startPrank(address(account));
         // install the wrong paymaster
         module.onInstall(abi.encode(ENTITY_ID, paymaster2));
 
-        vm.expectRevert(abi.encodeWithSelector(BaseModule.NotImplemented.selector));
+        vm.expectRevert(abi.encodeWithSelector(PaymasterGuardModule.BadPaymasterSpecified.selector));
+        module.preUserOpValidationHook(ENTITY_ID, uo, "");
+    }
+
+    function test_preRuntimeValidationHook_success() public {
+        vm.startPrank(address(account));
+
         module.preRuntimeValidationHook(ENTITY_ID, address(0), 0, "", "");
     }
 
-    function _packUO() internal returns (PackedUserOperation memory) {
+    function _packUO(bytes memory paymasterAndData) internal returns (PackedUserOperation memory) {
         return PackedUserOperation({
             sender: account,
             nonce: 0,
@@ -76,7 +82,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
             accountGasLimits: bytes32(bytes16(uint128(200_000))) | bytes32(uint256(200_000)),
             preVerificationGas: 200_000,
             gasFees: bytes32(uint256(uint128(0))),
-            paymasterAndData: abi.encodePacked(paymaster1, ""),
+            paymasterAndData: paymasterAndData,
             signature: ""
         });
     }
