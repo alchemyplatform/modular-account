@@ -107,10 +107,19 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     }
 
     function _runUserOp(bytes memory callData, bytes memory expectedRevertData) internal {
-        uint256 nonce = entryPoint.getNonce(address(account1), 0);
+        _runUserOpFrom(address(account1), owner1Key, callData, expectedRevertData);
+    }
+
+    function _runUserOpFrom(
+        address account,
+        uint256 ownerKey,
+        bytes memory callData,
+        bytes memory expectedRevertData
+    ) internal {
+        uint256 nonce = entryPoint.getNonce(address(account), 0);
 
         PackedUserOperation memory userOp = PackedUserOperation({
-            sender: address(account1),
+            sender: account,
             nonce: nonce,
             initCode: hex"",
             callData: callData,
@@ -122,7 +131,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         });
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerKey, userOpHash.toEthSignedMessageHash());
 
         userOp.signature = _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(r, s, v));
 
