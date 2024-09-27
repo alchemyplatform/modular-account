@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {ModuleEntityLib} from "@erc6900/reference-implementation/helpers/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/helpers/ValidationConfigLib.sol";
-import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
