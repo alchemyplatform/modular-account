@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {
+    LinkedListSet,
+    LinkedListSetLib,
+    SetValue
+} from "@erc6900/modular-account-libs/libraries/LinkedListSetLib.sol";
 
 import {HookConfig, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
@@ -21,7 +25,7 @@ struct ExecutionData {
     // Whether or not a global validation function may be used to validate this function.
     bool allowGlobalValidation;
     // The execution hooks for this function selector.
-    EnumerableSet.Bytes32Set executionHooks;
+    LinkedListSet executionHooks;
 }
 
 struct ValidationData {
@@ -34,9 +38,9 @@ struct ValidationData {
     // The pre validation hooks for this validation function.
     ModuleEntity[] preValidationHooks;
     // Execution hooks to run with this validation function.
-    EnumerableSet.Bytes32Set executionHooks;
+    LinkedListSet executionHooks;
     // The set of selectors that may be validated by this validation function.
-    EnumerableSet.Bytes32Set selectors;
+    LinkedListSet selectors;
 }
 
 struct AccountStorage {
@@ -57,44 +61,23 @@ function getAccountStorage() pure returns (AccountStorage storage _storage) {
     }
 }
 
-using EnumerableSet for EnumerableSet.Bytes32Set;
-
-function toSetValue(ModuleEntity moduleEntity) pure returns (bytes32) {
-    return bytes32(ModuleEntity.unwrap(moduleEntity));
+function toSetValue(HookConfig hookConfig) pure returns (SetValue) {
+    return SetValue.wrap(bytes30(HookConfig.unwrap(hookConfig)));
 }
 
-function toModuleEntity(bytes32 setValue) pure returns (ModuleEntity) {
-    return ModuleEntity.wrap(bytes24(setValue));
+function toSetValue(bytes4 selector) pure returns (SetValue) {
+    return SetValue.wrap(bytes30(selector));
 }
 
-// ExecutionHook layout:
-// 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF______________________ Hook Module Entity
-// 0x________________________________________________AA____________________ is pre hook
-// 0x__________________________________________________BB__________________ is post hook
+function toHookConfigArray(LinkedListSet storage set) view returns (HookConfig[] memory) {
+    SetValue[] memory values = LinkedListSetLib.getAll(set);
+    HookConfig[] memory result;
 
-function toSetValue(HookConfig hookConfig) pure returns (bytes32) {
-    return bytes32(HookConfig.unwrap(hookConfig));
-}
-
-function toHookConfig(bytes32 setValue) pure returns (HookConfig) {
-    return HookConfig.wrap(bytes25(setValue));
-}
-
-function toSetValue(bytes4 selector) pure returns (bytes32) {
-    return bytes32(selector);
-}
-
-function toSelector(bytes32 setValue) pure returns (bytes4) {
-    return bytes4(setValue);
-}
-
-/// @dev Helper function to get all elements of a set into memory.
-function toModuleEntityArray(EnumerableSet.Bytes32Set storage set) view returns (ModuleEntity[] memory) {
-    uint256 length = set.length();
-    ModuleEntity[] memory result = new ModuleEntity[](length);
-    for (uint256 i = 0; i < length; ++i) {
-        bytes32 key = set.at(i);
-        result[i] = ModuleEntity.wrap(bytes24(key));
+    // SetValue is internally a bytes30, and HookConfig is a bytes25, which are both left-aligned. This cast is
+    // safe so long as only HookConfig entries are added to the set.
+    assembly ("memory-safe") {
+        result := values
     }
+
     return result;
 }

@@ -2,8 +2,8 @@
 pragma solidity ^0.8.26;
 
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import {LinkedListSet, LinkedListSetLib} from "@erc6900/modular-account-libs/libraries/LinkedListSetLib.sol";
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {
     ExecutionManifest,
@@ -30,12 +30,12 @@ import {
     ExecutionData,
     ValidationData,
     getAccountStorage,
-    toModuleEntity,
+    toHookConfigArray,
     toSetValue
 } from "./AccountStorage.sol";
 
 abstract contract ModuleManagerInternals is IModularAccount {
-    using EnumerableSet for EnumerableSet.Bytes32Set;
+    using LinkedListSetLib for LinkedListSet;
     using ModuleEntityLib for ModuleEntity;
     using ValidationConfigLib for ValidationConfig;
     using HookConfigLib for HookConfig;
@@ -108,14 +108,15 @@ abstract contract ModuleManagerInternals is IModularAccount {
         _validationData.isUserOpValidation = false;
     }
 
-    function _addExecHooks(EnumerableSet.Bytes32Set storage hooks, HookConfig hookConfig) internal {
-        if (!hooks.add(toSetValue(hookConfig))) {
+    function _addExecHooks(LinkedListSet storage hooks, HookConfig hookConfig) internal {
+        if (!hooks.tryAdd(toSetValue(hookConfig))) {
             revert ExecutionHookAlreadySet(hookConfig);
         }
     }
 
-    function _removeExecHooks(EnumerableSet.Bytes32Set storage hooks, HookConfig hookConfig) internal {
-        hooks.remove(toSetValue(hookConfig));
+    function _removeExecHooks(LinkedListSet storage hooks, HookConfig hookConfig) internal {
+        // Todo: use predecessor
+        hooks.tryRemove(toSetValue(hookConfig));
     }
 
     function _installExecution(
@@ -141,8 +142,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
         length = manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
-            EnumerableSet.Bytes32Set storage execHooks =
-                _storage.executionData[mh.executionSelector].executionHooks;
+            LinkedListSet storage execHooks = _storage.executionData[mh.executionSelector].executionHooks;
             HookConfig hookConfig = HookConfigLib.packExecHook({
                 _module: module,
                 _entityId: mh.entityId,
@@ -172,8 +172,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
         uint256 length = manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
-            EnumerableSet.Bytes32Set storage execHooks =
-                _storage.executionData[mh.executionSelector].executionHooks;
+            LinkedListSet storage execHooks = _storage.executionData[mh.executionSelector].executionHooks;
             HookConfig hookConfig = HookConfigLib.packExecHook({
                 _module: module,
                 _entityId: mh.entityId,
@@ -260,7 +259,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
 
         for (uint256 i = 0; i < selectors.length; ++i) {
             bytes4 selector = selectors[i];
-            if (!_validationData.selectors.add(toSetValue(selector))) {
+            if (!_validationData.selectors.tryAdd(toSetValue(selector))) {
                 revert ValidationAlreadySet(selector, moduleEntity);
             }
         }
@@ -285,11 +284,10 @@ abstract contract ModuleManagerInternals is IModularAccount {
 
         // Send `onUninstall` to hooks
         if (hookUninstallDatas.length > 0) {
+            HookConfig[] memory execHooks = toHookConfigArray(_validationData.executionHooks);
+
             // If any uninstall data is provided, assert it is of the correct length.
-            if (
-                hookUninstallDatas.length
-                    != _validationData.preValidationHooks.length + _validationData.executionHooks.length()
-            ) {
+            if (hookUninstallDatas.length != _validationData.preValidationHooks.length + execHooks.length) {
                 revert ArrayLengthMismatch();
             }
 
@@ -302,10 +300,9 @@ abstract contract ModuleManagerInternals is IModularAccount {
                 hookIndex++;
             }
 
-            for (uint256 i = 0; i < _validationData.executionHooks.length(); ++i) {
+            for (uint256 i = 0; i < execHooks.length; ++i) {
                 bytes calldata hookData = hookUninstallDatas[hookIndex];
-                (address hookModule,) =
-                    ModuleEntityLib.unpack(toModuleEntity(_validationData.executionHooks.at(i)));
+                address hookModule = execHooks[i].module();
                 onUninstallSuccess = onUninstallSuccess && _onUninstall(hookModule, hookData);
                 hookIndex++;
             }
@@ -314,19 +311,10 @@ abstract contract ModuleManagerInternals is IModularAccount {
         // Clear all stored hooks
         delete _validationData.preValidationHooks;
 
-        EnumerableSet.Bytes32Set storage executionHooks = _validationData.executionHooks;
-        uint256 executionHookLen = executionHooks.length();
-        for (uint256 i = 0; i < executionHookLen; ++i) {
-            bytes32 executionHook = executionHooks.at(0);
-            executionHooks.remove(executionHook);
-        }
+        _validationData.executionHooks.clear();
 
         // Clear selectors
-        uint256 selectorLen = _validationData.selectors.length();
-        for (uint256 i = 0; i < selectorLen; ++i) {
-            bytes32 selectorSetValue = _validationData.selectors.at(0);
-            _validationData.selectors.remove(selectorSetValue);
-        }
+        _validationData.selectors.clear();
 
         (address module, uint32 entityId) = ModuleEntityLib.unpack(validationFunction);
         onUninstallSuccess = onUninstallSuccess && _onUninstall(module, uninstallData);
