@@ -18,7 +18,6 @@ import {AccountTestBase} from "../utils/AccountTestBase.sol";
 contract WebauthnValidationModuleTest is AccountTestBase {
     using MessageHashUtils for bytes32;
 
-    EntryPoint public ep;
     WebauthnValidationModule public module;
     address payable public account;
     uint32 public entityId = 1;
@@ -34,9 +33,8 @@ contract WebauthnValidationModuleTest is AccountTestBase {
     uint256 internal constant _SIG_VALIDATION_FAILED = 1;
 
     function setUp() external {
-        ep = new EntryPoint();
         module = new WebauthnValidationModule();
-        account = payable(address(new ERC1967Proxy(address(new ModularAccount(ep)), "")));
+        account = payable(address(new ERC1967Proxy(address(new ModularAccount(entryPoint)), "")));
         ModularAccount(payable(account)).initializeWithValidation(
             ValidationConfigLib.pack(address(module), entityId, true, true, true),
             new bytes4[](0),
@@ -100,10 +98,10 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         uo.sender = account;
         uo.callData = abi.encodeCall(ModularAccount.execute, (address(0), 0, new bytes(0)));
 
-        bytes32 uoHash = ep.getUserOpHash(uo);
+        bytes32 uoHash = entryPoint.getUserOpHash(uo);
         uo.signature = _getUOSigForChallenge(uoHash.toEthSignedMessageHash(), 0, 0);
 
-        vm.startPrank(address(ep));
+        vm.startPrank(address(entryPoint));
         assertEq(ModularAccount(account).validateUserOp(uo, uoHash, 0), _SIG_VALIDATION_PASSED);
     }
 
@@ -111,7 +109,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         PackedUserOperation memory uo;
         uo.sender = account;
         uo.callData = abi.encodeCall(ModularAccount.execute, (address(0), 0, new bytes(0)));
-        bytes32 uoHash = ep.getUserOpHash(uo);
+        bytes32 uoHash = entryPoint.getUserOpHash(uo);
 
         // make sure r, s values isn't the right one by accident. checking 1 should be enough
         WebAuthnInfo memory webAuthn = Utils.getWebAuthnStruct(uoHash.toEthSignedMessageHash());
@@ -122,7 +120,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         vm.assume(sigR != 0); // because we special case r=0 and s=0 in the helper function
         uo.signature = _getUOSigForChallenge(uoHash.toEthSignedMessageHash(), sigR, sigS);
 
-        vm.startPrank(address(ep));
+        vm.startPrank(address(entryPoint));
         assertEq(ModularAccount(account).validateUserOp(uo, uoHash, 0), _SIG_VALIDATION_FAILED);
     }
 
