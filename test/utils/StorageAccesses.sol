@@ -1,0 +1,118 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.26;
+
+import {Vm} from "forge-std/src/Vm.sol";
+import {console} from "forge-std/src/console.sol";
+
+import {_ACCOUNT_STORAGE_SLOT} from "../../src/account/AccountStorage.sol";
+import {ModuleEntity} from "../../src/libraries/ModuleEntityLib.sol";
+
+// solhint-disable no-console
+library StorageAccesses {
+    // solhint-disable const-name-snakecase
+    // solhint-disable-next-line private-vars-leading-underscore
+    Vm internal constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+
+    struct PredictedSlotNames {
+        bytes32[] slots;
+        string[] names;
+    }
+
+    function printRawStorageAccesses(address target) internal {
+        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(target);
+
+        console.log("Storage reads:");
+        for (uint256 j = 0; j < reads.length; j++) {
+            console.logBytes32(reads[j]);
+        }
+
+        console.log("Storage writes:");
+        for (uint256 j = 0; j < writes.length; j++) {
+            console.logBytes32(writes[j]);
+        }
+    }
+
+    function printFormattedStorageAccesses(address target, ModuleEntity validationFunction) internal {
+        PredictedSlotNames memory slotNames = getPredictedValidationSlotNames(validationFunction);
+
+        (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(target);
+
+        console.log("Storage reads: %s", reads.length);
+        for (uint256 j = 0; j < reads.length; j++) {
+            console.log(string.concat(formatSlot(reads[j], slotNames)));
+        }
+
+        console.log("Storage writes: %s", writes.length);
+        for (uint256 j = 0; j < writes.length; j++) {
+            console.log(string.concat(formatSlot(writes[j], slotNames)));
+        }
+    }
+
+    function formatSlot(bytes32 slot, PredictedSlotNames memory slotNames) internal pure returns (string memory) {
+        for (uint256 j = 0; j < slotNames.slots.length; j++) {
+            if (slotNames.slots[j] == slot) {
+                return slotNames.names[j];
+            }
+        }
+
+        return vm.toString(slot);
+    }
+
+    function printPredictedValidationSlots(ModuleEntity validation) internal pure {
+        PredictedSlotNames memory slotNames = getPredictedValidationSlotNames(validation);
+
+        console.log("Predicted validation slots:");
+        for (uint256 j = 0; j < slotNames.slots.length; j++) {
+            console.log(string.concat(slotNames.names[j], ": %x"), uint256(slotNames.slots[j]));
+        }
+    }
+
+    function getPredictedValidationSlotNames(ModuleEntity validation)
+        internal
+        pure
+        returns (PredictedSlotNames memory)
+    {
+        bytes32[] memory slots = new bytes32[](6);
+        string[] memory names = new string[](6);
+
+        uint256 root = uint256(_ACCOUNT_STORAGE_SLOT);
+
+        uint256 validationDataMappingSlot = root + 2;
+        uint256 validationDataSlot =
+            getMappingEntrySlot(validationDataMappingSlot, uint256(bytes32(ModuleEntity.unwrap(validation))));
+
+        slots[0] = bytes32(validationDataSlot);
+        names[0] = "Validation data slot (contains flags)";
+
+        uint256 preValidationHooksLengthSlot = validationDataSlot + 1;
+        slots[1] = bytes32(preValidationHooksLengthSlot);
+        names[1] = "Pre-validation hooks length slot";
+
+        uint256 preValidationHooksContentSlot = getArrayContentsSlot(preValidationHooksLengthSlot);
+        slots[2] = bytes32(preValidationHooksContentSlot);
+        names[2] = "Pre-validation hooks content slot";
+
+        uint256 executionHooksMappingSlot = validationDataSlot + 2;
+        uint256 executionHooksFirstElementSlot = getMappingEntrySlot(executionHooksMappingSlot, uint256(1));
+        slots[3] = bytes32(executionHooksFirstElementSlot);
+        names[3] = "Execution hooks first element slot";
+
+        uint256 selectorsMappingSlot = validationDataSlot + 3;
+        uint256 selectorsFirstElementSlot = getMappingEntrySlot(selectorsMappingSlot, uint256(1));
+        slots[4] = bytes32(selectorsFirstElementSlot);
+        names[4] = "Selectors first element slot";
+
+        slots[5] = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+        names[5] = "ERC-1967 proxy implementation slot";
+
+        return PredictedSlotNames(slots, names);
+    }
+
+    function getArrayContentsSlot(uint256 arraySlot) internal pure returns (uint256) {
+        return uint256(keccak256(abi.encodePacked(arraySlot)));
+    }
+
+    function getMappingEntrySlot(uint256 mappingSlot, uint256 key) internal pure returns (uint256) {
+        return uint256(keccak256(abi.encodePacked(key, mappingSlot)));
+    }
+}
