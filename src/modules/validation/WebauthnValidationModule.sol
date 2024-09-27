@@ -14,14 +14,14 @@ import {ReplaySafeWrapper} from "@erc6900/reference-implementation/modules/Repla
 import {IWebauthnValidationModule} from "./IWebauthnValidationModule.sol";
 
 /// @title Webauthn Validation
-/// @author ERC-6900 Authors
+/// @author Alchemy
+/// @dev Implementation referenced from Webauthn + Coinbase Smart Wallet developed by Base.
 /// @notice This validation enables Webauthn (secp256r1 curve) signature validation. It handles installation by
 /// each entity (entityId).
 /// Note: Uninstallation will NOT disable all installed validation entities. None of the functions are installed on
 /// the account. Account states are to be retrieved from this global singleton directly.
 ///
-/// - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key
-/// (if the owner is an EOA) or if it is a valid ERC-1271 signature from the owner (if the owner is a contract).
+/// - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
 ///
 /// - This validation supports composition that other validation can relay on entities in this validation
 /// to validate partially or fully.
@@ -75,15 +75,6 @@ contract WebauthnValidationModule is IWebauthnValidationModule, ReplaySafeWrappe
     }
 
     /// @inheritdoc IValidationModule
-    function validateRuntime(address, uint32, address, uint256, bytes calldata, bytes calldata)
-        external
-        pure
-        override
-    {
-        revert NotAuthorized();
-    }
-
-    /// @inheritdoc IValidationModule
     /// @dev The signature is valid if it is signed by the owner's private key
     /// (if the owner is an EOA) or if it is a valid ERC-1271 signature from the
     /// owner (if the owner is a contract).
@@ -102,13 +93,22 @@ contract WebauthnValidationModule is IWebauthnValidationModule, ReplaySafeWrappe
         return _1271_INVALID;
     }
 
+    /// @inheritdoc IValidationModule
+    function validateRuntime(address, uint32, address, uint256, bytes calldata, bytes calldata)
+        external
+        pure
+        override
+    {
+        revert NotAuthorized();
+    }
+
     // ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
     // ┃    Module interface functions    ┃
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     /// @inheritdoc IModule
     function moduleId() external pure returns (string memory) {
-        return "erc6900.webauthn-validation-module.1.0.0";
+        return "alchemy.webauthn-validation-module.1.0.0";
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -125,6 +125,12 @@ contract WebauthnValidationModule is IWebauthnValidationModule, ReplaySafeWrappe
     // ┃    Internal / Private functions    ┃
     // ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
+    function _transferSigner(uint32 entityId, uint256 newX, uint256 newY) internal {
+        PubKey memory oldPubKey = signers[entityId][msg.sender];
+        signers[entityId][msg.sender] = PubKey(newX, newY);
+        emit SignerTransferred(msg.sender, entityId, newX, newY, oldPubKey.x, oldPubKey.y);
+    }
+
     function _validateSignature(uint32 entityId, address account, bytes32 hash, bytes calldata signature)
         internal
         view
@@ -138,11 +144,5 @@ contract WebauthnValidationModule is IWebauthnValidationModule, ReplaySafeWrappe
         }
 
         return false;
-    }
-
-    function _transferSigner(uint32 entityId, uint256 newX, uint256 newY) internal {
-        PubKey memory oldPubKey = signers[entityId][msg.sender];
-        signers[entityId][msg.sender] = PubKey(newX, newY);
-        emit SignerTransferred(msg.sender, entityId, newX, newY, oldPubKey.x, oldPubKey.y);
     }
 }

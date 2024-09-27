@@ -25,8 +25,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
     uint48 public validAfter;
 
     function setUp() public {
-        _signerValidation =
-            ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
+        _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         timeRangeModule = new TimeRangeModule();
 

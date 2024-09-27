@@ -8,7 +8,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
-import {AccountTestBase, ECDSAValidationModule} from "../utils/AccountTestBase.sol";
+import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
 contract DeferredValidationTest is AccountTestBase {
     using ValidationConfigLib for ValidationConfig;

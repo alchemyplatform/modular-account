@@ -33,8 +33,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
     );
 
     function setUp() public {
-        _signerValidation =
-            ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
+        _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         allowlistModule = new AllowlistModule();
 
