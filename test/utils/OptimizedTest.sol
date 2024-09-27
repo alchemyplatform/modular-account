@@ -39,7 +39,10 @@ abstract contract OptimizedTest is Test {
             : new ModularAccount(entryPoint);
     }
 
-    function _deploySemiModularAccount(IEntryPoint entryPoint) internal returns (SemiModularAccountBytecode) {
+    function _deploySemiModularAccountBytecode(IEntryPoint entryPoint)
+        internal
+        returns (SemiModularAccountBytecode)
+    {
         return _isOptimizedTest()
             ? SemiModularAccountBytecode(
                 payable(

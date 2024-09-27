@@ -39,7 +39,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     }
 
     function test_semiModularAccountGas_runtime_nativeTransfer() public {
-        _deploySemiModularAccount1();
+        _deploySemiModularAccountBytecode1();
 
         vm.deal(address(account1), 1 ether);
 
@@ -61,7 +61,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     }
 
     function test_semiModularAccountGas_userOp_nativeTransfer() public {
-        _deploySemiModularAccount1();
+        _deploySemiModularAccountBytecode1();
 
         vm.deal(address(account1), 1 ether);
 
@@ -90,7 +90,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     }
 
     function test_semiModularAccountGas_runtime_erc20Transfer() public {
-        _deploySemiModularAccount1();
+        _deploySemiModularAccountBytecode1();
 
         mockErc20.mint(address(account1), 100 ether);
 
@@ -115,7 +115,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     }
 
     function test_semiModularAccountGas_userOp_erc20Transfer() public {
-        _deploySemiModularAccount1();
+        _deploySemiModularAccountBytecode1();
 
         vm.deal(address(account1), 1 ether);
 
@@ -149,7 +149,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     }
 
     function test_semiModularAccountGas_userOp_deferredValidationInstall() public {
-        _deploySemiModularAccount1();
+        _deploySemiModularAccountBytecode1();
 
         vm.deal(address(account1), 1 ether);
 

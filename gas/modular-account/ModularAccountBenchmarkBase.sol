@@ -26,8 +26,8 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
     constructor(string memory accountImplName) BenchmarkBase(accountImplName) {
         accountImpl = _deployModularAccount(IEntryPoint(entryPoint));
-        semiModularImpl = _deploySemiModularAccount(IEntryPoint(entryPoint));
-        ecdsaValidationModule = _deployECDSAValidationModule();
+        semiModularImpl = _deploySemiModularAccountBytecode(IEntryPoint(entryPoint));
+        singleSignerValidationModule = _deployECDSAValidationModule();
 
         factory = new AccountFactory(
             entryPoint, accountImpl, semiModularImpl, address(ecdsaValidationModule), address(this)
@@ -39,7 +39,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), 0);
     }
 
-    function _deploySemiModularAccount1() internal {
+    function _deploySemiModularAccountBytecode1() internal {
         account1 = ModularAccount(payable(factory.createSemiModularAccount(owner1, 0)));
         signerValidation = FALLBACK_VALIDATION;
     }

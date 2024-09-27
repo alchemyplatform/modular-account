@@ -64,7 +64,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         accountImplementation = _deployModularAccount(entryPoint);
 
         semiModularAccountImplementation =
-            SemiModularAccountBytecode(payable(_deploySemiModularAccount(entryPoint)));
+            SemiModularAccountBytecode(payable(_deploySemiModularAccountBytecode(entryPoint)));
 
         factory = new AccountFactory(
             entryPoint,
