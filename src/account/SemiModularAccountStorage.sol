@@ -4,7 +4,6 @@ pragma solidity ^0.8.26;
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
-// import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 
 contract SemiModularAccountStorage is SemiModularAccountBase {
     constructor(IEntryPoint anEntryPoint) SemiModularAccountBase(anEntryPoint) {}
