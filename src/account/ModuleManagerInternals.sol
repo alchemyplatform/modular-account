@@ -19,8 +19,8 @@ import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol"
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
-import {collectReturnData} from "../helpers/CollectReturnData.sol";
 import {MAX_PRE_VALIDATION_HOOKS} from "../helpers/Constants.sol";
+import {ExecutionLib} from "../libraries/ExecutionLib.sol";
 import {HookConfigLib} from "../libraries/HookConfigLib.sol";
 import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
@@ -207,7 +207,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
             // solhint-disable-next-line no-empty-blocks
             try IModule(module).onInstall(data) {}
             catch {
-                bytes memory revertReason = collectReturnData();
+                bytes memory revertReason = ExecutionLib.collectReturnData();
                 revert ModuleInstallCallbackFailed(module, revertReason);
             }
         }
