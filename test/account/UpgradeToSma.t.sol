@@ -7,7 +7,7 @@ import {AccountStorageInitializable} from "../../src/account/AccountStorageIniti
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {SemiModularAccountBase} from "../../src/account/SemiModularAccountBase.sol";
-import {SemiModularAccountStorage} from "../../src/account/SemiModularAccountStorage.sol";
+import {SemiModularAccountStorageOnly} from "../../src/account/SemiModularAccountStorageOnly.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {LightAccount} from "@alchemy/light-account/src/LightAccount.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
@@ -18,7 +18,7 @@ contract UpgradeToSmaTest is AccountTestBase {
     uint256 public owner2Key;
 
     function setUp() external {
-        smaStorageImpl = address(new SemiModularAccountStorage(entryPoint));
+        smaStorageImpl = address(new SemiModularAccountStorageOnly(entryPoint));
         (owner2, owner2Key) = makeAddrAndKey("owner2");
     }
 
@@ -34,7 +34,7 @@ contract UpgradeToSmaTest is AccountTestBase {
 
         // Attempt an upgrade and re-initialization.
         vm.prank(address(entryPoint));
-        account1.upgradeToAndCall(smaStorageImpl, abi.encodeCall(SemiModularAccountStorage.initialize, owner2));
+        account1.upgradeToAndCall(smaStorageImpl, abi.encodeCall(SemiModularAccountStorageOnly.initialize, owner2));
     }
 
     // Positives
@@ -70,7 +70,7 @@ contract UpgradeToSmaTest is AccountTestBase {
         // Upgrade the LightAccount to an SMA-Storage and call the initializer.
         vm.prank(address(entryPoint));
         ModularAccount(newAccount).upgradeToAndCall(
-            smaStorageImpl, abi.encodeCall(SemiModularAccountStorage.initialize, owner2)
+            smaStorageImpl, abi.encodeCall(SemiModularAccountStorageOnly.initialize, owner2)
         );
 
         // Build expected revert data for a UO with the original signer.
