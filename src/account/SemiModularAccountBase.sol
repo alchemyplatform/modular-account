@@ -79,6 +79,17 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         return "alchemy.semi-modular-account.0.0.1";
     }
 
+    /// @notice Returns the replay-safe hash generated from the passed typed data hash for 1271 validation.
+    /// @param hash The typed data hash to wrap in a replay-safe hash.
+    /// @return The replay-safe hash, to be used for 1271 signature generation.
+    ///
+    /// @dev Generates a replay-safe hash to wrap a standard typed data hash. This prevents replay attacks by
+    /// enforcing the domain separator, which includes this contract's address and the chainId. This is only
+    /// relevant for 1271 validation because UserOp validation relies on the UO hash and the Entrypoint has
+    /// safeguards.
+    ///
+    /// NOTE: Like in signature-based validation modules, the returned hash should be used to generate signatures,
+    /// but the original hash should be passed to the external-facing function for 1271 validation.
     function replaySafeHash(bytes32 hash) public view virtual returns (bytes32) {
         return MessageHashUtils.toTypedDataHash({
             domainSeparator: domainSeparator(),
@@ -169,7 +180,9 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         internal
         view
         virtual
-        returns (address);
+        returns (address) {
+            return _storage.fallbackSigner;
+        }
 
     function _getSemiModularAccountStorage() internal pure returns (SemiModularAccountStorage storage) {
         SemiModularAccountStorage storage _storage;

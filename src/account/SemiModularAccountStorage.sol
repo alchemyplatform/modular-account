@@ -5,6 +5,13 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 
 import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 
+/// @title SemiModularAccountStorage
+/// @author Alchemy
+///
+/// @notice A basic Semi-Modular Account with an initializer to set the fallback signer in storage.
+///
+/// @dev Note that the initializer has no access control and should be called via `upgradeToAndCall()`.
+/// It's recommended to opt for the variant `SemiModularAccountBytecode` instead for new accounts.
 contract SemiModularAccountStorage is SemiModularAccountBase {
     constructor(IEntryPoint anEntryPoint) SemiModularAccountBase(anEntryPoint) {}
 
@@ -14,15 +21,5 @@ contract SemiModularAccountStorage is SemiModularAccountBase {
         // Note that it's technically possible for the fallback signer in storage to be nonzero before
         // initialization. However, reading it here would add costs in the vast majority of cases.
         emit FallbackSignerSet(address(0), initialSigner);
-    }
-
-    /// @dev If the fallback signer is set in storage, we ignore the bytecode signer.
-    function _retrieveFallbackSignerUnchecked(SemiModularAccountStorage storage _storage)
-        internal
-        view
-        override
-        returns (address)
-    {
-        return _storage.fallbackSigner;
     }
 }
