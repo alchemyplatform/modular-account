@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {PaymasterGuardModule} from "../../src/modules/PaymasterGuardModule.sol";
+import {PaymasterGuardModule} from "../../src/modules/permissions/PaymasterGuardModule.sol";
 
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
