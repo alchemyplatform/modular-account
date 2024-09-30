@@ -8,7 +8,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
+import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../src/helpers/Constants.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
@@ -31,7 +31,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
 
     ECDSAValidationModule public ecdsaValidationModule;
     ModularAccount public accountImplementation;
-    SemiModularAccount public semiModularAccountImplementation;
+    SemiModularAccountBytecode public semiModularAccountImplementation;
     AccountFactory public factory;
 
     address public factoryOwner;
@@ -63,7 +63,8 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
 
         accountImplementation = _deployModularAccount(entryPoint);
 
-        semiModularAccountImplementation = SemiModularAccount(payable(_deploySemiModularAccount(entryPoint)));
+        semiModularAccountImplementation =
+            SemiModularAccountBytecode(payable(_deploySemiModularAccountBytecode(entryPoint)));
 
         factory = new AccountFactory(
             entryPoint,
@@ -74,7 +75,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         );
 
         if (vm.envOr("SMA_TEST", false)) {
-            account1 = factory.createSemiModularAccount(owner1, 0);
+            account1 = ModularAccount(payable(factory.createSemiModularAccount(owner1, 0)));
         } else {
             account1 = factory.createAccount(owner1, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID);
         }
@@ -106,10 +107,19 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     }
 
     function _runUserOp(bytes memory callData, bytes memory expectedRevertData) internal {
-        uint256 nonce = entryPoint.getNonce(address(account1), 0);
+        _runUserOpFrom(address(account1), owner1Key, callData, expectedRevertData);
+    }
+
+    function _runUserOpFrom(
+        address account,
+        uint256 ownerKey,
+        bytes memory callData,
+        bytes memory expectedRevertData
+    ) internal {
+        uint256 nonce = entryPoint.getNonce(address(account), 0);
 
         PackedUserOperation memory userOp = PackedUserOperation({
-            sender: address(account1),
+            sender: account,
             nonce: nonce,
             initCode: hex"",
             callData: callData,
@@ -121,7 +131,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         });
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerKey, userOpHash.toEthSignedMessageHash());
 
         userOp.signature = _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(r, s, v));
 
@@ -186,7 +196,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         vm.prank(owner1);
         if (vm.envOr("SMA_TEST", false)) {
             account1.executeWithAuthorization(
-                abi.encodeCall(SemiModularAccount(payable(account1)).updateFallbackSigner, (address(this))),
+                abi.encodeCall(SemiModularAccountBytecode(payable(account1)).updateFallbackSigner, (address(this))),
                 _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
             );
             return;

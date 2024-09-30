@@ -5,7 +5,7 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 
 import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
-import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {AllowlistModule} from "../../src/modules/permissions/AllowlistModule.sol";
@@ -230,7 +230,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                         )
                 ) {
                     return abi.encodeWithSelector(
-                        ModularAccount.PreRuntimeValidationHookFailed.selector,
+                        ModularAccountBase.PreRuntimeValidationHookFailed.selector,
                         address(allowlistModule),
                         HOOK_ENTITY_ID,
                         abi.encodeWithSelector(AllowlistModule.SelectorNotAllowed.selector)
@@ -238,7 +238,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                 }
             } else {
                 return abi.encodeWithSelector(
-                    ModularAccount.PreRuntimeValidationHookFailed.selector,
+                    ModularAccountBase.PreRuntimeValidationHookFailed.selector,
                     address(allowlistModule),
                     HOOK_ENTITY_ID,
                     abi.encodeWithSelector(AllowlistModule.TargetNotAllowed.selector)

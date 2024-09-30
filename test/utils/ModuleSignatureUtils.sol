@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
+import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
@@ -215,7 +215,7 @@ contract ModuleSignatureUtils {
         returns (bytes32)
     {
         if (address(account).code.length > 0) {
-            return SemiModularAccount(payable(account)).replaySafeHash(typedDataHash);
+            return SemiModularAccountBytecode(payable(account)).replaySafeHash(typedDataHash);
         } else {
             // precompute it as the SMA is not yet deployed
             // for SMA, the domain separator used for the deferred validation installation is the same as the one

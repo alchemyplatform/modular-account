@@ -12,7 +12,7 @@ import {
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 
-import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
@@ -188,7 +188,7 @@ contract UpgradeModuleTest is AccountTestBase {
         // Test if old validation still works, expect fail
         vm.expectRevert(
             abi.encodePacked(
-                ModularAccount.ValidationFunctionMissing.selector, abi.encode(IModularAccount.execute.selector)
+                ModularAccountBase.ValidationFunctionMissing.selector, abi.encode(IModularAccount.execute.selector)
             )
         );
         account1.executeWithAuthorization(

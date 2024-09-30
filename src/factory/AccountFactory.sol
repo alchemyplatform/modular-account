@@ -6,14 +6,14 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {ModularAccount} from "../account/ModularAccount.sol";
-import {SemiModularAccount} from "../account/SemiModularAccount.sol";
+import {SemiModularAccountBytecode} from "../account/SemiModularAccountBytecode.sol";
 import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
 
 import {LibClone} from "solady/utils/LibClone.sol";
 
 contract AccountFactory is Ownable {
     ModularAccount public immutable ACCOUNT_IMPL;
-    SemiModularAccount public immutable SEMI_MODULAR_ACCOUNT_IMPL;
+    SemiModularAccountBytecode public immutable SEMI_MODULAR_ACCOUNT_IMPL;
     IEntryPoint public immutable ENTRY_POINT;
     address public immutable SINGLE_SIGNER_VALIDATION_MODULE;
 
@@ -23,7 +23,7 @@ contract AccountFactory is Ownable {
     constructor(
         IEntryPoint _entryPoint,
         ModularAccount _accountImpl,
-        SemiModularAccount _semiModularImpl,
+        SemiModularAccountBytecode _semiModularImpl,
         address _ecdsaValidationModule,
         address owner
     ) Ownable(owner) {
@@ -63,7 +63,9 @@ contract AccountFactory is Ownable {
         return ModularAccount(payable(instance));
     }
 
-    function createSemiModularAccount(address owner, uint256 salt) external returns (SemiModularAccount) {
+    /// @dev This only ever deploys semi-modular accounts with added bytecode, since this is much less
+    /// expensive than the storage-only variant, which should only be used for upgrades.
+    function createSemiModularAccount(address owner, uint256 salt) external returns (SemiModularAccountBytecode) {
         // both module address and entityId for fallback validations are hardcoded at the maximum value.
         bytes32 fullSalt = getSalt(owner, salt, type(uint32).max);
 
@@ -77,7 +79,7 @@ contract AccountFactory is Ownable {
             emit SemiModularAccountDeployed(instance, owner, salt);
         }
 
-        return SemiModularAccount(payable(instance));
+        return SemiModularAccountBytecode(payable(instance));
     }
 
     function addStake(uint32 unstakeDelay) external payable onlyOwner {

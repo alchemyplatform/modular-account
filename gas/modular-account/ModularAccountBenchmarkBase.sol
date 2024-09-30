@@ -4,7 +4,7 @@ pragma solidity ^0.8.26;
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-import {SemiModularAccount} from "../../src/account/SemiModularAccount.sol";
+import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
@@ -18,7 +18,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
     AccountFactory public factory;
     ModularAccount public accountImpl;
-    SemiModularAccount public semiModularImpl;
+    SemiModularAccountBytecode public semiModularImpl;
     ECDSAValidationModule public ecdsaValidationModule;
 
     ModularAccount public account1;
@@ -26,7 +26,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
     constructor(string memory accountImplName) BenchmarkBase(accountImplName) {
         accountImpl = _deployModularAccount(IEntryPoint(entryPoint));
-        semiModularImpl = _deploySemiModularAccount(IEntryPoint(entryPoint));
+        semiModularImpl = _deploySemiModularAccountBytecode(IEntryPoint(entryPoint));
         ecdsaValidationModule = _deployECDSAValidationModule();
 
         factory = new AccountFactory(
@@ -39,8 +39,8 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), 0);
     }
 
-    function _deploySemiModularAccount1() internal {
-        account1 = factory.createSemiModularAccount(owner1, 0);
+    function _deploySemiModularAccountBytecode1() internal {
+        account1 = ModularAccount(payable(factory.createSemiModularAccount(owner1, 0)));
         signerValidation = FALLBACK_VALIDATION;
     }
 }
