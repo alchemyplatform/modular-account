@@ -180,9 +180,10 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         internal
         view
         virtual
-        returns (address) {
-            return _storage.fallbackSigner;
-        }
+        returns (address)
+    {
+        return _storage.fallbackSigner;
+    }
 
     function _getSemiModularAccountStorage() internal pure returns (SemiModularAccountStorage storage) {
         SemiModularAccountStorage storage _storage;
