@@ -3,9 +3,8 @@ pragma solidity ^0.8.26;
 
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
@@ -16,8 +15,8 @@ import {IAddressValidationModule} from "./IAddressValidationModule.sol";
 
 /// @title ECSDA Validation
 /// @author ERC-6900 Authors
-/// @notice This validation enables ECDSA (secp256k1 curve) signature validation for Ethereum EOAs. It handles
-/// installation by each entity (entityId).
+/// @notice This validation enables contract owner signature validation. It handles installation by
+/// each entity (entityId).
 /// Note: Uninstallation will NOT disable all installed validation entities. None of the functions are installed on
 /// the account. Account states are to be retrieved from this global singleton directly.
 ///
@@ -25,7 +24,7 @@ import {IAddressValidationModule} from "./IAddressValidationModule.sol";
 ///
 /// - This validation supports composition that other validation can relay on entities in this validation
 /// to validate partially or fully.
-contract ECDSAValidationModule is IAddressValidationModule, ReplaySafeWrapper, BaseModule {
+contract ContractOwnerValidationModule is IAddressValidationModule, ReplaySafeWrapper, BaseModule {
     using MessageHashUtils for bytes32;
 
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
@@ -61,8 +60,12 @@ contract ECDSAValidationModule is IAddressValidationModule, ReplaySafeWrapper, B
         override
         returns (uint256)
     {
-        if (_checkSignature(signers[entityId][msg.sender], userOpHash.toEthSignedMessageHash(), userOp.signature))
-        {
+        // Validate the user op signature against the owner.
+        if (
+            SignatureChecker.isValidERC1271SignatureNow(
+                signers[entityId][userOp.sender], userOpHash.toEthSignedMessageHash(), userOp.signature
+            )
+        ) {
             return _SIG_VALIDATION_PASSED;
         }
         return _SIG_VALIDATION_FAILED;
@@ -97,7 +100,7 @@ contract ECDSAValidationModule is IAddressValidationModule, ReplaySafeWrapper, B
         returns (bytes4)
     {
         bytes32 _replaySafeHash = replaySafeHash(account, digest);
-        if (_checkSignature(signers[entityId][account], _replaySafeHash, signature)) {
+        if (SignatureChecker.isValidERC1271SignatureNow(signers[entityId][account], _replaySafeHash, signature)) {
             return _1271_MAGIC_VALUE;
         }
         return _1271_INVALID;
@@ -109,7 +112,7 @@ contract ECDSAValidationModule is IAddressValidationModule, ReplaySafeWrapper, B
 
     /// @inheritdoc IModule
     function moduleId() external pure returns (string memory) {
-        return "alchemy.ecdsa-validation-module.1.0.0";
+        return "alchemy.contract-owner-validation-module.1.0.0";
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -130,13 +133,5 @@ contract ECDSAValidationModule is IAddressValidationModule, ReplaySafeWrapper, B
         address previousSigner = signers[entityId][msg.sender];
         signers[entityId][msg.sender] = newSigner;
         emit SignerTransferred(msg.sender, entityId, newSigner, previousSigner);
-    }
-
-    function _checkSignature(address owner, bytes32 digest, bytes calldata sig) internal pure returns (bool) {
-        (address recovered, ECDSA.RecoverError err,) = ECDSA.tryRecover(digest, sig);
-        if (err == ECDSA.RecoverError.NoError && recovered == owner) {
-            return true;
-        }
-        return false;
     }
 }
