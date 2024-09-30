@@ -9,7 +9,7 @@ import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/i
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
-import {FALLBACK_VALIDATION} from "../helpers/Constants.sol";
+import {DIRECT_CALL_VALIDATION_ENTITYID, FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
 
@@ -157,7 +157,23 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     }
 
     function _isValidationGlobal(ModuleEntity validationFunction) internal view override returns (bool) {
-        return validationFunction.eq(FALLBACK_VALIDATION) || super._isValidationGlobal(validationFunction);
+        if (validationFunction.eq(FALLBACK_VALIDATION) || super._isValidationGlobal(validationFunction)) {
+            return true;
+        }
+
+        // At this point, the validation is not the fallback, and it's not an installed global validation.
+        // Before checking direct-call validation, we return false if fallback validation is disabled.
+        SemiModularAccountStorage storage smaStorage = _getSemiModularAccountStorage();
+
+        if (smaStorage.fallbackSignerDisabled) {
+            return false;
+        }
+
+        address fallbackSigner = _retrieveFallbackSignerUnchecked(smaStorage);
+        ModuleEntity fallbackDirectCallValidation =
+            ModuleEntityLib.pack(fallbackSigner, DIRECT_CALL_VALIDATION_ENTITYID);
+
+        return validationFunction.eq(fallbackDirectCallValidation) && msg.sender == fallbackSigner;
     }
 
     function _getFallbackSigner() internal view returns (address) {
