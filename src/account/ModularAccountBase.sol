@@ -22,14 +22,14 @@ import {
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
-import {collectReturnData} from "../helpers/CollectReturnData.sol";
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../helpers/Constants.sol";
 import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
+
+import {ExecutionLib} from "../libraries/ExecutionLib.sol";
 import {HookConfig, HookConfigLib} from "../libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
 import {SparseCalldataSegmentLib} from "../libraries/SparseCalldataSegmentLib.sol";
 import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
-import {AccountExecutor} from "./AccountExecutor.sol";
 import {AccountStorage, getAccountStorage, toHookConfigArray, toSetValue} from "./AccountStorage.sol";
 import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {BaseAccount} from "./BaseAccount.sol";
@@ -39,7 +39,6 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 
 abstract contract ModularAccountBase is
     IModularAccount,
-    AccountExecutor,
     ModularAccountView,
     AccountStorageInitializable,
     BaseAccount,
@@ -241,14 +240,10 @@ abstract contract ModularAccountBase is
         PostExecToRun[] memory postValidatorExecHooks =
             _doPreHooks(getAccountStorage().validationData[userOpValidationFunction].executionHooks, msg.data);
 
-        (bool success, bytes memory result) = address(this).call(userOp.callData[4:]);
+        bytes memory callData = userOp.callData[4:];
 
-        if (!success) {
-            // Directly bubble up revert messages
-            assembly ("memory-safe") {
-                revert(add(result, 32), mload(result))
-            }
-        }
+        // Manually call self, without collecting return data unless there's a revert.
+        ExecutionLib.callSelfBubbleOnRevert(callData);
 
         _doCachedPostExecHooks(postValidatorExecHooks);
     }
@@ -262,7 +257,7 @@ abstract contract ModularAccountBase is
         wrapNativeFunction
         returns (bytes memory result)
     {
-        result = _exec(target, value, data);
+        result = ExecutionLib.exec(target, value, data);
     }
 
     /// @inheritdoc IModularAccount
@@ -278,7 +273,7 @@ abstract contract ModularAccountBase is
         results = new bytes[](callsLength);
 
         for (uint256 i = 0; i < callsLength; ++i) {
-            results[i] = _exec(calls[i].target, calls[i].value, calls[i].data);
+            results[i] = ExecutionLib.exec(calls[i].target, calls[i].value, calls[i].data);
         }
     }
 
@@ -691,7 +686,7 @@ abstract contract ModularAccountBase is
         ) {
             preExecHookReturnData = returnData;
         } catch {
-            bytes memory revertReason = collectReturnData();
+            bytes memory revertReason = ExecutionLib.collectReturnData();
             revert PreExecHookReverted(module, entityId, revertReason);
         }
     }
@@ -711,7 +706,7 @@ abstract contract ModularAccountBase is
             // solhint-disable-next-line no-empty-blocks
             try IExecutionHookModule(module).postExecutionHook(entityId, postHookToRun.preExecHookReturnData) {}
             catch {
-                bytes memory revertReason = collectReturnData();
+                bytes memory revertReason = ExecutionLib.collectReturnData();
                 revert PostExecHookReverted(module, entityId, revertReason);
             }
         }
@@ -730,7 +725,7 @@ abstract contract ModularAccountBase is
         // solhint-disable-next-line no-empty-blocks
         {} catch{
         // forgefmt: disable-end
-            bytes memory revertReason = collectReturnData();
+            bytes memory revertReason = ExecutionLib.collectReturnData();
             revert PreRuntimeValidationHookFailed(hookModule, hookEntityId, revertReason);
         }
     }
@@ -822,7 +817,7 @@ abstract contract ModularAccountBase is
         // solhint-disable-next-line no-empty-blocks
         {} catch{
         // forgefmt: disable-end
-            bytes memory revertReason = collectReturnData();
+            bytes memory revertReason = ExecutionLib.collectReturnData();
             revert RuntimeValidationFunctionReverted(module, entityId, revertReason);
         }
     }
