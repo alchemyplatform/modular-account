@@ -11,21 +11,19 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 import {BaseModule} from "@erc6900/reference-implementation/modules/BaseModule.sol";
 import {ReplaySafeWrapper} from "@erc6900/reference-implementation/modules/ReplaySafeWrapper.sol";
 
-import {IWebauthnValidationModule} from "./IWebauthnValidationModule.sol";
-
 /// @title Webauthn Validation
 /// @author Alchemy
 /// @dev Implementation referenced from Webauthn + Coinbase Smart Wallet developed by Base.
 /// @notice This validation enables Webauthn (secp256r1 curve) signature validation. It handles installation by
 /// each entity (entityId).
-/// Note: Uninstallation will NOT disable all installed validation entities. None of the functions are installed on
-/// the account. Account states are to be retrieved from this global singleton directly.
-///
-/// - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
-///
-/// - This validation supports composition that other validation can relay on entities in this validation
+/// Note:
+///    - Uninstallation will NOT disable all installed validation entities.
+///    - None of the functions are installed on the account. Account states are to be retrieved from this global
+/// singleton directly.
+///    - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
+///    - This validation supports composition that other validation can relay on entities in this validation
 /// to validate partially or fully.
-contract WebauthnValidationModule is IWebauthnValidationModule, ReplaySafeWrapper, BaseModule {
+contract WebauthnValidationModule is IValidationModule, ReplaySafeWrapper, BaseModule {
     using MessageHashUtils for bytes32;
     using WebAuthn for WebAuthn.WebAuthnAuth;
 
@@ -43,7 +41,29 @@ contract WebauthnValidationModule is IWebauthnValidationModule, ReplaySafeWrappe
 
     mapping(uint32 entityId => mapping(address account => PubKey)) public signers;
 
-    /// @inheritdoc IWebauthnValidationModule
+    /// @notice This event is emitted when Signer of the account's validation changes.
+    /// @param account The account whose validation Signer changed.
+    /// @param entityId The entityId for the account and the signer.
+    /// @param newX X coordinate of the new signer.
+    /// @param newY Y coordinate of the new signer.
+    /// @param oldX X coordinate of the old signer.
+    /// @param oldY Y coordinate of the old signer.
+    event SignerTransferred(
+        address indexed account,
+        uint32 indexed entityId,
+        uint256 indexed newX,
+        uint256 indexed newY,
+        uint256 oldX,
+        uint256 oldY
+    ) anonymous;
+
+    error NotAuthorized();
+
+    /// @notice Updates the signer for an entityId.
+    /// @dev Used for key rotation or deleting a key
+    /// @param entityId The entityId to update the signer for.
+    /// @param x The x coordinate of the new signer.
+    /// @param y The y coordinate of the new signer.
     function transferSigner(uint32 entityId, uint256 x, uint256 y) external {
         _transferSigner(entityId, x, y);
     }

@@ -11,20 +11,20 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 
 import {BaseModule} from "../BaseModule.sol";
 import {ReplaySafeWrapper} from "../ReplaySafeWrapper.sol";
-import {IECDSAValidationModule} from "./IECDSAValidationModule.sol";
 
 /// @title ECSDA Validation
 /// @author ERC-6900 Authors
 /// @notice This validation enables any ECDSA (secp256k1 curve) signature validation. It handles installation by
 /// each entity (entityId).
-/// Note: Uninstallation will NOT disable all installed validation entities. None of the functions are installed on
-/// the account. Account states are to be retrieved from this global singleton directly.
-///
-/// - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
-///
-/// - This validation supports composition that other validation can relay on entities in this validation
+/// Note:
+///    - Uninstallation will NOT disable all installed validation entities. Account must remove access for each
+/// validation if want to disable all validations.
+///    - None of the functions are installed on the account. Account states are to be retrieved from this global
+/// singleton directly.
+///    - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
+///    - This validation supports composition that other validation can relay on entities in this validation
 /// to validate partially or fully.
-contract ECDSAValidationModule is IECDSAValidationModule, ReplaySafeWrapper, BaseModule {
+contract ECDSAValidationModule is IValidationModule, ReplaySafeWrapper, BaseModule {
     using MessageHashUtils for bytes32;
 
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
@@ -36,7 +36,20 @@ contract ECDSAValidationModule is IECDSAValidationModule, ReplaySafeWrapper, Bas
 
     mapping(uint32 entityId => mapping(address account => address)) public signers;
 
-    /// @inheritdoc IECDSAValidationModule
+    /// @notice This event is emitted when Signer of the account's validation changes.
+    /// @param account The account whose validation Signer changed.
+    /// @param entityId The entityId for the account and the signer.
+    /// @param newSigner The address of the new signer.
+    /// @param previousSigner The address of the previous signer.
+    event SignerTransferred(
+        address indexed account, uint32 indexed entityId, address indexed newSigner, address previousSigner
+    ) anonymous;
+
+    error NotAuthorized();
+
+    /// @notice Transfer Signer of the account's validation to `newSigner`.
+    /// @param entityId The entityId for the account and the signer.
+    /// @param newSigner The address of the new signer.
     function transferSigner(uint32 entityId, address newSigner) external {
         _transferSigner(entityId, newSigner);
     }

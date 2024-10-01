@@ -6,13 +6,13 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 
-import {BaseModule, IERC165} from "./BaseModule.sol";
+import {BaseModule, IERC165} from "../BaseModule.sol";
 
 /// @title Paymaster Guard Module
 /// @author Alchemy & ERC-6900 Authors
 /// @notice This module supports permission checks where an validation is allowed only if a certain paymaster is
 /// used.
-/// - If this hook is installed, and no paymaster is setup, all request will be reverted
+/// - If this hook is installed, and no paymaster is setup, all requests will revert
 contract PaymasterGuardModule is BaseModule, IValidationHookModule {
     mapping(uint32 entityId => mapping(address account => address paymaster)) public payamsters;
 
