@@ -14,6 +14,7 @@ import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {WebauthnValidationModule} from "../../src/modules/validation/WebauthnValidationModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
+import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
 
 contract WebauthnValidationModuleTest is AccountTestBase {
     using MessageHashUtils for bytes32;
@@ -96,7 +97,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
     function test_uoValidation() external {
         PackedUserOperation memory uo;
         uo.sender = account;
-        uo.callData = abi.encodeCall(ModularAccountBase.execute, (address(0), 0, new bytes(0)));
+        uo.callData = abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, new bytes(0)));
 
         bytes32 uoHash = entryPoint.getUserOpHash(uo);
         uo.signature = _getUOSigForChallenge(uoHash.toEthSignedMessageHash(), 0, 0);
@@ -108,7 +109,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
     function test_uoValidaton_shouldFail(uint256 sigR, uint256 sigS) external {
         PackedUserOperation memory uo;
         uo.sender = account;
-        uo.callData = abi.encodeCall(ModularAccountBase.execute, (address(0), 0, new bytes(0)));
+        uo.callData = abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, new bytes(0)));
         bytes32 uoHash = entryPoint.getUserOpHash(uo);
 
         // make sure r, s values isn't the right one by accident. checking 1 should be enough

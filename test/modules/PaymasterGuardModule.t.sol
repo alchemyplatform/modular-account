@@ -25,14 +25,14 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         vm.startPrank(address(account));
         module.onInstall(abi.encode(ENTITY_ID, paymaster1));
 
-        assertEq(paymaster1, module.payamsters(ENTITY_ID, account));
+        assertEq(paymaster1, module.paymasters(ENTITY_ID, account));
     }
 
-    function test_onUinstall() public {
+    function test_onUninstall() public {
         vm.startPrank(address(account));
         module.onUninstall(abi.encode(ENTITY_ID));
 
-        assertEq(address(0), module.payamsters(ENTITY_ID, account));
+        assertEq(address(0), module.paymasters(ENTITY_ID, account));
     }
 
     function test_preUserOpValidationHook_success() public {

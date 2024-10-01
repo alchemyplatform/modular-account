@@ -17,8 +17,10 @@ import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidatio
 
 import {ModuleSignatureUtils} from "./ModuleSignatureUtils.sol";
 import {OptimizedTest} from "./OptimizedTest.sol";
-import {TEST_DEFAULT_VALIDATION_ENTITY_ID as EXT_CONST_TEST_DEFAULT_VALIDATION_ENTITY_ID} from
-    "./TestConstants.sol";
+import {
+    CODELESS_ADDRESS,
+    TEST_DEFAULT_VALIDATION_ENTITY_ID as EXT_CONST_TEST_DEFAULT_VALIDATION_ENTITY_ID
+} from "./TestConstants.sol";
 
 /// @dev This contract handles common boilerplate setup for tests using ModularAccount with
 /// ECDSAValidationModule.
@@ -54,12 +56,14 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         factoryOwner = makeAddr("factoryOwner");
         beneficiary = payable(makeAddr("beneficiary"));
 
+        assertEq(CODELESS_ADDRESS.code.length, 0);
+
         address deployedECDSAValidationModule = address(_deployECDSAValidationModule());
 
         // We etch the single signer validation to the max address, such that it coincides with the fallback
         // validation module entity for semi modular account tests.
-        ecdsaValidationModule = ECDSAValidationModule(address(type(uint160).max));
-        vm.etch(address(ecdsaValidationModule), deployedECDSAValidationModule.code);
+        ecdsaValidationModule = ECDSAValidationModule(address(0));
+        vm.etch(address(0), deployedECDSAValidationModule.code);
 
         accountImplementation = _deployModularAccount(entryPoint);
 

@@ -18,9 +18,10 @@ import {ERC20TokenLimitModule} from "../../src/modules/permissions/ERC20TokenLim
 
 import {MockModule} from "../mocks/modules/MockModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
+import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
 
 contract ERC20TokenLimitModuleTest is AccountTestBase {
-    address public recipient = address(1);
+    address public recipient = CODELESS_ADDRESS;
     MockERC20 public erc20;
     address payable public bundler = payable(address(2));
     ExecutionManifest internal _m;

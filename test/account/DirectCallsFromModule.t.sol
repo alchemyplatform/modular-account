@@ -10,6 +10,7 @@ import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib
 import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {DirectCallModule} from "../mocks/modules/DirectCallModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
+import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
 
 contract DirectCallsFromModuleTest is AccountTestBase {
     using ValidationConfigLib for ValidationConfig;
@@ -42,7 +43,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
     function test_fail_directCallModuleNotInstalled() external {
         vm.prank(address(_module));
         vm.expectRevert(_buildDirectCallDisallowedError(IModularAccount.execute.selector));
-        account1.execute(address(0), 0, "");
+        account1.execute(CODELESS_ADDRESS, 0, "");
     }
 
     function testFuzz_fail_directCallModuleUninstalled(bool validationType)
@@ -53,7 +54,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
 
         vm.prank(address(_module));
         vm.expectRevert(_buildDirectCallDisallowedError(IModularAccount.execute.selector));
-        account1.execute(address(0), 0, "");
+        account1.execute(CODELESS_ADDRESS, 0, "");
     }
 
     function test_fail_directCallModuleCallOtherSelector() external {
@@ -75,7 +76,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
         randomizedValidationType(validationType)
     {
         vm.prank(address(_module));
-        account1.execute(address(0), 0, "");
+        account1.execute(CODELESS_ADDRESS, 0, "");
 
         assertTrue(_module.preHookRan());
         assertTrue(_module.postHookRan());
@@ -105,7 +106,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
         // Install => Succeesfully call => uninstall => fail to call
 
         vm.prank(address(_module));
-        account1.execute(address(0), 0, "");
+        account1.execute(CODELESS_ADDRESS, 0, "");
 
         assertTrue(_module.preHookRan());
         assertTrue(_module.postHookRan());
@@ -114,7 +115,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
 
         vm.prank(address(_module));
         vm.expectRevert(_buildDirectCallDisallowedError(IModularAccount.execute.selector));
-        account1.execute(address(0), 0, "");
+        account1.execute(CODELESS_ADDRESS, 0, "");
     }
 
     function test_directCallsFromEOA() external {

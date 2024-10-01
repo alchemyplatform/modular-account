@@ -25,7 +25,7 @@ import {ComprehensiveModule} from "../mocks/modules/ComprehensiveModule.sol";
 import {MockExecutionInstallationModule} from "../mocks/modules/MockExecutionInstallationModule.sol";
 import {MockModule} from "../mocks/modules/MockModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
-import {TEST_DEFAULT_VALIDATION_ENTITY_ID} from "../utils/TestConstants.sol";
+import {CODELESS_ADDRESS, TEST_DEFAULT_VALIDATION_ENTITY_ID} from "../utils/TestConstants.sol";
 
 contract ModularAccountTest is AccountTestBase {
     using ECDSA for bytes32;
@@ -299,7 +299,7 @@ contract ModularAccountTest is AccountTestBase {
     function test_installExecution_interfaceNotSupported() public {
         vm.startPrank(address(entryPoint));
 
-        address badModule = address(1);
+        address badModule = CODELESS_ADDRESS;
         vm.expectRevert(
             abi.encodeWithSelector(ModuleManagerInternals.InterfaceNotSupported.selector, address(badModule))
         );

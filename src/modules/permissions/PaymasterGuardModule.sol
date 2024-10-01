@@ -14,7 +14,7 @@ import {BaseModule, IERC165} from "../BaseModule.sol";
 /// used.
 /// - If this hook is installed, and no paymaster is setup, all requests will revert
 contract PaymasterGuardModule is BaseModule, IValidationHookModule {
-    mapping(uint32 entityId => mapping(address account => address paymaster)) public payamsters;
+    mapping(uint32 entityId => mapping(address account => address paymaster)) public paymasters;
 
     error BadPaymasterSpecified();
 
@@ -23,14 +23,14 @@ contract PaymasterGuardModule is BaseModule, IValidationHookModule {
     /// validation
     function onInstall(bytes calldata data) external override {
         (uint32 entityId, address paymaster) = abi.decode(data, (uint32, address));
-        payamsters[entityId][msg.sender] = paymaster;
+        paymasters[entityId][msg.sender] = paymaster;
     }
 
     /// @inheritdoc IModule
     /// @param data should be encoded with the entityId of the validation
     function onUninstall(bytes calldata data) external override {
         (uint32 entityId) = abi.decode(data, (uint32));
-        delete payamsters[entityId][msg.sender];
+        delete paymasters[entityId][msg.sender];
     }
 
     /// @inheritdoc IValidationHookModule
@@ -41,7 +41,7 @@ contract PaymasterGuardModule is BaseModule, IValidationHookModule {
         returns (uint256)
     {
         address payingPaymaster = address(bytes20(userOp.paymasterAndData[:20]));
-        if (payingPaymaster == payamsters[entityId][msg.sender]) {
+        if (payingPaymaster == paymasters[entityId][msg.sender]) {
             return 0;
         } else {
             revert BadPaymasterSpecified();

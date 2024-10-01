@@ -10,6 +10,7 @@ import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
+import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
 
 contract DeferredValidationTest is AccountTestBase {
     using ValidationConfigLib for ValidationConfig;
@@ -143,7 +144,7 @@ contract DeferredValidationTest is AccountTestBase {
             vm,
             owner1Key,
             _isSmaTest,
-            ModularAccount(payable(0)),
+            ModularAccount(payable(CODELESS_ADDRESS)), // Invalid account
             _signerValidation,
             _deferredValidation,
             _deferredValidationInstallData,

@@ -13,4 +13,4 @@ uint8 constant MAX_PRE_VALIDATION_HOOKS = type(uint8).max;
 uint32 constant DIRECT_CALL_VALIDATION_ENTITYID = type(uint32).max;
 
 // Magic value for the ModuleEntity of the fallback validation for SemiModularAccount.
-ModuleEntity constant FALLBACK_VALIDATION = ModuleEntity.wrap(bytes24(type(uint192).max));
+ModuleEntity constant FALLBACK_VALIDATION = ModuleEntity.wrap(bytes24(0));

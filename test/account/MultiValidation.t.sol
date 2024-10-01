@@ -13,7 +13,7 @@ import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
-import {TEST_DEFAULT_VALIDATION_ENTITY_ID} from "../utils/TestConstants.sol";
+import {CODELESS_ADDRESS, TEST_DEFAULT_VALIDATION_ENTITY_ID} from "../utils/TestConstants.sol";
 
 contract MultiValidationTest is AccountTestBase {
     using ECDSA for bytes32;
@@ -66,7 +66,7 @@ contract MultiValidationTest is AccountTestBase {
             )
         );
         account1.executeWithRuntimeValidation(
-            abi.encodeCall(IModularAccount.execute, (address(0), 0, "")),
+            abi.encodeCall(IModularAccount.execute, (CODELESS_ADDRESS, 0, "")),
             _encodeSignature(
                 ModuleEntityLib.pack(address(validator2), TEST_DEFAULT_VALIDATION_ENTITY_ID), GLOBAL_VALIDATION, ""
             )
@@ -74,7 +74,7 @@ contract MultiValidationTest is AccountTestBase {
 
         vm.prank(owner2);
         account1.executeWithRuntimeValidation(
-            abi.encodeCall(IModularAccount.execute, (address(0), 0, "")),
+            abi.encodeCall(IModularAccount.execute, (CODELESS_ADDRESS, 0, "")),
             _encodeSignature(
                 ModuleEntityLib.pack(address(validator2), TEST_DEFAULT_VALIDATION_ENTITY_ID), GLOBAL_VALIDATION, ""
             )
@@ -90,7 +90,7 @@ contract MultiValidationTest is AccountTestBase {
             sender: address(account1),
             nonce: 0,
             initCode: "",
-            callData: abi.encodeCall(ModularAccountBase.execute, (address(0), 0, "")),
+            callData: abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
