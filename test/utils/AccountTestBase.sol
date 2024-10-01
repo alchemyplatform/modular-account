@@ -17,10 +17,8 @@ import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidatio
 
 import {ModuleSignatureUtils} from "./ModuleSignatureUtils.sol";
 import {OptimizedTest} from "./OptimizedTest.sol";
-import {
-    CODELESS_ADDRESS,
-    TEST_DEFAULT_VALIDATION_ENTITY_ID as EXT_CONST_TEST_DEFAULT_VALIDATION_ENTITY_ID
-} from "./TestConstants.sol";
+import {TEST_DEFAULT_VALIDATION_ENTITY_ID as EXT_CONST_TEST_DEFAULT_VALIDATION_ENTITY_ID} from
+    "./TestConstants.sol";
 
 /// @dev This contract handles common boilerplate setup for tests using ModularAccount with
 /// ECDSAValidationModule.
