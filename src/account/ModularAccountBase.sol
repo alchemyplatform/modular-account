@@ -5,7 +5,10 @@ import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IA
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
+import {IERC1155Receiver} from "@openzeppelin/contracts/interfaces/IERC1155Receiver.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
@@ -35,7 +38,7 @@ import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {BaseAccount} from "./BaseAccount.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {TokenReceiver} from "./TokenReceiver.sol";
 
 abstract contract ModularAccountBase is
     IModularAccount,
@@ -43,11 +46,12 @@ abstract contract ModularAccountBase is
     ModularAccountView,
     AccountStorageInitializable,
     BaseAccount,
-    IERC165,
     IERC1271,
+    IERC165,
     IAccountExecute,
     ModuleManagerInternals,
-    UUPSUpgradeable
+    UUPSUpgradeable,
+    TokenReceiver
 {
     using EnumerableSet for EnumerableSet.Bytes32Set;
     using ModuleEntityLib for ModuleEntity;
@@ -88,7 +92,6 @@ abstract contract ModularAccountBase is
 
     // As per the EIP-165 spec, no interface should ever match 0xffffffff
     bytes4 internal constant _INTERFACE_ID_INVALID = 0xffffffff;
-    bytes4 internal constant _IERC165_INTERFACE_ID = 0x01ffc9a7;
 
     // bytes4(keccak256("isValidSignature(bytes32,bytes)"))
     bytes4 internal constant _1271_MAGIC_VALUE = 0x1626ba7e;
@@ -369,6 +372,7 @@ abstract contract ModularAccountBase is
         emit DeferredInstallNonceInvalidated(nonce);
     }
 
+    /// @inheritdoc IERC165
     /// @notice ERC165 introspection
     /// @dev returns true for `IERC165.interfaceId` and false for `0xFFFFFFFF`
     /// @param interfaceId interface id to check against
@@ -377,7 +381,10 @@ abstract contract ModularAccountBase is
         if (interfaceId == _INTERFACE_ID_INVALID) {
             return false;
         }
-        if (interfaceId == _IERC165_INTERFACE_ID) {
+        if (
+            interfaceId == type(IERC721Receiver).interfaceId || interfaceId == type(IERC1155Receiver).interfaceId
+                || interfaceId == type(IERC165).interfaceId
+        ) {
             return true;
         }
 

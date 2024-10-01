@@ -9,7 +9,6 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 
-import {TokenReceiverModule} from "../../src/modules/TokenReceiverModule.sol";
 import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 
 /// @dev This contract provides functions to deploy optimized (via IR) precompiled contracts. By compiling just
@@ -53,12 +52,6 @@ abstract contract OptimizedTest is Test {
                 )
             )
             : new SemiModularAccountBytecode(entryPoint);
-    }
-
-    function _deployTokenReceiverModule() internal returns (TokenReceiverModule) {
-        return _isOptimizedTest()
-            ? TokenReceiverModule(deployCode("out-optimized/TokenReceiverModule.sol/TokenReceiverModule.json"))
-            : new TokenReceiverModule();
     }
 
     function _deployECDSAValidationModule() internal returns (ECDSAValidationModule) {

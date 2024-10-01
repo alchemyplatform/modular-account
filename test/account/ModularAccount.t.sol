@@ -19,10 +19,10 @@ import {ModuleManagerInternals} from "../../src/account/ModuleManagerInternals.s
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
-import {TokenReceiverModule} from "../../src/modules/TokenReceiverModule.sol";
 import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 import {Counter} from "../mocks/Counter.sol";
 import {ComprehensiveModule} from "../mocks/modules/ComprehensiveModule.sol";
+import {MockExecutionInstallationModule} from "../mocks/modules/MockExecutionInstallationModule.sol";
 import {MockModule} from "../mocks/modules/MockModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {TEST_DEFAULT_VALIDATION_ENTITY_ID} from "../utils/TestConstants.sol";
@@ -31,7 +31,7 @@ contract ModularAccountTest is AccountTestBase {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
 
-    TokenReceiverModule public tokenReceiverModule;
+    MockExecutionInstallationModule public mockExecutionInstallationModule;
 
     // A separate account and owner that isn't deployed yet, used to test initcode
     address public owner2;
@@ -47,7 +47,7 @@ contract ModularAccountTest is AccountTestBase {
     event ReceivedCall(bytes msgData, uint256 msgValue);
 
     function setUp() public {
-        tokenReceiverModule = _deployTokenReceiverModule();
+        mockExecutionInstallationModule = new MockExecutionInstallationModule();
 
         (owner2, owner2Key) = makeAddrAndKey("owner2");
 
@@ -268,15 +268,18 @@ contract ModularAccountTest is AccountTestBase {
         vm.startPrank(address(entryPoint));
 
         vm.expectEmit(true, true, true, true);
-        emit ExecutionInstalled(address(tokenReceiverModule), tokenReceiverModule.executionManifest());
+        emit ExecutionInstalled(
+            address(mockExecutionInstallationModule), mockExecutionInstallationModule.executionManifest()
+        );
         account1.installExecution({
-            module: address(tokenReceiverModule),
-            manifest: tokenReceiverModule.executionManifest(),
+            module: address(mockExecutionInstallationModule),
+            manifest: mockExecutionInstallationModule.executionManifest(),
             moduleInstallData: abi.encode(uint48(1 days))
         });
 
-        ExecutionDataView memory data = account1.getExecutionData(TokenReceiverModule.onERC721Received.selector);
-        assertEq(data.module, address(tokenReceiverModule));
+        ExecutionDataView memory data =
+            account1.getExecutionData(MockExecutionInstallationModule.executionInstallationExecute.selector);
+        assertEq(data.module, address(mockExecutionInstallationModule));
     }
 
     function test_installExecution_PermittedCallSelectorNotInstalled() public {
@@ -307,11 +310,11 @@ contract ModularAccountTest is AccountTestBase {
     }
 
     function test_installExecution_alreadyInstalled() public {
-        ExecutionManifest memory m = tokenReceiverModule.executionManifest();
+        ExecutionManifest memory m = mockExecutionInstallationModule.executionManifest();
 
         vm.prank(address(entryPoint));
         account1.installExecution({
-            module: address(tokenReceiverModule),
+            module: address(mockExecutionInstallationModule),
             manifest: m,
             moduleInstallData: abi.encode(uint48(1 days))
         });
@@ -320,11 +323,11 @@ contract ModularAccountTest is AccountTestBase {
         vm.expectRevert(
             abi.encodeWithSelector(
                 ModuleManagerInternals.ExecutionFunctionAlreadySet.selector,
-                TokenReceiverModule.onERC721Received.selector
+                MockExecutionInstallationModule.executionInstallationExecute.selector
             )
         );
         account1.installExecution({
-            module: address(tokenReceiverModule),
+            module: address(mockExecutionInstallationModule),
             manifest: m,
             moduleInstallData: abi.encode(uint48(1 days))
         });
