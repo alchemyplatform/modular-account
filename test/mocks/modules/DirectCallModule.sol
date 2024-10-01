@@ -23,7 +23,7 @@ contract DirectCallModule is BaseModule, IExecutionHookModule {
         return hex"04546b";
     }
 
-    function moduleId() external pure returns (string memory) {
+    function moduleId() external pure override returns (string memory) {
         return "erc6900.direct-call-module.1.0.0";
     }
 

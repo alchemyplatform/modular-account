@@ -69,14 +69,14 @@ contract DeferredValidationTest is AccountTestBase {
 
         _sendOp(userOp, "");
 
-        bytes memory expectedRevertdata = abi.encodeWithSelector(
+        bytes memory expectedRevertData = abi.encodeWithSelector(
             IEntryPoint.FailedOpWithRevert.selector,
             0,
             "AA23 reverted",
             abi.encodeWithSelector(ModularAccountBase.DeferredInstallNonceInvalid.selector)
         );
 
-        _sendOp(userOp, expectedRevertdata);
+        _sendOp(userOp, expectedRevertData);
     }
 
     function test_fail_deferredValidation_pastDeadline() external {
@@ -114,10 +114,10 @@ contract DeferredValidationTest is AccountTestBase {
             1
         );
 
-        bytes memory expectedRevertdata =
+        bytes memory expectedRevertData =
             abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA22 expired or not due");
 
-        _sendOp(userOp, expectedRevertdata);
+        _sendOp(userOp, expectedRevertData);
     }
 
     function test_fail_deferredValidation_invalidSig() external {
@@ -197,14 +197,14 @@ contract DeferredValidationTest is AccountTestBase {
             0
         );
 
-        bytes memory expectedRevertdata = abi.encodeWithSelector(
+        bytes memory expectedRevertData = abi.encodeWithSelector(
             IEntryPoint.FailedOpWithRevert.selector,
             0,
             "AA23 reverted",
             abi.encodeWithSelector(ModularAccountBase.DeferredInstallNonceInvalid.selector)
         );
 
-        _sendOp(userOp, expectedRevertdata);
+        _sendOp(userOp, expectedRevertData);
     }
 
     function test_fail_deferredValidation_invalidDeferredValidationSig() external {
@@ -240,10 +240,10 @@ contract DeferredValidationTest is AccountTestBase {
             0
         );
 
-        bytes memory expectedRevertdata =
+        bytes memory expectedRevertData =
             abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error");
 
-        _sendOp(userOp, expectedRevertdata);
+        _sendOp(userOp, expectedRevertData);
     }
 
     // Positives

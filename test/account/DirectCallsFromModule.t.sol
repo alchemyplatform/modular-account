@@ -39,13 +39,13 @@ contract DirectCallsFromModuleTest is AccountTestBase {
     /*                                  Negatives                                 */
     /* -------------------------------------------------------------------------- */
 
-    function test_Fail_DirectCallModuleNotInstalled() external {
+    function test_fail_directCallModuleNotInstalled() external {
         vm.prank(address(_module));
         vm.expectRevert(_buildDirectCallDisallowedError(IModularAccount.execute.selector));
         account1.execute(address(0), 0, "");
     }
 
-    function testFuzz_Fail_DirectCallModuleUninstalled(bool validationType)
+    function testFuzz_fail_directCallModuleUninstalled(bool validationType)
         external
         randomizedValidationType(validationType)
     {
@@ -56,7 +56,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
         account1.execute(address(0), 0, "");
     }
 
-    function test_Fail_DirectCallModuleCallOtherSelector() external {
+    function test_fail_directCallModuleCallOtherSelector() external {
         _installValidationSelector();
 
         Call[] memory calls = new Call[](0);
@@ -70,7 +70,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
     /*                                  Positives                                 */
     /* -------------------------------------------------------------------------- */
 
-    function testFuzz_Pass_DirectCallFromModulePrank(bool validationType)
+    function testFuzz_directCallFromModulePrank(bool validationType)
         external
         randomizedValidationType(validationType)
     {
@@ -81,7 +81,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
         assertTrue(_module.postHookRan());
     }
 
-    function testFuzz_Pass_DirectCallFromModuleCallback(bool validationType)
+    function testFuzz_directCallFromModuleCallback(bool validationType)
         external
         randomizedValidationType(validationType)
     {
@@ -98,7 +98,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
         assertEq(abi.decode(result, (bytes)), abi.encode(_module.getData()));
     }
 
-    function testFuzz_Flow_DirectCallFromModuleSequence(bool validationType)
+    function testFuzz_directCallFromModuleSequence(bool validationType)
         external
         randomizedValidationType(validationType)
     {
