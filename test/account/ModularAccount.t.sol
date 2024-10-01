@@ -515,30 +515,28 @@ contract ModularAccountTest is AccountTestBase {
     }
 
     function test_performCreate() public {
-        address account = address(factory.createAccount(owner1, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID));
-        address expectedAddr = vm.computeCreateAddress(account, vm.getNonce(account));
+        address expectedAddr = vm.computeCreateAddress(address(account1), vm.getNonce(address(account1)));
         vm.prank(address(entryPoint));
         address returnedAddr = account1.performCreate(
             0, abi.encodePacked(type(ModularAccount).creationCode, abi.encode(address(entryPoint)))
         );
 
-        assertEq(address(ModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
         assertEq(returnedAddr, expectedAddr);
+        assertEq(address(ModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
     }
 
     function test_performCreate2() public {
-        address account = address(factory.createAccount(owner1, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID));
         bytes memory initCode =
             abi.encodePacked(type(ModularAccount).creationCode, abi.encode(address(entryPoint)));
         bytes32 initCodeHash = keccak256(initCode);
         bytes32 salt = bytes32(hex"01234b");
 
-        address expectedAddr = vm.computeCreate2Address(salt, initCodeHash, address(account));
+        address expectedAddr = vm.computeCreate2Address(salt, initCodeHash, address(account1));
         vm.prank(address(entryPoint));
         address returnedAddr = account1.performCreate2(0, initCode, salt);
 
-        assertEq(address(ModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
         assertEq(returnedAddr, expectedAddr);
+        assertEq(address(ModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
 
         vm.expectRevert(ModularAccountBase.CreateFailed.selector);
         // re-deploying with same salt should revert
