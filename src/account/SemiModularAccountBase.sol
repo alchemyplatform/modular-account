@@ -162,17 +162,22 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         }
 
         // At this point, the validation is not the fallback, and it's not an installed global validation.
-        // Before checking direct-call validation, we return false if fallback validation is disabled.
         SemiModularAccountStorage storage smaStorage = _getSemiModularAccountStorage();
 
+        // Before checking direct-call validation, we return false if fallback validation is disabled.
         if (smaStorage.fallbackSignerDisabled) {
             return false;
         }
 
+        // Retrieve the fallback signer.
         address fallbackSigner = _retrieveFallbackSignerUnchecked(smaStorage);
+
+        // Compute the direct call validation key.
         ModuleEntity fallbackDirectCallValidation =
             ModuleEntityLib.pack(fallbackSigner, DIRECT_CALL_VALIDATION_ENTITYID);
 
+        // Return true if the validation function passed is the fallback direct call validation key, and the sender
+        // is the fallback signer. This enforces that context is a
         return validationFunction.eq(fallbackDirectCallValidation) && msg.sender == fallbackSigner;
     }
 
