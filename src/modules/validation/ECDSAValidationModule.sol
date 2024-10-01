@@ -16,12 +16,13 @@ import {ReplaySafeWrapper} from "../ReplaySafeWrapper.sol";
 /// @author ERC-6900 Authors
 /// @notice This validation enables any ECDSA (secp256k1 curve) signature validation. It handles installation by
 /// each entity (entityId).
-/// Note: Uninstallation will NOT disable all installed validation entities. None of the functions are installed on
-/// the account. Account states are to be retrieved from this global singleton directly.
-///
-/// - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
-///
-/// - This validation supports composition that other validation can relay on entities in this validation
+/// Note:
+///    - Uninstallation will NOT disable all installed validation entities. Account must remove access for each
+/// validation if want to disable all validations.
+///    - None of the functions are installed on the account. Account states are to be retrieved from this global
+/// singleton directly.
+///    - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
+///    - This validation supports composition that other validation can relay on entities in this validation
 /// to validate partially or fully.
 contract ECDSAValidationModule is IValidationModule, ReplaySafeWrapper, BaseModule {
     using MessageHashUtils for bytes32;
