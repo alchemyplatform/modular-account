@@ -112,9 +112,11 @@ abstract contract ModularAccountBase is
     error ValidationFunctionMissing(bytes4 selector);
     error DeferredInstallNonceInvalid();
     error DeferredInstallSignatureInvalid();
+    error CreateFailed();
 
     // Wraps execution of a native function with runtime validation and hooks
-    // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution
+    // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution,
+    // performCreate, performCreate2
     modifier wrapNativeFunction() {
         (PostExecToRun[] memory postValidatorExecHooks, PostExecToRun[] memory postSelectorExecHooks) =
             _checkPermittedCallerAndAssociatedHooks();
@@ -159,6 +161,73 @@ abstract contract ModularAccountBase is
         _doCachedPostExecHooks(postValidatorExecHooks);
 
         return execReturnData;
+    }
+
+    /// @notice Create a contract.
+    /// @param value The value to send to the new contract constructor
+    /// @param initCode The initCode to deploy.
+    /// @return createdAddr The created contract address.
+    ///
+    /// @dev Assembly procedure:
+    ///     1. Load the free memory pointer.
+    ///     2. Get the initCode length.
+    ///     3. Copy the initCode from callata to memory at the free memory pointer.
+    ///     4. Create the contract.
+    ///     5. If creation failed (the address returned is zero), revert with CreateFailed().
+    function performCreate(uint256 value, bytes calldata initCode)
+        external
+        payable
+        virtual
+        wrapNativeFunction
+        returns (address createdAddr)
+    {
+        assembly ("memory-safe") {
+            let fmp := mload(0x40)
+            let len := initCode.length
+            calldatacopy(fmp, initCode.offset, len)
+
+            createdAddr := create(value, fmp, len)
+
+            if iszero(createdAddr) {
+                let createFailedError := 0x7e16b8cd
+                mstore(0x00, createFailedError)
+                revert(0x1c, 0x04)
+            }
+        }
+    }
+
+    /// @notice Creates a contract using create2 deterministic deployment.
+    /// @param value The value to send to the new contract constructor.
+    /// @param initCode The initCode to deploy.
+    /// @param salt The salt to use for the create2 operation.
+    /// @return createdAddr The created contract address.
+    ///
+    /// @dev Assembly procedure:
+    ///     1. Load the free memory pointer.
+    ///     2. Get the initCode length.
+    ///     3. Copy the initCode from callata to memory at the free memory pointer.
+    ///     4. Create the contract using Create2 with the passed salt parameter.
+    ///     5. If creation failed (the address returned is zero), revert with CreateFailed().
+    function performCreate2(uint256 value, bytes calldata initCode, bytes32 salt)
+        external
+        payable
+        virtual
+        wrapNativeFunction
+        returns (address createdAddr)
+    {
+        assembly ("memory-safe") {
+            let fmp := mload(0x40)
+            let len := initCode.length
+            calldatacopy(fmp, initCode.offset, len)
+
+            createdAddr := create2(value, fmp, len, salt)
+
+            if iszero(createdAddr) {
+                let createFailedError := 0x7e16b8cd
+                mstore(0x00, createFailedError)
+                revert(0x1c, 0x04)
+            }
+        }
     }
 
     /// @inheritdoc IAccountExecute
@@ -805,6 +874,7 @@ abstract contract ModularAccountBase is
                 || selector == this.installValidation.selector || selector == this.uninstallValidation.selector
                 || selector == this.upgradeToAndCall.selector
                 || selector == this.invalidateDeferredValidationInstallNonce.selector
+                || selector == this.performCreate.selector || selector == this.performCreate2.selector
         ) {
             return true;
         }

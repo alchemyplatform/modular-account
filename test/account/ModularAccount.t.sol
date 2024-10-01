@@ -514,6 +514,38 @@ contract ModularAccountTest is AccountTestBase {
         assertEq(ethRecipient.balance, 2 wei);
     }
 
+    function test_performCreate() public {
+        address account = address(factory.createAccount(owner1, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID));
+        address expectedAddr = vm.computeCreateAddress(account, vm.getNonce(account));
+        vm.prank(address(entryPoint));
+        address returnedAddr = account1.performCreate(
+            0, abi.encodePacked(type(ModularAccount).creationCode, abi.encode(address(entryPoint)))
+        );
+
+        assertEq(address(ModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
+        assertEq(returnedAddr, expectedAddr);
+    }
+
+    function test_performCreate2() public {
+        address account = address(factory.createAccount(owner1, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID));
+        bytes memory initCode =
+            abi.encodePacked(type(ModularAccount).creationCode, abi.encode(address(entryPoint)));
+        bytes32 initCodeHash = keccak256(initCode);
+        bytes32 salt = bytes32(hex"01234b");
+
+        address expectedAddr = vm.computeCreate2Address(salt, initCodeHash, address(account));
+        vm.prank(address(entryPoint));
+        address returnedAddr = account1.performCreate2(0, initCode, salt);
+
+        assertEq(address(ModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
+        assertEq(returnedAddr, expectedAddr);
+
+        vm.expectRevert(ModularAccountBase.CreateFailed.selector);
+        // re-deploying with same salt should revert
+        vm.prank(address(entryPoint));
+        account1.performCreate2(0, initCode, salt);
+    }
+
     // Internal Functions
 
     function _printStorageReadsAndWrites(address addr) internal {
