@@ -43,5 +43,5 @@ jobs:
       - name: Run tests
         run: forge test -vvv
 
-      - name: Run tests
+      - name: Run SMA tests
         run: SMA_TEST=true forge test -vvv
