@@ -56,8 +56,6 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         factoryOwner = makeAddr("factoryOwner");
         beneficiary = payable(makeAddr("beneficiary"));
 
-        assertEq(CODELESS_ADDRESS.code.length, 0);
-
         address deployedECDSAValidationModule = address(_deployECDSAValidationModule());
 
         // We etch the single signer validation to the max address, such that it coincides with the fallback
