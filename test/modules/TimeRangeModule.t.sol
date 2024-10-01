@@ -5,7 +5,9 @@ import {_packValidationData} from "@eth-infinitism/account-abstraction/core/Help
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import {ValidationDataView} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
+import {
+    HookConfig, ValidationDataView
+} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
@@ -19,7 +21,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
     uint32 public constant HOOK_ENTITY_ID = 0;
 
-    ModuleEntity internal _hookEntity;
+    HookConfig internal _hookEntity;
 
     uint48 public validUntil;
     uint48 public validAfter;
@@ -29,7 +31,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
         timeRangeModule = new TimeRangeModule();
 
-        _hookEntity = ModuleEntityLib.pack(address(timeRangeModule), HOOK_ENTITY_ID);
+        _hookEntity = HookConfigLib.packValidationHook(address(timeRangeModule), HOOK_ENTITY_ID);
     }
 
     function test_timeRangeModule_moduleId() public view {
@@ -49,8 +51,8 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         assertTrue(validationData.isSignatureValidation);
         assertTrue(validationData.isUserOpValidation);
 
-        assertEq(validationData.preValidationHooks.length, 1);
-        assertEq(ModuleEntity.unwrap(validationData.preValidationHooks[0]), ModuleEntity.unwrap(_hookEntity));
+        assertEq(validationData.validationHooks.length, 1);
+        assertEq(HookConfig.unwrap(validationData.validationHooks[0]), HookConfig.unwrap(_hookEntity));
 
         assertEq(validationData.executionHooks.length, 0);
         assertEq(validationData.selectors.length, 0);
@@ -170,7 +172,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
             )
         );
         vm.prank(owner1);
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
@@ -187,7 +189,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
         vm.expectCall({callee: makeAddr("recipient"), msgValue: 0 wei, data: "", count: 1});
         vm.prank(owner1);
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
@@ -211,7 +213,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
             )
         );
         vm.prank(owner1);
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );

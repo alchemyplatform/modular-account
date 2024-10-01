@@ -35,8 +35,8 @@ struct ValidationData {
     bool isSignatureValidation;
     // Whether or not this validation is allowed to validate ERC-4337 user operations.
     bool isUserOpValidation;
-    // The pre validation hooks for this validation function.
-    ModuleEntity[] preValidationHooks;
+    // The validation hooks for this validation function.
+    HookConfig[] validationHooks;
     // Execution hooks to run with this validation function.
     LinkedListSet executionHooks;
     // The set of selectors that may be validated by this validation function.

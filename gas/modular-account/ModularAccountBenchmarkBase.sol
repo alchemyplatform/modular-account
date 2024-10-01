@@ -163,14 +163,14 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         assertTrue(validationData.isUserOpValidation);
 
         // Validation hooks
-        assertEq(validationData.preValidationHooks.length, 2);
+        assertEq(validationData.validationHooks.length, 2);
         assertEq(
-            ModuleEntity.unwrap(validationData.preValidationHooks[0]),
-            ModuleEntity.unwrap(ModuleEntityLib.pack(address(allowlistModule), 0))
+            HookConfig.unwrap(validationData.validationHooks[0]),
+            HookConfig.unwrap(HookConfigLib.packValidationHook(address(allowlistModule), 0))
         );
         assertEq(
-            ModuleEntity.unwrap(validationData.preValidationHooks[1]),
-            ModuleEntity.unwrap(ModuleEntityLib.pack(address(timeRangeModule), 0))
+            HookConfig.unwrap(validationData.validationHooks[1]),
+            HookConfig.unwrap(HookConfigLib.packValidationHook(address(timeRangeModule), 0))
         );
 
         // Execution hooks

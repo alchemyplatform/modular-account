@@ -66,7 +66,7 @@ contract GlobalValidationTest is AccountTestBase {
         factory.createAccount(owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         vm.prank(owner2);
-        account2.executeWithAuthorization(
+        account2.executeWithRuntimeValidation(
             abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );

@@ -20,7 +20,7 @@ import {BaseModule, IERC165} from "../BaseModule.sol";
 /// checked, other addresses will be allowed. To protect the account's balance of non-tracked tokens, users are
 /// recommended to also install an allowlist hook, to limit which addresses the validation may perform calls to.
 ///     - Only spending request through the following native execution functions are supported:
-/// IModularAccount.execute, IModularAccount.executeWithAuthorization, IAccountExecute.executeUserOp,
+/// IModularAccount.execute, IModularAccount.executeWithRuntimeValidation, IAccountExecute.executeUserOp,
 /// IModularAccount.executeBatch. All other spending request will revert.
 ///     - This module is opinionated on what selectors can be called for token contracts: only `transfer` and
 /// `approve` are allowed. This guards against edge cases, where token contracts like DAI have other functions that

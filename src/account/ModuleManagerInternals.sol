@@ -240,10 +240,10 @@ abstract contract ModuleManagerInternals is IModularAccount {
             bytes calldata hookData = hooks[i][25:];
 
             if (hookConfig.isValidationHook()) {
-                _validationData.preValidationHooks.push(hookConfig.moduleEntity());
+                _validationData.validationHooks.push(hookConfig);
 
                 // Avoid collision between reserved index and actual indices
-                if (_validationData.preValidationHooks.length > MAX_PRE_VALIDATION_HOOKS) {
+                if (_validationData.validationHooks.length > MAX_PRE_VALIDATION_HOOKS) {
                     revert PreValidationHookLimitExceeded();
                 }
 
@@ -287,15 +287,15 @@ abstract contract ModuleManagerInternals is IModularAccount {
             HookConfig[] memory execHooks = toHookConfigArray(_validationData.executionHooks);
 
             // If any uninstall data is provided, assert it is of the correct length.
-            if (hookUninstallDatas.length != _validationData.preValidationHooks.length + execHooks.length) {
+            if (hookUninstallDatas.length != _validationData.validationHooks.length + execHooks.length) {
                 revert ArrayLengthMismatch();
             }
 
             // Hook uninstall data is provided in the order of pre validation hooks, then execution hooks.
             uint256 hookIndex = 0;
-            for (uint256 i = 0; i < _validationData.preValidationHooks.length; ++i) {
+            for (uint256 i = 0; i < _validationData.validationHooks.length; ++i) {
                 bytes calldata hookData = hookUninstallDatas[hookIndex];
-                (address hookModule,) = ModuleEntityLib.unpack(_validationData.preValidationHooks[i]);
+                (address hookModule,) = ModuleEntityLib.unpack(_validationData.validationHooks[i].moduleEntity());
                 onUninstallSuccess = onUninstallSuccess && _onUninstall(hookModule, hookData);
                 hookIndex++;
             }
@@ -309,7 +309,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
         }
 
         // Clear all stored hooks
-        delete _validationData.preValidationHooks;
+        delete _validationData.validationHooks;
 
         _validationData.executionHooks.clear();
 

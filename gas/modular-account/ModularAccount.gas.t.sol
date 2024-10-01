@@ -54,7 +54,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
             owner1,
             address(account1),
             abi.encodeCall(
-                ModularAccountBase.executeWithAuthorization,
+                ModularAccountBase.executeWithRuntimeValidation,
                 (
                     abi.encodeCall(ModularAccountBase.execute, (recipient, 0.1 ether, "")),
                     _encodeSignature(signerValidation, GLOBAL_VALIDATION, "")
@@ -105,7 +105,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
             owner1,
             address(account1),
             abi.encodeCall(
-                ModularAccountBase.executeWithAuthorization,
+                ModularAccountBase.executeWithRuntimeValidation,
                 (
                     abi.encodeCall(
                         ModularAccountBase.execute,
@@ -207,7 +207,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
             owner1,
             address(account1),
             abi.encodeCall(
-                ModularAccountBase.executeWithAuthorization,
+                ModularAccountBase.executeWithRuntimeValidation,
                 (_getInstallDataSessionKeyCase1(), _encodeSignature(signerValidation, GLOBAL_VALIDATION, ""))
             )
         );
@@ -258,7 +258,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
             sessionSigner1,
             address(account1),
             abi.encodeCall(
-                ModularAccountBase.executeWithAuthorization,
+                ModularAccountBase.executeWithRuntimeValidation,
                 (
                     abi.encodeCall(
                         ModularAccountBase.execute,
@@ -329,7 +329,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
             sessionSigner1,
             address(account1),
             abi.encodeCall(
-                ModularAccountBase.executeWithAuthorization,
+                ModularAccountBase.executeWithRuntimeValidation,
                 (
                     abi.encodeCall(
                         ModularAccountBase.execute,

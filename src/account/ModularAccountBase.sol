@@ -281,7 +281,7 @@ abstract contract ModularAccountBase is
     }
 
     /// @inheritdoc IModularAccount
-    function executeWithAuthorization(bytes calldata data, bytes calldata authorization)
+    function executeWithRuntimeValidation(bytes calldata data, bytes calldata authorization)
         external
         payable
         returns (bytes memory)
@@ -584,13 +584,13 @@ abstract contract ModularAccountBase is
         uint256 validationRes;
 
         // Do preUserOpValidation hooks
-        ModuleEntity[] memory preUserOpValidationHooks =
-            getAccountStorage().validationData[userOpValidationFunction].preValidationHooks;
+        HookConfig[] memory preUserOpValidationHooks =
+            getAccountStorage().validationData[userOpValidationFunction].validationHooks;
 
         for (uint256 i = 0; i < preUserOpValidationHooks.length; ++i) {
             (userOp.signature, signature) = signature.advanceSegmentIfAtIndex(uint8(i));
 
-            (address module, uint32 entityId) = preUserOpValidationHooks[i].unpack();
+            (address module, uint32 entityId) = preUserOpValidationHooks[i].moduleEntity().unpack();
             uint256 currentValidationRes =
                 IValidationHookModule(module).preUserOpValidationHook(entityId, userOp, userOpHash);
 
@@ -624,15 +624,15 @@ abstract contract ModularAccountBase is
         bytes calldata authorizationData
     ) internal {
         // run all preRuntimeValidation hooks
-        ModuleEntity[] memory preRuntimeValidationHooks =
-            getAccountStorage().validationData[runtimeValidationFunction].preValidationHooks;
+        HookConfig[] memory preRuntimeValidationHooks =
+            getAccountStorage().validationData[runtimeValidationFunction].validationHooks;
 
         for (uint256 i = 0; i < preRuntimeValidationHooks.length; ++i) {
             bytes memory currentAuthSegment;
 
             (currentAuthSegment, authorizationData) = authorizationData.advanceSegmentIfAtIndex(uint8(i));
 
-            _doPreRuntimeValidationHook(preRuntimeValidationHooks[i], callData, currentAuthSegment);
+            _doPreRuntimeValidationHook(preRuntimeValidationHooks[i].moduleEntity(), callData, currentAuthSegment);
         }
 
         authorizationData = authorizationData.getFinalSegment();
@@ -774,12 +774,12 @@ abstract contract ModularAccountBase is
             // Direct call is allowed, run associated execution & validation hooks
 
             // Validation hooks
-            ModuleEntity[] memory preRuntimeValidationHooks =
-                _storage.validationData[directCallValidationKey].preValidationHooks;
+            HookConfig[] memory preRuntimeValidationHooks =
+                _storage.validationData[directCallValidationKey].validationHooks;
 
             uint256 hookLen = preRuntimeValidationHooks.length;
             for (uint256 i = 0; i < hookLen; ++i) {
-                _doPreRuntimeValidationHook(preRuntimeValidationHooks[i], msg.data, "");
+                _doPreRuntimeValidationHook(preRuntimeValidationHooks[i].moduleEntity(), msg.data, "");
             }
 
             // Execution hooks associated with the validator
@@ -834,10 +834,10 @@ abstract contract ModularAccountBase is
         view
         returns (bytes4)
     {
-        ModuleEntity[] memory preSignatureValidationHooks =
-            getAccountStorage().validationData[sigValidation].preValidationHooks;
+        HookConfig[] memory preSignatureValidationHooks =
+            getAccountStorage().validationData[sigValidation].validationHooks;
         for (uint256 i = 0; i < preSignatureValidationHooks.length; ++i) {
-            (address hookModule, uint32 hookEntityId) = preSignatureValidationHooks[i].unpack();
+            (address hookModule, uint32 hookEntityId) = preSignatureValidationHooks[i].moduleEntity().unpack();
 
             bytes memory currentSignatureSegment;
 
@@ -934,7 +934,7 @@ abstract contract ModularAccountBase is
                         // To prevent arbitrarily-deep recursive checking, we limit the depth of self-calls to one
                         // for the purposes of batching.
                         // This means that all self-calls must occur at the top level of the batch.
-                        // Note that modules of other contracts using `executeWithAuthorization` may still
+                        // Note that modules of other contracts using `executeWithRuntimeValidation` may still
                         // independently call into this account with a different validation function, allowing
                         // composition of multiple batches.
                         revert SelfCallRecursionDepthExceeded();
