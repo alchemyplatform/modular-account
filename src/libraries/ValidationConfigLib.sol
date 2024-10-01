@@ -3,6 +3,8 @@ pragma solidity ^0.8.26;
 
 import {ModuleEntity, ValidationConfig} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
+type ValidationFlags is uint8;
+
 // Validation config is a packed representation of a validation function and flags for its configuration.
 // Layout:
 // 0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA________________________ // Address
@@ -63,22 +65,22 @@ library ValidationConfigLib {
     function unpackUnderlying(ValidationConfig config)
         internal
         pure
-        returns (address _module, uint32 _entityId, uint8 flags)
+        returns (address _module, uint32 _entityId, ValidationFlags flags)
     {
         bytes25 configBytes = ValidationConfig.unwrap(config);
         _module = address(bytes20(configBytes));
         _entityId = uint32(bytes4(configBytes << 160));
-        flags = uint8(configBytes[24]);
+        flags = ValidationFlags.wrap(uint8(configBytes[24]));
     }
 
     function unpack(ValidationConfig config)
         internal
         pure
-        returns (ModuleEntity _validationFunction, uint8 flags)
+        returns (ModuleEntity _validationFunction, ValidationFlags flags)
     {
         bytes25 configBytes = ValidationConfig.unwrap(config);
         _validationFunction = ModuleEntity.wrap(bytes24(configBytes));
-        flags = uint8(configBytes[24]);
+        flags = ValidationFlags.wrap(uint8(configBytes[24]));
     }
 
     function module(ValidationConfig config) internal pure returns (address) {
@@ -97,23 +99,23 @@ library ValidationConfigLib {
         return ValidationConfig.unwrap(config) & _VALIDATION_FLAG_IS_GLOBAL != 0;
     }
 
-    function isGlobal(uint8 flags) internal pure returns (bool) {
-        return flags & 0x04 != 0;
+    function isGlobal(ValidationFlags flags) internal pure returns (bool) {
+        return ValidationFlags.unwrap(flags) & 0x04 != 0;
     }
 
     function isSignatureValidation(ValidationConfig config) internal pure returns (bool) {
         return ValidationConfig.unwrap(config) & _VALIDATION_FLAG_IS_SIGNATURE != 0;
     }
 
-    function isSignatureValidation(uint8 flags) internal pure returns (bool) {
-        return flags & 0x02 != 0;
+    function isSignatureValidation(ValidationFlags flags) internal pure returns (bool) {
+        return ValidationFlags.unwrap(flags) & 0x02 != 0;
     }
 
     function isUserOpValidation(ValidationConfig config) internal pure returns (bool) {
         return ValidationConfig.unwrap(config) & _VALIDATION_FLAG_IS_USER_OP != 0;
     }
 
-    function isUserOpValidation(uint8 flags) internal pure returns (bool) {
-        return flags & 0x01 != 0;
+    function isUserOpValidation(ValidationFlags flags) internal pure returns (bool) {
+        return ValidationFlags.unwrap(flags) & 0x01 != 0;
     }
 }
