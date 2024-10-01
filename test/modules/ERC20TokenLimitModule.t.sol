@@ -9,6 +9,7 @@ import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IE
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
 import {ModuleEntity} from "../../src/libraries/ModuleEntityLib.sol";
 import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
@@ -59,7 +60,7 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
             sender: address(acct),
             nonce: 0,
             initCode: "",
-            callData: abi.encodePacked(ModularAccount.executeUserOp.selector, callData),
+            callData: abi.encodePacked(ModularAccountBase.executeUserOp.selector, callData),
             accountGasLimits: bytes32(bytes16(uint128(200_000))) | bytes32(uint256(200_000)),
             preVerificationGas: 200_000,
             gasFees: bytes32(uint256(uint128(0))),
@@ -70,7 +71,7 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
 
     function _getExecuteWithSpend(uint256 value) internal view returns (bytes memory) {
         return abi.encodeCall(
-            ModularAccount.execute, (address(erc20), 0, abi.encodeCall(IERC20.transfer, (recipient, value)))
+            ModularAccountBase.execute, (address(erc20), 0, abi.encodeCall(IERC20.transfer, (recipient, value)))
         );
     }
 

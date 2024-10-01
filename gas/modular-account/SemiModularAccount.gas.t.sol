@@ -5,7 +5,7 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Vm} from "forge-std/src/Vm.sol";
 
-import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ModularAccountBenchmarkBase} from "./ModularAccountBenchmarkBase.sol";
@@ -39,7 +39,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     }
 
     function test_semiModularAccountGas_runtime_nativeTransfer() public {
-        _deploySemiModularAccount1();
+        _deploySemiModularAccountBytecode1();
 
         vm.deal(address(account1), 1 ether);
 
@@ -47,9 +47,9 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
             owner1,
             address(account1),
             abi.encodeCall(
-                ModularAccount.executeWithAuthorization,
+                ModularAccountBase.executeWithAuthorization,
                 (
-                    abi.encodeCall(ModularAccount.execute, (recipient, 0.1 ether, "")),
+                    abi.encodeCall(ModularAccountBase.execute, (recipient, 0.1 ether, "")),
                     _encodeSignature(signerValidation, GLOBAL_VALIDATION, "")
                 )
             )
@@ -61,7 +61,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     }
 
     function test_semiModularAccountGas_userOp_nativeTransfer() public {
-        _deploySemiModularAccount1();
+        _deploySemiModularAccountBytecode1();
 
         vm.deal(address(account1), 1 ether);
 
@@ -69,7 +69,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
             sender: address(account1),
             nonce: 0,
             initCode: "",
-            callData: abi.encodeCall(ModularAccount.execute, (recipient, 0.1 ether, "")),
+            callData: abi.encodeCall(ModularAccountBase.execute, (recipient, 0.1 ether, "")),
             // don't over-estimate by a lot here, otherwise a fee is assessed.
             accountGasLimits: _encodeGasLimits(40_000, 90_000),
             preVerificationGas: 0,
@@ -90,7 +90,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     }
 
     function test_semiModularAccountGas_runtime_erc20Transfer() public {
-        _deploySemiModularAccount1();
+        _deploySemiModularAccountBytecode1();
 
         mockErc20.mint(address(account1), 100 ether);
 
@@ -98,10 +98,10 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
             owner1,
             address(account1),
             abi.encodeCall(
-                ModularAccount.executeWithAuthorization,
+                ModularAccountBase.executeWithAuthorization,
                 (
                     abi.encodeCall(
-                        ModularAccount.execute,
+                        ModularAccountBase.execute,
                         (address(mockErc20), 0, abi.encodeCall(mockErc20.transfer, (recipient, 10 ether)))
                     ),
                     _encodeSignature(signerValidation, GLOBAL_VALIDATION, "")
@@ -115,7 +115,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     }
 
     function test_semiModularAccountGas_userOp_erc20Transfer() public {
-        _deploySemiModularAccount1();
+        _deploySemiModularAccountBytecode1();
 
         vm.deal(address(account1), 1 ether);
 
@@ -126,7 +126,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
             nonce: 0,
             initCode: "",
             callData: abi.encodeCall(
-                ModularAccount.execute,
+                ModularAccountBase.execute,
                 (address(mockErc20), 0, abi.encodeWithSelector(mockErc20.transfer.selector, recipient, 10 ether))
             ),
             // don't over-estimate by a lot here, otherwise a fee is assessed.
@@ -149,20 +149,19 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     }
 
     function test_semiModularAccountGas_userOp_deferredValidationInstall() public {
-        _deploySemiModularAccount1();
+        _deploySemiModularAccountBytecode1();
 
         vm.deal(address(account1), 1 ether);
 
         uint32 entityId = 0;
         bytes memory deferredValidationInstallData = abi.encode(entityId, owner1);
-        ModuleEntity deferredValidation =
-            ModuleEntityLib.pack(address(_deploySingleSignerValidationModule()), entityId);
+        ModuleEntity deferredValidation = ModuleEntityLib.pack(address(_deployECDSAValidationModule()), entityId);
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
             nonce: 0,
             initCode: "",
-            callData: abi.encodeCall(ModularAccount.execute, (recipient, 0.1 ether, "")),
+            callData: abi.encodeCall(ModularAccountBase.execute, (recipient, 0.1 ether, "")),
             // don't over-estimate by a lot here, otherwise a fee is assessed.
             accountGasLimits: _encodeGasLimits(40_000, 200_000),
             preVerificationGas: 0,

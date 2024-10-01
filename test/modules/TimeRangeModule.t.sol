@@ -7,7 +7,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 
 import {ValidationDataView} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 
-import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {TimeRangeModule} from "../../src/modules/permissions/TimeRangeModule.sol";
@@ -25,8 +25,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
     uint48 public validAfter;
 
     function setUp() public {
-        _signerValidation =
-            ModuleEntityLib.pack(address(singleSignerValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
+        _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         timeRangeModule = new TimeRangeModule();
 
@@ -96,7 +95,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
             sender: address(account1),
             nonce: 0,
             initCode: hex"",
-            callData: abi.encodeCall(ModularAccount.execute, (makeAddr("recipient"), 0 wei, "")),
+            callData: abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -130,7 +129,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
             sender: address(account1),
             nonce: 0,
             initCode: hex"",
-            callData: abi.encodeCall(ModularAccount.execute, (makeAddr("recipient"), 0 wei, "")),
+            callData: abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -164,7 +163,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccount.PreRuntimeValidationHookFailed.selector,
+                ModularAccountBase.PreRuntimeValidationHookFailed.selector,
                 timeRangeModule,
                 HOOK_ENTITY_ID,
                 abi.encodeWithSelector(TimeRangeModule.TimeRangeNotValid.selector)
@@ -172,7 +171,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         );
         vm.prank(owner1);
         account1.executeWithAuthorization(
-            abi.encodeCall(ModularAccount.execute, (makeAddr("recipient"), 0 wei, "")),
+            abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
     }
@@ -189,7 +188,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         vm.expectCall({callee: makeAddr("recipient"), msgValue: 0 wei, data: "", count: 1});
         vm.prank(owner1);
         account1.executeWithAuthorization(
-            abi.encodeCall(ModularAccount.execute, (makeAddr("recipient"), 0 wei, "")),
+            abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
     }
@@ -205,7 +204,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccount.PreRuntimeValidationHookFailed.selector,
+                ModularAccountBase.PreRuntimeValidationHookFailed.selector,
                 timeRangeModule,
                 HOOK_ENTITY_ID,
                 abi.encodeWithSelector(TimeRangeModule.TimeRangeNotValid.selector)
@@ -213,7 +212,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         );
         vm.prank(owner1);
         account1.executeWithAuthorization(
-            abi.encodeCall(ModularAccount.execute, (makeAddr("recipient"), 0 wei, "")),
+            abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
     }
@@ -230,7 +229,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
             abi.encode(HOOK_ENTITY_ID, validUntil, validAfter)
         );
         // patched to also work during SMA tests by differentiating the validation
-        _signerValidation = ModuleEntityLib.pack(address(singleSignerValidationModule), type(uint32).max - 1);
+        _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), type(uint32).max - 1);
         return
             (_signerValidation, true, true, true, new bytes4[](0), abi.encode(type(uint32).max - 1, owner1), hooks);
     }

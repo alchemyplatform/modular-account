@@ -73,7 +73,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         module.preRuntimeValidationHook(ENTITY_ID, address(0), 0, "", "");
     }
 
-    function _packUO(bytes memory paymasterAndData) internal returns (PackedUserOperation memory) {
+    function _packUO(bytes memory paymasterAndData) internal view returns (PackedUserOperation memory) {
         return PackedUserOperation({
             sender: account,
             nonce: 0,

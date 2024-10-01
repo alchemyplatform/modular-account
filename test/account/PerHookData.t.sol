@@ -5,7 +5,7 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {SparseCalldataSegmentLib} from "../../src/libraries/SparseCalldataSegmentLib.sol";
@@ -188,7 +188,7 @@ contract PerHookDataTest is CustomValidationTestBase {
             sender: address(account1),
             nonce: 0,
             initCode: "",
-            callData: abi.encodeCall(ModularAccount.execute, (beneficiary, 1 wei, "")),
+            callData: abi.encodeCall(ModularAccountBase.execute, (beneficiary, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -282,7 +282,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         vm.prank(owner1);
         account1.executeWithAuthorization(
             abi.encodeCall(
-                ModularAccount.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
+                ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, "")
         );
@@ -300,7 +300,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         vm.prank(owner1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccount.PreRuntimeValidationHookFailed.selector,
+                ModularAccountBase.PreRuntimeValidationHookFailed.selector,
                 _accessControlHookModule,
                 _PRE_HOOK_ENTITY_ID_1,
                 abi.encodeWithSignature("Error(string)", "Proof doesn't match target")
@@ -308,7 +308,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         );
         account1.executeWithAuthorization(
             abi.encodeCall(
-                ModularAccount.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
+                ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, "")
         );
@@ -318,7 +318,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         vm.prank(owner1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccount.PreRuntimeValidationHookFailed.selector,
+                ModularAccountBase.PreRuntimeValidationHookFailed.selector,
                 _accessControlHookModule,
                 _PRE_HOOK_ENTITY_ID_1,
                 abi.encodeWithSignature("Error(string)", "Proof doesn't match target")
@@ -326,7 +326,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         );
         account1.executeWithAuthorization(
             abi.encodeCall(
-                ModularAccount.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
+                ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
@@ -343,7 +343,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         );
         account1.executeWithAuthorization(
             abi.encodeCall(
-                ModularAccount.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
+                ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, "")
         );
@@ -361,7 +361,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         vm.prank(owner1);
         account1.executeWithAuthorization(
             abi.encodeCall(
-                ModularAccount.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
+                ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, "")
         );
@@ -380,7 +380,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         vm.expectRevert(abi.encodeWithSelector(SparseCalldataSegmentLib.SegmentOutOfOrder.selector));
         account1.executeWithAuthorization(
             abi.encodeCall(
-                ModularAccount.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
+                ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, "")
         );
@@ -393,14 +393,14 @@ contract PerHookDataTest is CustomValidationTestBase {
         vm.prank(owner1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccount.PreRuntimeValidationHookFailed.selector,
+                ModularAccountBase.PreRuntimeValidationHookFailed.selector,
                 _accessControlHookModule,
                 _PRE_HOOK_ENTITY_ID_1,
                 abi.encodeWithSignature("Error(string)", "Target not allowed")
             )
         );
         account1.executeWithAuthorization(
-            abi.encodeCall(ModularAccount.execute, (beneficiary, 1 wei, "")),
+            abi.encodeCall(ModularAccountBase.execute, (beneficiary, 1 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, "")
         );
     }
@@ -413,7 +413,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         vm.expectRevert(abi.encodeWithSelector(SparseCalldataSegmentLib.NonCanonicalEncoding.selector));
         account1.executeWithAuthorization(
             abi.encodeCall(
-                ModularAccount.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
+                ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, "")
         );
@@ -427,7 +427,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         vm.expectRevert(abi.encodeWithSelector(SparseCalldataSegmentLib.NonCanonicalEncoding.selector));
         account1.executeWithAuthorization(
             abi.encodeCall(
-                ModularAccount.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
+                ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
             abi.encodePacked(
                 _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, ""), "extra data"
@@ -440,7 +440,7 @@ contract PerHookDataTest is CustomValidationTestBase {
 
         bytes32 messageHash = keccak256(abi.encodePacked(message));
 
-        bytes32 replaySafeHash = singleSignerValidationModule.replaySafeHash(address(account1), messageHash);
+        bytes32 replaySafeHash = ecdsaValidationModule.replaySafeHash(address(account1), messageHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
@@ -502,7 +502,7 @@ contract PerHookDataTest is CustomValidationTestBase {
             nonce: 0,
             initCode: "",
             callData: abi.encodeCall(
-                ModularAccount.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
+                ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
@@ -530,7 +530,7 @@ contract PerHookDataTest is CustomValidationTestBase {
             abi.encode(_PRE_HOOK_ENTITY_ID_1, _counter)
         );
         // patched to also work during SMA tests by differentiating the validation
-        _signerValidation = ModuleEntityLib.pack(address(singleSignerValidationModule), _VALIDATION_ENTITY_ID);
+        _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), _VALIDATION_ENTITY_ID);
         return (
             _signerValidation, true, true, true, new bytes4[](0), abi.encode(_VALIDATION_ENTITY_ID, owner1), hooks
         );

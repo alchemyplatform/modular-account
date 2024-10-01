@@ -4,22 +4,16 @@ pragma solidity ^0.8.26;
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {
-    IModularAccount,
-    ModuleEntity,
-    ValidationConfig
-} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
-import {LibClone} from "solady/utils/LibClone.sol";
-
 import {FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
-import {ModularAccount} from "./ModularAccount.sol";
+import {ModularAccountBase} from "./ModularAccountBase.sol";
 
-contract SemiModularAccount is ModularAccount {
+abstract contract SemiModularAccountBase is ModularAccountBase {
     using MessageHashUtils for bytes32;
     using ModuleEntityLib for ModuleEntity;
 
@@ -46,11 +40,9 @@ contract SemiModularAccount is ModularAccount {
     error FallbackSignerDisabled();
     error InitializerDisabled();
 
-    constructor(IEntryPoint anEntryPoint) ModularAccount(anEntryPoint) {}
+    constructor(IEntryPoint anEntryPoint) ModularAccountBase(anEntryPoint) {}
 
     /// @notice Updates the fallback signer address in storage.
-    /// @dev This function causes the fallback signer getter to ignore the bytecode signer if it is nonzero. It can
-    /// also be used to revert back to the bytecode signer by setting to zero.
     /// @param fallbackSigner The new signer to set.
     function updateFallbackSigner(address fallbackSigner) external wrapNativeFunction {
         SemiModularAccountStorage storage _storage = _getSemiModularAccountStorage();
@@ -82,23 +74,27 @@ contract SemiModularAccount is ModularAccount {
         return _retrieveFallbackSignerUnchecked(_getSemiModularAccountStorage());
     }
 
-    /// Override reverts on initialization, effectively disabling the initializer.
-    function initializeWithValidation(ValidationConfig, bytes4[] calldata, bytes calldata, bytes[] calldata)
-        external
-        pure
-        override
-    {
-        revert InitializerDisabled();
-    }
-
     /// @inheritdoc IModularAccount
     function accountId() external pure override returns (string memory) {
         return "alchemy.semi-modular-account.0.0.1";
     }
 
+    /// @notice Returns the replay-safe hash generated from the passed typed data hash for 1271 validation.
+    /// @param hash The typed data hash to wrap in a replay-safe hash.
+    /// @return The replay-safe hash, to be used for 1271 signature generation.
+    ///
+    /// @dev Generates a replay-safe hash to wrap a standard typed data hash. This prevents replay attacks by
+    /// enforcing the domain separator, which includes this contract's address and the chainId. This is only
+    /// relevant for 1271 validation because UserOp validation relies on the UO hash and the Entrypoint has
+    /// safeguards.
+    ///
+    /// NOTE: Like in signature-based validation modules, the returned hash should be used to generate signatures,
+    /// but the original hash should be passed to the external-facing function for 1271 validation.
     function replaySafeHash(bytes32 hash) public view virtual returns (bytes32) {
-        return
-            MessageHashUtils.toTypedDataHash({domainSeparator: domainSeparator(), structHash: _hashStruct(hash)});
+        return MessageHashUtils.toTypedDataHash({
+            domainSeparator: domainSeparator(),
+            structHash: _hashStructReplaySafeHash(hash)
+        });
     }
 
     function _execUserOpValidation(
@@ -171,22 +167,22 @@ contract SemiModularAccount is ModularAccount {
             revert FallbackSignerDisabled();
         }
 
+        // This can return zero.
         return _retrieveFallbackSignerUnchecked(_storage);
     }
 
+    /// @dev SMA implementations must implement their own fallback signer getter.
+    ///
+    /// NOTE: The passed storage pointer may point to a struct with a zero address signer. It's up
+    /// to inheritors to determine what to do with that information. No assumptions about storage
+    /// state are safe to make besides layout.
     function _retrieveFallbackSignerUnchecked(SemiModularAccountStorage storage _storage)
         internal
         view
+        virtual
         returns (address)
     {
-        address storageFallbackSigner = _storage.fallbackSigner;
-        if (storageFallbackSigner != address(0)) {
-            return storageFallbackSigner;
-        }
-
-        bytes memory appendedData = LibClone.argsOnERC1967(address(this), 0, 20);
-
-        return address(uint160(bytes20(appendedData)));
+        return _storage.fallbackSigner;
     }
 
     function _getSemiModularAccountStorage() internal pure returns (SemiModularAccountStorage storage) {
@@ -197,7 +193,7 @@ contract SemiModularAccount is ModularAccount {
         return _storage;
     }
 
-    function _hashStruct(bytes32 hash) internal pure virtual returns (bytes32) {
+    function _hashStructReplaySafeHash(bytes32 hash) internal pure virtual returns (bytes32) {
         bytes32 res;
         assembly ("memory-safe") {
             mstore(0x00, _REPLAY_SAFE_HASH_TYPEHASH)

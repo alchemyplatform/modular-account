@@ -5,6 +5,7 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
@@ -26,8 +27,7 @@ contract GlobalValidationTest is AccountTestBase {
         account2 = ModularAccount(payable(factory.getAddress(owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID)));
         vm.deal(address(account2), 100 ether);
 
-        _signerValidation =
-            ModuleEntityLib.pack(address(singleSignerValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
+        _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         ethRecipient = makeAddr("ethRecipient");
         vm.deal(ethRecipient, 1 wei);
@@ -40,7 +40,7 @@ contract GlobalValidationTest is AccountTestBase {
             initCode: abi.encodePacked(
                 address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
             ),
-            callData: abi.encodeCall(ModularAccount.execute, (ethRecipient, 1 wei, "")),
+            callData: abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -67,7 +67,7 @@ contract GlobalValidationTest is AccountTestBase {
 
         vm.prank(owner2);
         account2.executeWithAuthorization(
-            abi.encodeCall(ModularAccount.execute, (ethRecipient, 1 wei, "")),
+            abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
 

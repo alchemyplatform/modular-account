@@ -5,7 +5,7 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 
 import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
-import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {AllowlistModule} from "../../src/modules/permissions/AllowlistModule.sol";
@@ -33,8 +33,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
     );
 
     function setUp() public {
-        _signerValidation =
-            ModuleEntityLib.pack(address(singleSignerValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
+        _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         allowlistModule = new AllowlistModule();
 
@@ -231,7 +230,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                         )
                 ) {
                     return abi.encodeWithSelector(
-                        ModularAccount.PreRuntimeValidationHookFailed.selector,
+                        ModularAccountBase.PreRuntimeValidationHookFailed.selector,
                         address(allowlistModule),
                         HOOK_ENTITY_ID,
                         abi.encodeWithSelector(AllowlistModule.SelectorNotAllowed.selector)
@@ -239,7 +238,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                 }
             } else {
                 return abi.encodeWithSelector(
-                    ModularAccount.PreRuntimeValidationHookFailed.selector,
+                    ModularAccountBase.PreRuntimeValidationHookFailed.selector,
                     address(allowlistModule),
                     HOOK_ENTITY_ID,
                     abi.encodeWithSelector(AllowlistModule.TargetNotAllowed.selector)
@@ -341,7 +340,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
             abi.encode(HOOK_ENTITY_ID, allowlistInit)
         );
         // patched to also work during SMA tests by differentiating the validation
-        _signerValidation = ModuleEntityLib.pack(address(singleSignerValidationModule), type(uint32).max - 1);
+        _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), type(uint32).max - 1);
         return
             (_signerValidation, true, true, true, new bytes4[](0), abi.encode(type(uint32).max - 1, owner1), hooks);
     }
