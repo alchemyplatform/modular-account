@@ -3,6 +3,11 @@ pragma solidity ^0.8.26;
 
 import {ModuleEntity, ValidationConfig} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
+// Validation flags layout:
+// 0b00000___ // unused
+// 0b_____A__ // isGlobal
+// 0b______B_ // isSignatureValidation
+// 0b_______C // isUserOpValidation
 type ValidationFlags is uint8;
 
 // Validation config is a packed representation of a validation function and flags for its configuration.
