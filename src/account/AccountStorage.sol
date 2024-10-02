@@ -36,7 +36,7 @@ struct ValidationData {
     // Whether or not this validation is allowed to validate ERC-4337 user operations.
     bool isUserOpValidation;
     // The validation hooks for this validation function.
-    HookConfig[] validationHooks;
+    ModuleEntity[] validationHooks;
     // Execution hooks to run with this validation function.
     LinkedListSet executionHooks;
     // The set of selectors that may be validated by this validation function.
