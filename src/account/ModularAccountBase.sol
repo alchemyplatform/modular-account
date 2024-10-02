@@ -10,10 +10,10 @@ import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
+import {LinkedListSet, LinkedListSetLib} from "@erc6900/modular-account-libs/libraries/LinkedListSetLib.sol";
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {
@@ -33,7 +33,7 @@ import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
 import {SparseCalldataSegmentLib} from "../libraries/SparseCalldataSegmentLib.sol";
 import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
 import {AccountExecutor} from "./AccountExecutor.sol";
-import {AccountStorage, getAccountStorage, toHookConfig, toSetValue} from "./AccountStorage.sol";
+import {AccountStorage, getAccountStorage, toHookConfigArray, toSetValue} from "./AccountStorage.sol";
 import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {BaseAccount} from "./BaseAccount.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
@@ -53,7 +53,7 @@ abstract contract ModularAccountBase is
     UUPSUpgradeable,
     TokenReceiver
 {
-    using EnumerableSet for EnumerableSet.Bytes32Set;
+    using LinkedListSetLib for LinkedListSet;
     using ModuleEntityLib for ModuleEntity;
     using ValidationConfigLib for ValidationConfig;
     using HookConfigLib for HookConfig;
@@ -527,7 +527,7 @@ abstract contract ModularAccountBase is
         // `executeUserOp`. This check must be here because if context isn't passed, we can't tell in execution
         // which hooks should have ran.
         if (
-            getAccountStorage().validationData[validationFunction].executionHooks.length() > 0
+            !getAccountStorage().validationData[validationFunction].executionHooks.isEmpty()
                 && bytes4(userOp.callData[:4]) != this.executeUserOp.selector
         ) {
             revert RequireUserOperationContext();
@@ -645,32 +645,40 @@ abstract contract ModularAccountBase is
         _execRuntimeValidation(runtimeValidationFunction, callData, authorizationData);
     }
 
-    function _doPreHooks(EnumerableSet.Bytes32Set storage executionHooks, bytes memory data)
+    function _doPreHooks(LinkedListSet storage executionHooks, bytes memory data)
         internal
         returns (PostExecToRun[] memory postHooksToRun)
     {
-        uint256 hooksLength = executionHooks.length();
+        HookConfig[] memory hooks = toHookConfigArray(executionHooks);
+        uint256 hooksLength = hooks.length;
         // Overallocate on length - not all of this may get filled up. We set the correct length later.
         postHooksToRun = new PostExecToRun[](hooksLength);
 
         // Copy all post hooks to the array. This happens before any pre hooks are run, so we can
         // be sure that the set of hooks to run will not be affected by state changes mid-execution.
-        for (uint256 i = 0; i < hooksLength; ++i) {
-            HookConfig hookConfig = toHookConfig(executionHooks.at(i));
+        for (uint256 i = 0; i < hooksLength;) {
+            HookConfig hookConfig = hooks[i];
             if (hookConfig.hasPostHook()) {
                 postHooksToRun[i].postExecHook = hookConfig.moduleEntity();
+            }
+
+            unchecked {
+                ++i;
             }
         }
 
         // Run the pre hooks and copy their return data to the post hooks array, if an associated post exec hook
         // exists.
-        for (uint256 i = 0; i < hooksLength; ++i) {
-            HookConfig hookConfig = toHookConfig(executionHooks.at(i));
+        for (uint256 i = hooksLength; i > 0;) {
+            // Decrement here, instead of in the loop body, to convert from length to an index.
+            unchecked {
+                --i;
+            }
+
+            HookConfig hookConfig = hooks[i];
 
             if (hookConfig.hasPreHook()) {
-                bytes memory preExecHookReturnData;
-
-                preExecHookReturnData = _runPreExecHook(hookConfig.moduleEntity(), data);
+                bytes memory preExecHookReturnData = _runPreExecHook(hookConfig.moduleEntity(), data);
 
                 // If there is an associated post exec hook, save the return data.
                 if (hookConfig.hasPostHook()) {
@@ -698,10 +706,7 @@ abstract contract ModularAccountBase is
     /// @dev Associated post hooks are run in reverse order of their pre hooks.
     function _doCachedPostExecHooks(PostExecToRun[] memory postHooksToRun) internal {
         uint256 postHooksToRunLength = postHooksToRun.length;
-        for (uint256 i = postHooksToRunLength; i > 0;) {
-            // Decrement here, instead of in the loop body, to handle the case where length is 0.
-            --i;
-
+        for (uint256 i = 0; i < postHooksToRunLength; ++i) {
             PostExecToRun memory postHookToRun = postHooksToRun[i];
 
             if (postHookToRun.postExecHook.isEmpty()) {

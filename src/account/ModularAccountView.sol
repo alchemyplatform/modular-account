@@ -2,9 +2,12 @@
 pragma solidity ^0.8.26;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
+import {
+    LinkedListSet,
+    LinkedListSetLib,
+    SetValue
+} from "@erc6900/modular-account-libs/libraries/LinkedListSetLib.sol";
 import {
     HookConfig,
     IModularAccount,
@@ -17,11 +20,10 @@ import {
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 
 import {HookConfigLib} from "../libraries/HookConfigLib.sol";
-import {ExecutionData, ValidationData, getAccountStorage, toHookConfig} from "./AccountStorage.sol";
+import {ExecutionData, ValidationData, getAccountStorage} from "./AccountStorage.sol";
 
 abstract contract ModularAccountView is IModularAccountView {
-    using EnumerableSet for EnumerableSet.Bytes32Set;
-    using EnumerableMap for EnumerableMap.AddressToUintMap;
+    using LinkedListSetLib for LinkedListSet;
     using HookConfigLib for HookConfig;
 
     /// @inheritdoc IModularAccountView
@@ -40,10 +42,13 @@ abstract contract ModularAccountView is IModularAccountView {
             data.skipRuntimeValidation = executionData.skipRuntimeValidation;
             data.allowGlobalValidation = executionData.allowGlobalValidation;
 
-            uint256 executionHooksLen = executionData.executionHooks.length();
-            data.executionHooks = new HookConfig[](executionHooksLen);
-            for (uint256 i = 0; i < executionHooksLen; ++i) {
-                data.executionHooks[i] = toHookConfig(executionData.executionHooks.at(i));
+            // Todo: optimize this array reverse.
+            SetValue[] memory hooks = executionData.executionHooks.getAll();
+            uint256 hooksLength = hooks.length;
+            data.executionHooks = new HookConfig[](hooksLength);
+
+            for (uint256 i = 0; i < hooksLength; ++i) {
+                data.executionHooks[hooksLength - i - 1] = HookConfig.wrap(bytes25(SetValue.unwrap(hooks[i])));
             }
         }
     }
@@ -61,17 +66,21 @@ abstract contract ModularAccountView is IModularAccountView {
         data.isUserOpValidation = validationData.isUserOpValidation;
         data.preValidationHooks = validationData.preValidationHooks;
 
-        uint256 execHooksLen = validationData.executionHooks.length();
-        data.executionHooks = new HookConfig[](execHooksLen);
-        for (uint256 i = 0; i < execHooksLen; ++i) {
-            data.executionHooks[i] = toHookConfig(validationData.executionHooks.at(i));
+        // Todo: optimize these array reverses
+
+        SetValue[] memory hooks = validationData.executionHooks.getAll();
+        uint256 hooksLength = hooks.length;
+        data.executionHooks = new HookConfig[](hooksLength);
+
+        for (uint256 i = 0; i < hooksLength; ++i) {
+            data.executionHooks[hooksLength - i - 1] = HookConfig.wrap(bytes25(SetValue.unwrap(hooks[i])));
         }
 
-        bytes32[] memory selectors = validationData.selectors.values();
+        SetValue[] memory selectors = validationData.selectors.getAll();
         uint256 selectorsLen = selectors.length;
         data.selectors = new bytes4[](selectorsLen);
         for (uint256 j = 0; j < selectorsLen; ++j) {
-            data.selectors[j] = bytes4(selectors[j]);
+            data.selectors[selectorsLen - j - 1] = bytes4(SetValue.unwrap(selectors[j]));
         }
     }
 }
