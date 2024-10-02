@@ -30,6 +30,7 @@ via_ir = true
 test = 'src'
 optimizer_runs = 10000
 out = 'out-optimized'
+cache_path = 'cache-optimized'
 
 [profile.optimized-test]
 src = 'test'
@@ -56,6 +57,7 @@ via_ir = true
 test = 'gas'
 optimizer_runs = 10000
 out = 'out-optimized'
+cache_path = 'cache-optimized'
 ffi = true
 isolate = true
 
