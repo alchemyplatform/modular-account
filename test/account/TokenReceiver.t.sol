@@ -25,7 +25,7 @@ contract TokenReceiverTest is AccountTestBase {
         erc1155.mint(owner1, _NFT_TOKEN_ID, _NFT_TOKEN_COUNT);
     }
 
-    function test_supportedInterfaces() public {
+    function test_supportedInterfaces() public view {
         assertTrue(account1.supportsInterface(type(IERC721Receiver).interfaceId));
         assertTrue(account1.supportsInterface(type(IERC1155Receiver).interfaceId));
     }

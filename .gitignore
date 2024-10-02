@@ -2,6 +2,7 @@
 out/
 out-optimized/
 cache/
+cache-optimized/
 node_modules/
 
 # Coverage
