@@ -50,7 +50,7 @@ contract SparseCalldataSegmentLibTest is Test {
         bytes memory result = "";
 
         for (uint256 i = 0; i < segments.length; i++) {
-            result = abi.encodePacked(result, uint32(segments[i].length), segments[i]);
+            result = abi.encodePacked(result, uint8(0), uint32(segments[i].length), segments[i]);
         }
 
         return result;
@@ -66,7 +66,7 @@ contract SparseCalldataSegmentLibTest is Test {
         bytes memory result = "";
 
         for (uint256 i = 0; i < segments.length; i++) {
-            result = abi.encodePacked(result, uint32(segments[i].length + 1), indices[i], segments[i]);
+            result = abi.encodePacked(result, indices[i], uint32(segments[i].length), segments[i]);
         }
 
         return result;
@@ -100,10 +100,10 @@ contract SparseCalldataSegmentLibTest is Test {
 
         uint256 index = 0;
         while (remainder.length > 0) {
+            indices[index] = remainder.getIndex();
             bytes calldata segment;
             (segment, remainder) = remainder.getNextSegment();
-            bodies[index] = segment.getBody();
-            indices[index] = segment.getIndex();
+            bodies[index] = segment;
             index++;
         }
 

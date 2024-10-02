@@ -245,34 +245,6 @@ contract PerHookDataTest is CustomValidationTestBase {
         entryPoint.handleOps(userOps, beneficiary);
     }
 
-    function test_failPerHookData_excessData_userOp() public withSMATest {
-        (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
-
-        PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
-        preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(_counter)});
-
-        userOp.signature = abi.encodePacked(
-            _encodeSignature(
-                _signerValidation, GLOBAL_VALIDATION, preValidationHookData, abi.encodePacked(r, s, v)
-            ),
-            "extra data"
-        );
-
-        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
-        userOps[0] = userOp;
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IEntryPoint.FailedOpWithRevert.selector,
-                0,
-                "AA23 reverted",
-                abi.encodeWithSelector(SparseCalldataSegmentLib.NonCanonicalEncoding.selector)
-            )
-        );
-        entryPoint.handleOps(userOps, beneficiary);
-    }
-
     function test_passAccessControl_runtime() public withSMATest {
         assertEq(_counter.number(), 0);
 
@@ -416,22 +388,6 @@ contract PerHookDataTest is CustomValidationTestBase {
                 ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, "")
-        );
-    }
-
-    function test_failPerHookData_excessData_runtime() public withSMATest {
-        PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
-        preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(_counter)});
-
-        vm.prank(owner1);
-        vm.expectRevert(abi.encodeWithSelector(SparseCalldataSegmentLib.NonCanonicalEncoding.selector));
-        account1.executeWithRuntimeValidation(
-            abi.encodeCall(
-                ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
-            ),
-            abi.encodePacked(
-                _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, ""), "extra data"
-            )
         );
     }
 

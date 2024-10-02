@@ -12,8 +12,10 @@ import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IMod
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../../src/helpers/Constants.sol";
+import {ModuleEntityLib} from "../../../src/libraries/ModuleEntityLib.sol";
 
 import {BaseModule} from "../../../src/modules/BaseModule.sol";
+import {ModuleSignatureUtils} from "../../utils/ModuleSignatureUtils.sol";
 
 contract RegularResultContract {
     function foo() external pure returns (bytes32) {
@@ -61,7 +63,7 @@ contract ResultCreatorModule is IExecutionModule, BaseModule {
     }
 }
 
-contract ResultConsumerModule is IExecutionModule, BaseModule, IValidationModule {
+contract ResultConsumerModule is IExecutionModule, BaseModule, IValidationModule, ModuleSignatureUtils {
     ResultCreatorModule public immutable RESULT_CREATOR;
     RegularResultContract public immutable REGULAR_RESULT_CONTRACT;
 
@@ -105,9 +107,7 @@ contract ResultConsumerModule is IExecutionModule, BaseModule, IValidationModule
         // This result should be allowed based on the manifest permission request
         bytes memory returnData = IModularAccount(msg.sender).executeWithRuntimeValidation(
             abi.encodeCall(IModularAccount.execute, (target, 0, abi.encodeCall(RegularResultContract.foo, ()))),
-            abi.encodePacked(this, DIRECT_CALL_VALIDATION_ENTITYID, uint8(0), uint32(1), uint8(255)) // Validation
-                // function of self,
-                // selector-associated, with no auth data
+            _encodeSignature(ModuleEntityLib.pack(address(this), DIRECT_CALL_VALIDATION_ENTITYID), uint8(0), "")
         );
 
         bytes32 actual = abi.decode(abi.decode(returnData, (bytes)), (bytes32));

@@ -5,6 +5,8 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
+
+import {RESERVED_VALIDATION_DATA_INDEX} from "../../src/helpers/Constants.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
@@ -39,7 +41,7 @@ contract ModuleSignatureUtils {
 
         sig = abi.encodePacked(sig, _packPreHookDatas(preValidationHookData));
 
-        sig = abi.encodePacked(sig, _packValidationResWithIndex(255, validationData));
+        sig = abi.encodePacked(sig, _packFinalSignature(validationData));
 
         return sig;
     }
@@ -55,7 +57,7 @@ contract ModuleSignatureUtils {
 
         sig = abi.encodePacked(sig, _packPreHookDatas(preValidationHookData));
 
-        sig = abi.encodePacked(sig, _packValidationResWithIndex(255, validationData));
+        sig = abi.encodePacked(sig, _packFinalSignature(validationData));
 
         return sig;
     }
@@ -91,9 +93,7 @@ contract ModuleSignatureUtils {
         for (uint256 i = 0; i < preValidationHookData.length; ++i) {
             res = abi.encodePacked(
                 res,
-                _packValidationResWithIndex(
-                    preValidationHookData[i].index, preValidationHookData[i].validationData
-                )
+                _packSignatureWithIndex(preValidationHookData[i].index, preValidationHookData[i].validationData)
             );
         }
 
@@ -101,12 +101,16 @@ contract ModuleSignatureUtils {
     }
 
     // helper function to pack validation data with an index, according to the sparse calldata segment spec.
-    function _packValidationResWithIndex(uint8 index, bytes memory validationData)
+    function _packSignatureWithIndex(uint8 index, bytes memory validationData)
         internal
         pure
         returns (bytes memory)
     {
-        return abi.encodePacked(uint32(validationData.length + 1), index, validationData);
+        return abi.encodePacked(index, uint32(validationData.length), validationData);
+    }
+
+    function _packFinalSignature(bytes memory sig) internal pure returns (bytes memory) {
+        return abi.encodePacked(RESERVED_VALIDATION_DATA_INDEX, sig);
     }
 
     // Deferred validation helpers
@@ -149,7 +153,7 @@ contract ModuleSignatureUtils {
             deadline
         );
 
-        bytes memory innerUoValidationSig = _packValidationResWithIndex(255, deferredValidationSig);
+        bytes memory innerUoValidationSig = _packFinalSignature(deferredValidationSig);
 
         bytes memory encodedDeferredInstall = abi.encodePacked(
             outerECDSAValidation,
@@ -252,7 +256,7 @@ contract ModuleSignatureUtils {
 
         bytes memory rawDeferredInstallSig = abi.encodePacked(r, s, v);
 
-        bytes memory deferredInstallSig = _packValidationResWithIndex(255, rawDeferredInstallSig);
+        bytes memory deferredInstallSig = _packFinalSignature(rawDeferredInstallSig);
         return deferredInstallSig;
     }
 
