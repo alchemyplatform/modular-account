@@ -101,7 +101,7 @@ contract ResultConsumerModule is IExecutionModule, BaseModule, IValidationModule
     }
 
     // Check the return data through the execute with authorization case
-    function checkResultexecuteWithRuntimeValidation(address target, bytes32 expected) external returns (bool) {
+    function checkResultExecuteWithRuntimeValidation(address target, bytes32 expected) external returns (bool) {
         // This result should be allowed based on the manifest permission request
         bytes memory returnData = IModularAccount(msg.sender).executeWithRuntimeValidation(
             abi.encodeCall(IModularAccount.execute, (target, 0, abi.encodeCall(RegularResultContract.foo, ()))),
@@ -129,7 +129,7 @@ contract ResultConsumerModule is IExecutionModule, BaseModule, IValidationModule
             allowGlobalValidation: false
         });
         manifest.executionFunctions[1] = ManifestExecutionFunction({
-            executionSelector: this.checkResultexecuteWithRuntimeValidation.selector,
+            executionSelector: this.checkResultExecuteWithRuntimeValidation.selector,
             skipRuntimeValidation: true,
             allowGlobalValidation: false
         });
