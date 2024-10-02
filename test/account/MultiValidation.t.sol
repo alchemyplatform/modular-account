@@ -30,7 +30,7 @@ contract MultiValidationTest is AccountTestBase {
         (owner2, owner2Key) = makeAddrAndKey("owner2");
     }
 
-    function test_overlappingValidationInstall() public {
+    function test_overlappingValidationInstall() public withSMATest(setUp) {
         vm.prank(address(entryPoint));
         account1.installValidation(
             ValidationConfigLib.pack(address(validator2), TEST_DEFAULT_VALIDATION_ENTITY_ID, true, true, true),
@@ -51,7 +51,7 @@ contract MultiValidationTest is AccountTestBase {
         }
     }
 
-    function test_runtimeValidation_specify() public {
+    function test_runtimeValidation_specify() public withSMATest(setUp) {
         test_overlappingValidationInstall();
 
         // Assert that the runtime validation can be specified.
@@ -81,7 +81,7 @@ contract MultiValidationTest is AccountTestBase {
         );
     }
 
-    function test_userOpValidation_specify() public {
+    function test_userOpValidation_specify() public withSMATest(setUp) {
         test_overlappingValidationInstall();
 
         // Assert that the userOp validation can be specified.

@@ -55,14 +55,14 @@ contract AccountReturnDataTest is AccountTestBase {
     }
 
     // Tests the ability to read the result of module execution functions via the account's fallback
-    function test_returnData_fallback() public view {
+    function test_returnData_fallback() public withSMATest(setUp) {
         bytes32 result = ResultCreatorModule(address(account1)).foo();
 
         assertEq(result, keccak256("bar"));
     }
 
     // Tests the ability to read the results of contracts called via IModularAccount.execute
-    function test_returnData_singular_execute() public {
+    function test_returnData_singular_execute() public withSMATest(setUp) {
         bytes memory returnData = account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 account1.execute,
@@ -77,7 +77,7 @@ contract AccountReturnDataTest is AccountTestBase {
     }
 
     // Tests the ability to read the results of multiple contract calls via IModularAccount.executeBatch
-    function test_returnData_executeBatch() public {
+    function test_returnData_executeBatch() public withSMATest(setUp) {
         Call[] memory calls = new Call[](2);
         calls[0] = Call({
             target: address(regularResultContract),
@@ -105,14 +105,14 @@ contract AccountReturnDataTest is AccountTestBase {
     }
 
     // Tests the ability to read data via routing to fallback functions
-    function test_returnData_execFromModule_fallback() public view {
+    function test_returnData_execFromModule_fallback() public withSMATest(setUp) {
         bool result = ResultConsumerModule(address(account1)).checkResultFallback(keccak256("bar"));
 
         assertTrue(result);
     }
 
     // Tests the ability to read data via executeWithRuntimeValidation
-    function test_returnData_authorized_exec() public {
+    function test_returnData_authorized_exec() public withSMATest(setUp) {
         bool result = ResultConsumerModule(address(account1)).checkResultExecuteWithRuntimeValidation(
             address(regularResultContract), keccak256("bar")
         );

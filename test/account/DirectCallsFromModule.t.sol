@@ -40,7 +40,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
     /*                                  Negatives                                 */
     /* -------------------------------------------------------------------------- */
 
-    function test_fail_directCallModuleNotInstalled() external {
+    function test_fail_directCallModuleNotInstalled() external withSMATest(setUp) {
         vm.prank(address(_module));
         vm.expectRevert(_buildDirectCallDisallowedError(IModularAccount.execute.selector));
         account1.execute(CODELESS_ADDRESS, 0, "");
@@ -57,7 +57,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
         account1.execute(CODELESS_ADDRESS, 0, "");
     }
 
-    function test_fail_directCallModuleCallOtherSelector() external {
+    function test_fail_directCallModuleCallOtherSelector() external withSMATest(setUp) {
         _installValidationSelector();
 
         Call[] memory calls = new Call[](0);
@@ -118,7 +118,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
         account1.execute(CODELESS_ADDRESS, 0, "");
     }
 
-    function test_directCallsFromEOA() external {
+    function test_directCallsFromEOA() external withSMATest(setUp) {
         address extraOwner = makeAddr("extraOwner");
 
         bytes4[] memory selectors = new bytes4[](1);

@@ -32,7 +32,7 @@ contract UpgradeModuleTest is AccountTestBase {
     // From MockModule
     event ReceivedCall(bytes msgData, uint256 msgValue);
 
-    function test_upgradeModuleExecutionFunction() public {
+    function test_upgradeModuleExecutionFunction() public withSMATestNoSetup {
         ExecutionManifest memory m;
         ManifestExecutionFunction[] memory executionFunctions = new ManifestExecutionFunction[](1);
         executionFunctions[0] = ManifestExecutionFunction({
@@ -96,7 +96,7 @@ contract UpgradeModuleTest is AccountTestBase {
         TestModule(address(account1)).testFunction();
     }
 
-    function test_upgradeModuleValidationFunction() public {
+    function test_upgradeModuleValidationFunction() public withSMATestNoSetup {
         // Setup new validaiton with pre validation and execution hooks associated with a validator
         ECDSAValidationModule validation1 = new ECDSAValidationModule();
         ECDSAValidationModule validation2 = new ECDSAValidationModule();
@@ -213,5 +213,6 @@ contract UpgradeModuleTest is AccountTestBase {
         );
         account1.executeWithRuntimeValidation(callData, _encodeSignature(newModuleEntity, GLOBAL_VALIDATION, ""));
         assertEq(target.balance, 2 * sendAmount);
+        vm.stopPrank();
     }
 }

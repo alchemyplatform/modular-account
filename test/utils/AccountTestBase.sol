@@ -11,6 +11,8 @@ import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../src/helpers/Constants.sol";
+
+import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
@@ -40,7 +42,10 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     uint256 public owner1Key;
     ModularAccount public account1;
 
+    bool internal _isSMATest;
+
     ModuleEntity internal _signerValidation;
+    uint256 internal _revertSnapshot;
 
     // Re-declare the constant to prevent derived test contracts from having to import it
     uint32 public constant TEST_DEFAULT_VALIDATION_ENTITY_ID = EXT_CONST_TEST_DEFAULT_VALIDATION_ENTITY_ID;
@@ -48,18 +53,46 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     uint256 public constant CALL_GAS_LIMIT = 100_000;
     uint256 public constant VERIFICATION_GAS_LIMIT = 1_200_000;
 
+    modifier withSMATest(function() setUp) {
+        _;
+
+        vm.revertTo(_revertSnapshot);
+
+        _isSMATest = true;
+        account1 = ModularAccount(payable(factory.createSemiModularAccount(owner1, 0)));
+        vm.deal(address(account1), 100 ether);
+        _signerValidation = FALLBACK_VALIDATION;
+
+        setUp();
+
+        _;
+    }
+
+    modifier withSMATestNoSetup() {
+        _;
+
+        vm.revertTo(_revertSnapshot);
+
+        _isSMATest = true;
+        account1 = ModularAccount(payable(factory.createSemiModularAccount(owner1, 0)));
+        vm.deal(address(account1), 100 ether);
+        _signerValidation = FALLBACK_VALIDATION;
+
+        _;
+    }
+
     constructor() {
         entryPoint = _deployEntryPoint070();
         (owner1, owner1Key) = makeAddrAndKey("owner1");
         factoryOwner = makeAddr("factoryOwner");
         beneficiary = payable(makeAddr("beneficiary"));
 
-        address deployedECDSAValidationModule = address(_deployECDSAValidationModule());
+        // address deployedECDSAValidationModule = address(_deployECDSAValidationModule());
 
         // We etch the single signer validation to the max address, such that it coincides with the fallback
         // validation module entity for semi modular account tests.
-        ecdsaValidationModule = ECDSAValidationModule(address(0));
-        vm.etch(address(0), deployedECDSAValidationModule.code);
+        ecdsaValidationModule = _deployECDSAValidationModule();
+        // vm.etch(address(0), deployedECDSAValidationModule.code);
 
         accountImplementation = _deployModularAccount(entryPoint);
 
@@ -74,15 +107,13 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
             factoryOwner
         );
 
-        if (vm.envOr("SMA_TEST", false)) {
-            account1 = ModularAccount(payable(factory.createSemiModularAccount(owner1, 0)));
-        } else {
-            account1 = factory.createAccount(owner1, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID);
-        }
+        account1 = factory.createAccount(owner1, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         vm.deal(address(account1), 100 ether);
 
         _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
+
+        _revertSnapshot = vm.snapshot();
     }
 
     function _runExecUserOp(address target, bytes memory callData) internal {
@@ -194,13 +225,15 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     function _transferOwnershipToTest() internal {
         // Transfer ownership to test contract for easier invocation.
         vm.prank(owner1);
-        if (vm.envOr("SMA_TEST", false)) {
+
+        if (_isSMATest) {
             account1.executeWithRuntimeValidation(
                 abi.encodeCall(SemiModularAccountBytecode(payable(account1)).updateFallbackSigner, (address(this))),
                 _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
             );
             return;
         }
+
         account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 account1.execute,

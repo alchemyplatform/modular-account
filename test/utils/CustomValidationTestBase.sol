@@ -4,9 +4,8 @@ pragma solidity ^0.8.26;
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-import {ModuleEntity} from "../../src/libraries/ModuleEntityLib.sol";
+import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
-
 import {AccountTestBase} from "./AccountTestBase.sol";
 
 /// @dev This test contract base is used to test custom validation logic.
@@ -14,6 +13,8 @@ import {AccountTestBase} from "./AccountTestBase.sol";
 /// Then, call _customValidationSetup in the test setup.
 /// Make sure to do so after any state variables that `_initialValidationConfig` relies on are set.
 abstract contract CustomValidationTestBase is AccountTestBase {
+    using ModuleEntityLib for ModuleEntity;
+
     function _customValidationSetup() internal {
         (
             ModuleEntity validationFunction,
@@ -25,13 +26,17 @@ abstract contract CustomValidationTestBase is AccountTestBase {
             bytes[] memory hooks
         ) = _initialValidationConfig();
 
-        account1 = ModularAccount(payable(new ERC1967Proxy{salt: 0}(address(accountImplementation), "")));
-
-        _beforeInstallStep(address(account1));
-
-        if (vm.envOr("SMA_TEST", false)) {
-            vm.prank(address(entryPoint));
+        if (_isSMATest) {
+            // Short circuit because you cannot install hooks to the fallback validation.
+            // if (validationFunction.eq(FALLBACK_VALIDATION)) {
+            // revert("the fuck");
+            //     return;
+            // }
+            account1 =
+                ModularAccount(payable(new ERC1967Proxy{salt: 0}(address(semiModularAccountImplementation), "")));
+            _beforeInstallStep(address(account1));
             // The initializer doesn't work on the SMA
+            vm.prank(address(entryPoint));
             account1.installValidation(
                 ValidationConfigLib.pack(validationFunction, isGlobal, isSignatureValidation, isUserOpValidation),
                 selectors,
@@ -39,6 +44,8 @@ abstract contract CustomValidationTestBase is AccountTestBase {
                 hooks
             );
         } else {
+            account1 = ModularAccount(payable(new ERC1967Proxy{salt: 0}(address(accountImplementation), "")));
+            _beforeInstallStep(address(account1));
             account1.initializeWithValidation(
                 ValidationConfigLib.pack(validationFunction, isGlobal, isSignatureValidation, isUserOpValidation),
                 selectors,

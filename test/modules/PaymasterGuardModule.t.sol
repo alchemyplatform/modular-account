@@ -21,21 +21,21 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         paymaster2 = payable(makeAddr("paymaster2"));
     }
 
-    function test_onInstall() public {
+    function test_onInstall() public withSMATest(setUp) {
         vm.startPrank(address(account));
         module.onInstall(abi.encode(ENTITY_ID, paymaster1));
 
         assertEq(paymaster1, module.paymasters(ENTITY_ID, account));
     }
 
-    function test_onUninstall() public {
+    function test_onUninstall() public withSMATest(setUp) {
         vm.startPrank(address(account));
         module.onUninstall(abi.encode(ENTITY_ID));
 
         assertEq(address(0), module.paymasters(ENTITY_ID, account));
     }
 
-    function test_preUserOpValidationHook_success() public {
+    function test_preUserOpValidationHook_success() public withSMATest(setUp) {
         PackedUserOperation memory uo = _packUO(abi.encodePacked(paymaster1, ""));
 
         vm.startPrank(address(account));
@@ -46,7 +46,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         assertEq(res, 0);
     }
 
-    function test_preUserOpValidationHook_failWithInvalidData() public {
+    function test_preUserOpValidationHook_failWithInvalidData() public withSMATest(setUp) {
         PackedUserOperation memory uo = _packUO("");
 
         vm.startPrank(address(account));
@@ -56,7 +56,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         module.preUserOpValidationHook(ENTITY_ID, uo, "");
     }
 
-    function test_preUserOpValidationHook_fail() public {
+    function test_preUserOpValidationHook_fail() public withSMATest(setUp) {
         PackedUserOperation memory uo = _packUO(abi.encodePacked(paymaster1, ""));
 
         vm.startPrank(address(account));
@@ -67,7 +67,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         module.preUserOpValidationHook(ENTITY_ID, uo, "");
     }
 
-    function test_preRuntimeValidationHook_success() public {
+    function test_preRuntimeValidationHook_success() public withSMATest(setUp) {
         vm.startPrank(address(account));
 
         module.preRuntimeValidationHook(ENTITY_ID, address(0), 0, "", "");

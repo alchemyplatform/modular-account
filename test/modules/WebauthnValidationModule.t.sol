@@ -4,8 +4,6 @@ pragma solidity ^0.8.26;
 import {ModuleEntityLib} from "@erc6900/reference-implementation/helpers/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/helpers/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-
-import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {WebAuthn} from "webauthn-sol/src/WebAuthn.sol";
 import {Utils, WebAuthnInfo} from "webauthn-sol/test/Utils.sol";
@@ -33,10 +31,11 @@ contract WebauthnValidationModuleTest is AccountTestBase {
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
     uint256 internal constant _SIG_VALIDATION_FAILED = 1;
 
-    function setUp() external {
+    function setUp() public {
         module = new WebauthnValidationModule();
-        account = payable(address(new ERC1967Proxy(address(new ModularAccount(entryPoint)), "")));
-        ModularAccount(payable(account)).initializeWithValidation(
+        account = payable(account1);
+        vm.prank(address(entryPoint));
+        ModularAccount(account).installValidation(
             ValidationConfigLib.pack(address(module), entityId, true, true, true),
             new bytes4[](0),
             abi.encode(entityId, x, y),
@@ -54,7 +53,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         );
     }
 
-    function test_isValidSignature_shouldFail(bytes32 message, uint256 sigR, uint256 sigS) external view {
+    function test_fail_isValidSignature(bytes32 message, uint256 sigR, uint256 sigS) external view {
         bytes32 challenge = module.replaySafeHash(account, message);
 
         // make sure r, s values isn't the right one by accident. checking 1 should be enough
@@ -94,7 +93,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         );
     }
 
-    function test_uoValidation() external {
+    function test_uoValidation() external withSMATest(setUp) {
         PackedUserOperation memory uo;
         uo.sender = account;
         uo.callData = abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, new bytes(0)));
@@ -102,7 +101,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         bytes32 uoHash = entryPoint.getUserOpHash(uo);
         uo.signature = _getUOSigForChallenge(uoHash.toEthSignedMessageHash(), 0, 0);
 
-        vm.startPrank(address(entryPoint));
+        vm.prank(address(entryPoint));
         assertEq(ModularAccountBase(account).validateUserOp(uo, uoHash, 0), _SIG_VALIDATION_PASSED);
     }
 
@@ -121,7 +120,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         vm.assume(sigR != 0); // because we special case r=0 and s=0 in the helper function
         uo.signature = _getUOSigForChallenge(uoHash.toEthSignedMessageHash(), sigR, sigS);
 
-        vm.startPrank(address(entryPoint));
+        vm.prank(address(entryPoint));
         assertEq(ModularAccountBase(account).validateUserOp(uo, uoHash, 0), _SIG_VALIDATION_FAILED);
     }
 

@@ -39,7 +39,7 @@ contract AccountExecHooksTest is AccountTestBase {
         );
     }
 
-    function test_preExecHook_install() public {
+    function test_preExecHook_install() public withSMATest(setUp) {
         _installExecution1WithHooks(
             ManifestExecutionHook({
                 executionSelector: _EXEC_SELECTOR,
@@ -52,7 +52,7 @@ contract AccountExecHooksTest is AccountTestBase {
 
     /// @dev Module 1 hook pair: [1, null]
     ///      Expected execution: [1, null]
-    function test_preExecHook_run() public {
+    function test_preExecHook_run() public withSMATest(setUp) {
         test_preExecHook_install();
 
         vm.expectEmit(true, true, true, true);
@@ -71,13 +71,13 @@ contract AccountExecHooksTest is AccountTestBase {
         assertTrue(success);
     }
 
-    function test_preExecHook_uninstall() public {
+    function test_preExecHook_uninstall() public withSMATest(setUp) {
         test_preExecHook_install();
 
         _uninstallExecution(mockModule1);
     }
 
-    function test_execHookPair_install() public {
+    function test_execHookPair_install() public withSMATest(setUp) {
         _installExecution1WithHooks(
             ManifestExecutionHook({
                 executionSelector: _EXEC_SELECTOR,
@@ -90,7 +90,7 @@ contract AccountExecHooksTest is AccountTestBase {
 
     /// @dev Module 1 hook pair: [1, 2]
     ///      Expected execution: [1, 2]
-    function test_execHookPair_run() public {
+    function test_execHookPair_run() public withSMATest(setUp) {
         test_execHookPair_install();
 
         vm.expectEmit(true, true, true, true);
@@ -119,13 +119,13 @@ contract AccountExecHooksTest is AccountTestBase {
         assertTrue(success);
     }
 
-    function test_execHookPair_uninstall() public {
+    function test_execHookPair_uninstall() public withSMATest(setUp) {
         test_execHookPair_install();
 
         _uninstallExecution(mockModule1);
     }
 
-    function test_postOnlyExecHook_install() public {
+    function test_postOnlyExecHook_install() public withSMATest(setUp) {
         _installExecution1WithHooks(
             ManifestExecutionHook({
                 executionSelector: _EXEC_SELECTOR,
@@ -138,7 +138,7 @@ contract AccountExecHooksTest is AccountTestBase {
 
     /// @dev Module 1 hook pair: [null, 2]
     ///      Expected execution: [null, 2]
-    function test_postOnlyExecHook_run() public {
+    function test_postOnlyExecHook_run() public withSMATest(setUp) {
         test_postOnlyExecHook_install();
 
         vm.expectEmit(true, true, true, true);
@@ -151,7 +151,7 @@ contract AccountExecHooksTest is AccountTestBase {
         assertTrue(success);
     }
 
-    function test_postOnlyExecHook_uninstall() public {
+    function test_postOnlyExecHook_uninstall() public withSMATest(setUp) {
         test_postOnlyExecHook_install();
 
         _uninstallExecution(mockModule1);
@@ -166,11 +166,13 @@ contract AccountExecHooksTest is AccountTestBase {
         vm.expectEmit(true, true, true, true);
         emit ExecutionInstalled(address(mockModule1), _m1);
 
+        // vm.startPrank(owner1);
         account1.installExecution({
             module: address(mockModule1),
             manifest: mockModule1.executionManifest(),
             moduleInstallData: bytes("a")
         });
+        // vm.stopPrank();
     }
 
     function _uninstallExecution(MockModule module) internal {

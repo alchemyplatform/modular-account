@@ -36,14 +36,14 @@ contract PermittedCallPermissionsTest is AccountTestBase {
         vm.stopPrank();
     }
 
-    function test_permittedCall_Allowed() public view {
+    function test_permittedCall_Allowed() public withSMATest(setUp) {
         bytes memory result = PermittedCallerModule(address(account1)).usePermittedCallAllowed();
         bytes32 actual = abi.decode(result, (bytes32));
 
         assertEq(actual, keccak256("bar"));
     }
 
-    function test_permittedCall_NotAllowed() public {
+    function test_permittedCall_NotAllowed() public withSMATest(setUp) {
         vm.expectRevert(
             abi.encodeWithSelector(
                 ModularAccountBase.ValidationFunctionMissing.selector, ResultCreatorModule.bar.selector

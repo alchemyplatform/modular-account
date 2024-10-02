@@ -34,7 +34,7 @@ contract ModularAccountViewTest is CustomValidationTestBase {
         vm.stopPrank();
     }
 
-    function test_moduleView_getExecutionData_native() public view {
+    function test_moduleView_getExecutionData_native() public withSMATest(setUp) {
         bytes4[] memory selectorsToCheck = new bytes4[](5);
 
         selectorsToCheck[0] = IModularAccount.execute.selector;
@@ -55,7 +55,7 @@ contract ModularAccountViewTest is CustomValidationTestBase {
         }
     }
 
-    function test_moduleView_getExecutionData_module() public view {
+    function test_moduleView_getExecutionData_module() public withSMATest(setUp) {
         bytes4[] memory selectorsToCheck = new bytes4[](1);
         address[] memory expectedModuleAddress = new address[](1);
 
@@ -99,7 +99,7 @@ contract ModularAccountViewTest is CustomValidationTestBase {
         }
     }
 
-    function test_moduleView_getValidationData() public view {
+    function test_moduleView_getValidationData() public withSMATest(setUp) {
         ValidationDataView memory data = account1.getValidationData(comprehensiveModuleValidation);
         bytes4[] memory selectors = data.selectors;
 
