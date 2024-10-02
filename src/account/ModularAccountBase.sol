@@ -670,7 +670,7 @@ abstract contract ModularAccountBase is
         // Run the pre hooks and copy their return data to the post hooks array, if an associated post exec hook
         // exists.
         for (uint256 i = hooksLength; i > 0;) {
-            // Decrement here, instead of in the loop body, to handle the case where length is 0.
+            // Decrement here, instead of in the loop body, to convert from length to an index.
             unchecked {
                 --i;
             }
