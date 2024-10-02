@@ -16,4 +16,10 @@ contract Counter {
     function increment() public {
         number++;
     }
+
+    /// @notice Decrement the counter's value by one.
+    /// @dev The number is not in an unchecked block, so overflows will revert.
+    function decrement() public {
+        number--;
+    }
 }
