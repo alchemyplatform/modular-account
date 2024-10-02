@@ -20,7 +20,13 @@ import {
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 
 import {HookConfigLib} from "../libraries/HookConfigLib.sol";
-import {ExecutionData, ValidationData, getAccountStorage} from "./AccountStorage.sol";
+import {ValidationLocatorLib} from "../libraries/ValidationLocatorLib.sol";
+import {
+    ExecutionData,
+    ValidationData,
+    getAccountStorage,
+    toHookConfigArray
+} from "./AccountStorage.sol";
 
 abstract contract ModularAccountView is IModularAccountView {
     using LinkedListSetLib for LinkedListSet;
@@ -60,7 +66,8 @@ abstract contract ModularAccountView is IModularAccountView {
         override
         returns (ValidationDataView memory data)
     {
-        ValidationData storage validationData = getAccountStorage().validationData[validationFunction];
+        ValidationData storage validationData =
+            getAccountStorage().validationData[ValidationLocatorLib.getFromModuleEntity(validationFunction)];
         data.isGlobal = validationData.isGlobal;
         data.isSignatureValidation = validationData.isSignatureValidation;
         data.isUserOpValidation = validationData.isUserOpValidation;
@@ -68,12 +75,12 @@ abstract contract ModularAccountView is IModularAccountView {
 
         // Todo: optimize these array reverses
 
-        SetValue[] memory hooks = validationData.executionHooks.getAll();
+        HookConfig[] memory hooks = toHookConfigArray(validationData.executionHooks);
         uint256 hooksLength = hooks.length;
         data.executionHooks = new HookConfig[](hooksLength);
 
         for (uint256 i = 0; i < hooksLength; ++i) {
-            data.executionHooks[hooksLength - i - 1] = HookConfig.wrap(bytes25(SetValue.unwrap(hooks[i])));
+            data.executionHooks[hooksLength - i - 1] = hooks[i];
         }
 
         SetValue[] memory selectors = validationData.selectors.getAll();

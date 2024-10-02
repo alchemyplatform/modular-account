@@ -5,8 +5,11 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
+
+import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../src/helpers/Constants.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
+import {IS_DIRECT_CALL_VALIDATION} from "../../src/libraries/ValidationLocatorLib.sol";
 import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 
 import {Vm} from "forge-std/src/Vm.sol";
@@ -35,7 +38,7 @@ contract ModuleSignatureUtils {
         PreValidationHookData[] memory preValidationHookData,
         bytes memory validationData
     ) internal pure returns (bytes memory) {
-        bytes memory sig = abi.encodePacked(validationFunction);
+        bytes memory sig = _encodeValidationLocatorSig(validationFunction, 0);
 
         sig = abi.encodePacked(sig, _packPreHookDatas(preValidationHookData));
 
@@ -51,7 +54,7 @@ contract ModuleSignatureUtils {
         PreValidationHookData[] memory preValidationHookData,
         bytes memory validationData
     ) internal pure returns (bytes memory) {
-        bytes memory sig = abi.encodePacked(validationFunction, globalOrNot);
+        bytes memory sig = _encodeValidationLocatorSig(validationFunction, globalOrNot);
 
         sig = abi.encodePacked(sig, _packPreHookDatas(preValidationHookData));
 
@@ -78,6 +81,19 @@ contract ModuleSignatureUtils {
     {
         PreValidationHookData[] memory emptyPreValidationHookData = new PreValidationHookData[](0);
         return _encode1271Signature(validationFunction, emptyPreValidationHookData, validationData);
+    }
+
+    function _encodeValidationLocatorSig(ModuleEntity validationFunction, uint8 globalOrNot)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        (address validationModule, uint32 entityId) = validationFunction.unpack();
+        if (entityId == DIRECT_CALL_VALIDATION_ENTITYID) {
+            return abi.encodePacked(globalOrNot | IS_DIRECT_CALL_VALIDATION, validationModule);
+        } else {
+            return abi.encodePacked(globalOrNot, entityId);
+        }
     }
 
     // helper function to pack pre validation hook datas, according to the sparse calldata segment spec.
@@ -152,8 +168,7 @@ contract ModuleSignatureUtils {
         bytes memory innerUoValidationSig = _packValidationResWithIndex(255, deferredValidationSig);
 
         bytes memory encodedDeferredInstall = abi.encodePacked(
-            outerECDSAValidation,
-            outerECDSAValidationFlags,
+            _encodeValidationLocatorSig(outerECDSAValidation, outerECDSAValidationFlags),
             uint32(deferredInstallData.length),
             deferredInstallData,
             uint32(deferredInstallSig.length),

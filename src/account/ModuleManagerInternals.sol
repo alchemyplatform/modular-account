@@ -21,10 +21,12 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 
 import {MAX_PRE_VALIDATION_HOOKS} from "../helpers/Constants.sol";
 import {ExecutionLib} from "../libraries/ExecutionLib.sol";
+
 import {HookConfigLib} from "../libraries/HookConfigLib.sol";
 import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
+import {ValidationLocatorLib} from "../libraries/ValidationLocatorLib.sol";
 import {
     AccountStorage,
     ExecutionData,
@@ -52,6 +54,8 @@ abstract contract ModuleManagerInternals is IModularAccount {
     error ModuleNotInstalled(address module);
     error PreValidationHookLimitExceeded();
     error ValidationAlreadySet(bytes4 selector, ModuleEntity validationFunction);
+    // todo: fix
+    error ValidationAlreadySet2(uint32 entityId);
 
     // Storage update operations
 
@@ -100,9 +104,28 @@ abstract contract ModuleManagerInternals is IModularAccount {
         _executionData.allowGlobalValidation = false;
     }
 
-    function _removeValidationFunction(ModuleEntity validationFunction) internal {
-        ValidationData storage _validationData = getAccountStorage().validationData[validationFunction];
+    function _addValidationFunction(ValidationConfig validationConfig) internal {
+        ValidationData storage _validationData = getAccountStorage().validationData[ValidationLocatorLib
+            .getFromValidationConfig(validationConfig)];
 
+        address module = validationConfig.module();
+
+        // Allow either editting an existing installed validation function or installing a new one.
+        if (_validationData.module != address(0) && _validationData.module != module) {
+            revert ValidationAlreadySet2(validationConfig.entityId());
+        }
+
+        _validationData.module = validationConfig.module();
+        _validationData.isGlobal = validationConfig.isGlobal();
+        _validationData.isSignatureValidation = validationConfig.isSignatureValidation();
+        _validationData.isUserOpValidation = validationConfig.isUserOpValidation();
+    }
+
+    function _removeValidationFunction(ModuleEntity validationFunction) internal {
+        ValidationData storage _validationData =
+            getAccountStorage().validationData[ValidationLocatorLib.getFromModuleEntity(validationFunction)];
+
+        _validationData.module = address(0);
         _validationData.isGlobal = false;
         _validationData.isSignatureValidation = false;
         _validationData.isUserOpValidation = false;
@@ -232,7 +255,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
         bytes[] calldata hooks
     ) internal {
         ValidationData storage _validationData =
-            getAccountStorage().validationData[validationConfig.moduleEntity()];
+            getAccountStorage().validationData[ValidationLocatorLib.getFromValidationConfig(validationConfig)];
         ModuleEntity moduleEntity = validationConfig.moduleEntity();
 
         for (uint256 i = 0; i < hooks.length; ++i) {
@@ -264,9 +287,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
             }
         }
 
-        _validationData.isGlobal = validationConfig.isGlobal();
-        _validationData.isSignatureValidation = validationConfig.isSignatureValidation();
-        _validationData.isUserOpValidation = validationConfig.isUserOpValidation();
+        _addValidationFunction(validationConfig);
 
         _onInstall(validationConfig.module(), installData, type(IValidationModule).interfaceId);
         emit ValidationInstalled(validationConfig.module(), validationConfig.entityId());
@@ -277,7 +298,8 @@ abstract contract ModuleManagerInternals is IModularAccount {
         bytes calldata uninstallData,
         bytes[] calldata hookUninstallDatas
     ) internal {
-        ValidationData storage _validationData = getAccountStorage().validationData[validationFunction];
+        ValidationData storage _validationData =
+            getAccountStorage().validationData[ValidationLocatorLib.getFromModuleEntity(validationFunction)];
         bool onUninstallSuccess = true;
 
         _removeValidationFunction(validationFunction);

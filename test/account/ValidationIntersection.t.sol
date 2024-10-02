@@ -31,20 +31,11 @@ contract ValidationIntersectionTest is AccountTestBase {
         oneHookModule = new MockUserOpValidation1HookModule();
         twoHookModule = new MockUserOpValidation2HookModule();
 
-        noHookValidation = ModuleEntityLib.pack({
-            addr: address(noHookModule),
-            entityId: uint32(MockBaseUserOpValidationModule.EntityId.USER_OP_VALIDATION)
-        });
+        noHookValidation = ModuleEntityLib.pack({addr: address(noHookModule), entityId: 1});
 
-        oneHookValidation = ModuleEntityLib.pack({
-            addr: address(oneHookModule),
-            entityId: uint32(MockBaseUserOpValidationModule.EntityId.USER_OP_VALIDATION)
-        });
+        oneHookValidation = ModuleEntityLib.pack({addr: address(oneHookModule), entityId: 2});
 
-        twoHookValidation = ModuleEntityLib.pack({
-            addr: address(twoHookModule),
-            entityId: uint32(MockBaseUserOpValidationModule.EntityId.USER_OP_VALIDATION)
-        });
+        twoHookValidation = ModuleEntityLib.pack({addr: address(twoHookModule), entityId: 3});
 
         bytes4[] memory validationSelectors = new bytes4[](1);
         validationSelectors[0] = MockUserOpValidationModule.foo.selector;

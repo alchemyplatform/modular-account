@@ -9,6 +9,8 @@ import {
 
 import {HookConfig, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
+import {ValidationLocator} from "../libraries/ValidationLocatorLib.sol";
+
 // bytes = keccak256("ERC6900.ModularAccount.Storage")
 bytes32 constant _ACCOUNT_STORAGE_SLOT = 0xc531f081ecdb5a90f38c197521797881a6e5c752a7d451780f325a95f8b91f45;
 
@@ -29,6 +31,7 @@ struct ExecutionData {
 }
 
 struct ValidationData {
+    address module;
     // Whether or not this validation can be used as a global validation function.
     bool isGlobal;
     // Whether or not this validation is allowed to validate ERC-1271 signatures.
@@ -49,10 +52,11 @@ struct AccountStorage {
     bool initializing;
     // Execution functions and their associated functions
     mapping(bytes4 selector => ExecutionData) executionData;
-    mapping(ModuleEntity validationFunction => ValidationData) validationData;
+    mapping(ValidationLocator => ValidationData) validationData;
     // For ERC165 introspection
     mapping(bytes4 => uint256) supportedIfaces;
     mapping(uint256 => bool) deferredInstallNonceUsed;
+    uint32 validationIdsUsed;
 }
 
 function getAccountStorage() pure returns (AccountStorage storage _storage) {

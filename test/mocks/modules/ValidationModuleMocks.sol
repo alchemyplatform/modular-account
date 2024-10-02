@@ -20,7 +20,6 @@ abstract contract MockBaseUserOpValidationModule is
     BaseModule
 {
     enum EntityId {
-        USER_OP_VALIDATION,
         PRE_VALIDATION_HOOK_1,
         PRE_VALIDATION_HOOK_2
     }
@@ -51,16 +50,13 @@ abstract contract MockBaseUserOpValidationModule is
         revert NotImplemented();
     }
 
-    function validateUserOp(uint32 entityId, PackedUserOperation calldata, bytes32)
+    function validateUserOp(uint32, PackedUserOperation calldata, bytes32)
         external
         view
         override
         returns (uint256)
     {
-        if (entityId == uint32(EntityId.USER_OP_VALIDATION)) {
-            return _userOpValidationFunctionData;
-        }
-        revert NotImplemented();
+        return _userOpValidationFunctionData;
     }
 
     function preSignatureValidationHook(uint32, address, bytes32, bytes calldata) external pure override {}

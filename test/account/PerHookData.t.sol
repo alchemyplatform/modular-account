@@ -21,7 +21,7 @@ contract PerHookDataTest is CustomValidationTestBase {
 
     Counter internal _counter;
 
-    uint32 internal constant _VALIDATION_ENTITY_ID = 0;
+    uint32 internal constant _VALIDATION_ENTITY_ID = 1;
     uint32 internal constant _PRE_HOOK_ENTITY_ID_1 = 0;
     uint32 internal constant _PRE_HOOK_ENTITY_ID_2 = 1;
 

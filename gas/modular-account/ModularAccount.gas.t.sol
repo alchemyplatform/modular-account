@@ -78,7 +78,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
             initCode: "",
             callData: abi.encodeCall(ModularAccountBase.execute, (recipient, 0.1 ether, "")),
             // don't over-estimate by a lot here, otherwise a fee is assessed.
-            accountGasLimits: _encodeGasLimits(40_000, 90_000),
+            accountGasLimits: _encodeGasLimits(40_000, 100_000),
             preVerificationGas: 0,
             gasFees: _encodeGasFees(1, 1),
             paymasterAndData: "",
@@ -160,7 +160,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         vm.deal(address(account1), 1 ether);
 
-        uint32 entityId = 0;
+        uint32 entityId = 1;
         bytes memory deferredValidationInstallData = abi.encode(entityId, owner1);
         ModuleEntity deferredValidation = ModuleEntityLib.pack(address(_deployECDSAValidationModule()), entityId);
 

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
+// import {console} from "forge-std/src/console.sol";
+
 import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
@@ -30,7 +32,10 @@ import {HookConfig, HookConfigLib} from "../libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
 import {SparseCalldataSegmentLib} from "../libraries/SparseCalldataSegmentLib.sol";
 import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
-import {AccountStorage, getAccountStorage, toHookConfigArray, toSetValue} from "./AccountStorage.sol";
+import {ValidationLocator, ValidationLocatorLib} from "../libraries/ValidationLocatorLib.sol";
+import {
+    AccountStorage, ValidationData, getAccountStorage, toHookConfigArray, toSetValue
+} from "./AccountStorage.sol";
 import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {BaseAccount} from "./BaseAccount.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
@@ -235,10 +240,17 @@ abstract contract ModularAccountBase is
     function executeUserOp(PackedUserOperation calldata userOp, bytes32) external override {
         _requireFromEntryPoint();
 
-        ModuleEntity userOpValidationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
+        (ValidationLocator userOpValidation,) = ValidationLocatorLib.loadFromSignature(userOp.signature);
 
-        PostExecToRun[] memory postValidatorExecHooks =
-            _doPreHooks(getAccountStorage().validationData[userOpValidationFunction].executionHooks, msg.data);
+        ValidationData storage validationData = getAccountStorage().validationData[userOpValidation];
+
+        ModuleEntity userOpValidationFunction = userOpValidation.moduleEntity(validationData.module);
+
+        PostExecToRun[] memory postValidatorExecHooks = _doPreHooks(
+            getAccountStorage().validationData[ValidationLocatorLib.getFromModuleEntity(userOpValidationFunction)]
+                .executionHooks,
+            msg.data
+        );
 
         bytes memory callData = userOp.callData[4:];
 
@@ -283,22 +295,30 @@ abstract contract ModularAccountBase is
         payable
         returns (bytes memory)
     {
-        // Revert if the provided `authorization` is less than 24 bytes long, rather than right-padding.
-        ModuleEntity runtimeValidationFunction = ModuleEntity.wrap(bytes24(authorization[:24]));
+        bool isGlobalValidation = uint8(authorization[0]) & _IS_GLOBAL_VALIDATION_BIT != 0;
+
+        ValidationLocator runtimeValidation;
+        (runtimeValidation, authorization) = ValidationLocatorLib.loadFromSignature(authorization);
+
+        ValidationData storage validationData = getAccountStorage().validationData[runtimeValidation];
+
+        ModuleEntity runtimeValidationFunction = runtimeValidation.moduleEntity(validationData.module);
 
         // Check if the runtime validation function is allowed to be called
-        bool isGlobalValidation = uint8(authorization[24]) == 1;
         _checkIfValidationAppliesCallData(
             data,
             runtimeValidationFunction,
             isGlobalValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
-        _doRuntimeValidation(runtimeValidationFunction, data, authorization[25:]);
+        _doRuntimeValidation(runtimeValidationFunction, data, authorization);
 
         // If runtime validation passes, run exec hooks associated with the validator
-        PostExecToRun[] memory postValidatorExecHooks =
-            _doPreHooks(getAccountStorage().validationData[runtimeValidationFunction].executionHooks, data);
+        PostExecToRun[] memory postValidatorExecHooks = _doPreHooks(
+            getAccountStorage().validationData[ValidationLocatorLib.getFromModuleEntity(runtimeValidationFunction)]
+                .executionHooks,
+            data
+        );
 
         // Execute the call
         (bool success, bytes memory returnData) = address(this).call(data);
@@ -407,8 +427,8 @@ abstract contract ModularAccountBase is
     }
 
     function isValidSignature(bytes32 hash, bytes calldata signature) public view returns (bytes4) {
-        ModuleEntity sigValidation = ModuleEntity.wrap(bytes24(signature));
-        signature = signature[24:];
+        ValidationLocator sigValidation;
+        (sigValidation, signature) = ValidationLocatorLib.loadFromSignature(signature);
         return _isValidSignature(sigValidation, hash, signature);
     }
 
@@ -424,17 +444,22 @@ abstract contract ModularAccountBase is
             revert UnrecognizedFunction(bytes4(userOp.callData));
         }
 
-        // Revert if the provided `authorization` less than 24 bytes long, rather than right-padding.
-        ModuleEntity validationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
-
-        // Decode the 25th byte into an 8-bit bitmap (6 bits of which remain unused).
-        uint8 validationFlags = uint8(userOp.signature[24]);
-        bool isGlobalValidation = validationFlags & _IS_GLOBAL_VALIDATION_BIT != 0;
-        bool isDeferredInstallValidation = validationFlags & _IS_DEFERRED_INSTALL_VALIDATION_BIT != 0;
-
+        ValidationLocator userOpValidation;
         // Assigned depending on whether the UO uses deferred validation installation or not.
         bytes calldata userOpSignature;
 
+        // todo: switch to nonce
+        (userOpValidation, userOpSignature) = ValidationLocatorLib.loadFromSignature(userOp.signature);
+
+        ValidationData storage validationDataStorage = getAccountStorage().validationData[userOpValidation];
+        ModuleEntity validationFunction = userOpValidation.moduleEntity(validationDataStorage.module);
+
+        // Decode the 25th byte into an 8-bit bitmap (6 bits of which remain unused).
+        uint8 validationFlags = uint8(userOp.signature[0]);
+        bool isGlobalValidation = validationFlags & _IS_GLOBAL_VALIDATION_BIT != 0;
+        bool isDeferredInstallValidation = validationFlags & _IS_DEFERRED_INSTALL_VALIDATION_BIT != 0;
+
+        // tODO: update
         /// The calldata layout is unique for deferred validation installation.
         /// Byte indices are [inclusive, exclusive]
         ///      [25:29] : uint32, encodedDatalength.
@@ -454,10 +479,10 @@ abstract contract ModularAccountBase is
             );
 
             // Get the length of the abi-encoded `DeferredValidationInstallData` struct.
-            uint256 encodedDataLength = uint32(bytes4(userOp.signature[25:29]));
+            uint256 encodedDataLength = uint32(bytes4(userOpSignature[0:4]));
 
             // Load the pointer to the abi-encoded data.
-            bytes calldata encodedData = userOp.signature[29:29 + encodedDataLength];
+            bytes calldata encodedData = userOpSignature[4:4 + encodedDataLength];
 
             // Struct addresses stack too deep issues
             DeferredValidationInstallData memory deferredValidationInstallData;
@@ -473,12 +498,12 @@ abstract contract ModularAccountBase is
 
             // Get the deferred installation signature length.
             uint256 deferredInstallSigLength =
-                uint32(bytes4(userOp.signature[29 + encodedDataLength:33 + encodedDataLength]));
+                uint32(bytes4(userOpSignature[4 + encodedDataLength:8 + encodedDataLength]));
 
             // Get the deferred installation signature, which is passed to the outer validation to install the
             // deferred validation.
             bytes calldata deferredInstallSig =
-                userOp.signature[33 + encodedDataLength:33 + encodedDataLength + deferredInstallSigLength];
+                userOpSignature[8 + encodedDataLength:8 + encodedDataLength + deferredInstallSigLength];
 
             //Validate the signature.
             _validateDeferredInstallDataAndSetNonce(
@@ -498,11 +523,9 @@ abstract contract ModularAccountBase is
             isGlobalValidation = deferredValidationInstallData.validationConfig.isGlobal();
 
             // Update the UserOp signature to the remaining bytes.
-            userOpSignature = userOp.signature[33 + encodedDataLength + deferredInstallSigLength:];
+            userOpSignature = userOpSignature[8 + encodedDataLength + deferredInstallSigLength:];
 
             validationData = uint256(deferredValidationInstallData.deadline) << 160;
-        } else {
-            userOpSignature = userOp.signature[25:];
         }
 
         _checkIfValidationAppliesCallData(
@@ -515,8 +538,9 @@ abstract contract ModularAccountBase is
         // `executeUserOp`. This check must be here because if context isn't passed, we can't tell in execution
         // which hooks should have ran.
         if (
-            !getAccountStorage().validationData[validationFunction].executionHooks.isEmpty()
-                && bytes4(userOp.callData[:4]) != this.executeUserOp.selector
+            !getAccountStorage().validationData[ValidationLocatorLib.getFromModuleEntity(validationFunction)]
+                .executionHooks
+                .isEmpty() && bytes4(userOp.callData[:4]) != this.executeUserOp.selector
         ) {
             revert RequireUserOperationContext();
         }
@@ -562,7 +586,11 @@ abstract contract ModularAccountBase is
 
         bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(domainSeparator(), structHash);
 
-        if (_isValidSignature(sigValidation, typedDataHash, sig) != _1271_MAGIC_VALUE) {
+        // TODO: change the format here to a validationLocator
+        if (
+            _isValidSignature(ValidationLocatorLib.getFromModuleEntity(sigValidation), typedDataHash, sig)
+                != _1271_MAGIC_VALUE
+        ) {
             revert DeferredInstallSignatureInvalid();
         }
     }
@@ -577,8 +605,8 @@ abstract contract ModularAccountBase is
         uint256 validationRes;
 
         // Do preUserOpValidation hooks
-        ModuleEntity[] memory preUserOpValidationHooks =
-            getAccountStorage().validationData[userOpValidationFunction].preValidationHooks;
+        ModuleEntity[] memory preUserOpValidationHooks = getAccountStorage().validationData[ValidationLocatorLib
+            .getFromModuleEntity(userOpValidationFunction)].preValidationHooks;
 
         for (uint256 i = 0; i < preUserOpValidationHooks.length; ++i) {
             (userOp.signature, signature) = signature.advanceSegmentIfAtIndex(uint8(i));
@@ -617,8 +645,8 @@ abstract contract ModularAccountBase is
         bytes calldata authorizationData
     ) internal {
         // run all preRuntimeValidation hooks
-        ModuleEntity[] memory preRuntimeValidationHooks =
-            getAccountStorage().validationData[runtimeValidationFunction].preValidationHooks;
+        ModuleEntity[] memory preRuntimeValidationHooks = getAccountStorage().validationData[ValidationLocatorLib
+            .getFromModuleEntity(runtimeValidationFunction)].preValidationHooks;
 
         for (uint256 i = 0; i < preRuntimeValidationHooks.length; ++i) {
             bytes memory currentAuthSegment;
@@ -767,8 +795,8 @@ abstract contract ModularAccountBase is
             // Direct call is allowed, run associated execution & validation hooks
 
             // Validation hooks
-            ModuleEntity[] memory preRuntimeValidationHooks =
-                _storage.validationData[directCallValidationKey].preValidationHooks;
+            ModuleEntity[] memory preRuntimeValidationHooks = _storage.validationData[ValidationLocatorLib
+                .getFromModuleEntity(directCallValidationKey)].preValidationHooks;
 
             uint256 hookLen = preRuntimeValidationHooks.length;
             for (uint256 i = 0; i < hookLen; ++i) {
@@ -776,8 +804,11 @@ abstract contract ModularAccountBase is
             }
 
             // Execution hooks associated with the validator
-            postValidatorExecutionHooks =
-                _doPreHooks(_storage.validationData[directCallValidationKey].executionHooks, msg.data);
+            postValidatorExecutionHooks = _doPreHooks(
+                _storage.validationData[ValidationLocatorLib.getFromModuleEntity(directCallValidationKey)]
+                    .executionHooks,
+                msg.data
+            );
         }
 
         // Exec hooks associated with the selector
@@ -796,7 +827,10 @@ abstract contract ModularAccountBase is
 
         (address module, uint32 entityId) = userOpValidationFunction.unpack();
 
-        if (!_storage.validationData[userOpValidationFunction].isUserOpValidation) {
+        if (
+            !_storage.validationData[ValidationLocatorLib.getFromModuleEntity(userOpValidationFunction)]
+                .isUserOpValidation
+        ) {
             revert UserOpValidationInvalid(module, entityId);
         }
 
@@ -822,13 +856,21 @@ abstract contract ModularAccountBase is
         }
     }
 
-    function _isValidSignature(ModuleEntity sigValidation, bytes32 hash, bytes calldata signature)
+    function _isValidSignature(ValidationLocator sigValidation, bytes32 hash, bytes calldata signature)
         internal
         view
         returns (bytes4)
     {
-        ModuleEntity[] memory preSignatureValidationHooks =
-            getAccountStorage().validationData[sigValidation].preValidationHooks;
+        ValidationData storage validationData = getAccountStorage().validationData[sigValidation];
+        ModuleEntity[] memory preSignatureValidationHooks = validationData.preValidationHooks;
+
+        ModuleEntity sigValidationFunction = sigValidation.moduleEntity(validationData.module);
+
+        if (!validationData.isSignatureValidation) {
+            (address module, uint32 entityId) = sigValidationFunction.unpack();
+            revert SignatureValidationInvalid(module, entityId);
+        }
+
         for (uint256 i = 0; i < preSignatureValidationHooks.length; ++i) {
             (address hookModule, uint32 hookEntityId) = preSignatureValidationHooks[i].unpack();
 
@@ -842,7 +884,7 @@ abstract contract ModularAccountBase is
             );
         }
         signature = signature.getFinalSegment();
-        return _exec1271Validation(sigValidation, hash, signature);
+        return _exec1271Validation(sigValidationFunction, hash, signature);
     }
 
     function _exec1271Validation(ModuleEntity sigValidation, bytes32 hash, bytes calldata signature)
@@ -851,12 +893,7 @@ abstract contract ModularAccountBase is
         virtual
         returns (bytes4)
     {
-        AccountStorage storage _storage = getAccountStorage();
-
         (address module, uint32 entityId) = sigValidation.unpack();
-        if (!_storage.validationData[sigValidation].isSignatureValidation) {
-            revert SignatureValidationInvalid(module, entityId);
-        }
 
         if (
             IValidationModule(module).validateSignature(address(this), entityId, msg.sender, hash, signature)
@@ -883,7 +920,8 @@ abstract contract ModularAccountBase is
     }
 
     function _isValidationGlobal(ModuleEntity validationFunction) internal view virtual returns (bool) {
-        return getAccountStorage().validationData[validationFunction].isGlobal;
+        return getAccountStorage().validationData[ValidationLocatorLib.getFromModuleEntity(validationFunction)]
+            .isGlobal;
     }
 
     function _checkIfValidationAppliesCallData(
@@ -946,12 +984,16 @@ abstract contract ModularAccountBase is
     ) internal view {
         // Check that the provided validation function is applicable to the selector
 
+        // address(4).staticcall(abi.encodePacked(validationFunction));
+
         if (checkingType == ValidationCheckingType.GLOBAL) {
             if (!_globalValidationApplies(selector, validationFunction)) {
+                address(4).staticcall(hex"01");
                 revert ValidationFunctionMissing(selector);
             }
         } else if (checkingType == ValidationCheckingType.SELECTOR) {
             if (!_selectorValidationApplies(selector, validationFunction)) {
+                address(4).staticcall(hex"02");
                 revert ValidationFunctionMissing(selector);
             }
         } else {
@@ -959,6 +1001,7 @@ abstract contract ModularAccountBase is
                 !_globalValidationApplies(selector, validationFunction)
                     && !_selectorValidationApplies(selector, validationFunction)
             ) {
+                address(4).staticcall(hex"03");
                 revert ValidationFunctionMissing(selector);
             }
         }
@@ -977,6 +1020,8 @@ abstract contract ModularAccountBase is
         view
         returns (bool)
     {
-        return getAccountStorage().validationData[validationFunction].selectors.contains(toSetValue(selector));
+        return getAccountStorage().validationData[ValidationLocatorLib.getFromModuleEntity(validationFunction)]
+            .selectors
+            .contains(toSetValue(selector));
     }
 }

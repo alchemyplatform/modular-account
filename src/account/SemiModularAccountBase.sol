@@ -156,7 +156,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
             || selector == this.updateFallbackSigner.selector || super._globalValidationAllowed(selector);
     }
 
-    function _isValidationGlobal(ModuleEntity validationFunction) internal view override returns (bool) {
+    function _isValidationGlobal(ModuleEntity validationFunction) internal view override returns (bool) {        
         return validationFunction.eq(FALLBACK_VALIDATION) || super._isValidationGlobal(validationFunction);
     }
 
