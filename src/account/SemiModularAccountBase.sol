@@ -6,6 +6,7 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 
 import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
@@ -41,6 +42,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     error FallbackSignerMismatch();
     error FallbackSignerDisabled();
     error InitializerDisabled();
+    error InvalidSignatureType();
 
     constructor(IEntryPoint anEntryPoint) ModularAccountBase(anEntryPoint) {}
 
@@ -107,11 +109,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         if (userOpValidationFunction.eq(FALLBACK_VALIDATION)) {
             address fallbackSigner = _getFallbackSigner();
 
-            if (
-                SignatureChecker.isValidSignatureNow(
-                    fallbackSigner, userOpHash.toEthSignedMessageHash(), userOp.signature
-                )
-            ) {
+            if (_checkSignature(fallbackSigner, userOpHash.toEthSignedMessageHash(), userOp.signature)) {
                 return _SIG_VALIDATION_PASSED;
             }
             return _SIG_VALIDATION_FAILED;
@@ -145,12 +143,37 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         if (sigValidation.eq(FALLBACK_VALIDATION)) {
             address fallbackSigner = _getFallbackSigner();
 
-            if (SignatureChecker.isValidSignatureNow(fallbackSigner, replaySafeHash(hash), signature)) {
+            if (_checkSignature(fallbackSigner, replaySafeHash(hash), signature)) {
                 return _1271_MAGIC_VALUE;
             }
             return _1271_INVALID;
         }
         return super._exec1271Validation(sigValidation, hash, signature);
+    }
+
+    function _checkSignature(address owner, bytes32 digest, bytes memory sig) internal view returns (bool) {
+        if (sig.length < 1) {
+            revert InvalidSignatureType();
+        }
+        uint8 sigType = uint8(bytes1(sig));
+        // remove first byte from sig in memory
+        assembly ("memory-safe") {
+            let sigLen := mload(sig)
+            sig := add(sig, 1)
+            mstore(sig, sub(sigLen, 1))
+        }
+        if (sigType == 0) {
+            // 0x00: EOA signature
+            (address recovered, ECDSA.RecoverError err,) = ECDSA.tryRecover(digest, sig);
+            if (err == ECDSA.RecoverError.NoError && recovered == owner) {
+                return true;
+            }
+            return false;
+        } else if (sigType == 1) {
+            // 0x01: ERC-1271 signature
+            return SignatureChecker.isValidERC1271SignatureNow(owner, digest, sig);
+        }
+        revert InvalidSignatureType();
     }
 
     function _globalValidationAllowed(bytes4 selector) internal view override returns (bool) {

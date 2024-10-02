@@ -3,6 +3,8 @@ pragma solidity ^0.8.26;
 
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
@@ -14,8 +16,8 @@ import {ReplaySafeWrapper} from "../ReplaySafeWrapper.sol";
 
 /// @title ECSDA Validation
 /// @author ERC-6900 Authors
-/// @notice This validation enables any ECDSA (secp256k1 curve) signature validation. It handles installation by
-/// each entity (entityId).
+/// @notice This validation enables any ECDSA (secp256k1 curve) signature validation or Contract Owner signature
+/// validation. It handles installation by each entity (entityId).
 /// Note:
 ///    - Uninstallation will NOT disable all installed validation entities. Account must remove access for each
 /// validation if want to disable all validations.
@@ -45,6 +47,7 @@ contract ECDSAValidationModule is IValidationModule, ReplaySafeWrapper, BaseModu
         address indexed account, uint32 indexed entityId, address indexed newSigner, address previousSigner
     ) anonymous;
 
+    error InvalidSignatureType();
     error NotAuthorized();
 
     /// @notice Transfer Signer of the account's validation to `newSigner`.
@@ -74,11 +77,7 @@ contract ECDSAValidationModule is IValidationModule, ReplaySafeWrapper, BaseModu
         returns (uint256)
     {
         // Validate the user op signature against the owner.
-        if (
-            SignatureChecker.isValidSignatureNow(
-                signers[entityId][userOp.sender], userOpHash.toEthSignedMessageHash(), userOp.signature
-            )
-        ) {
+        if (_checkSig(signers[entityId][userOp.sender], userOpHash.toEthSignedMessageHash(), userOp.signature)) {
             return _SIG_VALIDATION_PASSED;
         }
         return _SIG_VALIDATION_FAILED;
@@ -113,7 +112,7 @@ contract ECDSAValidationModule is IValidationModule, ReplaySafeWrapper, BaseModu
         returns (bytes4)
     {
         bytes32 _replaySafeHash = replaySafeHash(account, digest);
-        if (SignatureChecker.isValidSignatureNow(signers[entityId][account], _replaySafeHash, signature)) {
+        if (_checkSig(signers[entityId][account], _replaySafeHash, signature)) {
             return _1271_MAGIC_VALUE;
         }
         return _1271_INVALID;
@@ -146,5 +145,24 @@ contract ECDSAValidationModule is IValidationModule, ReplaySafeWrapper, BaseModu
         address previousSigner = signers[entityId][msg.sender];
         signers[entityId][msg.sender] = newSigner;
         emit SignerTransferred(msg.sender, entityId, newSigner, previousSigner);
+    }
+
+    function _checkSig(address owner, bytes32 digest, bytes calldata sig) internal view returns (bool) {
+        if (sig.length < 1) {
+            revert InvalidSignatureType();
+        }
+        uint8 sigType = uint8(bytes1(sig));
+        if (sigType == 0) {
+            // 0x00: EOA signature
+            (address recovered, ECDSA.RecoverError err,) = ECDSA.tryRecover(digest, sig[1:]);
+            if (err == ECDSA.RecoverError.NoError && recovered == owner) {
+                return true;
+            }
+            return false;
+        } else if (sigType == 1) {
+            // 0x01: ERC-1271 signature
+            return SignatureChecker.isValidERC1271SignatureNow(owner, digest, sig[1:]);
+        }
+        revert InvalidSignatureType();
     }
 }

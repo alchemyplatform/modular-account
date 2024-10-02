@@ -107,7 +107,8 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
 
-        userOp.signature = _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(r, s, v));
+        userOp.signature =
+            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         vm.prank(address(entryPoint));
         uint256 validationData = account1.validateUserOp(userOp, userOpHash, 0);
@@ -140,7 +141,8 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
         // Generate a bad signature
-        userOp.signature = _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked("abcd"));
+        userOp.signature =
+            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, "abcd"));
 
         vm.prank(address(entryPoint));
         uint256 validationData = account1.validateUserOp(userOp, userOpHash, 0);

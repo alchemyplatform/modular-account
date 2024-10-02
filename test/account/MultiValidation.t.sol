@@ -104,7 +104,7 @@ contract MultiValidationTest is AccountTestBase {
         userOp.signature = _encodeSignature(
             ModuleEntityLib.pack(address(validator2), TEST_DEFAULT_VALIDATION_ENTITY_ID),
             GLOBAL_VALIDATION,
-            abi.encodePacked(r, s, v)
+            abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
         );
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -119,7 +119,7 @@ contract MultiValidationTest is AccountTestBase {
         userOp.signature = _encodeSignature(
             ModuleEntityLib.pack(address(validator2), TEST_DEFAULT_VALIDATION_ENTITY_ID),
             GLOBAL_VALIDATION,
-            abi.encodePacked(r, s, v)
+            abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
         );
 
         userOps[0] = userOp;

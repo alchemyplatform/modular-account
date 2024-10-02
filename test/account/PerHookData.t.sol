@@ -44,7 +44,10 @@ contract PerHookDataTest is CustomValidationTestBase {
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(_counter)});
 
         userOp.signature = _encodeSignature(
-            _signerValidation, GLOBAL_VALIDATION, preValidationHookData, abi.encodePacked(r, s, v)
+            _signerValidation,
+            GLOBAL_VALIDATION,
+            preValidationHookData,
+            abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
         );
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -144,7 +147,10 @@ contract PerHookDataTest is CustomValidationTestBase {
         preValidationHookData[1] = PreValidationHookData({index: 1, validationData: abi.encodePacked(_counter)});
 
         userOp.signature = _encodeSignature(
-            _signerValidation, GLOBAL_VALIDATION, preValidationHookData, abi.encodePacked(r, s, v)
+            _signerValidation,
+            GLOBAL_VALIDATION,
+            preValidationHookData,
+            abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
         );
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -403,7 +409,10 @@ contract PerHookDataTest is CustomValidationTestBase {
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(message)});
 
         bytes4 result = account1.isValidSignature(
-            messageHash, _encode1271Signature(_signerValidation, preValidationHookData, abi.encodePacked(r, s, v))
+            messageHash,
+            _encode1271Signature(
+                _signerValidation, preValidationHookData, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
+            )
         );
 
         assertEq(result, bytes4(0x1626ba7e));
@@ -424,7 +433,10 @@ contract PerHookDataTest is CustomValidationTestBase {
 
         vm.expectRevert("Preimage not provided");
         account1.isValidSignature(
-            messageHash, _encode1271Signature(_signerValidation, preValidationHookData, abi.encodePacked(r, s, v))
+            messageHash,
+            _encode1271Signature(
+                _signerValidation, preValidationHookData, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
+            )
         );
     }
 
