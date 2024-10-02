@@ -164,7 +164,7 @@ contract HookOrderingTest is AccountTestBase {
     function test_hookOrder_runtime_moduleExecFunction() public {
         _installOrderCheckerModuleWithValidationAssocExec(4);
 
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(HookOrderCheckerModule.foo, (17)),
             _encodeSignature(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_VALIDATION, "")
         );
@@ -175,7 +175,7 @@ contract HookOrderingTest is AccountTestBase {
     function test_hookOrder_runtime_moduleExecFunction_noAssoc() public {
         _installOrderCheckerModuleNoValidationAssocExec(4);
 
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(HookOrderCheckerModule.foo, (17)),
             _encodeSignature(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_VALIDATION, "")
         );
@@ -287,7 +287,7 @@ contract HookOrderingTest is AccountTestBase {
     function test_hookOrder_runtime_accountNativeFunction_regular() public {
         _installOrderCheckerModuleWithValidationAssocExec(4);
 
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 account1.execute,
                 (address(hookOrderChecker), 0 wei, abi.encodeCall(HookOrderCheckerModule.foo, (17)))
@@ -301,7 +301,7 @@ contract HookOrderingTest is AccountTestBase {
     function test_hookOrder_runtime_accountNativeFunction_noAssoc() public {
         _installOrderCheckerModuleNoValidationAssocExec(4);
 
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 account1.execute,
                 (address(hookOrderChecker), 0 wei, abi.encodeCall(HookOrderCheckerModule.foo, (17)))

@@ -63,7 +63,7 @@ contract AccountReturnDataTest is AccountTestBase {
 
     // Tests the ability to read the results of contracts called via IModularAccount.execute
     function test_returnData_singular_execute() public {
-        bytes memory returnData = account1.executeWithAuthorization(
+        bytes memory returnData = account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 account1.execute,
                 (address(regularResultContract), 0, abi.encodeCall(RegularResultContract.foo, ()))
@@ -90,7 +90,7 @@ contract AccountReturnDataTest is AccountTestBase {
             data: abi.encodeCall(RegularResultContract.bar, ())
         });
 
-        bytes memory retData = account1.executeWithAuthorization(
+        bytes memory retData = account1.executeWithRuntimeValidation(
             abi.encodeCall(account1.executeBatch, (calls)),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
@@ -111,9 +111,9 @@ contract AccountReturnDataTest is AccountTestBase {
         assertTrue(result);
     }
 
-    // Tests the ability to read data via executeWithAuthorization
+    // Tests the ability to read data via executeWithRuntimeValidation
     function test_returnData_authorized_exec() public {
-        bool result = ResultConsumerModule(address(account1)).checkResultExecuteWithAuthorization(
+        bool result = ResultConsumerModule(address(account1)).checkResultExecuteWithRuntimeValidation(
             address(regularResultContract), keccak256("bar")
         );
 

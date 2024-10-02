@@ -180,7 +180,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         }
 
         vm.prank(owner1);
-        account1.executeWithAuthorization(callData, _encodeSignature(_signerValidation, GLOBAL_VALIDATION, ""));
+        account1.executeWithRuntimeValidation(callData, _encodeSignature(_signerValidation, GLOBAL_VALIDATION, ""));
     }
 
     // Always expects a revert, even if the revert data is zero-length.
@@ -188,20 +188,20 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         vm.expectRevert(expectedRevertData);
 
         vm.prank(owner1);
-        account1.executeWithAuthorization(callData, _encodeSignature(_signerValidation, GLOBAL_VALIDATION, ""));
+        account1.executeWithRuntimeValidation(callData, _encodeSignature(_signerValidation, GLOBAL_VALIDATION, ""));
     }
 
     function _transferOwnershipToTest() internal {
         // Transfer ownership to test contract for easier invocation.
         vm.prank(owner1);
         if (vm.envOr("SMA_TEST", false)) {
-            account1.executeWithAuthorization(
+            account1.executeWithRuntimeValidation(
                 abi.encodeCall(SemiModularAccountBytecode(payable(account1)).updateFallbackSigner, (address(this))),
                 _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
             );
             return;
         }
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 account1.execute,
                 (
@@ -218,7 +218,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
 
     function _allowTestDirectCalls() internal {
         vm.prank(owner1);
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 account1.installValidation,
                 (

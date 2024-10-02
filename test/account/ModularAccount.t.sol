@@ -507,7 +507,7 @@ contract ModularAccountTest is AccountTestBase {
 
         //show working rt validation
         vm.startPrank(address(owner1));
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
             _encodeSignature(
                 ModuleEntityLib.pack(address(ecdsaValidationModule), newEntityId), GLOBAL_VALIDATION, ""

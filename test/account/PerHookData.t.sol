@@ -280,7 +280,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(_counter)});
 
         vm.prank(owner1);
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
@@ -306,7 +306,7 @@ contract PerHookDataTest is CustomValidationTestBase {
                 abi.encodeWithSignature("Error(string)", "Proof doesn't match target")
             )
         );
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
@@ -324,7 +324,7 @@ contract PerHookDataTest is CustomValidationTestBase {
                 abi.encodeWithSignature("Error(string)", "Proof doesn't match target")
             )
         );
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
@@ -341,7 +341,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         vm.expectRevert(
             abi.encodeWithSelector(SparseCalldataSegmentLib.ValidationSignatureSegmentMissing.selector)
         );
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
@@ -359,7 +359,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         preValidationHookData[1] = PreValidationHookData({index: 1, validationData: abi.encodePacked(_counter)});
 
         vm.prank(owner1);
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
@@ -378,7 +378,7 @@ contract PerHookDataTest is CustomValidationTestBase {
 
         vm.prank(owner1);
         vm.expectRevert(abi.encodeWithSelector(SparseCalldataSegmentLib.SegmentOutOfOrder.selector));
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
@@ -399,7 +399,7 @@ contract PerHookDataTest is CustomValidationTestBase {
                 abi.encodeWithSignature("Error(string)", "Target not allowed")
             )
         );
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(ModularAccountBase.execute, (beneficiary, 1 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, "")
         );
@@ -411,7 +411,7 @@ contract PerHookDataTest is CustomValidationTestBase {
 
         vm.prank(owner1);
         vm.expectRevert(abi.encodeWithSelector(SparseCalldataSegmentLib.NonCanonicalEncoding.selector));
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),
@@ -425,7 +425,7 @@ contract PerHookDataTest is CustomValidationTestBase {
 
         vm.prank(owner1);
         vm.expectRevert(abi.encodeWithSelector(SparseCalldataSegmentLib.NonCanonicalEncoding.selector));
-        account1.executeWithAuthorization(
+        account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 ModularAccountBase.execute, (address(_counter), 0 wei, abi.encodeCall(Counter.increment, ()))
             ),

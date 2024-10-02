@@ -106,19 +106,19 @@ contract ModularAccountViewTest is CustomValidationTestBase {
         assertTrue(data.isGlobal);
         assertTrue(data.isSignatureValidation);
         assertTrue(data.isUserOpValidation);
-        assertEq(data.preValidationHooks.length, 2);
+        assertEq(data.validationHooks.length, 2);
         assertEq(
-            ModuleEntity.unwrap(data.preValidationHooks[0]),
-            ModuleEntity.unwrap(
-                ModuleEntityLib.pack(
+            HookConfig.unwrap(data.validationHooks[0]),
+            HookConfig.unwrap(
+                HookConfigLib.packValidationHook(
                     address(comprehensiveModule), uint32(ComprehensiveModule.EntityId.PRE_VALIDATION_HOOK_1)
                 )
             )
         );
         assertEq(
-            ModuleEntity.unwrap(data.preValidationHooks[1]),
-            ModuleEntity.unwrap(
-                ModuleEntityLib.pack(
+            HookConfig.unwrap(data.validationHooks[1]),
+            HookConfig.unwrap(
+                HookConfigLib.packValidationHook(
                     address(comprehensiveModule), uint32(ComprehensiveModule.EntityId.PRE_VALIDATION_HOOK_2)
                 )
             )
