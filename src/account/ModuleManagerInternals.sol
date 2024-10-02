@@ -240,7 +240,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
             bytes calldata hookData = hooks[i][25:];
 
             if (hookConfig.isValidationHook()) {
-                _validationData.validationHooks.push(hookConfig.moduleEntity());
+                _validationData.validationHooks.push(hookConfig);
 
                 // Avoid collision between reserved index and actual indices
                 if (_validationData.validationHooks.length > MAX_PRE_VALIDATION_HOOKS) {
@@ -295,7 +295,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
             uint256 hookIndex = 0;
             for (uint256 i = 0; i < _validationData.validationHooks.length; ++i) {
                 bytes calldata hookData = hookUninstallDatas[hookIndex];
-                (address hookModule,) = ModuleEntityLib.unpack(_validationData.validationHooks[i]);
+                (address hookModule,) = ModuleEntityLib.unpack(_validationData.validationHooks[i].moduleEntity());
                 onUninstallSuccess = onUninstallSuccess && _onUninstall(hookModule, hookData);
                 hookIndex++;
             }

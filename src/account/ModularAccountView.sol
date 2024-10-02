@@ -64,17 +64,12 @@ abstract contract ModularAccountView is IModularAccountView {
         data.isGlobal = validationData.isGlobal;
         data.isSignatureValidation = validationData.isSignatureValidation;
         data.isUserOpValidation = validationData.isUserOpValidation;
-
-        uint256 hooksLength = validationData.validationHooks.length;
-        data.validationHooks = new HookConfig[](hooksLength);
-        for (uint256 i = 0; i < hooksLength; ++i) {
-            data.validationHooks[i] = HookConfigLib.packValidationHook(validationData.validationHooks[i]);
-        }
+        data.validationHooks = validationData.validationHooks;
 
         // Todo: optimize these array reverses
 
         SetValue[] memory hooks = validationData.executionHooks.getAll();
-        hooksLength = hooks.length;
+        uint256 hooksLength = hooks.length;
         data.executionHooks = new HookConfig[](hooksLength);
 
         for (uint256 i = 0; i < hooksLength; ++i) {
