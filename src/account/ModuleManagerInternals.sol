@@ -201,7 +201,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
 
     function _onInstall(address module, bytes calldata data, bytes4 interfaceId) internal {
         if (data.length > 0) {
-            if (!ERC165Checker.supportsInterface(module, interfaceId)) {
+            if (!ERC165Checker.supportsERC165InterfaceUnchecked(module, interfaceId)) {
                 revert InterfaceNotSupported(module);
             }
             // solhint-disable-next-line no-empty-blocks
