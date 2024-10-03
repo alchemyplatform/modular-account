@@ -13,7 +13,6 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
-import {LinkedListSet, LinkedListSetLib} from "@erc6900/modular-account-libs/libraries/LinkedListSetLib.sol";
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {
@@ -30,10 +29,12 @@ import {_coalescePreValidation, _coalesceValidation} from "../helpers/Validation
 
 import {ExecutionLib} from "../libraries/ExecutionLib.sol";
 import {HookConfig, HookConfigLib} from "../libraries/HookConfigLib.sol";
+import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
+import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
 import {SparseCalldataSegmentLib} from "../libraries/SparseCalldataSegmentLib.sol";
 import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
-import {AccountStorage, getAccountStorage, toHookConfigArray, toSetValue} from "./AccountStorage.sol";
+import {AccountStorage, getAccountStorage, toSetValue} from "./AccountStorage.sol";
 import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {BaseAccount} from "./BaseAccount.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
@@ -57,11 +58,6 @@ abstract contract ModularAccountBase is
     using ValidationConfigLib for ValidationConfig;
     using HookConfigLib for HookConfig;
     using SparseCalldataSegmentLib for bytes;
-
-    struct PostExecToRun {
-        bytes preExecHookReturnData;
-        ModuleEntity postExecHook;
-    }
 
     struct DeferredValidationInstallData {
         ValidationConfig validationConfig;
@@ -118,13 +114,12 @@ abstract contract ModularAccountBase is
     // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution,
     // performCreate, performCreate2
     modifier wrapNativeFunction() {
-        (PostExecToRun[] memory postValidatorExecHooks, PostExecToRun[] memory postSelectorExecHooks) =
+        (HookConfig[] memory execHooks, bytes[] memory postExecHookData) =
             _checkPermittedCallerAndAssociatedHooks();
 
         _;
 
-        _doCachedPostExecHooks(postSelectorExecHooks);
-        _doCachedPostExecHooks(postValidatorExecHooks);
+        _doCachedPostExecHooks(execHooks, postExecHookData);
     }
 
     constructor(IEntryPoint anEntryPoint) BaseAccount(anEntryPoint) {
@@ -143,8 +138,7 @@ abstract contract ModularAccountBase is
         if (execModule == address(0)) {
             revert UnrecognizedFunction(msg.sig);
         }
-        (PostExecToRun[] memory postValidatorExecHooks, PostExecToRun[] memory postSelectorExecHooks) =
-            _checkPermittedCallerAndAssociatedHooks();
+        (HookConfig[] memory execHooks, bytes[] memory postHookDatas) = _checkPermittedCallerAndAssociatedHooks();
 
         // execute the function, bubbling up any reverts
         (bool execSuccess, bytes memory execReturnData) = execModule.call(msg.data);
@@ -156,8 +150,7 @@ abstract contract ModularAccountBase is
             }
         }
 
-        _doCachedPostExecHooks(postSelectorExecHooks);
-        _doCachedPostExecHooks(postValidatorExecHooks);
+        _doCachedPostExecHooks(execHooks, postHookDatas);
 
         return execReturnData;
     }
@@ -237,15 +230,16 @@ abstract contract ModularAccountBase is
 
         ModuleEntity userOpValidationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
 
-        PostExecToRun[] memory postValidatorExecHooks =
-            _doPreHooks(getAccountStorage().validationData[userOpValidationFunction].executionHooks, msg.data);
+        HookConfig[] memory validationAssocExecHooks =
+            MemManagementLib.loadExecHooks(getAccountStorage().validationData[userOpValidationFunction]);
+        bytes[] memory postHookDatas = _doPreHooks(validationAssocExecHooks, msg.data);
 
         bytes memory callData = userOp.callData[4:];
 
         // Manually call self, without collecting return data unless there's a revert.
         ExecutionLib.callSelfBubbleOnRevert(callData);
 
-        _doCachedPostExecHooks(postValidatorExecHooks);
+        _doCachedPostExecHooks(validationAssocExecHooks, postHookDatas);
     }
 
     /// @inheritdoc IModularAccount
@@ -297,8 +291,9 @@ abstract contract ModularAccountBase is
         _doRuntimeValidation(runtimeValidationFunction, data, authorization[25:]);
 
         // If runtime validation passes, run exec hooks associated with the validator
-        PostExecToRun[] memory postValidatorExecHooks =
-            _doPreHooks(getAccountStorage().validationData[runtimeValidationFunction].executionHooks, data);
+        HookConfig[] memory validationAssocExecHooks =
+            MemManagementLib.loadExecHooks(getAccountStorage().validationData[runtimeValidationFunction]);
+        bytes[] memory postHookData = _doPreHooks(validationAssocExecHooks, data);
 
         // Execute the call
         (bool success, bytes memory returnData) = address(this).call(data);
@@ -309,7 +304,7 @@ abstract contract ModularAccountBase is
             }
         }
 
-        _doCachedPostExecHooks(postValidatorExecHooks);
+        _doCachedPostExecHooks(validationAssocExecHooks, postHookData);
 
         return returnData;
     }
@@ -513,7 +508,7 @@ abstract contract ModularAccountBase is
         // `executeUserOp`. This check must be here because if context isn't passed, we can't tell in execution
         // which hooks should have ran.
         if (
-            !getAccountStorage().validationData[validationFunction].executionHooks.isEmpty()
+            getAccountStorage().validationData[validationFunction].executionHookCount > 0
                 && bytes4(userOp.callData[:4]) != this.executeUserOp.selector
         ) {
             revert RequireUserOperationContext();
@@ -631,27 +626,12 @@ abstract contract ModularAccountBase is
         _execRuntimeValidation(runtimeValidationFunction, callData, authorizationData);
     }
 
-    function _doPreHooks(LinkedListSet storage executionHooks, bytes calldata data)
+    function _doPreHooks(HookConfig[] memory hooks, bytes calldata data)
         internal
-        returns (PostExecToRun[] memory postHooksToRun)
+        returns (bytes[] memory postHookReturnData)
     {
-        HookConfig[] memory hooks = toHookConfigArray(executionHooks);
         uint256 hooksLength = hooks.length;
-        // Overallocate on length - not all of this may get filled up. We set the correct length later.
-        postHooksToRun = new PostExecToRun[](hooksLength);
-
-        // Copy all post hooks to the array. This happens before any pre hooks are run, so we can
-        // be sure that the set of hooks to run will not be affected by state changes mid-execution.
-        for (uint256 i = 0; i < hooksLength;) {
-            HookConfig hookConfig = hooks[i];
-            if (hookConfig.hasPostHook()) {
-                postHooksToRun[i].postExecHook = hookConfig.moduleEntity();
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
+        postHookReturnData = new bytes[](hooksLength);
 
         // Run the pre hooks and copy their return data to the post hooks array, if an associated post exec hook
         // exists.
@@ -668,7 +648,7 @@ abstract contract ModularAccountBase is
 
                 // If there is an associated post exec hook, save the return data.
                 if (hookConfig.hasPostHook()) {
-                    postHooksToRun[i].preExecHookReturnData = preExecHookReturnData;
+                    postHookReturnData[i] = preExecHookReturnData;
                 }
             }
         }
@@ -690,19 +670,18 @@ abstract contract ModularAccountBase is
     }
 
     /// @dev Associated post hooks are run in reverse order of their pre hooks.
-    function _doCachedPostExecHooks(PostExecToRun[] memory postHooksToRun) internal {
-        uint256 postHooksToRunLength = postHooksToRun.length;
-        for (uint256 i = 0; i < postHooksToRunLength; ++i) {
-            PostExecToRun memory postHookToRun = postHooksToRun[i];
-
-            if (postHookToRun.postExecHook.isEmpty()) {
-                // This is an empty post hook, from a pre-only hook, so we skip it.
+    function _doCachedPostExecHooks(HookConfig[] memory hooks, bytes[] memory hookData) internal {
+        uint256 hooksLength = hooks.length;
+        for (uint256 i = 0; i < hooksLength; ++i) {
+            HookConfig hook = hooks[i];
+            if (!hook.hasPostHook()) {
+                // This does not have a post hook, so we skip it.
                 continue;
             }
 
-            (address module, uint32 entityId) = postHookToRun.postExecHook.unpack();
+            (address module, uint32 entityId) = hook.moduleEntity().unpack();
             // solhint-disable-next-line no-empty-blocks
-            try IExecutionHookModule(module).postExecutionHook(entityId, postHookToRun.preExecHookReturnData) {}
+            try IExecutionHookModule(module).postExecutionHook(entityId, hookData[i]) {}
             catch {
                 bytes memory revertReason = ExecutionLib.collectReturnData();
                 revert PostExecHookReverted(module, entityId, revertReason);
@@ -744,12 +723,9 @@ abstract contract ModularAccountBase is
      *      4. Run the pre executionHooks associated with this caller-sig combination, and return the
      *         post executionHooks to run later.
      */
-    function _checkPermittedCallerAndAssociatedHooks()
-        internal
-        returns (PostExecToRun[] memory, PostExecToRun[] memory)
-    {
+    function _checkPermittedCallerAndAssociatedHooks() internal returns (HookConfig[] memory, bytes[] memory) {
         AccountStorage storage _storage = getAccountStorage();
-        PostExecToRun[] memory postValidatorExecutionHooks;
+        HookConfig[] memory execHooks;
 
         // We only need to handle execution hooks when the sender is not the entry point or the account itself,
         // and the selector isn't public.
@@ -773,16 +749,20 @@ abstract contract ModularAccountBase is
                 _doPreRuntimeValidationHook(preRuntimeValidationHooks[i].moduleEntity(), msg.data, "");
             }
 
-            // Execution hooks associated with the validator
-            postValidatorExecutionHooks =
-                _doPreHooks(_storage.validationData[directCallValidationKey].executionHooks, msg.data);
+            //Load all execution hooks: both associated with the selector and the validation function.
+            execHooks = MemManagementLib.loadExecHooks(
+                _storage.executionData[msg.sig], _storage.validationData[directCallValidationKey]
+            );
+        } else {
+            // If the sender is the entry point or the account itself, or the selector is public, this indicates
+            // that validation was done elsewhere. We only need to run selector-associated execution hooks.
+            execHooks = MemManagementLib.loadExecHooks(_storage.executionData[msg.sig]);
         }
 
         // Exec hooks associated with the selector
-        PostExecToRun[] memory postSelectorExecutionHooks =
-            _doPreHooks(_storage.executionData[msg.sig].executionHooks, msg.data);
+        bytes[] memory postHookDatas = _doPreHooks(execHooks, msg.data);
 
-        return (postValidatorExecutionHooks, postSelectorExecutionHooks);
+        return (execHooks, postHookDatas);
     }
 
     function _execUserOpValidation(

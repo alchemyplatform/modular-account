@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
-import {LinkedListSet, LinkedListSetLib} from "@erc6900/modular-account-libs/libraries/LinkedListSetLib.sol";
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {
     ExecutionManifest,
@@ -23,16 +22,11 @@ import {MAX_PRE_VALIDATION_HOOKS} from "../helpers/Constants.sol";
 import {ExecutionLib} from "../libraries/ExecutionLib.sol";
 import {HookConfigLib} from "../libraries/HookConfigLib.sol";
 import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
+import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
+import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
-import {
-    AccountStorage,
-    ExecutionData,
-    ValidationData,
-    getAccountStorage,
-    toHookConfigArray,
-    toSetValue
-} from "./AccountStorage.sol";
+import {AccountStorage, ExecutionData, ValidationData, getAccountStorage, toSetValue} from "./AccountStorage.sol";
 
 abstract contract ModuleManagerInternals is IModularAccount {
     using LinkedListSetLib for LinkedListSet;
@@ -142,14 +136,14 @@ abstract contract ModuleManagerInternals is IModularAccount {
         length = manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
-            LinkedListSet storage execHooks = _storage.executionData[mh.executionSelector].executionHooks;
+            ExecutionData storage executionData = _storage.executionData[mh.executionSelector];
             HookConfig hookConfig = HookConfigLib.packExecHook({
                 _module: module,
                 _entityId: mh.entityId,
                 _hasPre: mh.isPreHook,
                 _hasPost: mh.isPostHook
             });
-            _addExecHooks(execHooks, hookConfig);
+            _addExecHooks(executionData.executionHooks, hookConfig);
         }
 
         length = manifest.interfaceIds.length;
@@ -172,14 +166,14 @@ abstract contract ModuleManagerInternals is IModularAccount {
         uint256 length = manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
-            LinkedListSet storage execHooks = _storage.executionData[mh.executionSelector].executionHooks;
+            ExecutionData storage execData = _storage.executionData[mh.executionSelector];
             HookConfig hookConfig = HookConfigLib.packExecHook({
                 _module: module,
                 _entityId: mh.entityId,
                 _hasPre: mh.isPreHook,
                 _hasPost: mh.isPostHook
             });
-            _removeExecHooks(execHooks, hookConfig);
+            _removeExecHooks(execData.executionHooks, hookConfig);
         }
 
         length = manifest.executionFunctions.length;
@@ -240,6 +234,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
             bytes calldata hookData = hooks[i][25:];
 
             if (hookConfig.isValidationHook()) {
+                _validationData.validationHookCount += 1;
                 _validationData.validationHooks.push(hookConfig);
 
                 // Avoid collision between reserved index and actual indices
@@ -252,6 +247,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
                 continue;
             }
             // Hook is an execution hook
+            _validationData.executionHookCount += 1;
             _addExecHooks(_validationData.executionHooks, hookConfig);
 
             _onInstall(hookConfig.module(), hookData, type(IExecutionHookModule).interfaceId);
@@ -284,7 +280,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
 
         // Send `onUninstall` to hooks
         if (hookUninstallDatas.length > 0) {
-            HookConfig[] memory execHooks = toHookConfigArray(_validationData.executionHooks);
+            HookConfig[] memory execHooks = MemManagementLib.loadExecHooks(_validationData);
 
             // If any uninstall data is provided, assert it is of the correct length.
             if (hookUninstallDatas.length != _validationData.validationHooks.length + execHooks.length) {
@@ -309,8 +305,10 @@ abstract contract ModuleManagerInternals is IModularAccount {
         }
 
         // Clear all stored hooks
+        _validationData.validationHookCount = 0;
         delete _validationData.validationHooks;
 
+        _validationData.executionHookCount = 0;
         _validationData.executionHooks.clear();
 
         // Clear selectors
