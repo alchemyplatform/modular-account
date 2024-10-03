@@ -6,16 +6,16 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
+import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 
 import {BaseModule, IERC165} from "../BaseModule.sol";
 
 /// @title ERC-20 Token Limit Module
 /// @author Alchemy
 /// @notice This module supports ERC-20 token spend limits. Note the following features and restrictions:
-///     - This module only provides hooks to be associated with validations.
+///     - This module only provides validation hooks.
 ///     - For any validation function with this hook installed, only token contracts with a set limit will be
 /// checked, other addresses will be allowed. To protect the account's balance of non-tracked tokens, users are
 /// recommended to also install an allowlist hook, to limit which addresses the validation may perform calls to.
@@ -25,7 +25,7 @@ import {BaseModule, IERC165} from "../BaseModule.sol";
 ///     - This module is opinionated on what selectors can be called for token contracts: only `transfer` and
 /// `approve` are allowed. This guards against edge cases, where token contracts like DAI have other functions that
 /// result in ERC-20 transfers or allowance changes.
-contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
+contract ERC20TokenLimitModule is BaseModule, IValidationHookModule {
     using UserOperationLib for PackedUserOperation;
 
     struct ERC20SpendLimit {
@@ -45,29 +45,6 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
     error SpendingRequestNotAllowed(bytes4);
     error ERC20NotAllowed(address);
     error InvalidCalldataLength();
-
-    /// @inheritdoc IExecutionHookModule
-    function preExecutionHook(uint32 entityId, address, uint256, bytes calldata data)
-        external
-        override
-        returns (bytes memory)
-    {
-        (bytes4 selector, bytes memory callData) = _getSelectorAndCalldata(data);
-
-        if (selector == IModularAccount.execute.selector) {
-            // when calling execute or ERC20 functions directly
-            (address token,, bytes memory innerCalldata) = abi.decode(callData, (address, uint256, bytes));
-            _decrementLimitIfApplies(entityId, token, innerCalldata);
-        } else if (selector == IModularAccount.executeBatch.selector) {
-            Call[] memory calls = abi.decode(callData, (Call[]));
-            for (uint256 i = 0; i < calls.length; i++) {
-                _decrementLimitIfApplies(entityId, calls[i].target, calls[i].data);
-            }
-        } else {
-            revert SpendingRequestNotAllowed(selector);
-        }
-        return "";
-    }
 
     /// @inheritdoc IModule
     /// @param data should be encoded with the entityId of the validation and a list of ERC20 spend limits
@@ -89,10 +66,28 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
         delete limits[entityId][token][msg.sender];
     }
 
-    /// @inheritdoc IExecutionHookModule
-    function postExecutionHook(uint32, bytes calldata) external pure override {
-        revert NotImplemented();
+    /// @inheritdoc IValidationHookModule
+    function preUserOpValidationHook(uint32 entityId, PackedUserOperation calldata userOp, bytes32)
+        external
+        override
+        returns (uint256)
+    {
+        _checkAndUpdateLimit(entityId, userOp.callData);
+        return 0;
     }
+
+    /// @inheritdoc IValidationHookModule
+    function preRuntimeValidationHook(uint32 entityId, address, uint256, bytes calldata data, bytes calldata)
+        external
+        override
+    {
+        _checkAndUpdateLimit(entityId, data);
+        return;
+    }
+
+    // solhint-disable-next-line no-empty-blocks
+    function preSignatureValidationHook(uint32, address, bytes32, bytes calldata) external pure override {}
+    /// @inheritdoc IExecutionHookModule
 
     /// @inheritdoc IModule
     function moduleId() external pure returns (string memory) {
@@ -112,7 +107,7 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
 
     /// @inheritdoc BaseModule
     function supportsInterface(bytes4 interfaceId) public view override(BaseModule, IERC165) returns (bool) {
-        return interfaceId == type(IExecutionHookModule).interfaceId || super.supportsInterface(interfaceId);
+        return interfaceId == type(IValidationHookModule).interfaceId || super.supportsInterface(interfaceId);
     }
 
     function _decrementLimitIfApplies(uint32 entityId, address token, bytes memory innerCalldata) internal {
@@ -147,5 +142,22 @@ contract ERC20TokenLimitModule is BaseModule, IExecutionHookModule {
 
     function _isAllowedERC20Function(bytes4 selector) internal pure returns (bool) {
         return selector == IERC20.transfer.selector || selector == IERC20.approve.selector;
+    }
+
+    function _checkAndUpdateLimit(uint32 entityId, bytes calldata data) internal {
+        (bytes4 selector, bytes memory callData) = _getSelectorAndCalldata(data);
+
+        if (selector == IModularAccount.execute.selector) {
+            // when calling execute or ERC20 functions directly
+            (address token,, bytes memory innerCalldata) = abi.decode(callData, (address, uint256, bytes));
+            _decrementLimitIfApplies(entityId, token, innerCalldata);
+        } else if (selector == IModularAccount.executeBatch.selector) {
+            Call[] memory calls = abi.decode(callData, (Call[]));
+            for (uint256 i = 0; i < calls.length; i++) {
+                _decrementLimitIfApplies(entityId, calls[i].target, calls[i].data);
+            }
+        } else {
+            revert SpendingRequestNotAllowed(selector);
+        }
     }
 }

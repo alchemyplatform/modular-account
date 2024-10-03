@@ -2,6 +2,8 @@
 pragma solidity ^0.8.26;
 
 import {MockERC20} from "../mocks/MockERC20.sol";
+
+import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -43,7 +45,7 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
 
         bytes[] memory hooks = new bytes[](1);
         hooks[0] = abi.encodePacked(
-            HookConfigLib.packExecHook({_module: address(module), _entityId: 0, _hasPre: true, _hasPost: false}),
+            HookConfigLib.packValidationHook({_module: address(module), _entityId: 0}),
             abi.encode(uint32(0), limit)
         );
 
@@ -55,18 +57,20 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
         validationFunction = ModuleEntityLib.pack(address(validationModule), 0);
     }
 
-    function _getPackedUO(bytes memory callData) internal view returns (PackedUserOperation memory uo) {
-        uo = PackedUserOperation({
+    function _getPackedUOs(bytes memory callData) internal view returns (PackedUserOperation[] memory) {
+        PackedUserOperation[] memory uos = new PackedUserOperation[](1);
+        uos[0] = PackedUserOperation({
             sender: address(acct),
             nonce: 0,
             initCode: "",
-            callData: abi.encodePacked(ModularAccountBase.executeUserOp.selector, callData),
+            callData: callData,
             accountGasLimits: bytes32(bytes16(uint128(200_000))) | bytes32(uint256(200_000)),
             preVerificationGas: 200_000,
             gasFees: bytes32(uint256(uint128(0))),
             paymasterAndData: "",
             signature: _encodeSignature(ModuleEntityLib.pack(address(validationModule), 0), 1, "")
         });
+        return uos;
     }
 
     function _getExecuteWithSpend(uint256 value) internal view returns (bytes memory) {
@@ -81,7 +85,7 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
         (, uint256 limit) = module.limits(0, address(erc20), address(acct));
 
         assertEq(limit, 10 ether);
-        acct.executeUserOp(_getPackedUO(_getExecuteWithSpend(5 ether)), bytes32(0));
+        entryPoint.handleOps(_getPackedUOs(_getExecuteWithSpend(5 ether)), bundler);
 
         (, limit) = module.limits(0, address(erc20), address(acct));
         assertEq(limit, 5 ether);
@@ -102,7 +106,7 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
         vm.startPrank(address(entryPoint));
         (, uint256 limit) = module.limits(0, address(erc20), address(acct));
         assertEq(limit, 10 ether);
-        acct.executeUserOp(_getPackedUO(abi.encodeCall(IModularAccount.executeBatch, (calls))), bytes32(0));
+        entryPoint.handleOps(_getPackedUOs(abi.encodeCall(IModularAccount.executeBatch, (calls))), bundler);
 
         (, limit) = module.limits(0, address(erc20), address(acct));
         assertEq(limit, 10 ether - 6 ether - 100_001);
@@ -123,7 +127,7 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
         vm.startPrank(address(entryPoint));
         (, uint256 limit) = module.limits(0, address(erc20), address(acct));
         assertEq(limit, 10 ether);
-        acct.executeUserOp(_getPackedUO(abi.encodeCall(IModularAccount.executeBatch, (calls))), bytes32(0));
+        entryPoint.handleOps(_getPackedUOs(abi.encodeCall(IModularAccount.executeBatch, (calls))), bundler);
 
         (, limit) = module.limits(0, address(erc20), address(acct));
         assertEq(limit, 10 ether - 6 ether - 100_001);
@@ -144,9 +148,16 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
         vm.startPrank(address(entryPoint));
         (, uint256 limit) = module.limits(0, address(erc20), address(acct));
         assertEq(limit, 10 ether);
-        PackedUserOperation[] memory uos = new PackedUserOperation[](1);
-        uos[0] = _getPackedUO(abi.encodeCall(IModularAccount.executeBatch, (calls)));
-        entryPoint.handleOps(uos, bundler);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IEntryPoint.FailedOpWithRevert.selector,
+                0,
+                "AA23 reverted",
+                abi.encodeWithSelector(ERC20TokenLimitModule.ExceededTokenLimit.selector)
+            )
+        ); // re
+
+        entryPoint.handleOps(_getPackedUOs(abi.encodeCall(IModularAccount.executeBatch, (calls))), bundler);
         // no spend consumed
 
         (, limit) = module.limits(0, address(erc20), address(acct));
