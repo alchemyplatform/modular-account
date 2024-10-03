@@ -20,7 +20,7 @@ contract GlobalValidationTest is AccountTestBase {
     uint256 public owner2Key;
     ModularAccount public account2;
 
-    function setUp() public {
+    function setUp() public override {
         (owner2, owner2Key) = makeAddrAndKey("owner2");
 
         // Compute counterfactual address
@@ -33,7 +33,7 @@ contract GlobalValidationTest is AccountTestBase {
         vm.deal(ethRecipient, 1 wei);
     }
 
-    function test_globalValidation_userOp_simple() public {
+    function test_globalValidation_userOp_simple() public withSMATest {
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account2),
             nonce: 0,
@@ -61,7 +61,7 @@ contract GlobalValidationTest is AccountTestBase {
         assertEq(ethRecipient.balance, 2 wei);
     }
 
-    function test_globalValidation_runtime_simple() public {
+    function test_globalValidation_runtime_simple() public withSMATest {
         // Deploy the account first
         factory.createAccount(owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 

@@ -115,7 +115,7 @@ contract ModuleSignatureUtils {
     function _buildFullDeferredInstallSig(
         Vm vm,
         uint256 ownerKey,
-        bool isSmaTest,
+        bool isSMATest,
         ModularAccount account,
         ModuleEntity outerECDSAValidation,
         ModuleEntity deferredValidation,
@@ -140,7 +140,7 @@ contract ModuleSignatureUtils {
         bytes memory deferredInstallSig = _getDeferredInstallSig(
             vm,
             ownerKey,
-            isSmaTest,
+            isSMATest,
             account,
             outerECDSAValidation,
             deferredConfig,
@@ -165,7 +165,7 @@ contract ModuleSignatureUtils {
     }
 
     function _getReplaySafeHash(
-        bool isSmaTest,
+        bool isSMATest,
         ModularAccount account,
         ModuleEntity outerECDSAValidation,
         ValidationConfig deferredConfig,
@@ -197,7 +197,7 @@ contract ModuleSignatureUtils {
 
         (address outerECDSAValidationAddr,) = outerECDSAValidation.unpack();
 
-        bytes32 replaySafeHash = isSmaTest
+        bytes32 replaySafeHash = isSMATest
             ? _getSmaReplaySafeHash(account, typedDataHash)
             : ECDSAValidationModule(outerECDSAValidationAddr).replaySafeHash(address(account), typedDataHash);
 
@@ -230,7 +230,7 @@ contract ModuleSignatureUtils {
     function _getDeferredInstallSig(
         Vm vm,
         uint256 ownerKey,
-        bool isSmaTest,
+        bool isSMATest,
         ModularAccount account,
         ModuleEntity outerECDSAValidation,
         ValidationConfig deferredConfig,
@@ -239,7 +239,7 @@ contract ModuleSignatureUtils {
         uint48 deadline
     ) internal view returns (bytes memory) {
         bytes32 replaySafeHash = _getReplaySafeHash(
-            isSmaTest,
+            isSMATest,
             account,
             outerECDSAValidation,
             deferredConfig,

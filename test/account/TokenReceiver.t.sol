@@ -14,7 +14,7 @@ contract TokenReceiverTest is AccountTestBase {
     uint256 internal constant _NFT_TOKEN_ID = 0;
     uint256 internal constant _NFT_TOKEN_COUNT = 10;
 
-    function setUp() public {
+    function setUp() public override {
         // Compute counterfactual address
         // account1 = factory.createAccount(owner1, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID);
         // vm.deal(address(account1), 100 ether);
@@ -25,26 +25,26 @@ contract TokenReceiverTest is AccountTestBase {
         erc1155.mint(owner1, _NFT_TOKEN_ID, _NFT_TOKEN_COUNT);
     }
 
-    function test_supportedInterfaces() public view {
+    function test_supportedInterfaces() public withSMATest {
         assertTrue(account1.supportsInterface(type(IERC721Receiver).interfaceId));
         assertTrue(account1.supportsInterface(type(IERC1155Receiver).interfaceId));
     }
 
-    function test_receiveERC721() public {
+    function test_receiveERC721() public withSMATest {
         assertEq(owner1, erc721.ownerOf(_NFT_TOKEN_ID));
         vm.prank(owner1);
         erc721.transferFrom(owner1, address(account1), _NFT_TOKEN_ID);
         assertEq(address(account1), erc721.ownerOf(_NFT_TOKEN_ID));
     }
 
-    function test_receiveERC1155() public {
+    function test_receiveERC1155() public withSMATest {
         assertEq(_NFT_TOKEN_COUNT, erc1155.balanceOf(owner1, _NFT_TOKEN_ID));
         vm.prank(owner1);
         erc1155.safeTransferFrom(owner1, address(account1), _NFT_TOKEN_ID, _NFT_TOKEN_COUNT, "");
         assertEq(_NFT_TOKEN_COUNT, erc1155.balanceOf(address(account1), _NFT_TOKEN_ID));
     }
 
-    function test_receiveERC1155Batch() public {
+    function test_receiveERC1155Batch() public withSMATest {
         uint256[] memory ids = new uint256[](1);
         uint256[] memory values = new uint256[](1);
         ids[0] = _NFT_TOKEN_ID;

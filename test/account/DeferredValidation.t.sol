@@ -10,6 +10,7 @@ import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
+import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
 
 contract DeferredValidationTest is AccountTestBase {
     using ValidationConfigLib for ValidationConfig;
@@ -21,13 +22,11 @@ contract DeferredValidationTest is AccountTestBase {
 
     bytes internal _encodedCall;
     ModuleEntity internal _deferredValidation;
-    bool internal _isSmaTest;
     bytes internal _deferredValidationInstallData;
 
-    function setUp() external {
+    function setUp() public override {
         _encodedCall = abi.encodeCall(ModularAccountBase.execute, (makeAddr("dead"), 0, ""));
         _deferredValidation = ModuleEntityLib.pack(address(_deployECDSAValidationModule()), 0);
-        _isSmaTest = vm.envOr("SMA_TEST", false);
 
         uint32 entityId = 0;
         _deferredValidationInstallData = abi.encode(entityId, owner1);
@@ -35,7 +34,7 @@ contract DeferredValidationTest is AccountTestBase {
 
     // Negatives
 
-    function test_fail_deferredValidation_nonceUsed() external {
+    function test_fail_deferredValidation_nonceUsed() external withSMATest {
         uint256 nonce = entryPoint.getNonce(address(account1), 0);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -57,7 +56,7 @@ contract DeferredValidationTest is AccountTestBase {
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
             owner1Key,
-            _isSmaTest,
+            _isSMATest,
             account1,
             _signerValidation,
             _deferredValidation,
@@ -79,7 +78,7 @@ contract DeferredValidationTest is AccountTestBase {
         _sendOp(userOp, expectedRevertData);
     }
 
-    function test_fail_deferredValidation_pastDeadline() external {
+    function test_fail_deferredValidation_pastDeadline() external withSMATest {
         // Note that a deadline of 0 implies no expiry
         vm.warp(2);
 
@@ -104,7 +103,7 @@ contract DeferredValidationTest is AccountTestBase {
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
             owner1Key,
-            _isSmaTest,
+            _isSMATest,
             account1,
             _signerValidation,
             _deferredValidation,
@@ -120,7 +119,7 @@ contract DeferredValidationTest is AccountTestBase {
         _sendOp(userOp, expectedRevertData);
     }
 
-    function test_fail_deferredValidation_invalidSig() external {
+    function test_fail_deferredValidation_invalidSig() external withSMATest {
         uint256 nonce = entryPoint.getNonce(address(account1), 0);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -142,8 +141,8 @@ contract DeferredValidationTest is AccountTestBase {
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
             owner1Key,
-            _isSmaTest,
-            ModularAccount(payable(0)),
+            _isSMATest,
+            ModularAccount(payable(CODELESS_ADDRESS)), // Invalid account
             _signerValidation,
             _deferredValidation,
             _deferredValidationInstallData,
@@ -162,7 +161,7 @@ contract DeferredValidationTest is AccountTestBase {
         _sendOp(userOp, expectedRevertData);
     }
 
-    function test_fail_deferredValidation_nonceInvalidated() external {
+    function test_fail_deferredValidation_nonceInvalidated() external withSMATest {
         vm.prank(address(entryPoint));
         account1.invalidateDeferredValidationInstallNonce(0);
 
@@ -187,7 +186,7 @@ contract DeferredValidationTest is AccountTestBase {
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
             owner1Key,
-            _isSmaTest,
+            _isSMATest,
             account1,
             _signerValidation,
             _deferredValidation,
@@ -207,7 +206,7 @@ contract DeferredValidationTest is AccountTestBase {
         _sendOp(userOp, expectedRevertData);
     }
 
-    function test_fail_deferredValidation_invalidDeferredValidationSig() external {
+    function test_fail_deferredValidation_invalidDeferredValidationSig() external withSMATest {
         uint256 nonce = entryPoint.getNonce(address(account1), 0);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -230,7 +229,7 @@ contract DeferredValidationTest is AccountTestBase {
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
             owner1Key,
-            _isSmaTest,
+            _isSMATest,
             account1,
             _signerValidation,
             _deferredValidation,
@@ -248,7 +247,7 @@ contract DeferredValidationTest is AccountTestBase {
 
     // Positives
 
-    function test_deferredValidation() external {
+    function test_deferredValidation() external withSMATest {
         uint256 nonce = entryPoint.getNonce(address(account1), 0);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -270,7 +269,7 @@ contract DeferredValidationTest is AccountTestBase {
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
             owner1Key,
-            _isSmaTest,
+            _isSMATest,
             account1,
             _signerValidation,
             _deferredValidation,
@@ -283,11 +282,11 @@ contract DeferredValidationTest is AccountTestBase {
         _sendOp(userOp, "");
     }
 
-    function test_deferredValidation_initCode() external {
+    function test_deferredValidation_initCode() external withSMATest {
         ModularAccount account2;
         bytes memory initCode;
 
-        if (_isSmaTest) {
+        if (_isSMATest) {
             account2 = ModularAccount(payable(factory.getAddressSemiModular(owner1, 1)));
             initCode =
                 abi.encodePacked(address(factory), abi.encodeCall(factory.createSemiModularAccount, (owner1, 1)));
@@ -323,7 +322,7 @@ contract DeferredValidationTest is AccountTestBase {
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
             owner1Key,
-            _isSmaTest,
+            _isSMATest,
             account2,
             _signerValidation,
             _deferredValidation,

@@ -18,7 +18,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
 
     ModuleEntity public comprehensiveModuleValidation;
 
-    function setUp() public {
+    function setUp() public override {
         // install the comprehensive module to get new exec functions with different validations configured.
 
         comprehensiveModule = new ComprehensiveModule();
@@ -40,7 +40,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         vm.stopPrank();
     }
 
-    function test_selfCallFails_userOp() public {
+    function test_selfCallFails_userOp() public withSMATest {
         // Uses global validation
         _runUserOp(
             abi.encodeCall(ComprehensiveModule.foo, ()),
@@ -55,7 +55,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         );
     }
 
-    function test_selfCallFails_execUserOp() public {
+    function test_selfCallFails_execUserOp() public withSMATest {
         // Uses global validation
         _runUserOp(
             abi.encodePacked(IAccountExecute.executeUserOp.selector, abi.encodeCall(ComprehensiveModule.foo, ())),
@@ -70,7 +70,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         );
     }
 
-    function test_selfCallFails_runtime() public {
+    function test_selfCallFails_runtime() public withSMATest {
         // Uses global validation
         _runtimeCall(
             abi.encodeCall(ComprehensiveModule.foo, ()),
@@ -80,7 +80,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         );
     }
 
-    function test_selfCallPrivilegeEscalation_prevented_userOp() public {
+    function test_selfCallPrivilegeEscalation_prevented_userOp() public withSMATest {
         // Using global validation, self-call bypasses custom validation needed for ComprehensiveModule.foo
         _runUserOp(
             abi.encodeCall(
@@ -110,7 +110,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         );
     }
 
-    function test_selfCallPrivilegeEscalation_prevented_execUserOp() public {
+    function test_selfCallPrivilegeEscalation_prevented_execUserOp() public withSMATest {
         // Using global validation, self-call bypasses custom validation needed for ComprehensiveModule.foo
         _runUserOp(
             abi.encodePacked(
@@ -145,7 +145,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         );
     }
 
-    function test_selfCallPrivilegeEscalation_prevented_runtime() public {
+    function test_selfCallPrivilegeEscalation_prevented_runtime() public withSMATest {
         // Using global validation, self-call bypasses custom validation needed for ComprehensiveModule.foo
         _runtimeCall(
             abi.encodeCall(
@@ -165,7 +165,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         );
     }
 
-    function test_batchAction_allowed_userOp() public {
+    function test_batchAction_allowed_userOp() public withSMATest {
         _enableBatchValidation();
 
         Call[] memory calls = new Call[](2);
@@ -178,11 +178,11 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        vm.expectCall(address(comprehensiveModule), abi.encodeCall(ComprehensiveModule.foo, ()), 2);
+        vm.expectCall(address(comprehensiveModule), abi.encodeCall(ComprehensiveModule.foo, ()));
         entryPoint.handleOps(userOps, beneficiary);
     }
 
-    function test_batchAction_allowed_execUserOp() public {
+    function test_batchAction_allowed_execUserOp() public withSMATest {
         _enableBatchValidation();
 
         Call[] memory calls = new Call[](2);
@@ -198,25 +198,25 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        vm.expectCall(address(comprehensiveModule), abi.encodeCall(ComprehensiveModule.foo, ()), 2);
+        vm.expectCall(address(comprehensiveModule), abi.encodeCall(ComprehensiveModule.foo, ()));
         entryPoint.handleOps(userOps, beneficiary);
     }
 
-    function test_batchAction_allowed_runtime() public {
+    function test_batchAction_allowed_runtime() public withSMATest {
         _enableBatchValidation();
 
         Call[] memory calls = new Call[](2);
         calls[0] = Call(address(account1), 0, abi.encodeCall(ComprehensiveModule.foo, ()));
         calls[1] = Call(address(account1), 0, abi.encodeCall(ComprehensiveModule.foo, ()));
 
-        vm.expectCall(address(comprehensiveModule), abi.encodeCall(ComprehensiveModule.foo, ()), 2);
+        vm.expectCall(address(comprehensiveModule), abi.encodeCall(ComprehensiveModule.foo, ()));
         account1.executeWithRuntimeValidation(
             abi.encodeCall(IModularAccount.executeBatch, (calls)),
             _encodeSignature(comprehensiveModuleValidation, SELECTOR_ASSOCIATED_VALIDATION, "")
         );
     }
 
-    function test_recursiveDepthCapped_userOp() public {
+    function test_recursiveDepthCapped_userOp() public withSMATest {
         _enableBatchValidation();
 
         Call[] memory innerCalls = new Call[](1);
@@ -243,7 +243,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         entryPoint.handleOps(userOps, beneficiary);
     }
 
-    function test_recursiveDepthCapped_execUserOp() public {
+    function test_recursiveDepthCapped_execUserOp() public withSMATest {
         _enableBatchValidation();
 
         Call[] memory innerCalls = new Call[](1);
@@ -272,7 +272,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         entryPoint.handleOps(userOps, beneficiary);
     }
 
-    function test_recursiveDepthCapped_runtime() public {
+    function test_recursiveDepthCapped_runtime() public withSMATest {
         _enableBatchValidation();
 
         Call[] memory innerCalls = new Call[](1);

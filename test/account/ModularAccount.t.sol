@@ -25,7 +25,7 @@ import {ComprehensiveModule} from "../mocks/modules/ComprehensiveModule.sol";
 import {MockExecutionInstallationModule} from "../mocks/modules/MockExecutionInstallationModule.sol";
 import {MockModule} from "../mocks/modules/MockModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
-import {TEST_DEFAULT_VALIDATION_ENTITY_ID} from "../utils/TestConstants.sol";
+import {CODELESS_ADDRESS, TEST_DEFAULT_VALIDATION_ENTITY_ID} from "../utils/TestConstants.sol";
 
 contract ModularAccountTest is AccountTestBase {
     using ECDSA for bytes32;
@@ -46,13 +46,13 @@ contract ModularAccountTest is AccountTestBase {
     event ExecutionUninstalled(address indexed module, bool onUninstallSucceeded, ExecutionManifest manifest);
     event ReceivedCall(bytes msgData, uint256 msgValue);
 
-    function setUp() public {
+    function setUp() public override {
         mockExecutionInstallationModule = new MockExecutionInstallationModule();
 
         (owner2, owner2Key) = makeAddrAndKey("owner2");
 
         // Compute counterfactual address
-        if (vm.envOr("SMA_TEST", false)) {
+        if (_isSMATest) {
             account2 = ModularAccount(payable(factory.getAddressSemiModular(owner2, 0)));
         } else {
             account2 = ModularAccount(payable(factory.getAddress(owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID)));
@@ -60,16 +60,17 @@ contract ModularAccountTest is AccountTestBase {
         vm.deal(address(account2), 100 ether);
 
         ethRecipient = makeAddr("ethRecipient");
+
         vm.deal(ethRecipient, 1 wei);
         counter = new Counter();
-        counter.increment(); // amoritze away gas cost of zero->nonzero transition
+        counter.increment(); // amortize away gas cost of zero->nonzero transition
     }
 
-    function test_deployAccount() public {
+    function test_deployAccount() public withSMATest {
         factory.createAccount(owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID);
     }
 
-    function test_postDeploy_ethSend() public {
+    function test_postDeploy_ethSend() public withSMATest {
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
             nonce: 0,
@@ -95,8 +96,8 @@ contract ModularAccountTest is AccountTestBase {
         assertEq(ethRecipient.balance, 2 wei);
     }
 
-    function test_basicUserOp_withInitCode() public {
-        bytes memory callData = vm.envOr("SMA_TEST", false)
+    function test_basicUserOp_withInitCode() public withSMATest {
+        bytes memory callData = _isSMATest
             ? abi.encodeCall(SemiModularAccountBytecode(payable(account1)).updateFallbackSigner, (owner2))
             : abi.encodeCall(
                 ModularAccountBase.execute,
@@ -107,7 +108,7 @@ contract ModularAccountTest is AccountTestBase {
                 )
             );
 
-        bytes memory initCode = vm.envOr("SMA_TEST", false)
+        bytes memory initCode = _isSMATest
             ? abi.encodePacked(address(factory), abi.encodeCall(factory.createSemiModularAccount, (owner2, 0)))
             : abi.encodePacked(
                 address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
@@ -136,8 +137,8 @@ contract ModularAccountTest is AccountTestBase {
         entryPoint.handleOps(userOps, beneficiary);
     }
 
-    function test_standardExecuteEthSend_withInitcode() public {
-        bytes memory initCode = vm.envOr("SMA_TEST", false)
+    function test_standardExecuteEthSend_withInitcode() public withSMATest {
+        bytes memory initCode = _isSMATest
             ? abi.encodePacked(address(factory), abi.encodeCall(factory.createSemiModularAccount, (owner2, 0)))
             : abi.encodePacked(
                 address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
@@ -170,7 +171,7 @@ contract ModularAccountTest is AccountTestBase {
         assertEq(recipient.balance, 1 wei);
     }
 
-    function test_debug_ModularAccount_storageAccesses() public {
+    function test_debug_ModularAccount_storageAccesses() public withSMATest {
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
             nonce: 0,
@@ -196,15 +197,12 @@ contract ModularAccountTest is AccountTestBase {
         _printStorageReadsAndWrites(address(account2));
     }
 
-    function test_accountId() public view {
+    function test_accountId() public withSMATest {
         string memory accountId = account1.accountId();
-        assertEq(
-            accountId,
-            vm.envOr("SMA_TEST", false) ? "alchemy.semi-modular-account.0.0.1" : "alchemy.modular-account.0.0.1"
-        );
+        assertEq(accountId, _isSMATest ? "alchemy.semi-modular-account.0.0.1" : "alchemy.modular-account.0.0.1");
     }
 
-    function test_contractInteraction() public {
+    function test_contractInteraction() public withSMATest {
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
             nonce: 0,
@@ -232,7 +230,7 @@ contract ModularAccountTest is AccountTestBase {
         assertEq(counter.number(), 2);
     }
 
-    function test_batchExecute() public {
+    function test_batchExecute() public withSMATest {
         // Performs both an eth send and a contract interaction with counter
         Call[] memory calls = new Call[](2);
         calls[0] = Call({target: ethRecipient, value: 1 wei, data: ""});
@@ -264,7 +262,7 @@ contract ModularAccountTest is AccountTestBase {
         assertEq(ethRecipient.balance, 2 wei);
     }
 
-    function test_installExecution() public {
+    function test_installExecution() public withSMATest {
         vm.startPrank(address(entryPoint));
 
         vm.expectEmit(true, true, true, true);
@@ -280,9 +278,10 @@ contract ModularAccountTest is AccountTestBase {
         ExecutionDataView memory data =
             account1.getExecutionData(MockExecutionInstallationModule.executionInstallationExecute.selector);
         assertEq(data.module, address(mockExecutionInstallationModule));
+        vm.stopPrank();
     }
 
-    function test_installExecution_PermittedCallSelectorNotInstalled() public {
+    function test_installExecution_PermittedCallSelectorNotInstalled() public withSMATest {
         vm.startPrank(address(entryPoint));
 
         ExecutionManifest memory m;
@@ -294,12 +293,13 @@ contract ModularAccountTest is AccountTestBase {
             manifest: mockModuleWithBadPermittedExec.executionManifest(),
             moduleInstallData: ""
         });
+        vm.stopPrank();
     }
 
-    function test_installExecution_interfaceNotSupported() public {
+    function test_installExecution_interfaceNotSupported() public withSMATest {
         vm.startPrank(address(entryPoint));
 
-        address badModule = address(1);
+        address badModule = CODELESS_ADDRESS;
         vm.expectRevert(
             abi.encodeWithSelector(ModuleManagerInternals.InterfaceNotSupported.selector, address(badModule))
         );
@@ -307,9 +307,10 @@ contract ModularAccountTest is AccountTestBase {
         ExecutionManifest memory m;
 
         account1.installExecution({module: address(badModule), manifest: m, moduleInstallData: "a"});
+        vm.stopPrank();
     }
 
-    function test_installExecution_alreadyInstalled() public {
+    function test_installExecution_alreadyInstalled() public withSMATest {
         ExecutionManifest memory m = mockExecutionInstallationModule.executionManifest();
 
         vm.prank(address(entryPoint));
@@ -333,7 +334,7 @@ contract ModularAccountTest is AccountTestBase {
         });
     }
 
-    function test_uninstallExecution_default() public {
+    function test_uninstallExecution_default() public withSMATest {
         vm.startPrank(address(entryPoint));
 
         ComprehensiveModule module = new ComprehensiveModule();
@@ -353,6 +354,7 @@ contract ModularAccountTest is AccountTestBase {
 
         ExecutionDataView memory data = account1.getExecutionData(module.foo.selector);
         assertEq(data.module, address(0));
+        vm.stopPrank();
     }
 
     function _installExecutionWithExecHooks() internal returns (MockModule module) {
@@ -369,13 +371,13 @@ contract ModularAccountTest is AccountTestBase {
         vm.stopPrank();
     }
 
-    function test_upgradeToAndCall() public {
+    function test_upgradeToAndCall() public withSMATest {
         vm.startPrank(address(entryPoint));
         ModularAccount account3 = new ModularAccount(entryPoint);
         bytes32 slot = account3.proxiableUUID();
 
         // account has impl from factory
-        if (vm.envOr("SMA_TEST", false)) {
+        if (_isSMATest) {
             assertEq(
                 address(semiModularAccountImplementation),
                 address(uint160(uint256(vm.load(address(account1), slot))))
@@ -386,11 +388,12 @@ contract ModularAccountTest is AccountTestBase {
         account1.upgradeToAndCall(address(account3), bytes(""));
         // account has new impl
         assertEq(address(account3), address(uint160(uint256(vm.load(address(account1), slot)))));
+        vm.stopPrank();
     }
 
     // TODO: Consider if this test belongs here or in the tests specific to the ECDSAValidationModule
-    function test_transferOwnership() public {
-        if (vm.envOr("SMA_TEST", false)) {
+    function test_transferOwnership() public withSMATest {
+        if (_isSMATest) {
             // Note: replaced "owner1" with address(0), this doesn't actually affect the account, but allows the
             // test to pass by ensuring the signer can be set in the validation.
             assertEq(
@@ -410,10 +413,10 @@ contract ModularAccountTest is AccountTestBase {
         assertEq(ecdsaValidationModule.signers(TEST_DEFAULT_VALIDATION_ENTITY_ID, address(account1)), owner2);
     }
 
-    function test_isValidSignature() public view {
+    function test_isValidSignature() public withSMATest {
         bytes32 message = keccak256("hello world");
 
-        bytes32 replaySafeHash = vm.envOr("SMA_TEST", false)
+        bytes32 replaySafeHash = _isSMATest
             ? SemiModularAccountBytecode(payable(account1)).replaySafeHash(message)
             : ecdsaValidationModule.replaySafeHash(address(account1), message);
 
@@ -427,7 +430,7 @@ contract ModularAccountTest is AccountTestBase {
     }
 
     // Only need a test case for the negative case, as the positive case is covered by the isValidSignature test
-    function test_signatureValidationFlag_enforce() public {
+    function test_signatureValidationFlag_enforce() public withSMATest {
         // Install a new copy of ECDSAValidationModule with the signature validation flag set to false
         uint32 newEntityId = 2;
         vm.prank(address(entryPoint));
@@ -440,7 +443,7 @@ contract ModularAccountTest is AccountTestBase {
 
         bytes32 message = keccak256("hello world");
 
-        bytes32 replaySafeHash = vm.envOr("SMA_TEST", false)
+        bytes32 replaySafeHash = _isSMATest
             ? SemiModularAccountBytecode(payable(account1)).replaySafeHash(message)
             : ecdsaValidationModule.replaySafeHash(address(account1), message);
 
@@ -458,7 +461,7 @@ contract ModularAccountTest is AccountTestBase {
         IERC1271(address(account1)).isValidSignature(message, signature);
     }
 
-    function test_userOpValidationFlag_enforce() public {
+    function test_userOpValidationFlag_enforce() public withSMATest {
         // Install a new copy of ECDSAValidationModule with the userOp validation flag set to false
         uint32 newEntityId = 2;
         vm.prank(address(entryPoint));
@@ -515,9 +518,10 @@ contract ModularAccountTest is AccountTestBase {
         );
 
         assertEq(ethRecipient.balance, 2 wei);
+        vm.stopPrank();
     }
 
-    function test_performCreate() public {
+    function test_performCreate() public withSMATest {
         address expectedAddr = vm.computeCreateAddress(address(account1), vm.getNonce(address(account1)));
         vm.prank(address(entryPoint));
         address returnedAddr = account1.performCreate(
@@ -528,7 +532,7 @@ contract ModularAccountTest is AccountTestBase {
         assertEq(address(ModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
     }
 
-    function test_performCreate2() public {
+    function test_performCreate2() public withSMATest {
         bytes memory initCode =
             abi.encodePacked(type(ModularAccount).creationCode, abi.encode(address(entryPoint)));
         bytes32 initCodeHash = keccak256(initCode);

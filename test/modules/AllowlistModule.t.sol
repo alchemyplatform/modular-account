@@ -32,7 +32,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         uint32 indexed entityId, address indexed account, bytes24 indexed targetAndSelector, bool allowed
     );
 
-    function setUp() public {
+    function setUp() public override {
         _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         allowlistModule = new AllowlistModule();

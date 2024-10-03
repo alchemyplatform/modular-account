@@ -24,9 +24,6 @@ jobs:
       - name: Run tests
         run: FOUNDRY_PROFILE=optimized-test-deep forge test -vvv
 
-      - name: Run SMA tests
-        run: FOUNDRY_PROFILE=optimized-test-deep SMA_TEST=true forge test -vvv
-
   test-default:
     name: Run Forge Tests (default)
     runs-on: ubuntu-latest
@@ -42,6 +39,3 @@ jobs:
 
       - name: Run tests
         run: forge test -vvv
-
-      - name: Run SMA tests
-        run: SMA_TEST=true forge test -vvv

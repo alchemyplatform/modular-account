@@ -25,7 +25,7 @@ contract PerHookDataTest is CustomValidationTestBase {
     uint32 internal constant _PRE_HOOK_ENTITY_ID_1 = 0;
     uint32 internal constant _PRE_HOOK_ENTITY_ID_2 = 1;
 
-    function setUp() public {
+    function setUp() public override {
         _counter = new Counter();
 
         _accessControlHookModule = new MockAccessControlHookModule();
@@ -33,7 +33,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         _customValidationSetup();
     }
 
-    function test_passAccessControl_userOp() public {
+    function test_passAccessControl_userOp() public withSMATest {
         assertEq(_counter.number(), 0);
 
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
@@ -55,7 +55,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         assertEq(_counter.number(), 1);
     }
 
-    function test_failAccessControl_badSigData_userOp() public {
+    function test_failAccessControl_badSigData_userOp() public withSMATest {
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
@@ -84,7 +84,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         entryPoint.handleOps(userOps, beneficiary);
     }
 
-    function test_failAccessControl_noSigData_userOp() public {
+    function test_failAccessControl_noSigData_userOp() public withSMATest {
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
 
@@ -104,7 +104,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         entryPoint.handleOps(userOps, beneficiary);
     }
 
-    function test_failAccessControl_badIndexProvided_userOp() public {
+    function test_failAccessControl_badIndexProvided_userOp() public withSMATest {
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
 
@@ -130,7 +130,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         entryPoint.handleOps(userOps, beneficiary);
     }
 
-    function test_passAccessControl_twoHooks_userOp() public {
+    function test_passAccessControl_twoHooks_userOp() public withSMATest {
         _installSecondPreHook();
 
         assertEq(_counter.number(), 0);
@@ -155,7 +155,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         assertEq(_counter.number(), 1);
     }
 
-    function test_failAccessControl_indexOutOfOrder_userOp() public {
+    function test_failAccessControl_indexOutOfOrder_userOp() public withSMATest {
         _installSecondPreHook();
 
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
@@ -183,7 +183,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         entryPoint.handleOps(userOps, beneficiary);
     }
 
-    function test_failAccessControl_badTarget_userOp() public {
+    function test_failAccessControl_badTarget_userOp() public withSMATest {
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
             nonce: 0,
@@ -220,7 +220,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         entryPoint.handleOps(userOps, beneficiary);
     }
 
-    function test_failPerHookData_nonCanonicalEncoding_userOp() public {
+    function test_failPerHookData_nonCanonicalEncoding_userOp() public withSMATest {
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
 
@@ -245,7 +245,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         entryPoint.handleOps(userOps, beneficiary);
     }
 
-    function test_failPerHookData_excessData_userOp() public {
+    function test_failPerHookData_excessData_userOp() public withSMATest {
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
 
@@ -273,7 +273,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         entryPoint.handleOps(userOps, beneficiary);
     }
 
-    function test_passAccessControl_runtime() public {
+    function test_passAccessControl_runtime() public withSMATest {
         assertEq(_counter.number(), 0);
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
@@ -290,7 +290,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         assertEq(_counter.number(), 1);
     }
 
-    function test_failAccessControl_badSigData_runtime() public {
+    function test_failAccessControl_badSigData_runtime() public withSMATest {
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({
             index: 0,
@@ -314,7 +314,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         );
     }
 
-    function test_failAccessControl_noSigData_runtime() public {
+    function test_failAccessControl_noSigData_runtime() public withSMATest {
         vm.prank(owner1);
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -332,7 +332,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         );
     }
 
-    function test_failAccessControl_badIndexProvided_runtime() public {
+    function test_failAccessControl_badIndexProvided_runtime() public withSMATest {
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](2);
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(_counter)});
         preValidationHookData[1] = PreValidationHookData({index: 1, validationData: abi.encodePacked(_counter)});
@@ -349,7 +349,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         );
     }
 
-    function test_passAccessControl_twoHooks_runtime() public {
+    function test_passAccessControl_twoHooks_runtime() public withSMATest {
         _installSecondPreHook();
 
         assertEq(_counter.number(), 0);
@@ -369,7 +369,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         assertEq(_counter.number(), 1);
     }
 
-    function test_failAccessControl_indexOutOfOrder_runtime() public {
+    function test_failAccessControl_indexOutOfOrder_runtime() public withSMATest {
         _installSecondPreHook();
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](3);
@@ -386,7 +386,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         );
     }
 
-    function test_failAccessControl_badTarget_runtime() public {
+    function test_failAccessControl_badTarget_runtime() public withSMATest {
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(beneficiary)});
 
@@ -405,7 +405,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         );
     }
 
-    function test_failPerHookData_nonCanonicalEncoding_runtime() public {
+    function test_failPerHookData_nonCanonicalEncoding_runtime() public withSMATest {
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: ""});
 
@@ -419,7 +419,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         );
     }
 
-    function test_failPerHookData_excessData_runtime() public {
+    function test_failPerHookData_excessData_runtime() public withSMATest {
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(_counter)});
 
@@ -435,7 +435,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         );
     }
 
-    function test_pass1271AccessControl() public view {
+    function test_pass1271AccessControl() public withSMATest {
         string memory message = "Hello, world!";
 
         bytes32 messageHash = keccak256(abi.encodePacked(message));
@@ -453,7 +453,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         assertEq(result, bytes4(0x1626ba7e));
     }
 
-    function test_fail1271AccessControl_badSigData() public {
+    function test_fail1271AccessControl_badSigData() public withSMATest {
         string memory message = "Hello, world!";
 
         bytes32 messageHash = keccak256(abi.encodePacked(message));
@@ -472,7 +472,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         );
     }
 
-    function test_fail1271AccessControl_noSigData() public {
+    function test_fail1271AccessControl_noSigData() public withSMATest {
         string memory message = "Hello, world!";
 
         bytes32 messageHash = keccak256(abi.encodePacked(message));
@@ -529,7 +529,7 @@ contract PerHookDataTest is CustomValidationTestBase {
             HookConfigLib.packValidationHook(address(_accessControlHookModule), _PRE_HOOK_ENTITY_ID_1),
             abi.encode(_PRE_HOOK_ENTITY_ID_1, _counter)
         );
-        // patched to also work during SMA tests by differentiating the validation
+        // patched to work during SMA tests by enforcing that the new validation is not the fallback validation.
         _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), _VALIDATION_ENTITY_ID);
         return (
             _signerValidation, true, true, true, new bytes4[](0), abi.encode(_VALIDATION_ENTITY_ID, owner1), hooks

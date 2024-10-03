@@ -26,7 +26,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
     uint48 public validUntil;
     uint48 public validAfter;
 
-    function setUp() public {
+    function setUp() public override {
         _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         timeRangeModule = new TimeRangeModule();
@@ -38,7 +38,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         assertEq(timeRangeModule.moduleId(), "alchemy.timerange-module.0.0.1");
     }
 
-    function test_timeRangeModule_install() public {
+    function test_timeRangeModule_install() public withSMATest {
         validUntil = 1000;
         validAfter = 100;
 
@@ -64,7 +64,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         assertEq(retrievedValidAfter, validAfter);
     }
 
-    function test_timeRangeModule_uninstall() public {
+    function test_timeRangeModule_uninstall() public withSMATest {
         test_timeRangeModule_install();
 
         // Uninstall the module
@@ -73,8 +73,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
         vm.expectCall({
             callee: address(timeRangeModule),
-            data: abi.encodeCall(TimeRangeModule.onUninstall, (hookUninstallDatas[0])),
-            count: 1
+            data: abi.encodeCall(TimeRangeModule.onUninstall, (hookUninstallDatas[0]))
         });
         vm.prank(address(account1));
         account1.uninstallValidation(_signerValidation, "", hookUninstallDatas);
@@ -154,7 +153,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         );
     }
 
-    function test_timeRangeModule_runtime_before() public {
+    function test_timeRangeModule_runtime_before() public withSMATest {
         validUntil = 1000;
         validAfter = 100;
 
@@ -178,7 +177,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         );
     }
 
-    function test_timeRangeModule_runtime_during() public {
+    function test_timeRangeModule_runtime_during() public withSMATest {
         validUntil = 1000;
         validAfter = 100;
 
@@ -187,7 +186,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         // Attempt during the valid time range, expect success
         vm.warp(101);
 
-        vm.expectCall({callee: makeAddr("recipient"), msgValue: 0 wei, data: "", count: 1});
+        vm.expectCall({callee: makeAddr("recipient"), msgValue: 0 wei, data: ""});
         vm.prank(owner1);
         account1.executeWithRuntimeValidation(
             abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
@@ -195,7 +194,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         );
     }
 
-    function test_timeRangeModule_runtime_after() public {
+    function test_timeRangeModule_runtime_after() public withSMATest {
         validUntil = 1000;
         validAfter = 100;
 

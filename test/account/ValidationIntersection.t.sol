@@ -26,7 +26,7 @@ contract ValidationIntersectionTest is AccountTestBase {
     ModuleEntity public oneHookValidation;
     ModuleEntity public twoHookValidation;
 
-    function setUp() public {
+    function setUp() public override {
         noHookModule = new MockUserOpValidationModule();
         oneHookModule = new MockUserOpValidation1HookModule();
         twoHookModule = new MockUserOpValidation2HookModule();
@@ -103,7 +103,7 @@ contract ValidationIntersectionTest is AccountTestBase {
         assertEq(returnedValidationData, validationData);
     }
 
-    function test_validationIntersect_authorizer_sigfail_validationFunction() public {
+    function test_validationIntersect_authorizer_sigfail_validationFunction() public withSMATest {
         oneHookModule.setValidationData(
             _SIG_VALIDATION_FAILED,
             0 // returns OK
@@ -121,7 +121,7 @@ contract ValidationIntersectionTest is AccountTestBase {
         assertEq(uint160(returnedValidationData), _SIG_VALIDATION_FAILED);
     }
 
-    function test_validationIntersect_authorizer_sigfail_hook() public {
+    function test_validationIntersect_authorizer_sigfail_hook() public withSMATest {
         oneHookModule.setValidationData(
             0, // returns OK
             _SIG_VALIDATION_FAILED
@@ -139,7 +139,7 @@ contract ValidationIntersectionTest is AccountTestBase {
         assertEq(uint160(returnedValidationData), _SIG_VALIDATION_FAILED);
     }
 
-    function test_validationIntersect_timeBounds_intersect_1() public {
+    function test_validationIntersect_timeBounds_intersect_1() public withSMATest {
         uint48 start1 = uint48(10);
         uint48 end1 = uint48(20);
 
@@ -161,7 +161,7 @@ contract ValidationIntersectionTest is AccountTestBase {
         assertEq(returnedValidationData, _packValidationRes(address(0), start2, end1));
     }
 
-    function test_validationIntersect_timeBounds_intersect_2() public {
+    function test_validationIntersect_timeBounds_intersect_2() public withSMATest {
         uint48 start1 = uint48(10);
         uint48 end1 = uint48(20);
 
@@ -183,7 +183,7 @@ contract ValidationIntersectionTest is AccountTestBase {
         assertEq(returnedValidationData, _packValidationRes(address(0), start2, end1));
     }
 
-    function test_validationIntersect_revert_unexpectedAuthorizer() public {
+    function test_validationIntersect_revert_unexpectedAuthorizer() public withSMATest {
         address badAuthorizer = makeAddr("badAuthorizer");
 
         oneHookModule.setValidationData(
@@ -209,7 +209,7 @@ contract ValidationIntersectionTest is AccountTestBase {
         account1.validateUserOp(userOp, uoHash, 1 wei);
     }
 
-    function test_validationIntersect_validAuthorizer() public {
+    function test_validationIntersect_validAuthorizer() public withSMATest {
         address goodAuthorizer = makeAddr("goodAuthorizer");
 
         oneHookModule.setValidationData(
@@ -228,7 +228,7 @@ contract ValidationIntersectionTest is AccountTestBase {
         assertEq(address(uint160(returnedValidationData)), goodAuthorizer);
     }
 
-    function test_validationIntersect_authorizerAndTimeRange() public {
+    function test_validationIntersect_authorizerAndTimeRange() public withSMATest {
         uint48 start1 = uint48(10);
         uint48 end1 = uint48(20);
 
@@ -251,7 +251,7 @@ contract ValidationIntersectionTest is AccountTestBase {
         assertEq(returnedValidationData, _packValidationRes(goodAuthorizer, start2, end1));
     }
 
-    function test_validationIntersect_multiplePreValidationHooksIntersect() public {
+    function test_validationIntersect_multiplePreValidationHooksIntersect() public withSMATest {
         uint48 start1 = uint48(10);
         uint48 end1 = uint48(20);
 
@@ -275,7 +275,7 @@ contract ValidationIntersectionTest is AccountTestBase {
         assertEq(returnedValidationData, _packValidationRes(address(0), start2, end1));
     }
 
-    function test_validationIntersect_multiplePreValidationHooksSigFail() public {
+    function test_validationIntersect_multiplePreValidationHooksSigFail() public withSMATest {
         twoHookModule.setValidationData(
             0, // returns OK
             0, // returns OK
