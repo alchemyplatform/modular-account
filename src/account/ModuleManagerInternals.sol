@@ -45,6 +45,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
     error ModuleInstallCallbackFailed(address module, bytes revertReason);
     error ModuleNotInstalled(address module);
     error PreValidationHookLimitExceeded();
+    error PreValidationHookDuplicate();
     error ValidationAlreadySet(bytes4 selector, ModuleEntity validationFunction);
 
     // Storage update operations
@@ -234,12 +235,14 @@ abstract contract ModuleManagerInternals is IModularAccount {
             bytes calldata hookData = hooks[i][25:];
 
             if (hookConfig.isValidationHook()) {
-                _validationData.validationHookCount += 1;
-                _validationData.validationHooks.push(hookConfig);
-
-                // Avoid collision between reserved index and actual indices
-                if (_validationData.validationHooks.length > MAX_PRE_VALIDATION_HOOKS) {
+                // Increment the stored length of validation hooks, and revert if the limit is exceeded, to avoid a
+                // collision between the reserved signature data index and actual indices
+                if (++_validationData.validationHookCount > MAX_PRE_VALIDATION_HOOKS) {
                     revert PreValidationHookLimitExceeded();
+                }
+
+                if (!_validationData.validationHooks.tryAdd(toSetValue(hookConfig))) {
+                    revert PreValidationHookDuplicate();
                 }
 
                 _onInstall(hookConfig.module(), hookData, type(IValidationHookModule).interfaceId);
@@ -281,17 +284,18 @@ abstract contract ModuleManagerInternals is IModularAccount {
         // Send `onUninstall` to hooks
         if (hookUninstallDatas.length > 0) {
             HookConfig[] memory execHooks = MemManagementLib.loadExecHooks(_validationData);
+            HookConfig[] memory validationHooks = MemManagementLib.loadValidationHooks(_validationData);
 
             // If any uninstall data is provided, assert it is of the correct length.
-            if (hookUninstallDatas.length != _validationData.validationHooks.length + execHooks.length) {
+            if (hookUninstallDatas.length != validationHooks.length + execHooks.length) {
                 revert ArrayLengthMismatch();
             }
 
             // Hook uninstall data is provided in the order of pre validation hooks, then execution hooks.
             uint256 hookIndex = 0;
-            for (uint256 i = 0; i < _validationData.validationHooks.length; ++i) {
+            for (uint256 i = 0; i < validationHooks.length; ++i) {
                 bytes calldata hookData = hookUninstallDatas[hookIndex];
-                (address hookModule,) = ModuleEntityLib.unpack(_validationData.validationHooks[i].moduleEntity());
+                (address hookModule,) = ModuleEntityLib.unpack(validationHooks[i].moduleEntity());
                 onUninstallSuccess = onUninstallSuccess && _onUninstall(hookModule, hookData);
                 hookIndex++;
             }
@@ -306,7 +310,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
 
         // Clear all stored hooks
         _validationData.validationHookCount = 0;
-        delete _validationData.validationHooks;
+        _validationData.validationHooks.clear();
 
         _validationData.executionHookCount = 0;
         _validationData.executionHooks.clear();

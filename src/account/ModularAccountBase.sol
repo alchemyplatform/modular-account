@@ -571,10 +571,16 @@ abstract contract ModularAccountBase is
 
         // Do preUserOpValidation hooks
         HookConfig[] memory preUserOpValidationHooks =
-            getAccountStorage().validationData[userOpValidationFunction].validationHooks;
+            MemManagementLib.loadValidationHooks(getAccountStorage().validationData[userOpValidationFunction]);
 
-        for (uint256 i = 0; i < preUserOpValidationHooks.length; ++i) {
-            (userOp.signature, signature) = signature.advanceSegmentIfAtIndex(uint8(i));
+        for (uint256 i = preUserOpValidationHooks.length; i > 0; i) {
+            // Decrement here, instead of in the loop body, to convert from length to an index.
+            unchecked {
+                --i;
+            }
+
+            (userOp.signature, signature) =
+                signature.advanceSegmentIfAtIndex(uint8(preUserOpValidationHooks.length - i - 1));
 
             (address module, uint32 entityId) = preUserOpValidationHooks[i].moduleEntity().unpack();
             uint256 currentValidationRes =
@@ -611,12 +617,18 @@ abstract contract ModularAccountBase is
     ) internal {
         // run all preRuntimeValidation hooks
         HookConfig[] memory preRuntimeValidationHooks =
-            getAccountStorage().validationData[runtimeValidationFunction].validationHooks;
+            MemManagementLib.loadValidationHooks(getAccountStorage().validationData[runtimeValidationFunction]);
 
-        for (uint256 i = 0; i < preRuntimeValidationHooks.length; ++i) {
+        for (uint256 i = preRuntimeValidationHooks.length; i > 0;) {
+            // Decrement here, instead of in the loop update step, to handle the case where the length is 0.
+            unchecked {
+                --i;
+            }
+
             bytes memory currentAuthSegment;
 
-            (currentAuthSegment, authorizationData) = authorizationData.advanceSegmentIfAtIndex(uint8(i));
+            (currentAuthSegment, authorizationData) =
+                authorizationData.advanceSegmentIfAtIndex(uint8(preRuntimeValidationHooks.length - i - 1));
 
             _doPreRuntimeValidationHook(preRuntimeValidationHooks[i].moduleEntity(), callData, currentAuthSegment);
         }
@@ -636,7 +648,7 @@ abstract contract ModularAccountBase is
         // Run the pre hooks and copy their return data to the post hooks array, if an associated post exec hook
         // exists.
         for (uint256 i = hooksLength; i > 0;) {
-            // Decrement here, instead of in the loop body, to convert from length to an index.
+            // Decrement here, instead of in the loop update step, to handle the case where the length is 0.
             unchecked {
                 --i;
             }
@@ -742,10 +754,15 @@ abstract contract ModularAccountBase is
 
             // Validation hooks
             HookConfig[] memory preRuntimeValidationHooks =
-                _storage.validationData[directCallValidationKey].validationHooks;
+                MemManagementLib.loadValidationHooks(_storage.validationData[directCallValidationKey]);
 
             uint256 hookLen = preRuntimeValidationHooks.length;
-            for (uint256 i = 0; i < hookLen; ++i) {
+            for (uint256 i = hookLen; i > 0;) {
+                // Decrement here, instead of in the loop body, to convert from length to an index.
+                unchecked {
+                    --i;
+                }
+
                 _doPreRuntimeValidationHook(preRuntimeValidationHooks[i].moduleEntity(), msg.data, "");
             }
 
@@ -806,13 +823,20 @@ abstract contract ModularAccountBase is
         returns (bytes4)
     {
         HookConfig[] memory preSignatureValidationHooks =
-            getAccountStorage().validationData[sigValidation].validationHooks;
-        for (uint256 i = 0; i < preSignatureValidationHooks.length; ++i) {
+            MemManagementLib.loadValidationHooks(getAccountStorage().validationData[sigValidation]);
+
+        for (uint256 i = preSignatureValidationHooks.length; i > 0;) {
+            // Decrement here, instead of in the loop body, to convert from length to an index.
+            unchecked {
+                --i;
+            }
+
             (address hookModule, uint32 hookEntityId) = preSignatureValidationHooks[i].moduleEntity().unpack();
 
             bytes memory currentSignatureSegment;
 
-            (currentSignatureSegment, signature) = signature.advanceSegmentIfAtIndex(uint8(i));
+            (currentSignatureSegment, signature) =
+                signature.advanceSegmentIfAtIndex(uint8(preSignatureValidationHooks.length - i - 1));
 
             // If this reverts, bubble up revert reason.
             IValidationHookModule(hookModule).preSignatureValidationHook(

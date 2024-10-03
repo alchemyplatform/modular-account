@@ -51,7 +51,8 @@ abstract contract ModularAccountView is IModularAccountView {
         data.isGlobal = validationData.isGlobal;
         data.isSignatureValidation = validationData.isSignatureValidation;
         data.isUserOpValidation = validationData.isUserOpValidation;
-        data.validationHooks = validationData.validationHooks;
+        data.validationHooks = MemManagementLib.loadValidationHooks(validationData);
+        MemManagementLib.reverseArr(data.validationHooks);
 
         HookConfig[] memory hooks = MemManagementLib.loadExecHooks(validationData);
         MemManagementLib.reverseArr(hooks);
