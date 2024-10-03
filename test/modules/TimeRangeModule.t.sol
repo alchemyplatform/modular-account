@@ -26,7 +26,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
     uint48 public validUntil;
     uint48 public validAfter;
 
-    function setUp() public {
+    function setUp() public override {
         _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         timeRangeModule = new TimeRangeModule();
@@ -38,7 +38,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         assertEq(timeRangeModule.moduleId(), "alchemy.timerange-module.0.0.1");
     }
 
-    function test_timeRangeModule_install() public withSMATest(setUp) {
+    function test_timeRangeModule_install() public withSMATest {
         validUntil = 1000;
         validAfter = 100;
 
@@ -64,7 +64,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         assertEq(retrievedValidAfter, validAfter);
     }
 
-    function test_timeRangeModule_uninstall() public withSMATest(setUp) {
+    function test_timeRangeModule_uninstall() public withSMATest {
         test_timeRangeModule_install();
 
         // Uninstall the module
@@ -153,7 +153,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         );
     }
 
-    function test_timeRangeModule_runtime_before() public withSMATest(setUp) {
+    function test_timeRangeModule_runtime_before() public withSMATest {
         validUntil = 1000;
         validAfter = 100;
 
@@ -177,7 +177,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         );
     }
 
-    function test_timeRangeModule_runtime_during() public withSMATest(setUp) {
+    function test_timeRangeModule_runtime_during() public withSMATest {
         validUntil = 1000;
         validAfter = 100;
 
@@ -194,7 +194,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         );
     }
 
-    function test_timeRangeModule_runtime_after() public withSMATest(setUp) {
+    function test_timeRangeModule_runtime_after() public withSMATest {
         validUntil = 1000;
         validAfter = 100;
 

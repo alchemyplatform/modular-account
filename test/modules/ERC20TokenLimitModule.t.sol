@@ -32,7 +32,7 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
     ERC20TokenLimitModule public module = new ERC20TokenLimitModule();
     uint256 public spendLimit = 10 ether;
 
-    function setUp() public {
+    function setUp() public override {
         // Set up a validator with hooks from the erc20 spend limit module attached
         acct = factory.createAccount(address(this), 0, 0);
 
@@ -76,7 +76,7 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
         );
     }
 
-    function test_userOp_executeLimit() public withSMATest(setUp) {
+    function test_userOp_executeLimit() public withSMATest {
         vm.startPrank(address(entryPoint));
 
         (, uint256 limit) = module.limits(0, address(erc20), address(acct));
@@ -89,7 +89,7 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
         vm.stopPrank();
     }
 
-    function test_userOp_executeBatchLimit() public withSMATest(setUp) {
+    function test_userOp_executeBatchLimit() public withSMATest {
         Call[] memory calls = new Call[](3);
         calls[0] =
             Call({target: address(erc20), value: 0, data: abi.encodeCall(IERC20.transfer, (recipient, 1 wei))});
@@ -111,7 +111,7 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
         vm.stopPrank();
     }
 
-    function test_userOp_executeBatch_approveAndTransferLimit() public withSMATest(setUp) {
+    function test_userOp_executeBatch_approveAndTransferLimit() public withSMATest {
         Call[] memory calls = new Call[](3);
         calls[0] =
             Call({target: address(erc20), value: 0, data: abi.encodeCall(IERC20.approve, (recipient, 1 wei))});
@@ -133,7 +133,7 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
         vm.stopPrank();
     }
 
-    function test_userOp_executeBatch_approveAndTransferLimit_fail() public withSMATest(setUp) {
+    function test_userOp_executeBatch_approveAndTransferLimit_fail() public withSMATest {
         Call[] memory calls = new Call[](3);
         calls[0] =
             Call({target: address(erc20), value: 0, data: abi.encodeCall(IERC20.approve, (recipient, 1 wei))});
@@ -158,7 +158,7 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
         vm.stopPrank();
     }
 
-    function test_runtime_executeLimit() public withSMATest(setUp) {
+    function test_runtime_executeLimit() public withSMATest {
         (, uint256 limit) = module.limits(0, address(erc20), address(acct));
         assertEq(limit, 10 ether);
         acct.executeWithRuntimeValidation(
@@ -170,7 +170,7 @@ contract ERC20TokenLimitModuleTest is AccountTestBase {
         assertEq(limit, 5 ether);
     }
 
-    function test_runtime_executeBatchLimit() public withSMATest(setUp) {
+    function test_runtime_executeBatchLimit() public withSMATest {
         Call[] memory calls = new Call[](3);
         calls[0] =
             Call({target: address(erc20), value: 0, data: abi.encodeCall(IERC20.approve, (recipient, 1 wei))});

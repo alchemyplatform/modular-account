@@ -7,13 +7,13 @@ import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {TEST_DEFAULT_VALIDATION_ENTITY_ID} from "../utils/TestConstants.sol";
 
 contract AccountFactoryTest is AccountTestBase {
-    function test_createAccount() public withSMATestNoSetup {
+    function test_createAccount() public withSMATest {
         ModularAccount account = factory.createAccount(address(this), 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         assertEq(address(account.entryPoint()), address(entryPoint));
     }
 
-    function test_createAccountAndGetAddress() public withSMATestNoSetup {
+    function test_createAccountAndGetAddress() public withSMATest {
         ModularAccount account = factory.createAccount(address(this), 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         assertEq(
@@ -21,7 +21,7 @@ contract AccountFactoryTest is AccountTestBase {
         );
     }
 
-    function test_multipleDeploy() public withSMATestNoSetup {
+    function test_multipleDeploy() public withSMATest {
         ModularAccount account = factory.createAccount(address(this), 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         uint256 startGas = gasleft();

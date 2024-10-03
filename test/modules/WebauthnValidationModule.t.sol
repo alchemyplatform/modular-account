@@ -31,7 +31,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
     uint256 internal constant _SIG_VALIDATION_FAILED = 1;
 
-    function setUp() public {
+    function setUp() public override {
         module = new WebauthnValidationModule();
         account = payable(account1);
         vm.prank(address(entryPoint));
@@ -93,7 +93,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         );
     }
 
-    function test_uoValidation() external withSMATest(setUp) {
+    function test_uoValidation() external withSMATest {
         PackedUserOperation memory uo;
         uo.sender = account;
         uo.callData = abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, new bytes(0)));

@@ -17,7 +17,6 @@ import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
 
-
 contract UpgradeToSmaTest is AccountTestBase {
     using ModuleEntityLib for ModuleEntity;
     using MessageHashUtils for bytes32;
@@ -27,7 +26,7 @@ contract UpgradeToSmaTest is AccountTestBase {
     uint256 public owner2Key;
     uint256 public transferAmount;
 
-    function setUp() public {
+    function setUp() public override {
         smaStorageImpl = address(new SemiModularAccountStorageOnly(entryPoint));
         (owner2, owner2Key) = makeAddrAndKey("owner2");
         transferAmount = 0.1 ether;

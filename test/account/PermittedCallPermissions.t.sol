@@ -12,7 +12,7 @@ contract PermittedCallPermissionsTest is AccountTestBase {
 
     PermittedCallerModule public permittedCallerModule;
 
-    function setUp() public {
+    function setUp() public override {
         _transferOwnershipToTest();
         resultCreatorModule = new ResultCreatorModule();
 
@@ -36,14 +36,14 @@ contract PermittedCallPermissionsTest is AccountTestBase {
         vm.stopPrank();
     }
 
-    function test_permittedCall_Allowed() public withSMATest(setUp) {
+    function test_permittedCall_Allowed() public withSMATest {
         bytes memory result = PermittedCallerModule(address(account1)).usePermittedCallAllowed();
         bytes32 actual = abi.decode(result, (bytes32));
 
         assertEq(actual, keccak256("bar"));
     }
 
-    function test_permittedCall_NotAllowed() public withSMATest(setUp) {
+    function test_permittedCall_NotAllowed() public withSMATest {
         vm.expectRevert(
             abi.encodeWithSelector(
                 ModularAccountBase.ValidationFunctionMissing.selector, ResultCreatorModule.bar.selector

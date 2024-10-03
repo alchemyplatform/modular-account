@@ -4,14 +4,12 @@ pragma solidity ^0.8.26;
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../src/helpers/Constants.sol";
-
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
@@ -53,7 +51,12 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     uint256 public constant CALL_GAS_LIMIT = 100_000;
     uint256 public constant VERIFICATION_GAS_LIMIT = 1_200_000;
 
-    modifier withSMATest(function() setUp) {
+    function setUp() public virtual {
+        // Intentionally left blank
+        // This should be overriden when needed and will be called again by the `withSMATest` modifier.
+    }
+
+    modifier withSMATest() {
         _;
 
         vm.revertTo(_revertSnapshot);
@@ -64,19 +67,6 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         _signerValidation = FALLBACK_VALIDATION;
 
         setUp();
-
-        _;
-    }
-
-    modifier withSMATestNoSetup() {
-        _;
-
-        vm.revertTo(_revertSnapshot);
-
-        _isSMATest = true;
-        account1 = ModularAccount(payable(factory.createSemiModularAccount(owner1, 0)));
-        vm.deal(address(account1), 100 ether);
-        _signerValidation = FALLBACK_VALIDATION;
 
         _;
     }

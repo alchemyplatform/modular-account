@@ -24,13 +24,13 @@ contract MultiValidationTest is AccountTestBase {
     address public owner2;
     uint256 public owner2Key;
 
-    function setUp() public {
+    function setUp() public override {
         validator2 = new ECDSAValidationModule();
 
         (owner2, owner2Key) = makeAddrAndKey("owner2");
     }
 
-    function test_overlappingValidationInstall() public withSMATest(setUp) {
+    function test_overlappingValidationInstall() public withSMATest {
         vm.prank(address(entryPoint));
         account1.installValidation(
             ValidationConfigLib.pack(address(validator2), TEST_DEFAULT_VALIDATION_ENTITY_ID, true, true, true),
@@ -51,7 +51,7 @@ contract MultiValidationTest is AccountTestBase {
         }
     }
 
-    function test_runtimeValidation_specify() public withSMATest(setUp) {
+    function test_runtimeValidation_specify() public withSMATest {
         test_overlappingValidationInstall();
 
         // Assert that the runtime validation can be specified.
@@ -81,7 +81,7 @@ contract MultiValidationTest is AccountTestBase {
         );
     }
 
-    function test_userOpValidation_specify() public withSMATest(setUp) {
+    function test_userOpValidation_specify() public withSMATest {
         test_overlappingValidationInstall();
 
         // Assert that the userOp validation can be specified.

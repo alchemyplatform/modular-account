@@ -15,27 +15,27 @@ contract PaymasterGuardModuleTest is AccountTestBase {
     address public paymaster2;
     uint32 public constant ENTITY_ID = 1;
 
-    function setUp() public {
+    function setUp() public override {
         account = payable(makeAddr("account"));
         paymaster1 = payable(makeAddr("paymaster1"));
         paymaster2 = payable(makeAddr("paymaster2"));
     }
 
-    function test_onInstall() public withSMATest(setUp) {
+    function test_onInstall() public withSMATest {
         vm.startPrank(address(account));
         module.onInstall(abi.encode(ENTITY_ID, paymaster1));
 
         assertEq(paymaster1, module.paymasters(ENTITY_ID, account));
     }
 
-    function test_onUninstall() public withSMATest(setUp) {
+    function test_onUninstall() public withSMATest {
         vm.startPrank(address(account));
         module.onUninstall(abi.encode(ENTITY_ID));
 
         assertEq(address(0), module.paymasters(ENTITY_ID, account));
     }
 
-    function test_preUserOpValidationHook_success() public withSMATest(setUp) {
+    function test_preUserOpValidationHook_success() public withSMATest {
         PackedUserOperation memory uo = _packUO(abi.encodePacked(paymaster1, ""));
 
         vm.startPrank(address(account));
@@ -46,7 +46,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         assertEq(res, 0);
     }
 
-    function test_preUserOpValidationHook_failWithInvalidData() public withSMATest(setUp) {
+    function test_preUserOpValidationHook_failWithInvalidData() public withSMATest {
         PackedUserOperation memory uo = _packUO("");
 
         vm.startPrank(address(account));
@@ -56,7 +56,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         module.preUserOpValidationHook(ENTITY_ID, uo, "");
     }
 
-    function test_preUserOpValidationHook_fail() public withSMATest(setUp) {
+    function test_preUserOpValidationHook_fail() public withSMATest {
         PackedUserOperation memory uo = _packUO(abi.encodePacked(paymaster1, ""));
 
         vm.startPrank(address(account));
@@ -67,7 +67,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         module.preUserOpValidationHook(ENTITY_ID, uo, "");
     }
 
-    function test_preRuntimeValidationHook_success() public withSMATest(setUp) {
+    function test_preRuntimeValidationHook_success() public withSMATest {
         vm.startPrank(address(account));
 
         module.preRuntimeValidationHook(ENTITY_ID, address(0), 0, "", "");

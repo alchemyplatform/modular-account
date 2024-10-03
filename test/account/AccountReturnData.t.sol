@@ -20,7 +20,7 @@ contract AccountReturnDataTest is AccountTestBase {
     ResultCreatorModule public resultCreatorModule;
     ResultConsumerModule public resultConsumerModule;
 
-    function setUp() public {
+    function setUp() public override {
         _transferOwnershipToTest();
 
         regularResultContract = new RegularResultContract();
@@ -55,14 +55,14 @@ contract AccountReturnDataTest is AccountTestBase {
     }
 
     // Tests the ability to read the result of module execution functions via the account's fallback
-    function test_returnData_fallback() public withSMATest(setUp) {
+    function test_returnData_fallback() public withSMATest {
         bytes32 result = ResultCreatorModule(address(account1)).foo();
 
         assertEq(result, keccak256("bar"));
     }
 
     // Tests the ability to read the results of contracts called via IModularAccount.execute
-    function test_returnData_singular_execute() public withSMATest(setUp) {
+    function test_returnData_singular_execute() public withSMATest {
         bytes memory returnData = account1.executeWithRuntimeValidation(
             abi.encodeCall(
                 account1.execute,
@@ -77,7 +77,7 @@ contract AccountReturnDataTest is AccountTestBase {
     }
 
     // Tests the ability to read the results of multiple contract calls via IModularAccount.executeBatch
-    function test_returnData_executeBatch() public withSMATest(setUp) {
+    function test_returnData_executeBatch() public withSMATest {
         Call[] memory calls = new Call[](2);
         calls[0] = Call({
             target: address(regularResultContract),
@@ -105,14 +105,14 @@ contract AccountReturnDataTest is AccountTestBase {
     }
 
     // Tests the ability to read data via routing to fallback functions
-    function test_returnData_execFromModule_fallback() public withSMATest(setUp) {
+    function test_returnData_execFromModule_fallback() public withSMATest {
         bool result = ResultConsumerModule(address(account1)).checkResultFallback(keccak256("bar"));
 
         assertTrue(result);
     }
 
-    // Tests the ability to read data via executeWithRuntimeValidation
-    function test_returnData_authorized_exec() public withSMATest(setUp) {
+    // Tests the ability to read data via executeWithAuthorization
+    function test_returnData_authorized_exec() public withSMATest {
         bool result = ResultConsumerModule(address(account1)).checkResultExecuteWithRuntimeValidation(
             address(regularResultContract), keccak256("bar")
         );

@@ -24,7 +24,7 @@ contract DeferredValidationTest is AccountTestBase {
     ModuleEntity internal _deferredValidation;
     bytes internal _deferredValidationInstallData;
 
-    function setUp() public {
+    function setUp() public override {
         _encodedCall = abi.encodeCall(ModularAccountBase.execute, (makeAddr("dead"), 0, ""));
         _deferredValidation = ModuleEntityLib.pack(address(_deployECDSAValidationModule()), 0);
 
@@ -34,7 +34,7 @@ contract DeferredValidationTest is AccountTestBase {
 
     // Negatives
 
-    function test_fail_deferredValidation_nonceUsed() external withSMATest(setUp) {
+    function test_fail_deferredValidation_nonceUsed() external withSMATest {
         uint256 nonce = entryPoint.getNonce(address(account1), 0);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -78,7 +78,7 @@ contract DeferredValidationTest is AccountTestBase {
         _sendOp(userOp, expectedRevertData);
     }
 
-    function test_fail_deferredValidation_pastDeadline() external withSMATest(setUp) {
+    function test_fail_deferredValidation_pastDeadline() external withSMATest {
         // Note that a deadline of 0 implies no expiry
         vm.warp(2);
 
@@ -119,7 +119,7 @@ contract DeferredValidationTest is AccountTestBase {
         _sendOp(userOp, expectedRevertData);
     }
 
-    function test_fail_deferredValidation_invalidSig() external withSMATest(setUp) {
+    function test_fail_deferredValidation_invalidSig() external withSMATest {
         uint256 nonce = entryPoint.getNonce(address(account1), 0);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -161,7 +161,7 @@ contract DeferredValidationTest is AccountTestBase {
         _sendOp(userOp, expectedRevertData);
     }
 
-    function test_fail_deferredValidation_nonceInvalidated() external withSMATest(setUp) {
+    function test_fail_deferredValidation_nonceInvalidated() external withSMATest {
         vm.prank(address(entryPoint));
         account1.invalidateDeferredValidationInstallNonce(0);
 
@@ -206,7 +206,7 @@ contract DeferredValidationTest is AccountTestBase {
         _sendOp(userOp, expectedRevertData);
     }
 
-    function test_fail_deferredValidation_invalidDeferredValidationSig() external withSMATest(setUp) {
+    function test_fail_deferredValidation_invalidDeferredValidationSig() external withSMATest {
         uint256 nonce = entryPoint.getNonce(address(account1), 0);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -247,7 +247,7 @@ contract DeferredValidationTest is AccountTestBase {
 
     // Positives
 
-    function test_deferredValidation() external withSMATest(setUp) {
+    function test_deferredValidation() external withSMATest {
         uint256 nonce = entryPoint.getNonce(address(account1), 0);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -282,7 +282,7 @@ contract DeferredValidationTest is AccountTestBase {
         _sendOp(userOp, "");
     }
 
-    function test_deferredValidation_initCode() external withSMATest(setUp) {
+    function test_deferredValidation_initCode() external withSMATest {
         ModularAccount account2;
         bytes memory initCode;
 

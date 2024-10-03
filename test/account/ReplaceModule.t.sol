@@ -32,7 +32,7 @@ contract UpgradeModuleTest is AccountTestBase {
     // From MockModule
     event ReceivedCall(bytes msgData, uint256 msgValue);
 
-    function test_upgradeModuleExecutionFunction() public withSMATestNoSetup {
+    function test_upgradeModuleExecutionFunction() public withSMATest {
         ExecutionManifest memory m;
         ManifestExecutionFunction[] memory executionFunctions = new ManifestExecutionFunction[](1);
         executionFunctions[0] = ManifestExecutionFunction({
@@ -96,7 +96,7 @@ contract UpgradeModuleTest is AccountTestBase {
         TestModule(address(account1)).testFunction();
     }
 
-    function test_upgradeModuleValidationFunction() public withSMATestNoSetup {
+    function test_upgradeModuleValidationFunction() public withSMATest {
         // Setup new validaiton with pre validation and execution hooks associated with a validator
         ECDSAValidationModule validation1 = new ECDSAValidationModule();
         ECDSAValidationModule validation2 = new ECDSAValidationModule();

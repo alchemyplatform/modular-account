@@ -36,7 +36,7 @@ contract HookOrderingTest is AccountTestBase {
 
     ModuleEntity public orderCheckerValidationEntity;
 
-    function setUp() public {
+    function setUp() public override {
         hookOrderChecker = new HookOrderCheckerModule();
     }
 
@@ -88,7 +88,7 @@ contract HookOrderingTest is AccountTestBase {
     //  6. post exec (validation-assoc) hook 2: post only
     //  5. post exec (validation-assoc) hook 1: pre only (skipped)
 
-    function test_hookOrder_userOp_moduleExecFunction_withAssoc() public withSMATest(setUp) {
+    function test_hookOrder_userOp_moduleExecFunction_withAssoc() public withSMATest {
         _installOrderCheckerModuleWithValidationAssocExec(4);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -113,7 +113,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderWithValidationAssocExec();
     }
 
-    function test_hookOrder_userOp_moduleExecFunction_noAssoc_regular() public withSMATest(setUp) {
+    function test_hookOrder_userOp_moduleExecFunction_noAssoc_regular() public withSMATest {
         _installOrderCheckerModuleNoValidationAssocExec(4);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -136,7 +136,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderNoValidationAssocExec();
     }
 
-    function test_hookOrder_userOp_moduleExecFunction_noAssoc_execUO() public withSMATest(setUp) {
+    function test_hookOrder_userOp_moduleExecFunction_noAssoc_execUO() public withSMATest {
         _installOrderCheckerModuleNoValidationAssocExec(4);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -161,7 +161,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderNoValidationAssocExec();
     }
 
-    function test_hookOrder_runtime_moduleExecFunction() public withSMATest(setUp) {
+    function test_hookOrder_runtime_moduleExecFunction() public withSMATest {
         _installOrderCheckerModuleWithValidationAssocExec(4);
 
         account1.executeWithRuntimeValidation(
@@ -172,7 +172,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderWithValidationAssocExec();
     }
 
-    function test_hookOrder_runtime_moduleExecFunction_noAssoc() public withSMATest(setUp) {
+    function test_hookOrder_runtime_moduleExecFunction_noAssoc() public withSMATest {
         _installOrderCheckerModuleNoValidationAssocExec(4);
 
         account1.executeWithRuntimeValidation(
@@ -183,7 +183,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderNoValidationAssocExec();
     }
 
-    function test_hookOrder_directCall_moduleExecFunction() public withSMATest(setUp) {
+    function test_hookOrder_directCall_moduleExecFunction() public withSMATest {
         _installOrderCheckerModuleWithValidationAssocExec(DIRECT_CALL_VALIDATION_ENTITYID);
 
         vm.prank(address(hookOrderChecker));
@@ -192,7 +192,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderDirectCallWithValidationAssocExec();
     }
 
-    function test_hookOrder_directCall_moduleExecFunction_noAssoc() public withSMATest(setUp) {
+    function test_hookOrder_directCall_moduleExecFunction_noAssoc() public withSMATest {
         _installOrderCheckerModuleNoValidationAssocExec(DIRECT_CALL_VALIDATION_ENTITYID);
 
         vm.prank(address(hookOrderChecker));
@@ -201,7 +201,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderDirectCallNoValidationAssocExec();
     }
 
-    function test_hookOrder_userOp_accountNativeFunction_withAssoc() public withSMATest(setUp) {
+    function test_hookOrder_userOp_accountNativeFunction_withAssoc() public withSMATest {
         _installOrderCheckerModuleWithValidationAssocExec(4);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -230,7 +230,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderWithValidationAssocExec();
     }
 
-    function test_hookOrder_userOp_accountNativeFunction_noAssoc_regular() public withSMATest(setUp) {
+    function test_hookOrder_userOp_accountNativeFunction_noAssoc_regular() public withSMATest {
         _installOrderCheckerModuleNoValidationAssocExec(4);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -255,7 +255,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderNoValidationAssocExec();
     }
 
-    function test_hookOrder_userOp_accountNativeFunction_noAssoc_execUO() public withSMATest(setUp) {
+    function test_hookOrder_userOp_accountNativeFunction_noAssoc_execUO() public withSMATest {
         _installOrderCheckerModuleNoValidationAssocExec(4);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -284,7 +284,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderNoValidationAssocExec();
     }
 
-    function test_hookOrder_runtime_accountNativeFunction_regular() public withSMATest(setUp) {
+    function test_hookOrder_runtime_accountNativeFunction_regular() public withSMATest {
         _installOrderCheckerModuleWithValidationAssocExec(4);
 
         account1.executeWithRuntimeValidation(
@@ -298,7 +298,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderWithValidationAssocExec();
     }
 
-    function test_hookOrder_runtime_accountNativeFunction_noAssoc() public withSMATest(setUp) {
+    function test_hookOrder_runtime_accountNativeFunction_noAssoc() public withSMATest {
         _installOrderCheckerModuleNoValidationAssocExec(4);
 
         account1.executeWithRuntimeValidation(
@@ -312,7 +312,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderNoValidationAssocExec();
     }
 
-    function test_hookOrder_directCall_accountNativeFunction() public withSMATest(setUp) {
+    function test_hookOrder_directCall_accountNativeFunction() public withSMATest {
         _installOrderCheckerModuleWithValidationAssocExec(DIRECT_CALL_VALIDATION_ENTITYID);
 
         vm.prank(address(hookOrderChecker));
@@ -321,7 +321,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderDirectCallWithValidationAssocExec();
     }
 
-    function test_hookOrder_directCall_accountNativeFunction_noAssoc() public withSMATest(setUp) {
+    function test_hookOrder_directCall_accountNativeFunction_noAssoc() public withSMATest {
         _installOrderCheckerModuleNoValidationAssocExec(DIRECT_CALL_VALIDATION_ENTITYID);
 
         vm.prank(address(hookOrderChecker));
@@ -330,7 +330,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderDirectCallNoValidationAssocExec();
     }
 
-    function test_hookOrder_signatureValidation() public withSMATest(setUp) {
+    function test_hookOrder_signatureValidation() public withSMATest {
         _installOrderCheckerModuleWithValidationAssocExec(4);
 
         // Technically, the hooks aren't supposed to make state changes during the signature validation flow

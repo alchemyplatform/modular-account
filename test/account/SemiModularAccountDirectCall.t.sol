@@ -17,7 +17,7 @@ contract SemiModularAccountDirectCallTest is AccountTestBase {
     ModuleEntity internal _directCallModuleEntity;
     ModuleEntity internal _fallbackDirectCallModuleEntity;
 
-    function setUp() public {
+    function setUp() public override {
         _module = new MockSMADirectFallbackModule();
         _directCallModuleEntity = ModuleEntityLib.pack(address(_module), DIRECT_CALL_VALIDATION_ENTITYID);
 
@@ -30,7 +30,7 @@ contract SemiModularAccountDirectCallTest is AccountTestBase {
 
     // Negatives
 
-    function test_fail_smaDirectCall_disabledFallbackSigner() external withSMATest(setUp) {
+    function test_fail_smaDirectCall_disabledFallbackSigner() external withSMATest {
         vm.prank(owner1);
         SemiModularAccountBase(payable(account1)).setFallbackSignerDisabled(true);
 
@@ -43,7 +43,7 @@ contract SemiModularAccountDirectCallTest is AccountTestBase {
         account1.execute(_target, 0, "");
     }
 
-    function test_fail_smaDirectCall_notFallbackSigner() external withSMATest(setUp) {
+    function test_fail_smaDirectCall_notFallbackSigner() external withSMATest {
         bytes memory expectedRevertData = abi.encodeWithSelector(
             ModularAccountBase.ValidationFunctionMissing.selector, ModularAccountBase.execute.selector
         );
@@ -55,7 +55,7 @@ contract SemiModularAccountDirectCallTest is AccountTestBase {
 
     // Positives
 
-    function test_Flow_smaDirectCall_installedHooksUninstalled() external withSMATest(setUp) {
+    function test_Flow_smaDirectCall_installedHooksUninstalled() external withSMATest {
         // We install the validation as if it were a direct call validation, but we pass hooks from the
         // DirectCallModule, and while the validation remains the fallback signer + direct call entityId.
         bytes[] memory hooks = new bytes[](2);
@@ -106,7 +106,7 @@ contract SemiModularAccountDirectCallTest is AccountTestBase {
         assertFalse(_module.validationHookRan());
     }
 
-    function test_smaDirectCall() external withSMATest(setUp) {
+    function test_smaDirectCall() external withSMATest {
         vm.prank(owner1);
         account1.execute(_target, 0, "");
     }
