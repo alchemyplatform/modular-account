@@ -69,7 +69,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
 
         // Make sure incoming execution function does not collide with any native functions (data are stored on the
         // account implementation contract)
-        if (KnownSelectorsLib.isNativeFunction(selector)) {
+        if (_isNativeFunction(selector)) {
             revert NativeFunctionNotAllowed(selector);
         }
 
@@ -320,5 +320,9 @@ abstract contract ModuleManagerInternals is IModularAccount {
         onUninstallSuccess = onUninstallSuccess && _onUninstall(module, uninstallData);
 
         emit ValidationUninstalled(module, entityId, onUninstallSuccess);
+    }
+
+    function _isNativeFunction(bytes4 selector) internal pure virtual returns (bool) {
+        return KnownSelectorsLib.isNativeFunction(selector);
     }
 }

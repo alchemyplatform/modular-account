@@ -27,15 +27,10 @@ abstract contract CustomValidationTestBase is AccountTestBase {
         ) = _initialValidationConfig();
 
         if (_isSMATest) {
-            // Short circuit because you cannot install hooks to the fallback validation.
-            // if (validationFunction.eq(FALLBACK_VALIDATION)) {
-            // revert("the fuck");
-            //     return;
-            // }
             account1 =
                 ModularAccount(payable(new ERC1967Proxy{salt: 0}(address(semiModularAccountImplementation), "")));
             _beforeInstallStep(address(account1));
-            // The initializer doesn't work on the SMA
+            // The initializer doesn't work on the SMA.
             vm.prank(address(entryPoint));
             account1.installValidation(
                 ValidationConfigLib.pack(validationFunction, isGlobal, isSignatureValidation, isUserOpValidation),

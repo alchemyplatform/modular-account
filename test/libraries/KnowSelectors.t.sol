@@ -6,11 +6,23 @@ import {IAccount} from "@eth-infinitism/account-abstraction/interfaces/IAccount.
 import {IPaymaster} from "@eth-infinitism/account-abstraction/interfaces/IPaymaster.sol";
 import {Test} from "forge-std/src/Test.sol";
 
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+import {SemiModularAccountBase} from "../../src/account/SemiModularAccountBase.sol";
 import {KnownSelectorsLib} from "../../src/libraries/KnownSelectorsLib.sol";
+import {SemiModularKnownSelectorsLib} from "../../src/libraries/SemiModularKnownSelectorsLib.sol";
 
 contract KnownSelectorsTest is Test {
     function test_isNativeFunction() public pure {
         assertTrue(KnownSelectorsLib.isNativeFunction(IAccount.validateUserOp.selector));
+        assertTrue(KnownSelectorsLib.isNativeFunction(ModularAccountBase.installValidation.selector));
+    }
+
+    function test_sma_isNativeFunction() public pure {
+        assertTrue(SemiModularKnownSelectorsLib.isNativeFunction(IAccount.validateUserOp.selector));
+        assertTrue(
+            SemiModularKnownSelectorsLib.isNativeFunction(SemiModularAccountBase.getFallbackSigner.selector)
+        );
+        assertTrue(SemiModularKnownSelectorsLib.isNativeFunction(ModularAccountBase.installValidation.selector));
     }
 
     function test_isErc4337Function() public pure {
