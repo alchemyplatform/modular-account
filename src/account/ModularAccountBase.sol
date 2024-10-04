@@ -78,8 +78,6 @@ abstract contract ModularAccountBase is
         EITHER
     }
 
-    IEntryPoint private immutable _ENTRY_POINT;
-
     // keccak256("EIP712Domain(uint256 chainId,address verifyingContract)")
     bytes32 internal constant _DOMAIN_SEPARATOR_TYPEHASH =
         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
@@ -129,8 +127,7 @@ abstract contract ModularAccountBase is
         _doCachedPostExecHooks(postValidatorExecHooks);
     }
 
-    constructor(IEntryPoint anEntryPoint) {
-        _ENTRY_POINT = anEntryPoint;
+    constructor(IEntryPoint anEntryPoint) BaseAccount(anEntryPoint) {
         _disableInitializers();
     }
 
@@ -401,12 +398,6 @@ abstract contract ModularAccountBase is
         wrapNativeFunction
     {
         super.upgradeToAndCall(newImplementation, data);
-    }
-
-    /// @notice Gets the entry point for this account
-    /// @return entryPoint The entry point for this account
-    function entryPoint() public view override returns (IEntryPoint) {
-        return _ENTRY_POINT;
     }
 
     function domainSeparator() public view returns (bytes32) {

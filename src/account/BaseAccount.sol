@@ -11,7 +11,13 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 /// Implementing contracts should override the _validateUserOp function to provide account-specific validation
 /// logic.
 abstract contract BaseAccount is IAccount {
+    IEntryPoint internal immutable _ENTRY_POINT;
+
     error NotEntryPoint();
+
+    constructor(IEntryPoint anEntryPoint) {
+        _ENTRY_POINT = anEntryPoint;
+    }
 
     /// @inheritdoc IAccount
     function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash, uint256 missingAccountFunds)
@@ -34,9 +40,11 @@ abstract contract BaseAccount is IAccount {
         }
     }
 
-    /// @notice Get the EntryPoint address used by this account.
-    /// @return The EntryPoint address.
-    function entryPoint() public view virtual returns (IEntryPoint);
+    /// @notice Gets the entry point for this account
+    /// @return entryPoint The entry point for this account
+    function entryPoint() external view returns (IEntryPoint) {
+        return _ENTRY_POINT;
+    }
 
     /// @notice Account-specific implementation of user op validation. Override this function to define the
     /// account's validation logic.
@@ -47,7 +55,7 @@ abstract contract BaseAccount is IAccount {
 
     /// @notice Revert if the sender is not the EntryPoint.
     function _requireFromEntryPoint() internal view virtual {
-        if (msg.sender != address(entryPoint())) {
+        if (msg.sender != address(_ENTRY_POINT)) {
             revert NotEntryPoint();
         }
     }
