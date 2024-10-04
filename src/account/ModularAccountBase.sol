@@ -26,8 +26,10 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../helpers/Constants.sol";
+
+import {getEmptyCalldataSlice} from "../helpers/EmptyCalldataSlice.sol";
 import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
-import {ExecutionLib, UOCallBuffer} from "../libraries/ExecutionLib.sol";
+import {ExecutionLib, RTCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {SparseCalldataSegmentLib} from "../libraries/SparseCalldataSegmentLib.sol";
@@ -285,21 +287,16 @@ abstract contract ModularAccountBase is
             isGlobalValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
-        _doRuntimeValidation(runtimeValidationFunction, data, authorization[25:]);
+        RTCallBuffer callBuffer = _doRuntimeValidation(runtimeValidationFunction, data, authorization[25:]);
 
         // If runtime validation passes, run exec hooks associated with the validator
         HookConfig[] memory validationAssocExecHooks =
             MemManagementLib.loadExecHooks(getAccountStorage().validationData[runtimeValidationFunction]);
         bytes[] memory postHookData = _doPreHooks(validationAssocExecHooks, data);
 
-        // Execute the call
-        (bool success, bytes memory returnData) = address(this).call(data);
-
-        if (!success) {
-            assembly ("memory-safe") {
-                revert(add(returnData, 32), mload(returnData))
-            }
-        }
+        // Execute the call, reusing any already-allocated call buffers, if they exist.
+        bytes memory returnData =
+            ExecutionLib.exec(address(this), 0 wei, ExecutionLib.getCallData(callBuffer, data));
 
         _doCachedPostExecHooks(validationAssocExecHooks, postHookData);
 
@@ -619,10 +616,15 @@ abstract contract ModularAccountBase is
         ModuleEntity runtimeValidationFunction,
         bytes calldata callData,
         bytes calldata authorizationData
-    ) internal {
+    ) internal returns (RTCallBuffer) {
         // run all preRuntimeValidation hooks
         HookConfig[] memory preRuntimeValidationHooks =
             MemManagementLib.loadValidationHooks(getAccountStorage().validationData[runtimeValidationFunction]);
+
+        RTCallBuffer callBuffer;
+        if (!_validationIsNative(runtimeValidationFunction) || preRuntimeValidationHooks.length > 0) {
+            callBuffer = ExecutionLib.allocateRuntimeValidationCallBuffer(callData, authorizationData);
+        }
 
         for (uint256 i = preRuntimeValidationHooks.length; i > 0;) {
             // Decrement here, instead of in the loop update step, to handle the case where the length is 0.
@@ -630,17 +632,21 @@ abstract contract ModularAccountBase is
                 --i;
             }
 
-            bytes memory currentAuthSegment;
+            bytes calldata currentAuthSegment;
 
             (currentAuthSegment, authorizationData) =
                 authorizationData.advanceSegmentIfAtIndex(uint8(preRuntimeValidationHooks.length - i - 1));
 
-            _doPreRuntimeValidationHook(preRuntimeValidationHooks[i].moduleEntity(), callData, currentAuthSegment);
+            ExecutionLib.invokeRuntimeCallBufferPreValidationHook(
+                callBuffer, preRuntimeValidationHooks[i], currentAuthSegment
+            );
         }
 
         authorizationData = authorizationData.getFinalSegment();
 
-        _execRuntimeValidation(runtimeValidationFunction, callData, authorizationData);
+        _execRuntimeValidation(runtimeValidationFunction, callBuffer, authorizationData);
+
+        return callBuffer;
     }
 
     function _doPreHooks(HookConfig[] memory hooks, bytes calldata data)
@@ -706,24 +712,6 @@ abstract contract ModularAccountBase is
         }
     }
 
-    function _doPreRuntimeValidationHook(
-        ModuleEntity validationHook,
-        bytes memory callData,
-        bytes memory currentAuthData
-    ) internal {
-        (address hookModule, uint32 hookEntityId) = validationHook.unpack();
-        try IValidationHookModule(hookModule).preRuntimeValidationHook(
-            hookEntityId, msg.sender, msg.value, callData, currentAuthData
-        )
-        // forgefmt: disable-start
-        // solhint-disable-next-line no-empty-blocks
-        {} catch{
-        // forgefmt: disable-end
-            bytes memory revertReason = ExecutionLib.collectReturnData();
-            revert PreRuntimeValidationHookFailed(hookModule, hookEntityId, revertReason);
-        }
-    }
-
     // solhint-disable-next-line no-empty-blocks
     function _authorizeUpgrade(address newImplementation) internal override {}
 
@@ -761,6 +749,11 @@ abstract contract ModularAccountBase is
             HookConfig[] memory preRuntimeValidationHooks =
                 MemManagementLib.loadValidationHooks(_storage.validationData[directCallValidationKey]);
 
+            RTCallBuffer callBuffer;
+            if (preRuntimeValidationHooks.length > 0) {
+                callBuffer = ExecutionLib.allocateRuntimeValidationCallBuffer(msg.data, getEmptyCalldataSlice());
+            }
+
             uint256 hookLen = preRuntimeValidationHooks.length;
             for (uint256 i = hookLen; i > 0;) {
                 // Decrement here, instead of in the loop body, to convert from length to an index.
@@ -768,7 +761,9 @@ abstract contract ModularAccountBase is
                     --i;
                 }
 
-                _doPreRuntimeValidationHook(preRuntimeValidationHooks[i].moduleEntity(), msg.data, "");
+                ExecutionLib.invokeRuntimeCallBufferPreValidationHook(
+                    callBuffer, preRuntimeValidationHooks[i], getEmptyCalldataSlice()
+                );
             }
 
             //Load all execution hooks: both associated with the selector and the validation function.
@@ -807,21 +802,10 @@ abstract contract ModularAccountBase is
 
     function _execRuntimeValidation(
         ModuleEntity runtimeValidationFunction,
-        bytes calldata callData,
+        RTCallBuffer callBuffer,
         bytes calldata authorization
     ) internal virtual {
-        (address module, uint32 entityId) = runtimeValidationFunction.unpack();
-
-        try IValidationModule(module).validateRuntime(
-            address(this), entityId, msg.sender, msg.value, callData, authorization
-        )
-        // forgefmt: disable-start
-        // solhint-disable-next-line no-empty-blocks
-        {} catch{
-        // forgefmt: disable-end
-            bytes memory revertReason = ExecutionLib.collectReturnData();
-            revert RuntimeValidationFunctionReverted(module, entityId, revertReason);
-        }
+        ExecutionLib.invokeRuntimeCallBufferValidation(callBuffer, runtimeValidationFunction, authorization);
     }
 
     function _isValidSignature(ModuleEntity sigValidation, bytes32 hash, bytes calldata signature)
