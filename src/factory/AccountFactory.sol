@@ -4,6 +4,8 @@ pragma solidity ^0.8.26;
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {ModularAccount} from "../account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../account/SemiModularAccountBytecode.sol";
@@ -19,6 +21,8 @@ contract AccountFactory is Ownable {
 
     event ModularAccountDeployed(address indexed account, address indexed owner, uint256 salt);
     event SemiModularAccountDeployed(address indexed account, address indexed owner, uint256 salt);
+
+    error TransferFailed();
 
     constructor(
         IEntryPoint _entryPoint,
@@ -92,6 +96,22 @@ contract AccountFactory is Ownable {
 
     function withdrawStake(address payable withdrawAddress) external onlyOwner {
         ENTRY_POINT.withdrawStake(withdrawAddress);
+    }
+
+    /// @notice Withdraw funds from this contract
+    /// @dev can withdraw stuck erc20s or native currency
+    /// @param to address to send erc20s or native currency to
+    /// @param token address of the token to withdraw, 0 address for native currency
+    /// @param amount amount of the token to withdraw in case of rebasing tokens
+    function withdraw(address payable to, address token, uint256 amount) external onlyOwner {
+        if (token == address(0)) {
+            (bool success,) = to.call{value: address(this).balance}("");
+            if (!success) {
+                revert TransferFailed();
+            }
+        } else {
+            SafeERC20.safeTransfer(IERC20(token), to, amount);
+        }
     }
 
     /**
