@@ -101,6 +101,33 @@ contract ModuleSignatureUtils {
         return res;
     }
 
+    function _generatePreHooksDatasArray(bytes[] memory orderedHookDatas)
+        internal
+        pure
+        returns (PreValidationHookData[] memory)
+    {
+        // Count the number of non-empty hook data segments
+        uint256 count = 0;
+        for (uint256 i = 0; i < orderedHookDatas.length; ++i) {
+            if (orderedHookDatas[i].length > 0) {
+                count++;
+            }
+        }
+
+        PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](count);
+
+        uint256 j = 0;
+        for (uint256 i = 0; i < orderedHookDatas.length; ++i) {
+            if (orderedHookDatas[i].length > 0) {
+                preValidationHookData[j] =
+                    PreValidationHookData({index: uint8(i), validationData: orderedHookDatas[i]});
+                j++;
+            }
+        }
+
+        return preValidationHookData;
+    }
+
     // helper function to pack validation data with an index, according to the sparse calldata segment spec.
     function _packSignatureWithIndex(uint8 index, bytes memory validationData)
         internal
