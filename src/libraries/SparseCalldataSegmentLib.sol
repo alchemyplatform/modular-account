@@ -15,25 +15,26 @@ library SparseCalldataSegmentLib {
 
     /// @notice Splits out a segment of calldata, sparsely-packed.
     /// The expected format is:
-    /// [uint32(len(segment0)), segment0, uint32(len(segment1)), segment1, ... uint32(len(segmentN)), segmentN]
+    /// [uint8(index0), uint32(len(segment0)), segment0, uint8(index1), uint32(len(segment1)), segment1,
+    /// ... uint8(indexN), uint32(len(segmentN)), segmentN]
     /// @param source The calldata to extract the segment from.
     /// @return segment The extracted segment. Using the above example, this would be segment0.
     /// @return remainder The remaining calldata. Using the above example,
-    /// this would start at uint32(len(segment1)) and continue to the end at segmentN.
+    /// this would start at uint8(index1) and continue to the end at segmentN.
     function getNextSegment(bytes calldata source)
         internal
         pure
         returns (bytes calldata segment, bytes calldata remainder)
     {
-        // The first 4 bytes hold the length of the segment, excluding the index.
-        uint32 length = uint32(bytes4(source[:4]));
+        // The first byte of the segment is the index.
+        // The next 4 bytes hold the length of the segment, excluding the index.
+        uint32 length = uint32(bytes4(source[1:5]));
 
         // The offset of the remainder of the calldata.
-        uint256 remainderOffset = 4 + length;
+        uint256 remainderOffset = 5 + length;
 
-        // The segment is the next `length` + 1 bytes, to account for the index.
-        // By convention, the first byte of each segment is the index of the segment.
-        segment = source[4:remainderOffset];
+        // The segment is the next `length` bytes after the first 5 bytes.
+        segment = source[5:remainderOffset];
 
         // The remainder is the rest of the calldata.
         remainder = source[remainderOffset:];
@@ -52,7 +53,7 @@ library SparseCalldataSegmentLib {
         pure
         returns (bytes memory, bytes calldata)
     {
-        uint8 nextIndex = peekIndex(source);
+        uint8 nextIndex = getIndex(source);
 
         if (nextIndex < index) {
             revert SegmentOutOfOrder();
@@ -60,8 +61,6 @@ library SparseCalldataSegmentLib {
 
         if (nextIndex == index) {
             (bytes calldata segment, bytes calldata remainder) = getNextSegment(source);
-
-            segment = getBody(segment);
 
             if (segment.length == 0) {
                 revert NonCanonicalEncoding();
@@ -73,25 +72,16 @@ library SparseCalldataSegmentLib {
         return ("", source);
     }
 
+    /// @notice Extracts the final segment from the source.
+    /// @dev Reverts if the index of the segment is not RESERVED_VALIDATION_DATA_INDEX.
+    /// @param source The calldata to extract the segment from.
+    /// @return The final segment.
     function getFinalSegment(bytes calldata source) internal pure returns (bytes calldata) {
-        (bytes calldata segment, bytes calldata remainder) = getNextSegment(source);
-
-        if (getIndex(segment) != RESERVED_VALIDATION_DATA_INDEX) {
+        if (getIndex(source) != RESERVED_VALIDATION_DATA_INDEX) {
             revert ValidationSignatureSegmentMissing();
         }
 
-        if (remainder.length != 0) {
-            revert NonCanonicalEncoding();
-        }
-
-        return getBody(segment);
-    }
-
-    /// @notice Returns the index of the next segment in the source.
-    /// @param source The calldata to extract the index from.
-    /// @return The index of the next segment.
-    function peekIndex(bytes calldata source) internal pure returns (uint8) {
-        return uint8(source[4]);
+        return source[1:];
     }
 
     /// @notice Extracts the index from a segment.
@@ -100,13 +90,5 @@ library SparseCalldataSegmentLib {
     /// @return The index of the segment
     function getIndex(bytes calldata segment) internal pure returns (uint8) {
         return uint8(segment[0]);
-    }
-
-    /// @notice Extracts the body from a segment.
-    /// @dev The body is the segment without the index.
-    /// @param segment The segment to extract the body from
-    /// @return The body of the segment.
-    function getBody(bytes calldata segment) internal pure returns (bytes calldata) {
-        return segment[1:];
     }
 }
