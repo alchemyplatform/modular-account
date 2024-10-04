@@ -11,6 +11,8 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 
 import {DIRECT_CALL_VALIDATION_ENTITYID, FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
+
+import {SemiModularKnownSelectorsLib} from "../libraries/SemiModularKnownSelectorsLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
 
 abstract contract SemiModularAccountBase is ModularAccountBase {
@@ -222,5 +224,10 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
             res := keccak256(0, 0x40)
         }
         return res;
+    }
+
+    // Overrides ModuleManagerInternals
+    function _isNativeFunction(bytes4 selector) internal pure override returns (bool) {
+        return SemiModularKnownSelectorsLib.isNativeFunction(selector);
     }
 }
