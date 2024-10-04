@@ -33,7 +33,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
     uint256 public spendLimit = 10 ether;
     uint32 public entityId = 0;
 
-    function setUp() public {
+    function setUp() public override {
         // Set up a validator with hooks from the gas spend limit module attached
 
         acct = factory.createAccount(address(this), 0, entityId);
@@ -210,7 +210,9 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
 
     function test_runtime_executeLimit() public {
         assertEq(module.limits(0, address(acct)), 10 ether);
-        acct.executeWithAuthorization(_getExecuteWithValue(5 ether), _encodeSignature(validationFunction, 1, ""));
+        acct.executeWithRuntimeValidation(
+            _getExecuteWithValue(5 ether), _encodeSignature(validationFunction, 1, "")
+        );
         assertEq(module.limits(0, address(acct)), 5 ether);
     }
 
@@ -221,7 +223,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         calls[2] = Call({target: recipient, value: 5 ether + 100_000, data: ""});
 
         assertEq(module.limits(0, address(acct)), 10 ether);
-        acct.executeWithAuthorization(
+        acct.executeWithRuntimeValidation(
             abi.encodeCall(IModularAccount.executeBatch, (calls)), _encodeSignature(validationFunction, 1, "")
         );
         assertEq(module.limits(0, address(acct)), 4 ether - 100_001);
@@ -229,7 +231,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
 
     function test_runtime_performCreateLimit() public {
         assertEq(module.limits(0, address(acct)), 10 ether);
-        bytes memory b = acct.executeWithAuthorization(
+        bytes memory b = acct.executeWithRuntimeValidation(
             _getPerformCreateCalldata(5 ether), _encodeSignature(validationFunction, 1, "")
         );
         assertEq(module.limits(0, address(acct)), 5 ether);
@@ -240,7 +242,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
 
     function test_runtime_performCreate2Limit() public {
         assertEq(module.limits(0, address(acct)), 10 ether);
-        bytes memory b = acct.executeWithAuthorization(
+        bytes memory b = acct.executeWithRuntimeValidation(
             _getPerformCreate2Calldata({value: 5 ether, salt: bytes32(0)}),
             _encodeSignature(validationFunction, 1, "")
         );
