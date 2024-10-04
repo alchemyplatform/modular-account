@@ -631,7 +631,7 @@ abstract contract ModularAccountBase is
         _execRuntimeValidation(runtimeValidationFunction, callData, authorizationData);
     }
 
-    function _doPreHooks(LinkedListSet storage executionHooks, bytes memory data)
+    function _doPreHooks(LinkedListSet storage executionHooks, bytes calldata data)
         internal
         returns (PostExecToRun[] memory postHooksToRun)
     {
