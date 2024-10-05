@@ -78,12 +78,20 @@ contract MockModule is ERC165 {
             msg.sig == IValidationModule.validateUserOp.selector
                 || msg.sig == IValidationHookModule.preUserOpValidationHook.selector
                 || msg.sig == IValidationModule.validateRuntime.selector
-                || msg.sig == IExecutionHookModule.preExecutionHook.selector
         ) {
             // return 0 for userOp/runtimeVal case, return bytes("") for preExecutionHook case
             assembly ("memory-safe") {
                 mstore(0, 0)
                 return(0x00, 0x20)
+            }
+        }
+
+        if (msg.sig == IExecutionHookModule.preExecutionHook.selector) {
+            // return bytes("") for preExecutionHook case
+            assembly ("memory-safe") {
+                mstore(0, 0x20)
+                mstore(0x20, 0)
+                return(0x00, 0x40)
             }
         }
     }

@@ -26,10 +26,9 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../helpers/Constants.sol";
-
 import {getEmptyCalldataSlice} from "../helpers/EmptyCalldataSlice.sol";
 import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
-import {ExecutionLib, RTCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
+import {ExecutionLib, PHCallBuffer, RTCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {SparseCalldataSegmentLib} from "../libraries/SparseCalldataSegmentLib.sol";
@@ -231,9 +230,15 @@ abstract contract ModularAccountBase is
 
         HookConfig[] memory validationAssocExecHooks =
             MemManagementLib.loadExecHooks(getAccountStorage().validationData[userOpValidationFunction]);
-        bytes[] memory postHookDatas = _doPreHooks(validationAssocExecHooks, msg.data);
 
-        bytes memory callData = userOp.callData[4:];
+        PHCallBuffer callBuffer;
+        if (validationAssocExecHooks.length > 0) {
+            callBuffer = ExecutionLib.allocatePreExecHookCallBuffer(msg.data);
+        }
+
+        bytes[] memory postHookDatas = _doPreHooks(validationAssocExecHooks, callBuffer);
+
+        bytes memory callData = ExecutionLib.getExecuteUOCallData(callBuffer, userOp.callData);
 
         // Manually call self, without collecting return data unless there's a revert.
         ExecutionLib.callSelfBubbleOnRevert(callData);
@@ -280,23 +285,29 @@ abstract contract ModularAccountBase is
         ModuleEntity runtimeValidationFunction = ModuleEntity.wrap(bytes24(authorization[:24]));
 
         // Check if the runtime validation function is allowed to be called
-        bool isGlobalValidation = uint8(authorization[24]) == 1;
         _checkIfValidationAppliesCallData(
             data,
             runtimeValidationFunction,
-            isGlobalValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
+            // Unfortunately, have to avoid declaring a `bool isGlobalValidation` to avoid stack too deep issues.
+            uint8(authorization[24]) == 1 ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
-        RTCallBuffer callBuffer = _doRuntimeValidation(runtimeValidationFunction, data, authorization[25:]);
+        RTCallBuffer rtCallBuffer = _doRuntimeValidation(runtimeValidationFunction, data, authorization[25:]);
 
         // If runtime validation passes, run exec hooks associated with the validator
         HookConfig[] memory validationAssocExecHooks =
             MemManagementLib.loadExecHooks(getAccountStorage().validationData[runtimeValidationFunction]);
-        bytes[] memory postHookData = _doPreHooks(validationAssocExecHooks, data);
 
-        // Execute the call, reusing any already-allocated call buffers, if they exist.
+        PHCallBuffer phCallBuffer;
+        if (validationAssocExecHooks.length > 0) {
+            phCallBuffer = ExecutionLib.convertToPreHookCallBuffer(rtCallBuffer, data);
+        }
+        bytes[] memory postHookData = _doPreHooks(validationAssocExecHooks, phCallBuffer);
+
+        // Execute the call, reusing the already-allocated RT call buffers, if it exists.
+        // In practice, this is cheaper than attempting to coalesce the (possibly two) buffers.
         bytes memory returnData =
-            ExecutionLib.exec(address(this), 0 wei, ExecutionLib.getCallData(callBuffer, data));
+            ExecutionLib.exec(address(this), 0 wei, ExecutionLib.getCallData(rtCallBuffer, data));
 
         _doCachedPostExecHooks(validationAssocExecHooks, postHookData);
 
@@ -649,7 +660,7 @@ abstract contract ModularAccountBase is
         return callBuffer;
     }
 
-    function _doPreHooks(HookConfig[] memory hooks, bytes calldata data)
+    function _doPreHooks(HookConfig[] memory hooks, PHCallBuffer callBuffer)
         internal
         returns (bytes[] memory postHookReturnData)
     {
@@ -667,28 +678,13 @@ abstract contract ModularAccountBase is
             HookConfig hookConfig = hooks[i];
 
             if (hookConfig.hasPreHook()) {
-                bytes memory preExecHookReturnData = _runPreExecHook(hookConfig.moduleEntity(), data);
+                uint256 returnedBytesSize = ExecutionLib.invokePreExecHook(callBuffer, hookConfig);
 
                 // If there is an associated post exec hook, save the return data.
                 if (hookConfig.hasPostHook()) {
-                    postHookReturnData[i] = preExecHookReturnData;
+                    postHookReturnData[i] = ExecutionLib.getPreHookReturnData(returnedBytesSize);
                 }
             }
-        }
-    }
-
-    function _runPreExecHook(ModuleEntity preExecHook, bytes memory data)
-        internal
-        returns (bytes memory preExecHookReturnData)
-    {
-        (address module, uint32 entityId) = preExecHook.unpack();
-        try IExecutionHookModule(module).preExecutionHook(entityId, msg.sender, msg.value, data) returns (
-            bytes memory returnData
-        ) {
-            preExecHookReturnData = returnData;
-        } catch {
-            bytes memory revertReason = ExecutionLib.collectReturnData();
-            revert PreExecHookReverted(module, entityId, revertReason);
         }
     }
 
@@ -732,6 +728,8 @@ abstract contract ModularAccountBase is
         AccountStorage storage _storage = getAccountStorage();
         HookConfig[] memory execHooks;
 
+        RTCallBuffer rtCallBuffer;
+
         // We only need to handle execution hooks when the sender is not the entry point or the account itself,
         // and the selector isn't public.
         if (
@@ -749,20 +747,19 @@ abstract contract ModularAccountBase is
             HookConfig[] memory preRuntimeValidationHooks =
                 MemManagementLib.loadValidationHooks(_storage.validationData[directCallValidationKey]);
 
-            RTCallBuffer callBuffer;
-            if (preRuntimeValidationHooks.length > 0) {
-                callBuffer = ExecutionLib.allocateRuntimeValidationCallBuffer(msg.data, getEmptyCalldataSlice());
+            uint256 preRuntimeValidationHooksLength = preRuntimeValidationHooks.length;
+            if (preRuntimeValidationHooksLength > 0) {
+                rtCallBuffer = ExecutionLib.allocateRuntimeValidationCallBuffer(msg.data, getEmptyCalldataSlice());
             }
 
-            uint256 hookLen = preRuntimeValidationHooks.length;
-            for (uint256 i = hookLen; i > 0;) {
+            for (uint256 i = preRuntimeValidationHooksLength; i > 0;) {
                 // Decrement here, instead of in the loop body, to convert from length to an index.
                 unchecked {
                     --i;
                 }
 
                 ExecutionLib.invokeRuntimeCallBufferPreValidationHook(
-                    callBuffer, preRuntimeValidationHooks[i], getEmptyCalldataSlice()
+                    rtCallBuffer, preRuntimeValidationHooks[i], getEmptyCalldataSlice()
                 );
             }
 
@@ -776,8 +773,13 @@ abstract contract ModularAccountBase is
             execHooks = MemManagementLib.loadExecHooks(_storage.executionData[msg.sig]);
         }
 
+        PHCallBuffer preHookCallBuffer;
+        if (execHooks.length > 0) {
+            preHookCallBuffer = ExecutionLib.convertToPreHookCallBuffer(rtCallBuffer, msg.data);
+        }
+
         // Exec hooks associated with the selector
-        bytes[] memory postHookDatas = _doPreHooks(execHooks, msg.data);
+        bytes[] memory postHookDatas = _doPreHooks(execHooks, preHookCallBuffer);
 
         return (execHooks, postHookDatas);
     }

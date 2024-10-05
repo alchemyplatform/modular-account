@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {HookConfig} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
@@ -14,10 +15,13 @@ type UOCallBuffer is bytes32;
 
 type RTCallBuffer is bytes32;
 
+type PHCallBuffer is bytes32;
+
 // Functions are more readable in original order
 // solhint-disable ordering
 library ExecutionLib {
     // Duplicate definition to make it easier to revert in the library.
+    error PreExecHookReverted(address module, uint32 entityId, bytes revertReason);
     error PreRuntimeValidationHookFailed(address module, uint32 entityId, bytes revertReason);
     error RuntimeValidationFunctionReverted(address module, uint32 entityId, bytes revertReason);
 
@@ -457,6 +461,219 @@ library ExecutionLib {
         } else {
             // No buffer exists yet, just copy the data to memory and return it.
             return data;
+        }
+    }
+
+    // Convert a RTCallBuffer to a pre hook call buffer, if the RTCallBuffer exists. If not, allocate a new one.
+    function convertToPreHookCallBuffer(RTCallBuffer buffer, bytes calldata data)
+        internal
+        view
+        returns (PHCallBuffer result)
+    {
+        bool bufferExists;
+
+        assembly ("memory-safe") {
+            bufferExists := iszero(iszero(buffer))
+        }
+
+        if (bufferExists) {
+            // The buffer already has most of what we need, but we need to update the pointer, length, and data
+            // offset.
+
+            // Buffer transformation:
+            // 0xAAAAAAAA // selector
+            // 0x000: 0x________________________BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB account -> discarded
+            // 0x020: 0x________________________________________________________CCCCCCCC entityId -> selector
+            // 0x040: 0x________________________DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD msg.sender -> entityId
+            // 0x060: 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE msg.value -> sender
+            // 0x080: 0x______________________________________________________________c0 callData offset -> value
+            // 0x0a0: 0x_____________________________________________________________FFF auth offset -> cd offset
+            // 0x0c0: 0x_____________________________________________________________GGG callData length -> stays
+
+            // This new buffer will be a subset of the existing buffer.
+            PHCallBuffer newBuffer;
+
+            // Right-align the selector
+            uint32 selector = uint32(IExecutionHookModule.preExecutionHook.selector);
+
+            assembly ("memory-safe") {
+                // We don’t know whether the RTCallBuffer was called only with pre-hooks (skipping RT validation
+                // updates because of SMA), or if it was called with a buffer after a module based RT validation,
+                // which would cause the relative offset of calldata to change. So, when converting to a pre hook
+                // buffer, we must not load the relative calldata offset, and must instead use an absolute offset
+                // from the start of the buffer. Using an absolute offset is safe because the abi encoder will only
+                // generate “strict encoding mode” encodings, so it is guaranteed to be in that location.
+
+                let callDataAbsOffset := add(buffer, 0xe4)
+
+                let callDataSize := mload(callDataAbsOffset)
+
+                // We must squash existing elements, because the stored offset of authorization causes the other
+                // fields to not be aligned.
+                // We need to copy in the selector, entityId, sender, value, and relative callData offset.
+
+                // Step back 5 words, to start pasting in the new data.
+                let workingPtr := add(buffer, 0x44)
+                // Paste in the selector
+                mstore(workingPtr, selector)
+                // skip pasting in the entity ID, the caller will squash this later
+                workingPtr := add(workingPtr, 0x40)
+                // Paste in msg.sender
+                mstore(workingPtr, caller())
+                workingPtr := add(workingPtr, 0x20)
+                // Paste in msg.value
+                mstore(workingPtr, callvalue())
+                workingPtr := add(workingPtr, 0x20)
+                // Paste in the relative callData offset. This is now 0xa0, to show that it is after the entityId,
+                // sender, value, and offset fields.
+                mstore(workingPtr, 0x80)
+
+                // Now store the buffer length. This will be directly before the selector, and the returned pointer
+                // will point to this word in memory.
+                newBuffer := add(buffer, 0x40)
+                // word-align the callDataSize
+                callDataSize := and(add(callDataSize, 0x1f), not(0x1f))
+                mstore(newBuffer, add(callDataSize, 0xa4))
+                // See `allocateRuntimeCallBuffer` for the buffer layout.
+            }
+
+            return newBuffer;
+        } else {
+            // We need to allocate and return a new buffer.
+            return allocatePreExecHookCallBuffer(data);
+        }
+    }
+
+    function allocatePreExecHookCallBuffer(bytes calldata data) internal view returns (PHCallBuffer) {
+        bytes memory newBuffer =
+            abi.encodeCall(IExecutionHookModule.preExecutionHook, (uint32(0), msg.sender, msg.value, data));
+
+        PHCallBuffer result;
+
+        assembly ("memory-safe") {
+            result := newBuffer
+        }
+
+        return result;
+
+        // Buffer contents:
+        // 0xAAAAAAAA // selector
+        // 0x000: 0x________________________________________________________BBBBBBBB // entityId
+        // 0x020: 0x________________________CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC // sender
+        // 0x040: 0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD // value
+        // 0x060: 0x______________________________________________________________80 // callData offset
+        // 0x080...                                                                  // dynamic fields
+    }
+
+    function invokePreExecHook(PHCallBuffer buffer, HookConfig hookEntity)
+        internal
+        returns (uint256 returnedBytesSize)
+    {
+        bool success;
+        address moduleAddress;
+        uint32 entityId;
+
+        assembly ("memory-safe") {
+            // Load the module address and entity Id
+            entityId := and(shr(64, hookEntity), 0xffffffff)
+            moduleAddress := shr(96, hookEntity)
+
+            // Update the buffer with the entity Id
+            mstore(add(buffer, 0x24), entityId)
+
+            // Perform the call, storing the first two words of return data into scratch space.
+            success :=
+                call(
+                    gas(),
+                    moduleAddress,
+                    /*value*/
+                    0,
+                    /*argOffset*/
+                    add(buffer, 0x20), // jump over 32 bytes for length
+                    /*argSize*/
+                    mload(buffer),
+                    /*retOffset*/
+                    0,
+                    /*retSize*/
+                    0x40
+                )
+
+            // Need at least 64 bytes of return data to be considered successful.
+            success := and(success, gt(returndatasize(), 0x3f))
+            // Only accept return data of "strict encoding" form, where the relative offset is exactly 0x20.
+            success := and(success, eq(mload(0), 0x20))
+            // Ensure that the reported length of return data does not exceed the actual length.
+            // aka the stored length <= retundatasize() - 0x40 (for the first two values)
+            // No opcode for lte, so the expression equals:
+            // stored length < retundatasize() - 0x3f
+            // Underflow doesn't matter, because success is false anyways if length < 0x40.
+            returnedBytesSize := mload(0x20)
+            success := and(success, lt(returnedBytesSize, sub(returndatasize(), 0x3f)))
+        }
+
+        if (!success) {
+            revert PreExecHookReverted(moduleAddress, entityId, collectReturnData());
+        }
+    }
+
+    // Should only be called after calling `invokePreExecHook`.
+    function getPreHookReturnData(uint256 returnedBytesSize) internal pure returns (bytes memory) {
+        // Return the `bytes` return data from the pre hook,
+        bytes memory result = new bytes(returnedBytesSize);
+
+        // Copy the return data to the result.
+        assembly ("memory-safe") {
+            returndatacopy(add(result, 0x20), 0x40, returnedBytesSize)
+        }
+
+        return result;
+    }
+
+    // Converts a PreHookCallBuffer to a `bytes memory`, to use for a self-call in `executeUserOp`.
+    // Handles skipping ahead an extra 4 bytes to omit the `executeUserOp` selector, and updates the stored length
+    // to do so. This will edit the buffer.
+    function getExecuteUOCallData(PHCallBuffer buffer, bytes calldata callData)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        bool bufferExists;
+
+        assembly ("memory-safe") {
+            bufferExists := iszero(iszero(buffer))
+        }
+
+        if (bufferExists) {
+            // At this point, the buffer contains the encoded call to the pre-exec hook, but the data being sent is
+            // `msg.data`, not `userOp.callData`. Re-decoding the user op struct's callData is error-prone, so
+            // instead we just copy-in the provided userOp.callData, squashing the buffer. This is fine because the
+            // buffer will not be reused after this operation.
+
+            bytes memory result;
+
+            assembly ("memory-safe") {
+                // Safe to do unchecked because there must have been at least 4 bytes of callData for the
+                // EntryPoint to call `executeUserOp`.
+                let actualCallDataLength := sub(callData.length, 4)
+
+                // Write over the existing buffer
+                result := buffer
+
+                // Store the new length
+                mstore(result, actualCallDataLength)
+
+                if actualCallDataLength {
+                    // We don't need to write a zero word because this data will not be word-aligned before sending
+                    // Copy in the callData
+                    calldatacopy(add(result, 0x20), add(callData.offset, 4), actualCallDataLength)
+                }
+            }
+
+            return result;
+        } else {
+            // No buffer exists yet, just copy the data to memory and return it.
+            // Skip the first 4 bytes in this function to save the computation on the buffer reuse case.
+            return callData[4:];
         }
     }
 

@@ -63,10 +63,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
 
         vm.revertTo(_revertSnapshot);
 
-        _isSMATest = true;
-        account1 = ModularAccount(payable(factory.createSemiModularAccount(owner1, 0)));
-        vm.deal(address(account1), 100 ether);
-        _signerValidation = FALLBACK_VALIDATION;
+        _switchToSMA();
 
         setUp();
 
@@ -256,6 +253,13 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
             ),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
+    }
+
+    function _switchToSMA() internal {
+        _isSMATest = true;
+        account1 = ModularAccount(payable(factory.createSemiModularAccount(owner1, 0)));
+        vm.deal(address(account1), 100 ether);
+        _signerValidation = FALLBACK_VALIDATION;
     }
 
     // helper function to compress 2 gas values into a single bytes32
