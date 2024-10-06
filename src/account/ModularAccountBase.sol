@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {
     Call,
@@ -28,7 +27,13 @@ import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../helpers/Constants.sol";
 import {getEmptyCalldataSlice} from "../helpers/EmptyCalldataSlice.sol";
 import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
-import {ExecutionLib, PHCallBuffer, RTCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
+import {
+    DensePostHookData,
+    ExecutionLib,
+    PHCallBuffer,
+    RTCallBuffer,
+    UOCallBuffer
+} from "../libraries/ExecutionLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {SparseCalldataSegmentLib} from "../libraries/SparseCalldataSegmentLib.sol";
@@ -112,12 +117,11 @@ abstract contract ModularAccountBase is
     // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution,
     // performCreate, performCreate2
     modifier wrapNativeFunction() {
-        (HookConfig[] memory execHooks, bytes[] memory postExecHookData) =
-            _checkPermittedCallerAndAssociatedHooks();
+        DensePostHookData postHookData = _checkPermittedCallerAndAssociatedHooks();
 
         _;
 
-        _doCachedPostExecHooks(execHooks, postExecHookData);
+        ExecutionLib.doCachedPostHooks(postHookData);
     }
 
     constructor(IEntryPoint anEntryPoint) BaseAccount(anEntryPoint) {
@@ -136,7 +140,7 @@ abstract contract ModularAccountBase is
         if (execModule == address(0)) {
             revert UnrecognizedFunction(msg.sig);
         }
-        (HookConfig[] memory execHooks, bytes[] memory postHookDatas) = _checkPermittedCallerAndAssociatedHooks();
+        DensePostHookData postHookData = _checkPermittedCallerAndAssociatedHooks();
 
         // execute the function, bubbling up any reverts
         (bool execSuccess, bytes memory execReturnData) = execModule.call(msg.data);
@@ -148,7 +152,7 @@ abstract contract ModularAccountBase is
             }
         }
 
-        _doCachedPostExecHooks(execHooks, postHookDatas);
+        ExecutionLib.doCachedPostHooks(postHookData);
 
         return execReturnData;
     }
@@ -236,14 +240,14 @@ abstract contract ModularAccountBase is
             callBuffer = ExecutionLib.allocatePreExecHookCallBuffer(msg.data);
         }
 
-        bytes[] memory postHookDatas = _doPreHooks(validationAssocExecHooks, callBuffer);
+        DensePostHookData postHookData = ExecutionLib.doPreHooks(validationAssocExecHooks, callBuffer);
 
         bytes memory callData = ExecutionLib.getExecuteUOCallData(callBuffer, userOp.callData);
 
         // Manually call self, without collecting return data unless there's a revert.
         ExecutionLib.callSelfBubbleOnRevert(callData);
 
-        _doCachedPostExecHooks(validationAssocExecHooks, postHookDatas);
+        ExecutionLib.doCachedPostHooks(postHookData);
     }
 
     /// @inheritdoc IModularAccount
@@ -302,14 +306,14 @@ abstract contract ModularAccountBase is
         if (validationAssocExecHooks.length > 0) {
             phCallBuffer = ExecutionLib.convertToPreHookCallBuffer(rtCallBuffer, data);
         }
-        bytes[] memory postHookData = _doPreHooks(validationAssocExecHooks, phCallBuffer);
+        DensePostHookData postHookData = ExecutionLib.doPreHooks(validationAssocExecHooks, phCallBuffer);
 
         // Execute the call, reusing the already-allocated RT call buffers, if it exists.
         // In practice, this is cheaper than attempting to coalesce the (possibly two) buffers.
         bytes memory returnData =
             ExecutionLib.exec(address(this), 0 wei, ExecutionLib.getCallData(rtCallBuffer, data));
 
-        _doCachedPostExecHooks(validationAssocExecHooks, postHookData);
+        ExecutionLib.doCachedPostHooks(postHookData);
 
         return returnData;
     }
@@ -660,54 +664,6 @@ abstract contract ModularAccountBase is
         return callBuffer;
     }
 
-    function _doPreHooks(HookConfig[] memory hooks, PHCallBuffer callBuffer)
-        internal
-        returns (bytes[] memory postHookReturnData)
-    {
-        uint256 hooksLength = hooks.length;
-        postHookReturnData = new bytes[](hooksLength);
-
-        // Run the pre hooks and copy their return data to the post hooks array, if an associated post exec hook
-        // exists.
-        for (uint256 i = hooksLength; i > 0;) {
-            // Decrement here, instead of in the loop update step, to handle the case where the length is 0.
-            unchecked {
-                --i;
-            }
-
-            HookConfig hookConfig = hooks[i];
-
-            if (hookConfig.hasPreHook()) {
-                uint256 returnedBytesSize = ExecutionLib.invokePreExecHook(callBuffer, hookConfig);
-
-                // If there is an associated post exec hook, save the return data.
-                if (hookConfig.hasPostHook()) {
-                    postHookReturnData[i] = ExecutionLib.getPreHookReturnData(returnedBytesSize);
-                }
-            }
-        }
-    }
-
-    /// @dev Associated post hooks are run in reverse order of their pre hooks.
-    function _doCachedPostExecHooks(HookConfig[] memory hooks, bytes[] memory hookData) internal {
-        uint256 hooksLength = hooks.length;
-        for (uint256 i = 0; i < hooksLength; ++i) {
-            HookConfig hook = hooks[i];
-            if (!hook.hasPostHook()) {
-                // This does not have a post hook, so we skip it.
-                continue;
-            }
-
-            (address module, uint32 entityId) = hook.moduleEntity().unpack();
-            // solhint-disable-next-line no-empty-blocks
-            try IExecutionHookModule(module).postExecutionHook(entityId, hookData[i]) {}
-            catch {
-                bytes memory revertReason = ExecutionLib.collectReturnData();
-                revert PostExecHookReverted(module, entityId, revertReason);
-            }
-        }
-    }
-
     // solhint-disable-next-line no-empty-blocks
     function _authorizeUpgrade(address newImplementation) internal override {}
 
@@ -724,7 +680,7 @@ abstract contract ModularAccountBase is
      *      4. Run the pre executionHooks associated with this caller-sig combination, and return the
      *         post executionHooks to run later.
      */
-    function _checkPermittedCallerAndAssociatedHooks() internal returns (HookConfig[] memory, bytes[] memory) {
+    function _checkPermittedCallerAndAssociatedHooks() internal returns (DensePostHookData) {
         AccountStorage storage _storage = getAccountStorage();
         HookConfig[] memory execHooks;
 
@@ -779,9 +735,9 @@ abstract contract ModularAccountBase is
         }
 
         // Exec hooks associated with the selector
-        bytes[] memory postHookDatas = _doPreHooks(execHooks, preHookCallBuffer);
+        DensePostHookData postHookData = ExecutionLib.doPreHooks(execHooks, preHookCallBuffer);
 
-        return (execHooks, postHookDatas);
+        return postHookData;
     }
 
     function _execUserOpValidation(
