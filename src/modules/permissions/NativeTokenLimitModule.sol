@@ -24,7 +24,7 @@ import {IValidationHookModule} from "@erc6900/reference-implementation/interface
 contract NativeTokenLimitModule is BaseModule, IExecutionHookModule, IValidationHookModule {
     using UserOperationLib for PackedUserOperation;
 
-    mapping(uint256 entityIds => mapping(address account => uint256 limit)) public limits;
+    mapping(uint256 entityId => mapping(address account => uint256 limit)) public limits;
     // paymasters given permissions to pull funds from accounts should be added here
     mapping(address paymaster => mapping(address account => bool allowed)) public specialPaymasters;
 
