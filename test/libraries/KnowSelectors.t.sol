@@ -36,7 +36,7 @@ contract KnownSelectorsTest is Test {
     function test_sma_isNativeFunction() public pure {
         assertTrue(SemiModularKnownSelectorsLib.isNativeFunction(IAccount.validateUserOp.selector));
         assertTrue(
-            SemiModularKnownSelectorsLib.isNativeFunction(SemiModularAccountBase.getFallbackSigner.selector)
+            SemiModularKnownSelectorsLib.isNativeFunction(SemiModularAccountBase.getFallbackSignerData.selector)
         );
         assertTrue(SemiModularKnownSelectorsLib.isNativeFunction(ModularAccountBase.installValidation.selector));
     }

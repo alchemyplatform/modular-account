@@ -124,7 +124,7 @@ contract ModularAccountTest is AccountTestBase {
 
     function test_basicUserOp_withInitCode() public withSMATest {
         bytes memory callData = _isSMATest
-            ? abi.encodeCall(SemiModularAccountBytecode(payable(account1)).updateFallbackSigner, (owner2))
+            ? abi.encodeCall(SemiModularAccountBytecode(payable(account1)).updateFallbackSignerData, (owner2, false))
             : abi.encodeCall(
                 ModularAccountBase.execute,
                 (

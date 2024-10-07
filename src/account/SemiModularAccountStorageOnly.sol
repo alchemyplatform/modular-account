@@ -22,9 +22,7 @@ contract SemiModularAccountStorageOnly is SemiModularAccountBase {
         smaStorage.fallbackSigner = initialSigner;
         smaStorage.fallbackSignerDisabled = false;
 
-        // Note that it's technically possible for the fallback signer in storage to be nonzero before
-        // initialization. However, reading it here would add costs in the vast majority of cases.
-        emit FallbackSignerSet(address(0), initialSigner);
+        emit FallbackSignerUpdated(initialSigner, false);
     }
 
     /// @inheritdoc IModularAccount

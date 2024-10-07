@@ -68,7 +68,7 @@ contract UpgradeToSmaTest is AccountTestBase {
         // We call `updateFallbackSigner()` to upgrade from an MA to an SMA-S, because we are already initialized.
         vm.prank(address(entryPoint));
         account1.upgradeToAndCall(
-            smaStorageImpl, abi.encodeCall(SemiModularAccountBase.updateFallbackSigner, owner2)
+            smaStorageImpl, abi.encodeCall(SemiModularAccountBase.updateFallbackSignerData, (owner2, false))
         );
 
         // The previous owner1 validation is still installed, so this should not revert.

@@ -9,9 +9,8 @@ import {KnownSelectorsLib} from "./KnownSelectorsLib.sol";
 library SemiModularKnownSelectorsLib {
     function isNativeFunction(bytes4 selector) internal pure returns (bool) {
         return KnownSelectorsLib.isNativeFunction(selector)
-            || selector == SemiModularAccountBase.updateFallbackSigner.selector
-            || selector == SemiModularAccountBase.setFallbackSignerDisabled.selector
-            || selector == SemiModularAccountBase.isFallbackSignerDisabled.selector
-            || selector == SemiModularAccountBase.getFallbackSigner.selector;
+            || selector == SemiModularAccountBase.updateFallbackSignerData.selector
+            || selector == SemiModularAccountBase.getFallbackSignerData.selector
+            || selector == SemiModularAccountBase.replaySafeHash.selector;
     }
 }

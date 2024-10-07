@@ -50,9 +50,9 @@ contract SemiModularAccountDirectCallTest is AccountTestBase {
 
     // Negatives
 
-    function test_fail_smaDirectCall_disabledFallbackSigner() external withSMATest {
+    function test_fail_smaDirectCall_disabledFallbackSigner() external {
         vm.prank(owner1);
-        SemiModularAccountBase(payable(account1)).setFallbackSignerDisabled(true);
+        SemiModularAccountBase(payable(account1)).updateFallbackSignerData(address(0), true);
 
         bytes memory expectedRevertData = abi.encodeWithSelector(
             ModularAccountBase.ValidationFunctionMissing.selector, ModularAccountBase.execute.selector
@@ -63,7 +63,7 @@ contract SemiModularAccountDirectCallTest is AccountTestBase {
         account1.execute(_target, 0, "");
     }
 
-    function test_fail_smaDirectCall_notFallbackSigner() external withSMATest {
+    function test_fail_smaDirectCall_notFallbackSigner() external {
         bytes memory expectedRevertData = abi.encodeWithSelector(
             ModularAccountBase.ValidationFunctionMissing.selector, ModularAccountBase.execute.selector
         );
@@ -75,7 +75,7 @@ contract SemiModularAccountDirectCallTest is AccountTestBase {
 
     // Positives
 
-    function test_Flow_smaDirectCall_installedHooksUninstalled() external withSMATest {
+    function test_Flow_smaDirectCall_installedHooksUninstalled() external {
         // We install the validation as if it were a direct call validation, but we pass hooks from the
         // DirectCallModule, and while the validation remains the fallback signer + direct call entityId.
         bytes[] memory hooks = new bytes[](2);
@@ -126,7 +126,7 @@ contract SemiModularAccountDirectCallTest is AccountTestBase {
         assertFalse(_module.validationHookRan());
     }
 
-    function test_smaDirectCall() external withSMATest {
+    function test_smaDirectCall() external {
         vm.prank(owner1);
         account1.execute(_target, 0, "");
     }
