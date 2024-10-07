@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
 import {IAccount} from "@eth-infinitism/account-abstraction/interfaces/IAccount.sol";
