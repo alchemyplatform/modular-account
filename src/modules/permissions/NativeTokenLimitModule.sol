@@ -4,8 +4,8 @@ pragma solidity ^0.8.26;
 import {UserOperationLib} from "@eth-infinitism/account-abstraction/core/UserOperationLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {ModularAccountBase} from "../account/ModularAccountBase.sol";
-import {BaseModule, IERC165} from "./BaseModule.sol";
+import {ModularAccountBase} from "../../account/ModularAccountBase.sol";
+import {BaseModule, IERC165} from "../BaseModule.sol";
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";

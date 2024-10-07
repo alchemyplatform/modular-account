@@ -12,7 +12,7 @@ import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
 import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 
-import {NativeTokenLimitModule} from "../../src/modules/NativeTokenLimitModule.sol";
+import {NativeTokenLimitModule} from "../../src/modules/permissions/NativeTokenLimitModule.sol";
 
 import {MockDeployment} from "../mocks/MockDeployment.sol";
 import {MockModule} from "../mocks/modules/MockModule.sol";
