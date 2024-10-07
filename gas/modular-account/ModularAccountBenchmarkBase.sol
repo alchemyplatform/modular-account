@@ -98,8 +98,8 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         bytes[] memory hooks = new bytes[](3);
 
         // Allowlist init data
-        AllowlistModule.AllowlistInit[] memory allowlistInit = new AllowlistModule.AllowlistInit[](2);
-        allowlistInit[0] = AllowlistModule.AllowlistInit({
+        AllowlistModule.AllowlistInput[] memory allowlistInput = new AllowlistModule.AllowlistInput[](2);
+        allowlistInput[0] = AllowlistModule.AllowlistInput({
             target: address(counter),
             hasSelectorAllowlist: false,
             selectors: new bytes4[](0)
@@ -108,7 +108,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         bytes4[] memory tokenSelectors = new bytes4[](1);
         tokenSelectors[0] = IERC20.transfer.selector;
 
-        allowlistInit[1] = AllowlistModule.AllowlistInit({
+        allowlistInput[1] = AllowlistModule.AllowlistInput({
             target: address(mockErc20),
             hasSelectorAllowlist: true,
             selectors: tokenSelectors
@@ -116,7 +116,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
         hooks[0] = abi.encodePacked(
             HookConfigLib.packValidationHook({_module: address(allowlistModule), _entityId: 0}),
-            abi.encode(uint32(0), allowlistInit)
+            abi.encode(uint32(0), allowlistInput)
         );
 
         // Time range hook
@@ -196,17 +196,17 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
         // Allowlist
         (bool counterAllowed, bool counterHasSelectorList) =
-            allowlistModule.targetAllowlist(0, address(counter), address(account1));
+            allowlistModule.addressAllowlist(0, address(counter), address(account1));
         assertTrue(counterAllowed);
         assertFalse(counterHasSelectorList);
 
         (bool erc20Allowed, bool erc20HasSelectorList) =
-            allowlistModule.targetAllowlist(0, address(mockErc20), address(account1));
+            allowlistModule.addressAllowlist(0, address(mockErc20), address(account1));
         assertTrue(erc20Allowed);
         assertTrue(erc20HasSelectorList);
 
         bool erc20TransferSelectorAllowed =
-            allowlistModule.selectorAllowlist(0, address(mockErc20), IERC20.transfer.selector, address(account1));
+            allowlistModule.selectorAllowlist(0, IERC20.transfer.selector, address(mockErc20), address(account1));
         assertTrue(erc20TransferSelectorAllowed);
 
         // Time range

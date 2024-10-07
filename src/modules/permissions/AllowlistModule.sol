@@ -12,61 +12,65 @@ import {BaseModule} from "../../modules/BaseModule.sol";
 
 /// @title Allowlist Module
 /// @author Alchemy
-/// @notice This module allows for the setting and enforcement of allowlists for validation functions. These
-/// allowlists can specify which addresses can be called by the validation function, and optionally which selectors
-/// can be called on those addresses. These restrictions only apply to the `IModularAccount.execute` and
-/// `IModularAccount.executeBatch` functions.
+/// @notice This module allows for the setting and enforcement of allowlists for validation functions.
+///    - These allowlists can specify which addresses and or selectors can be called by the validation function. It
+/// supports:
+///       - specific addresss + specific selectors
+///       - specific addresss + any selectors
+///       - any addresss + specific selectors
+///    - These restrictions only apply to the `IModularAccount.execute` and `IModularAccount.executeBatch`
+/// functions.
+///    - The order of permission checking:
+///       - if wildcard address (any selector allowed), pass
+///       - if wildcard selecor (any address allowed), pass
+///       - if sepecific address + sepecific selector, pass
+///       - revert all other cases
 contract AllowlistModule is IValidationHookModule, BaseModule {
-    struct AllowlistInit {
+    struct AllowlistInput {
         address target;
+        // if target is address(0), hasSelectorAllowlist is ignored.
         bool hasSelectorAllowlist;
         bytes4[] selectors;
     }
 
-    struct AllowlistEntry {
+    struct AddressAllowlistEntry {
         bool allowed;
         bool hasSelectorAllowlist;
     }
 
-    mapping(uint32 entityId => mapping(address target => mapping(address account => AllowlistEntry))) public
-        targetAllowlist;
+    mapping(uint32 entityId => mapping(address target => mapping(address account => AddressAllowlistEntry))) public
+        addressAllowlist;
+
+    /// @notice if target is address(0), any address is allowed with the selector
     mapping(
-        uint32 entityId => mapping(address target => mapping(bytes4 selector => mapping(address account => bool)))
+        uint32 entityId => mapping(bytes4 selector => mapping(address target => mapping(address account => bool)))
     ) public selectorAllowlist;
 
-    event AllowlistTargetUpdated(
-        uint32 indexed entityId, address indexed account, address indexed target, AllowlistEntry entry
+    event AddressAllowlistUpdated(
+        uint32 indexed entityId, address indexed account, address indexed target, AddressAllowlistEntry entry
     );
-    event AllowlistSelectorUpdated(
+    event SelectorAllowlistUpdated(
         uint32 indexed entityId, address indexed account, bytes24 indexed targetAndSelector, bool allowed
     );
 
-    error TargetNotAllowed();
+    error AddressNotAllowed();
     error SelectorNotAllowed();
     error NoSelectorSpecified();
 
     /// @inheritdoc IModule
-    /// @dev The `data` parameter is expected to be encoded as `(uint32 entityId, AllowlistInit[] init)`.
+    /// @dev The `data` parameter is expected to be encoded as `(uint32 entityId, AllowlistInput[] inputs)`.
     function onInstall(bytes calldata data) external override {
-        (uint32 entityId, AllowlistInit[] memory init) = abi.decode(data, (uint32, AllowlistInit[]));
+        (uint32 entityId, AllowlistInput[] memory inputs) = abi.decode(data, (uint32, AllowlistInput[]));
 
-        for (uint256 i = 0; i < init.length; i++) {
-            setAllowlistTarget(entityId, init[i].target, true, init[i].hasSelectorAllowlist);
-
-            if (init[i].hasSelectorAllowlist) {
-                for (uint256 j = 0; j < init[i].selectors.length; j++) {
-                    setAllowlistSelector(entityId, init[i].target, init[i].selectors[j], true);
-                }
-            }
-        }
+        updateAllowlist(entityId, inputs);
     }
 
     /// @inheritdoc IModule
-    /// @dev The `data` parameter is expected to be encoded as `(uint32 entityId, AllowlistInit[] init)`.
+    /// @dev The `data` parameter is expected to be encoded as `(uint32 entityId, AllowlistInput[] inputs)`.
     function onUninstall(bytes calldata data) external override {
-        (uint32 entityId, AllowlistInit[] memory init) = abi.decode(data, (uint32, AllowlistInit[]));
+        (uint32 entityId, AllowlistInput[] memory inputs) = abi.decode(data, (uint32, AllowlistInput[]));
 
-        batchInitAllowlist(entityId, init);
+        deleteAllowlist(entityId, inputs);
     }
 
     /// @inheritdoc IValidationHookModule
@@ -98,16 +102,48 @@ contract AllowlistModule is IValidationHookModule, BaseModule {
         return "alchemy.allowlist-module.0.0.1";
     }
 
-    /// @notice Batch initialize the allowlist for a given entity ID.
+    /// @notice update the allowlists for a given entity ID. If the entry for an address or selector exist, it will
+    /// be overwritten.
     /// @param entityId The entity ID to initialize the allowlist for.
-    /// @param init The allowlist initialization data.
-    function batchInitAllowlist(uint32 entityId, AllowlistInit[] memory init) public {
-        for (uint256 i = 0; i < init.length; i++) {
-            setAllowlistTarget(entityId, init[i].target, false, false);
+    /// @param inputs The allowlist inputs data to update.
+    function updateAllowlist(uint32 entityId, AllowlistInput[] memory inputs) public {
+        for (uint256 i = 0; i < inputs.length; i++) {
+            AllowlistInput memory input = inputs[i];
+            if (input.target == address(0)) {
+                // wildcard case for selectors, any address can be called for the selector
+                for (uint256 j = 0; j < input.selectors.length; j++) {
+                    setSelectorAllowlist(entityId, address(0), input.selectors[j], true);
+                }
+            } else {
+                setAddressAllowlist(entityId, input.target, true, input.hasSelectorAllowlist);
 
-            if (init[i].hasSelectorAllowlist) {
-                for (uint256 j = 0; j < init[i].selectors.length; j++) {
-                    setAllowlistSelector(entityId, init[i].target, init[i].selectors[j], false);
+                if (input.hasSelectorAllowlist) {
+                    for (uint256 j = 0; j < input.selectors.length; j++) {
+                        setSelectorAllowlist(entityId, input.target, input.selectors[j], true);
+                    }
+                }
+            }
+        }
+    }
+
+    /// @notice delete the allowlists for a given entity ID.
+    /// @param entityId The entity ID to initialize the allowlist for.
+    /// @param inputs The allowlist inputs data to update.
+    function deleteAllowlist(uint32 entityId, AllowlistInput[] memory inputs) public {
+        for (uint256 i = 0; i < inputs.length; i++) {
+            AllowlistInput memory input = inputs[i];
+            if (input.target == address(0)) {
+                // wildcard case for selectors, any address can be called for the selector
+                for (uint256 j = 0; j < input.selectors.length; j++) {
+                    setSelectorAllowlist(entityId, input.target, input.selectors[j], false);
+                }
+            } else {
+                setAddressAllowlist(entityId, input.target, false, false);
+
+                if (input.hasSelectorAllowlist) {
+                    for (uint256 j = 0; j < input.selectors.length; j++) {
+                        setSelectorAllowlist(entityId, input.target, input.selectors[j], false);
+                    }
                 }
             }
         }
@@ -120,23 +156,26 @@ contract AllowlistModule is IValidationHookModule, BaseModule {
     /// @param allowed The new allowlist status, indicating whether or not the target address can be called.
     /// @param hasSelectorAllowlist Whether or not the target address has a selector allowlist. If true, the
     /// allowlist checking will validate that the selector is on the selector allowlist.
-    function setAllowlistTarget(uint32 entityId, address target, bool allowed, bool hasSelectorAllowlist) public {
-        AllowlistEntry memory entry = AllowlistEntry(allowed, hasSelectorAllowlist);
-        targetAllowlist[entityId][target][msg.sender] = entry;
-        emit AllowlistTargetUpdated(entityId, msg.sender, target, entry);
+    function setAddressAllowlist(uint32 entityId, address target, bool allowed, bool hasSelectorAllowlist)
+        public
+    {
+        AddressAllowlistEntry memory entry = AddressAllowlistEntry(allowed, hasSelectorAllowlist);
+        addressAllowlist[entityId][target][msg.sender] = entry;
+        emit AddressAllowlistUpdated(entityId, msg.sender, target, entry);
     }
 
     /// @notice Set the allowlist status for a selector, in the allowlist of the caller account and the provided
-    /// entity ID. Note that if the target address does not have a selector allowlist, this update will not be
+    /// entity ID.
+    /// Note that if the target address does not have a selector allowlist, this update will not be
     /// reflected on the usage of the allowlist hook.
     /// @param entityId The entity ID to set the allowlist status for.
     /// @param target The target address.
     /// @param selector The selector to set the allowlist status for.
     /// @param allowed The new allowlist status, indicating whether or not the selector can be called.
-    function setAllowlistSelector(uint32 entityId, address target, bytes4 selector, bool allowed) public {
-        selectorAllowlist[entityId][target][selector][msg.sender] = allowed;
+    function setSelectorAllowlist(uint32 entityId, address target, bytes4 selector, bool allowed) public {
+        selectorAllowlist[entityId][selector][target][msg.sender] = allowed;
         bytes24 targetAndSelector = bytes24(bytes24(bytes20(target)) | (bytes24(selector) >> 160));
-        emit AllowlistSelectorUpdated(entityId, msg.sender, targetAndSelector, allowed);
+        emit SelectorAllowlistUpdated(entityId, msg.sender, targetAndSelector, allowed);
     }
 
     /// @notice Check the allowlist status for a call payload. If the call is not allowed, this function will
@@ -172,11 +211,18 @@ contract AllowlistModule is IValidationHookModule, BaseModule {
         internal
         view
     {
-        AllowlistEntry storage entry = targetAllowlist[entityId][target][account];
+        bytes4 selector = bytes4(data);
+
+        AddressAllowlistEntry storage entry = addressAllowlist[entityId][target][account];
         (bool allowed, bool hasSelectorAllowlist) = (entry.allowed, entry.hasSelectorAllowlist);
 
         if (!allowed) {
-            revert TargetNotAllowed();
+            if (selectorAllowlist[entityId][selector][address(0)][account]) {
+                // selector wildcard case, any address is allowed
+                return;
+            }
+
+            revert AddressNotAllowed();
         }
 
         if (hasSelectorAllowlist) {
@@ -184,9 +230,7 @@ contract AllowlistModule is IValidationHookModule, BaseModule {
                 revert NoSelectorSpecified();
             }
 
-            bytes4 selector = bytes4(data);
-
-            if (!selectorAllowlist[entityId][target][selector][account]) {
+            if (!selectorAllowlist[entityId][selector][target][account]) {
                 revert SelectorNotAllowed();
             }
         }

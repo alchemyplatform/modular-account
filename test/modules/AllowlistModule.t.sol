@@ -16,19 +16,19 @@ import {CustomValidationTestBase} from "../utils/CustomValidationTestBase.sol";
 contract AllowlistModuleTest is CustomValidationTestBase {
     AllowlistModule public allowlistModule;
 
-    AllowlistModule.AllowlistInit[] public allowlistInit;
+    AllowlistModule.AllowlistInput[] public allowlistInputs;
 
     Counter[] public counters;
 
     uint32 public constant HOOK_ENTITY_ID = 0;
 
-    event AllowlistTargetUpdated(
+    event AddressAllowlistUpdated(
         uint32 indexed entityId,
         address indexed account,
         address indexed target,
-        AllowlistModule.AllowlistEntry entry
+        AllowlistModule.AddressAllowlistEntry entry
     );
-    event AllowlistSelectorUpdated(
+    event SelectorAllowlistUpdated(
         uint32 indexed entityId, address indexed account, bytes24 indexed targetAndSelector, bool allowed
     );
 
@@ -46,11 +46,141 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         // Don't call `_customValidationSetup` here, as we want to test various configurations of install data.
     }
 
-    function testFuzz_allowlistHook_userOp_single(uint256 seed) public {
-        AllowlistModule.AllowlistInit[] memory inits;
-        (inits, seed) = _generateRandomizedAllowlistInit(seed);
+    function test_onInstall() public {
+        // install inputs, see comments for case details
+        vm.prank(address(account1));
+        allowlistModule.onInstall(abi.encode(HOOK_ENTITY_ID, _getInputsForTests()));
 
-        _copyInitToStorage(inits);
+        // verify case 1 - a selector (Counter.setNumber) + address (counters[0]) should match
+        (bool allowed, bool hasSelectorAllowlist) =
+            allowlistModule.addressAllowlist(HOOK_ENTITY_ID, address(counters[0]), address(account1));
+        assertTrue(allowed);
+        assertTrue(hasSelectorAllowlist);
+        assertTrue(
+            allowlistModule.selectorAllowlist(
+                HOOK_ENTITY_ID, Counter.setNumber.selector, address(counters[0]), address(account1)
+            )
+        );
+
+        // verify case 2 - wildcard selector (Counter.increment), any address works
+        assertTrue(
+            allowlistModule.selectorAllowlist(
+                HOOK_ENTITY_ID, Counter.increment.selector, address(0), address(account1)
+            )
+        );
+
+        // verify case 3 - wildcard address (counters[1]), any selector works
+        (bool allowed3, bool hasSelectorAllowlist3) =
+            allowlistModule.addressAllowlist(HOOK_ENTITY_ID, address(counters[1]), address(account1));
+        assertTrue(allowed3);
+        assertFalse(hasSelectorAllowlist3);
+    }
+
+    function test_onUninstall() public {
+        // install inputs, see comments for case details
+        AllowlistModule.AllowlistInput[] memory inputs = _getInputsForTests();
+        vm.startPrank(address(account1));
+        allowlistModule.onInstall(abi.encode(HOOK_ENTITY_ID, inputs));
+        allowlistModule.onUninstall(abi.encode(HOOK_ENTITY_ID, inputs));
+        vm.stopPrank();
+
+        // verify case 1 - a selector (Counter.setNumber) + address (counters[0]) should match
+        (bool allowed, bool hasSelectorAllowlist) =
+            allowlistModule.addressAllowlist(HOOK_ENTITY_ID, address(counters[0]), address(account1));
+        assertFalse(allowed);
+        assertFalse(hasSelectorAllowlist);
+        assertFalse(
+            allowlistModule.selectorAllowlist(
+                HOOK_ENTITY_ID, Counter.setNumber.selector, address(counters[0]), address(account1)
+            )
+        );
+
+        // verify case 2 - wildcard selector (Counter.increment), any address works
+        assertFalse(
+            allowlistModule.selectorAllowlist(
+                HOOK_ENTITY_ID, Counter.increment.selector, address(0), address(account1)
+            )
+        );
+
+        // verify case 3 - wildcard address (counters[1]), any selector works
+        (bool allowed3, bool hasSelectorAllowlist3) =
+            allowlistModule.addressAllowlist(HOOK_ENTITY_ID, address(counters[1]), address(account1));
+        assertFalse(allowed3);
+        assertFalse(hasSelectorAllowlist3);
+    }
+
+    function test_nativeTokenTransfer_success() public {
+        // install inputs, see comments for case details
+        vm.startPrank(address(account1));
+        allowlistModule.onInstall(abi.encode(HOOK_ENTITY_ID, _getInputsForTests()));
+
+        allowlistModule.preRuntimeValidationHook(
+            HOOK_ENTITY_ID,
+            address(0),
+            0,
+            abi.encodeCall(ModularAccountBase.execute, (address(counters[1]), 1 wei, "")),
+            ""
+        );
+    }
+
+    function test_checkAllowlistCalldata_execute() public {
+        // install inputs, see comments for case details
+        vm.startPrank(address(account1));
+        allowlistModule.onInstall(abi.encode(HOOK_ENTITY_ID, _getInputsForTests()));
+
+        // verify case 1 - a selector (Counter.setNumber) + address (counters[0]) should match
+        bytes memory data1 = abi.encodeCall(
+            ModularAccountBase.execute, (address(counters[0]), 0, abi.encodeCall(Counter.setNumber, (10)))
+        );
+        allowlistModule.preRuntimeValidationHook(HOOK_ENTITY_ID, address(0), 0, data1, "");
+        vm.expectRevert(abi.encodeWithSelector(AllowlistModule.AddressNotAllowed.selector));
+        // wrong address
+        allowlistModule.preRuntimeValidationHook(
+            HOOK_ENTITY_ID,
+            address(0),
+            0,
+            abi.encodeCall(
+                ModularAccountBase.execute, (address(counters[5]), 0, abi.encodeCall(Counter.setNumber, (10)))
+            ),
+            ""
+        );
+        vm.expectRevert(abi.encodeWithSelector(AllowlistModule.SelectorNotAllowed.selector));
+        // wrong selector
+        allowlistModule.preRuntimeValidationHook(
+            HOOK_ENTITY_ID,
+            address(0),
+            0,
+            abi.encodeCall(
+                ModularAccountBase.execute, (address(counters[0]), 0, abi.encodeCall(Counter.decrement, ()))
+            ),
+            ""
+        );
+
+        // verify case 2 - wildcard selector (Counter.increment), any address works
+        bytes memory data2 = abi.encodeCall(
+            ModularAccountBase.execute, (address(allowlistModule), 0, abi.encodeCall(Counter.increment, ()))
+        );
+        allowlistModule.preRuntimeValidationHook(HOOK_ENTITY_ID, address(0), 0, data2, "");
+
+        // verify case 3 - wildcard address (counters[1]), any selector works
+        bytes memory data3 = abi.encodeCall(
+            ModularAccountBase.execute,
+            (
+                address(counters[1]),
+                0,
+                abi.encodeCall(AllowlistModule.setSelectorAllowlist, (0, address(1), "", false))
+            )
+        );
+        allowlistModule.preRuntimeValidationHook(HOOK_ENTITY_ID, address(0), 0, data3, "");
+
+        vm.stopPrank();
+    }
+
+    function testFuzz_allowlistHook_userOp_single(uint256 seed) public {
+        AllowlistModule.AllowlistInput[] memory inputs;
+        (inputs, seed) = _generateRandomizedAllowlistInput(seed);
+
+        _copyInputsToStorage(inputs);
         _customValidationSetup();
 
         Call[] memory calls = new Call[](1);
@@ -61,10 +191,10 @@ contract AllowlistModuleTest is CustomValidationTestBase {
     }
 
     function testFuzz_allowlistHook_userOp_batch(uint256 seed) public {
-        AllowlistModule.AllowlistInit[] memory inits;
-        (inits, seed) = _generateRandomizedAllowlistInit(seed);
+        AllowlistModule.AllowlistInput[] memory inputs;
+        (inputs, seed) = _generateRandomizedAllowlistInput(seed);
 
-        _copyInitToStorage(inits);
+        _copyInputsToStorage(inputs);
         _customValidationSetup();
 
         Call[] memory calls;
@@ -75,10 +205,10 @@ contract AllowlistModuleTest is CustomValidationTestBase {
     }
 
     function testFuzz_allowlistHook_runtime_single(uint256 seed) public {
-        AllowlistModule.AllowlistInit[] memory inits;
-        (inits, seed) = _generateRandomizedAllowlistInit(seed);
+        AllowlistModule.AllowlistInput[] memory inputs;
+        (inputs, seed) = _generateRandomizedAllowlistInput(seed);
 
-        _copyInitToStorage(inits);
+        _copyInputsToStorage(inputs);
         _customValidationSetup();
 
         Call[] memory calls = new Call[](1);
@@ -93,10 +223,10 @@ contract AllowlistModuleTest is CustomValidationTestBase {
     }
 
     function testFuzz_allowlistHook_runtime_batch(uint256 seed) public {
-        AllowlistModule.AllowlistInit[] memory inits;
-        (inits, seed) = _generateRandomizedAllowlistInit(seed);
+        AllowlistModule.AllowlistInput[] memory inputs;
+        (inputs, seed) = _generateRandomizedAllowlistInput(seed);
 
-        _copyInitToStorage(inits);
+        _copyInputsToStorage(inputs);
         _customValidationSetup();
 
         Call[] memory calls;
@@ -112,28 +242,28 @@ contract AllowlistModuleTest is CustomValidationTestBase {
 
     function _beforeInstallStep(address accountImpl) internal override {
         // Expect events to be emitted from onInstall
-        for (uint256 i = 0; i < allowlistInit.length; i++) {
+        for (uint256 i = 0; i < allowlistInputs.length; i++) {
             vm.expectEmit(address(allowlistModule));
-            emit AllowlistTargetUpdated(
+            emit AddressAllowlistUpdated(
                 HOOK_ENTITY_ID,
                 accountImpl,
-                allowlistInit[i].target,
-                AllowlistModule.AllowlistEntry({
+                allowlistInputs[i].target,
+                AllowlistModule.AddressAllowlistEntry({
                     allowed: true,
-                    hasSelectorAllowlist: allowlistInit[i].hasSelectorAllowlist
+                    hasSelectorAllowlist: allowlistInputs[i].hasSelectorAllowlist
                 })
             );
 
-            if (!allowlistInit[i].hasSelectorAllowlist) {
+            if (!allowlistInputs[i].hasSelectorAllowlist) {
                 continue;
             }
 
-            for (uint256 j = 0; j < allowlistInit[i].selectors.length; j++) {
+            for (uint256 j = 0; j < allowlistInputs[i].selectors.length; j++) {
                 bytes24 targetAndSelector = bytes24(
-                    bytes24(bytes20(allowlistInit[i].target)) | (bytes24(allowlistInit[i].selectors[j]) >> 160)
+                    bytes24(bytes20(allowlistInputs[i].target)) | (bytes24(allowlistInputs[i].selectors[j]) >> 160)
                 );
                 vm.expectEmit(address(allowlistModule));
-                emit AllowlistSelectorUpdated(HOOK_ENTITY_ID, accountImpl, targetAndSelector, true);
+                emit SelectorAllowlistUpdated(HOOK_ENTITY_ID, accountImpl, targetAndSelector, true);
             }
         }
     }
@@ -188,12 +318,12 @@ contract AllowlistModuleTest is CustomValidationTestBase {
             Call memory call = calls[i];
 
             (bool allowed, bool hasSelectorAllowlist) =
-                allowlistModule.targetAllowlist(HOOK_ENTITY_ID, call.target, address(account1));
+                allowlistModule.addressAllowlist(HOOK_ENTITY_ID, call.target, address(account1));
             if (allowed) {
                 if (
                     hasSelectorAllowlist
                         && !allowlistModule.selectorAllowlist(
-                            HOOK_ENTITY_ID, call.target, bytes4(call.data), address(account1)
+                            HOOK_ENTITY_ID, bytes4(call.data), call.target, address(account1)
                         )
                 ) {
                     return abi.encodeWithSelector(
@@ -208,7 +338,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                     IEntryPoint.FailedOpWithRevert.selector,
                     0,
                     "AA23 reverted",
-                    abi.encodeWithSelector(AllowlistModule.TargetNotAllowed.selector)
+                    abi.encodeWithSelector(AllowlistModule.AddressNotAllowed.selector)
                 );
             }
         }
@@ -221,12 +351,12 @@ contract AllowlistModuleTest is CustomValidationTestBase {
             Call memory call = calls[i];
 
             (bool allowed, bool hasSelectorAllowlist) =
-                allowlistModule.targetAllowlist(HOOK_ENTITY_ID, call.target, address(account1));
+                allowlistModule.addressAllowlist(HOOK_ENTITY_ID, call.target, address(account1));
             if (allowed) {
                 if (
                     hasSelectorAllowlist
                         && !allowlistModule.selectorAllowlist(
-                            HOOK_ENTITY_ID, call.target, bytes4(call.data), address(account1)
+                            HOOK_ENTITY_ID, bytes4(call.data), call.target, address(account1)
                         )
                 ) {
                     return abi.encodeWithSelector(
@@ -241,7 +371,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                     ModularAccountBase.PreRuntimeValidationHookFailed.selector,
                     address(allowlistModule),
                     HOOK_ENTITY_ID,
-                    abi.encodeWithSelector(AllowlistModule.TargetNotAllowed.selector)
+                    abi.encodeWithSelector(AllowlistModule.AddressNotAllowed.selector)
                 );
             }
         }
@@ -265,15 +395,15 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         return "";
     }
 
-    function _generateRandomizedAllowlistInit(uint256 seed)
+    function _generateRandomizedAllowlistInput(uint256 seed)
         internal
         view
-        returns (AllowlistModule.AllowlistInit[] memory, uint256)
+        returns (AllowlistModule.AllowlistInput[] memory, uint256)
     {
         uint256 length = seed % 10;
         seed = _next(seed);
 
-        AllowlistModule.AllowlistInit[] memory init = new AllowlistModule.AllowlistInit[](length);
+        AllowlistModule.AllowlistInput[] memory inputs = new AllowlistModule.AllowlistInput[](length);
 
         for (uint256 i = 0; i < length; i++) {
             // Half the time, the target is a random counter, the other half, it's a random address.
@@ -318,10 +448,10 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                 seed = _next(seed);
             }
 
-            init[i] = AllowlistModule.AllowlistInit(target, hasSelectorAllowlist, selectors);
+            inputs[i] = AllowlistModule.AllowlistInput(target, hasSelectorAllowlist, selectors);
         }
 
-        return (init, seed);
+        return (inputs, seed);
     }
 
     function _next(uint256 seed) internal pure returns (uint256) {
@@ -337,7 +467,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         bytes[] memory hooks = new bytes[](1);
         hooks[0] = abi.encodePacked(
             HookConfigLib.packValidationHook(address(allowlistModule), HOOK_ENTITY_ID),
-            abi.encode(HOOK_ENTITY_ID, allowlistInit)
+            abi.encode(HOOK_ENTITY_ID, allowlistInputs)
         );
         // patched to also work during SMA tests by differentiating the validation
         _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), type(uint32).max - 1);
@@ -347,9 +477,37 @@ contract AllowlistModuleTest is CustomValidationTestBase {
 
     // Unfortunately, this is a feature that solidity has only implemented in via-ir, so we need to do it manually
     // to be able to run the tests in lite mode.
-    function _copyInitToStorage(AllowlistModule.AllowlistInit[] memory init) internal {
-        for (uint256 i = 0; i < init.length; i++) {
-            allowlistInit.push(init[i]);
+    function _copyInputsToStorage(AllowlistModule.AllowlistInput[] memory inputs) internal {
+        for (uint256 i = 0; i < inputs.length; i++) {
+            allowlistInputs.push(inputs[i]);
         }
+    }
+
+    /// Return three inputs:
+    ///   - case 1 - a selector (Counter.setNumber) + address (counters[0]) should match
+    ///   - case 2 - wildcard selector (Counter.increment), any address works
+    ///   - case 3 - wildcard address (counters[1]), any selector works
+    function _getInputsForTests() internal returns (AllowlistModule.AllowlistInput[] memory) {
+        AllowlistModule.AllowlistInput[] memory inputs = new AllowlistModule.AllowlistInput[](3);
+        // case 1 - a selector (Counter.setNumber) + address (counters[0]) should match
+        bytes4[] memory selectors1 = new bytes4[](1);
+        selectors1[0] = Counter.setNumber.selector;
+        inputs[0] = AllowlistModule.AllowlistInput({
+            target: address(counters[0]),
+            hasSelectorAllowlist: true,
+            selectors: selectors1
+        });
+        // case 2 - wildcard selector (Counter.increment), any address works
+        bytes4[] memory selectors2 = new bytes4[](1);
+        selectors2[0] = Counter.increment.selector;
+        inputs[1] =
+            AllowlistModule.AllowlistInput({target: address(0), hasSelectorAllowlist: true, selectors: selectors2});
+        // case 3 - wildcard address (counters[1]), any selector works
+        inputs[2] = AllowlistModule.AllowlistInput({
+            target: address(counters[1]),
+            hasSelectorAllowlist: false,
+            selectors: new bytes4[](0)
+        });
+        return inputs;
     }
 }
