@@ -86,6 +86,23 @@ library ExecutionLib {
         }
     }
 
+    // Just like `callSelfBubbleOnRevert`, but with a `bytes calldata` parameter. This will be transiently stored
+    // in memory past-the-end of the used memory.
+    function callSelfBubbleOnRevertTransient(bytes calldata callData) internal {
+        bytes memory callToSelf;
+
+        assembly ("memory-safe") {
+            // Store the length of the call
+            callToSelf := mload(0x40)
+            mstore(callToSelf, callData.length)
+            // Copy in the calldata
+            calldatacopy(add(callToSelf, 0x20), callData.offset, callData.length)
+        }
+
+        callSelfBubbleOnRevert(callToSelf);
+        // Memory is discarded afterwards
+    }
+
     // Manually collect and store the return data from the most recent external call into a `bytes memory`.
     function collectReturnData() internal pure returns (bytes memory returnData) {
         assembly ("memory-safe") {

@@ -2,14 +2,14 @@
 pragma solidity ^0.8.26;
 
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
-import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-
 import {Vm} from "forge-std/src/Vm.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
+import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 
 import {ModularAccountBenchmarkBase} from "./ModularAccountBenchmarkBase.sol";
 
@@ -164,9 +164,9 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         vm.deal(address(account1), 1 ether);
 
-        uint32 entityId = 0;
-        bytes memory deferredValidationInstallData = abi.encode(entityId, owner1);
-        ModuleEntity deferredValidation = ModuleEntityLib.pack(address(_deployECDSAValidationModule()), entityId);
+        ECDSAValidationModule newValidationModule = _deployECDSAValidationModule();
+        uint32 newEntityId = 0;
+        (address owner2, uint256 owner2Key) = makeAddrAndKey("owner2");
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
@@ -182,21 +182,44 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         });
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        bytes memory deferredValidationSig = abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        bytes memory uoValidationSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        userOp.signature = _buildFullDeferredInstallSig(
-            vm,
-            owner1Key,
-            false,
-            account1,
-            signerValidation,
-            deferredValidation,
-            deferredValidationInstallData,
-            deferredValidationSig,
-            0,
-            0
+        bytes memory deferredValidationInstallCall = abi.encodeCall(
+            ModularAccountBase.installValidation,
+            (
+                ValidationConfigLib.pack(address(newValidationModule), newEntityId, true, false, true),
+                new bytes4[](0),
+                abi.encode(newEntityId, owner2),
+                new bytes[](0)
+            )
         );
+
+        uint256 deferredInstallNonce = 0;
+        uint48 deferredInstallDeadline = 0;
+
+        bytes memory deferredValidationSig = _packFinalSignature(
+            _signRawHash(
+                vm,
+                owner1Key,
+                _getECDSAReplaySafeHash(
+                    account1,
+                    ecdsaValidationModule,
+                    _getDeferredInstallHash(
+                        account1, deferredInstallNonce, deferredInstallDeadline, deferredValidationInstallCall
+                    )
+                )
+            )
+        );
+
+        userOp.signature = _encodeDeferredInstallUOSignature(
+            signerValidation,
+            GLOBAL_VALIDATION,
+            _packDeferredInstallData(deferredInstallNonce, deferredInstallDeadline, deferredValidationInstallCall),
+            deferredValidationSig,
+            uoValidationSig
+        );
+
         uint256 gasUsed = _userOpBenchmark(userOp);
 
         assertEq(address(recipient).balance, 0.1 ether + 1 wei);

@@ -95,7 +95,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     /// but the original hash should be passed to the external-facing function for 1271 validation.
     function replaySafeHash(bytes32 hash) public view virtual returns (bytes32) {
         return MessageHashUtils.toTypedDataHash({
-            domainSeparator: domainSeparator(),
+            domainSeparator: _domainSeparator(),
             structHash: _hashStructReplaySafeHash(hash)
         });
     }
