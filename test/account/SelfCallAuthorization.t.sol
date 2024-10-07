@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
+import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
-
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
-import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
-import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
+
 import {ComprehensiveModule} from "../mocks/modules/ComprehensiveModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 

@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {MockERC20} from "../mocks/MockERC20.sol";
+import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
+import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
-import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
-
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
-import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
-import {ModuleEntity} from "../../src/libraries/ModuleEntityLib.sol";
-import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
-import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {ERC20TokenLimitModule} from "../../src/modules/permissions/ERC20TokenLimitModule.sol";
 
+import {MockERC20} from "../mocks/MockERC20.sol";
 import {MockModule} from "../mocks/modules/MockModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";

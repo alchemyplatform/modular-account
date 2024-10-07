@@ -3,23 +3,23 @@ pragma solidity ^0.8.26;
 
 import {console} from "forge-std/src/Test.sol";
 
+import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {ExecutionDataView} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
+import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
-import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
-import {ExecutionDataView} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
-
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ModuleManagerInternals} from "../../src/account/ModuleManagerInternals.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
-import {ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
-import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
+
 import {Counter} from "../mocks/Counter.sol";
 import {ComprehensiveModule} from "../mocks/modules/ComprehensiveModule.sol";
 import {MockExecutionInstallationModule} from "../mocks/modules/MockExecutionInstallationModule.sol";

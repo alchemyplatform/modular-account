@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {ModuleEntity} from "../libraries/ModuleEntityLib.sol";
+import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 // Index marking the start of the data for the validation function.
 uint8 constant RESERVED_VALIDATION_DATA_INDEX = type(uint8).max;

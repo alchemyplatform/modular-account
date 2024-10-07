@@ -4,8 +4,9 @@ pragma solidity ^0.8.26;
 import {Vm} from "forge-std/src/Vm.sol";
 import {console} from "forge-std/src/console.sol";
 
+import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+
 import {_ACCOUNT_STORAGE_SLOT} from "../../src/account/AccountStorage.sol";
-import {ModuleEntity} from "../../src/libraries/ModuleEntityLib.sol";
 
 // solhint-disable no-console
 library StorageAccesses {

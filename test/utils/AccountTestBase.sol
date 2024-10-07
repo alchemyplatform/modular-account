@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {
+    Call, IModularAccount, ModuleEntity
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -11,8 +15,6 @@ import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBy
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../src/helpers/Constants.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
-import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
-import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 
 import {ModuleSignatureUtils} from "./ModuleSignatureUtils.sol";

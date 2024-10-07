@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import {ReplaySafeWrapper} from "@erc6900/reference-implementation/modules/ReplaySafeWrapper.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -12,7 +13,6 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 
 import {SignatureType} from "../../helpers/SignatureType.sol";
 import {BaseModule} from "../BaseModule.sol";
-import {ReplaySafeWrapper} from "../ReplaySafeWrapper.sol";
 
 /// @title ECSDA Validation
 /// @author ERC-6900 Authors

@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-
-import {HookConfig, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {
+    HookConfig,
+    IModularAccount,
+    ModuleEntity
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {
     ExecutionDataView,
     ValidationDataView
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
-
-import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
-import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
+import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
+import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import {ComprehensiveModule} from "../mocks/modules/ComprehensiveModule.sol";
 import {CustomValidationTestBase} from "../utils/CustomValidationTestBase.sol";

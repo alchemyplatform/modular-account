@@ -8,12 +8,9 @@ importers:
 
   .:
     dependencies:
-      '@erc6900/modular-account-libs':
-        specifier: github:erc6900/modular-account-libs#v0.8.0-rc.1
-        version: https://codeload.github.com/erc6900/modular-account-libs/tar.gz/b63b1a872acdc92972a66f43dd17187f4ceafc97
       '@erc6900/reference-implementation':
-        specifier: github:erc6900/reference-implementation#v0.8.0-rc.3
-        version: https://codeload.github.com/erc6900/reference-implementation/tar.gz/188bc4d8319714913738cda547facd0ccb732ead
+        specifier: github:erc6900/reference-implementation#v0.8.0-rc.4
+        version: https://codeload.github.com/erc6900/reference-implementation/tar.gz/690bdf49ddd5b234c518445477972eedec1f9bb6
       account-abstraction:
         specifier: github:eth-infinitism/account-abstraction#v0.7.0
         version: accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/d99245ddb2d7bde4d2132757c4394818f1d11da0(ethers@5.7.2)(hardhat@2.22.10(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
@@ -42,13 +39,9 @@ packages:
     resolution: {integrity: sha512-EStJpq4OuY8xYfhGVXngigBJRWxftKX9ksiGDnmlY3o7B/V7KIAc9X4oiK87uPJSc/vs5L869bem5fhZa8caZw==}
     engines: {node: '>=6.9.0'}
 
-  '@erc6900/modular-account-libs@https://codeload.github.com/erc6900/modular-account-libs/tar.gz/b63b1a872acdc92972a66f43dd17187f4ceafc97':
-    resolution: {tarball: https://codeload.github.com/erc6900/modular-account-libs/tar.gz/b63b1a872acdc92972a66f43dd17187f4ceafc97}
-    version: 0.8.0-rc.1
-
-  '@erc6900/reference-implementation@https://codeload.github.com/erc6900/reference-implementation/tar.gz/188bc4d8319714913738cda547facd0ccb732ead':
-    resolution: {tarball: https://codeload.github.com/erc6900/reference-implementation/tar.gz/188bc4d8319714913738cda547facd0ccb732ead}
-    version: 0.8.0-rc.3
+  '@erc6900/reference-implementation@https://codeload.github.com/erc6900/reference-implementation/tar.gz/690bdf49ddd5b234c518445477972eedec1f9bb6':
+    resolution: {tarball: https://codeload.github.com/erc6900/reference-implementation/tar.gz/690bdf49ddd5b234c518445477972eedec1f9bb6}
+    version: 0.8.0-rc.4
 
   '@ethereumjs/rlp@4.0.1':
     resolution: {integrity: sha512-tqsQiBQDQdmPWE1xkkBq4rlSW5QZpLOUJ5RJh2/9fug+q9tnUhuZoVLk7s0scUIKTOzEtR72DFBXI4WiZcMpvw==}
@@ -1813,9 +1806,7 @@ snapshots:
       js-tokens: 4.0.0
       picocolors: 1.1.0
 
-  '@erc6900/modular-account-libs@https://codeload.github.com/erc6900/modular-account-libs/tar.gz/b63b1a872acdc92972a66f43dd17187f4ceafc97': {}
-
-  '@erc6900/reference-implementation@https://codeload.github.com/erc6900/reference-implementation/tar.gz/188bc4d8319714913738cda547facd0ccb732ead': {}
+  '@erc6900/reference-implementation@https://codeload.github.com/erc6900/reference-implementation/tar.gz/690bdf49ddd5b234c518445477972eedec1f9bb6': {}
 
   '@ethereumjs/rlp@4.0.1': {}
 
