@@ -109,6 +109,20 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         assertFalse(hasSelectorAllowlist3);
     }
 
+    function test_nativeTokenTransfer_success() public {
+        // install inputs, see comments for case details
+        vm.startPrank(address(account1));
+        allowlistModule.onInstall(abi.encode(HOOK_ENTITY_ID, _getInputsForTests()));
+
+        allowlistModule.preRuntimeValidationHook(
+            HOOK_ENTITY_ID,
+            address(0),
+            0,
+            abi.encodeCall(ModularAccountBase.execute, (address(counters[1]), 1 wei, "")),
+            ""
+        );
+    }
+
     function test_checkAllowlistCalldata_execute() public {
         // install inputs, see comments for case details
         vm.startPrank(address(account1));

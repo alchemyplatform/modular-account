@@ -112,7 +112,7 @@ contract AllowlistModule is IValidationHookModule, BaseModule {
             if (input.target == address(0)) {
                 // wildcard case for selectors, any address can be called for the selector
                 for (uint256 j = 0; j < input.selectors.length; j++) {
-                    setSelectorAllowlist(entityId, input.target, input.selectors[j], true);
+                    setSelectorAllowlist(entityId, address(0), input.selectors[j], true);
                 }
             } else {
                 setAddressAllowlist(entityId, input.target, true, input.hasSelectorAllowlist);
@@ -211,24 +211,25 @@ contract AllowlistModule is IValidationHookModule, BaseModule {
         internal
         view
     {
-        if (data.length < 4) {
-            revert NoSelectorSpecified();
-        }
-
         bytes4 selector = bytes4(data);
-        if (selectorAllowlist[entityId][selector][address(0)][account]) {
-            // selector wildcard case, any address is allowed
-            return;
-        }
 
         AddressAllowlistEntry storage entry = addressAllowlist[entityId][target][account];
         (bool allowed, bool hasSelectorAllowlist) = (entry.allowed, entry.hasSelectorAllowlist);
 
         if (!allowed) {
+            if (selectorAllowlist[entityId][selector][address(0)][account]) {
+                // selector wildcard case, any address is allowed
+                return;
+            }
+
             revert AddressNotAllowed();
         }
 
         if (hasSelectorAllowlist) {
+            if (data.length < 4) {
+                revert NoSelectorSpecified();
+            }
+
             if (!selectorAllowlist[entityId][selector][target][account]) {
                 revert SelectorNotAllowed();
             }
