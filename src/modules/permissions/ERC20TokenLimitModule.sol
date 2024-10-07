@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
 import {UserOperationLib} from "@eth-infinitism/account-abstraction/core/UserOperationLib.sol";
