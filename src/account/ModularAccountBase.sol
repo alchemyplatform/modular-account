@@ -739,6 +739,10 @@ abstract contract ModularAccountBase is
         ExecutionLib.invokeRuntimeCallBufferValidation(callBuffer, runtimeValidationFunction, authorization);
     }
 
+    function _domainSeparator() internal view returns (bytes32) {
+        return keccak256(abi.encode(_DOMAIN_SEPARATOR_TYPEHASH, block.chainid, address(this)));
+    }
+
     function _isValidSignature(ModuleEntity sigValidation, bytes32 hash, bytes calldata signature)
         internal
         view
