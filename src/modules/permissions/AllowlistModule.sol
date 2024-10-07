@@ -21,8 +21,8 @@ import {BaseModule} from "../../modules/BaseModule.sol";
 ///    - These restrictions only apply to the `IModularAccount.execute` and `IModularAccount.executeBatch`
 /// functions.
 ///    - The order of permission checking:
-///       - if wildcard selecor (any address allowed), pass
 ///       - if wildcard address (any selector allowed), pass
+///       - if wildcard selecor (any address allowed), pass
 ///       - if sepecific address + sepecific selector, pass
 ///       - revert all other cases
 contract AllowlistModule is IValidationHookModule, BaseModule {
