@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
@@ -11,6 +10,7 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
+import {SignatureType} from "../../libraries/SignatureType.sol";
 import {BaseModule} from "../BaseModule.sol";
 import {ReplaySafeWrapper} from "../ReplaySafeWrapper.sol";
 
@@ -151,16 +151,14 @@ contract ECDSAValidationModule is IValidationModule, ReplaySafeWrapper, BaseModu
         if (sig.length < 1) {
             revert InvalidSignatureType();
         }
-        uint8 sigType = uint8(bytes1(sig));
-        if (sigType == 0) {
-            // 0x00: EOA signature
+        SignatureType sigType = SignatureType(uint8(bytes1(sig)));
+        if (sigType == SignatureType.EOA) {
             (address recovered, ECDSA.RecoverError err,) = ECDSA.tryRecover(digest, sig[1:]);
             if (err == ECDSA.RecoverError.NoError && recovered == owner) {
                 return true;
             }
             return false;
-        } else if (sigType == 1) {
-            // 0x01: ERC-1271 signature
+        } else if (sigType == SignatureType.CONTRACT_OWNER) {
             return SignatureChecker.isValidERC1271SignatureNow(owner, digest, sig[1:]);
         }
         revert InvalidSignatureType();

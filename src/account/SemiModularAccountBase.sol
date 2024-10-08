@@ -12,6 +12,7 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 
 import {DIRECT_CALL_VALIDATION_ENTITYID, FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
+import {SignatureType} from "../libraries/SignatureType.sol";
 
 import {SemiModularKnownSelectorsLib} from "../libraries/SemiModularKnownSelectorsLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
@@ -155,22 +156,20 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         if (sig.length < 1) {
             revert InvalidSignatureType();
         }
-        uint8 sigType = uint8(bytes1(sig));
+        SignatureType sigType = SignatureType(uint8(bytes1(sig)));
         // remove first byte from sig in memory
         assembly ("memory-safe") {
             let sigLen := mload(sig)
             sig := add(sig, 1)
             mstore(sig, sub(sigLen, 1))
         }
-        if (sigType == 0) {
-            // 0x00: EOA signature
+        if (sigType == SignatureType.EOA) {
             (address recovered, ECDSA.RecoverError err,) = ECDSA.tryRecover(digest, sig);
             if (err == ECDSA.RecoverError.NoError && recovered == owner) {
                 return true;
             }
             return false;
-        } else if (sigType == 1) {
-            // 0x01: ERC-1271 signature
+        } else if (sigType == SignatureType.CONTRACT_OWNER) {
             return SignatureChecker.isValidERC1271SignatureNow(owner, digest, sig);
         }
         revert InvalidSignatureType();

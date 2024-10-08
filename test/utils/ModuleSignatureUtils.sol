@@ -26,7 +26,6 @@ contract ModuleSignatureUtils {
     uint8 public constant SELECTOR_ASSOCIATED_VALIDATION = 0;
     uint8 public constant GLOBAL_VALIDATION = 1;
     uint8 public constant EOA_TYPE_SIGNATURE = 0;
-    uint8 public constant CONTRACT_OWNER_TYPE_SIGNATURE = 1;
 
     bytes32 private constant _INSTALL_VALIDATION_TYPEHASH = keccak256(
         "InstallValidation(bytes25 validationConfig,bytes4[] selectors,bytes installData,bytes[] hooks,"
