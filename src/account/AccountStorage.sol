@@ -1,13 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {
-    LinkedListSet,
-    LinkedListSetLib,
-    SetValue
-} from "@erc6900/modular-account-libs/libraries/LinkedListSetLib.sol";
-
 import {HookConfig, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+
+import {LinkedListSet, SetValue} from "../libraries/LinkedListSetLib.sol";
 
 // bytes = keccak256("ERC6900.ModularAccount.Storage")
 bytes32 constant _ACCOUNT_STORAGE_SLOT = 0xc531f081ecdb5a90f38c197521797881a6e5c752a7d451780f325a95f8b91f45;
@@ -35,6 +31,12 @@ struct ValidationData {
     bool isSignatureValidation;
     // Whether or not this validation is allowed to validate ERC-4337 user operations.
     bool isUserOpValidation;
+    // Length of the validation hooks for this validation function. The length is stored here, in the same storage
+    // slot as the flags, to save an `sload` when putting the hooks into memory.
+    uint8 validationHookCount;
+    // Length of execution hooks for this validation function. The length is stored here, in the same storage slot
+    // as the flags, to save an `sload` when putting the hooks into memory.
+    uint8 executionHookCount;
     // The validation hooks for this validation function.
     HookConfig[] validationHooks;
     // Execution hooks to run with this validation function.
@@ -67,17 +69,4 @@ function toSetValue(HookConfig hookConfig) pure returns (SetValue) {
 
 function toSetValue(bytes4 selector) pure returns (SetValue) {
     return SetValue.wrap(bytes30(selector));
-}
-
-function toHookConfigArray(LinkedListSet storage set) view returns (HookConfig[] memory) {
-    SetValue[] memory values = LinkedListSetLib.getAll(set);
-    HookConfig[] memory result;
-
-    // SetValue is internally a bytes30, and HookConfig is a bytes25, which are both left-aligned. This cast is
-    // safe so long as only HookConfig entries are added to the set.
-    assembly ("memory-safe") {
-        result := values
-    }
-
-    return result;
 }

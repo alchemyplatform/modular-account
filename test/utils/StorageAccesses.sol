@@ -32,8 +32,13 @@ library StorageAccesses {
         }
     }
 
-    function printFormattedStorageAccesses(address target, ModuleEntity validationFunction) internal {
-        PredictedSlotNames memory slotNames = getPredictedValidationSlotNames(validationFunction);
+    function printFormattedStorageAccesses(
+        address target,
+        ModuleEntity validationFunction,
+        bytes4 executionSelector
+    ) internal {
+        PredictedSlotNames memory slotNames =
+            getPredictedValidationSlotNames(validationFunction, executionSelector);
 
         (bytes32[] memory reads, bytes32[] memory writes) = vm.accesses(target);
 
@@ -58,8 +63,8 @@ library StorageAccesses {
         return vm.toString(slot);
     }
 
-    function printPredictedValidationSlots(ModuleEntity validation) internal pure {
-        PredictedSlotNames memory slotNames = getPredictedValidationSlotNames(validation);
+    function printPredictedValidationSlots(ModuleEntity validation, bytes4 executionSelector) internal pure {
+        PredictedSlotNames memory slotNames = getPredictedValidationSlotNames(validation, executionSelector);
 
         console.log("Predicted validation slots:");
         for (uint256 j = 0; j < slotNames.slots.length; j++) {
@@ -67,13 +72,13 @@ library StorageAccesses {
         }
     }
 
-    function getPredictedValidationSlotNames(ModuleEntity validation)
+    function getPredictedValidationSlotNames(ModuleEntity validation, bytes4 executionSelector)
         internal
         pure
         returns (PredictedSlotNames memory)
     {
-        bytes32[] memory slots = new bytes32[](6);
-        string[] memory names = new string[](6);
+        bytes32[] memory slots = new bytes32[](8);
+        string[] memory names = new string[](8);
 
         uint256 root = uint256(_ACCOUNT_STORAGE_SLOT);
 
@@ -104,6 +109,19 @@ library StorageAccesses {
 
         slots[5] = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
         names[5] = "ERC-1967 proxy implementation slot";
+
+        uint256 executionDataMappingSlot = root + 1;
+        uint256 executionDataSlot =
+            getMappingEntrySlot(executionDataMappingSlot, uint256(bytes32(executionSelector)));
+
+        slots[6] = bytes32(executionDataSlot);
+        names[6] = "Execution data slot (contains module address and flags)";
+
+        uint256 selectorExecutionHooksMappingSlot = executionDataSlot + 1;
+        uint256 selectorExecutionHooksFirstElementSlot =
+            getMappingEntrySlot(selectorExecutionHooksMappingSlot, uint256(1));
+        slots[7] = bytes32(selectorExecutionHooksFirstElementSlot);
+        names[7] = "Selector execution hooks first element slot";
 
         return PredictedSlotNames(slots, names);
     }

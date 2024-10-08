@@ -4,11 +4,6 @@ pragma solidity ^0.8.26;
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import {
-    LinkedListSet,
-    LinkedListSetLib,
-    SetValue
-} from "@erc6900/modular-account-libs/libraries/LinkedListSetLib.sol";
-import {
     HookConfig,
     IModularAccount,
     ModuleEntity
@@ -19,13 +14,10 @@ import {
     ValidationDataView
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 
-import {HookConfigLib} from "../libraries/HookConfigLib.sol";
+import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {ExecutionData, ValidationData, getAccountStorage} from "./AccountStorage.sol";
 
 abstract contract ModularAccountView is IModularAccountView {
-    using LinkedListSetLib for LinkedListSet;
-    using HookConfigLib for HookConfig;
-
     /// @inheritdoc IModularAccountView
     function getExecutionData(bytes4 selector) external view override returns (ExecutionDataView memory data) {
         if (
@@ -42,14 +34,9 @@ abstract contract ModularAccountView is IModularAccountView {
             data.skipRuntimeValidation = executionData.skipRuntimeValidation;
             data.allowGlobalValidation = executionData.allowGlobalValidation;
 
-            // Todo: optimize this array reverse.
-            SetValue[] memory hooks = executionData.executionHooks.getAll();
-            uint256 hooksLength = hooks.length;
-            data.executionHooks = new HookConfig[](hooksLength);
-
-            for (uint256 i = 0; i < hooksLength; ++i) {
-                data.executionHooks[hooksLength - i - 1] = HookConfig.wrap(bytes25(SetValue.unwrap(hooks[i])));
-            }
+            HookConfig[] memory hooks = MemManagementLib.loadExecHooks(executionData);
+            MemManagementLib.reverseArr(hooks);
+            data.executionHooks = hooks;
         }
     }
 
@@ -66,21 +53,12 @@ abstract contract ModularAccountView is IModularAccountView {
         data.isUserOpValidation = validationData.isUserOpValidation;
         data.validationHooks = validationData.validationHooks;
 
-        // Todo: optimize these array reverses
+        HookConfig[] memory hooks = MemManagementLib.loadExecHooks(validationData);
+        MemManagementLib.reverseArr(hooks);
+        data.executionHooks = hooks;
 
-        SetValue[] memory hooks = validationData.executionHooks.getAll();
-        uint256 hooksLength = hooks.length;
-        data.executionHooks = new HookConfig[](hooksLength);
-
-        for (uint256 i = 0; i < hooksLength; ++i) {
-            data.executionHooks[hooksLength - i - 1] = HookConfig.wrap(bytes25(SetValue.unwrap(hooks[i])));
-        }
-
-        SetValue[] memory selectors = validationData.selectors.getAll();
-        uint256 selectorsLen = selectors.length;
-        data.selectors = new bytes4[](selectorsLen);
-        for (uint256 j = 0; j < selectorsLen; ++j) {
-            data.selectors[selectorsLen - j - 1] = bytes4(SetValue.unwrap(selectors[j]));
-        }
+        bytes4[] memory selectors = MemManagementLib.loadSelectors(validationData);
+        MemManagementLib.reverseArr(selectors);
+        data.selectors = selectors;
     }
 }
