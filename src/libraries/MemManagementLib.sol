@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {HookConfig} from "./HookConfigLib.sol";
-import {LinkedListSetLib, SENTINEL_VALUE, SetValue} from "./LinkedListSetLib.sol";
+import {LinkedListSet, LinkedListSetLib, SENTINEL_VALUE, SetValue} from "./LinkedListSetLib.sol";
 
 import {ExecutionData, ValidationData} from "../account/AccountStorage.sol";
 
@@ -94,17 +94,13 @@ library MemManagementLib {
     function loadExecHooks(ValidationData storage valData) internal view returns (HookConfig[] memory) {
         uint256 validationAssocHooksLength = valData.executionHookCount;
 
-        HookConfig[] memory hooks = new HookConfig[](validationAssocHooksLength);
+        return _loadValidationAssociatedHooks(validationAssocHooksLength, valData.executionHooks);
+    }
 
-        mapping(bytes32 => bytes32) storage llsMap = valData.executionHooks.map;
-        bytes32 cursor = SENTINEL_VALUE;
+    function loadValidationHooks(ValidationData storage valData) internal view returns (HookConfig[] memory) {
+        uint256 validationHookCount = valData.validationHookCount;
 
-        for (uint256 i = 0; i < validationAssocHooksLength; ++i) {
-            cursor = llsMap[cursor];
-            hooks[i] = HookConfig.wrap(bytes25(cursor));
-        }
-
-        return hooks;
+        return _loadValidationAssociatedHooks(validationHookCount, valData.validationHooks);
     }
 
     function loadSelectors(ValidationData storage valData) internal view returns (bytes4[] memory selectors) {
@@ -127,7 +123,7 @@ library MemManagementLib {
             casted := hooks
         }
 
-        reverseArr(casted);
+        _reverseArr(casted);
     }
 
     function reverseArr(bytes4[] memory selectors) internal pure {
@@ -138,10 +134,30 @@ library MemManagementLib {
             casted := selectors
         }
 
-        reverseArr(casted);
+        _reverseArr(casted);
     }
 
-    function reverseArr(bytes32[] memory hooks) internal pure {
+    // Used to load both pre-validation hooks and pre-execution hooks, associated with a validation function.
+    // The caller must first get the length of the hooks from the ValidationData struct.
+    function _loadValidationAssociatedHooks(uint256 hookCount, LinkedListSet storage hooks)
+        private
+        view
+        returns (HookConfig[] memory)
+    {
+        HookConfig[] memory hookArr = new HookConfig[](hookCount);
+
+        mapping(bytes32 => bytes32) storage llsMap = hooks.map;
+        bytes32 cursor = SENTINEL_VALUE;
+
+        for (uint256 i = 0; i < hookCount; ++i) {
+            cursor = llsMap[cursor];
+            hookArr[i] = HookConfig.wrap(bytes25(cursor));
+        }
+
+        return hookArr;
+    }
+
+    function _reverseArr(bytes32[] memory hooks) private pure {
         uint256 len = hooks.length;
         uint256 halfLen = len / 2;
 

@@ -38,7 +38,7 @@ struct ValidationData {
     // as the flags, to save an `sload` when putting the hooks into memory.
     uint8 executionHookCount;
     // The validation hooks for this validation function.
-    HookConfig[] validationHooks;
+    LinkedListSet validationHooks;
     // Execution hooks to run with this validation function.
     LinkedListSet executionHooks;
     // The set of selectors that may be validated by this validation function.
