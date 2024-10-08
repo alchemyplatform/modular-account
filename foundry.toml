@@ -26,6 +26,7 @@ fail_on_revert = true
 depth = 10
 
 [profile.optimized-build]
+deny_warnings = true
 via_ir = true
 test = 'src'
 optimizer_runs = 10000
@@ -33,9 +34,11 @@ out = 'out-optimized'
 cache_path = 'cache-optimized'
 
 [profile.optimized-test]
+deny_warnings = true
 src = 'test'
 
 [profile.optimized-test-deep]
+deny_warnings = true
 src = 'test'
 
 [profile.optimized-test-deep.fuzz]
@@ -54,6 +57,7 @@ depth = 32
 
 [profile.gas]
 via_ir = true
+deny_warnings = true
 test = 'gas'
 optimizer_runs = 10000
 out = 'out-optimized'
