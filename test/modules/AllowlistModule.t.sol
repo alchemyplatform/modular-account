@@ -487,7 +487,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
     ///   - case 1 - a selector (Counter.setNumber) + address (counters[0]) should match
     ///   - case 2 - wildcard selector (Counter.increment), any address works
     ///   - case 3 - wildcard address (counters[1]), any selector works
-    function _getInputsForTests() internal returns (AllowlistModule.AllowlistInput[] memory) {
+    function _getInputsForTests() internal view returns (AllowlistModule.AllowlistInput[] memory) {
         AllowlistModule.AllowlistInput[] memory inputs = new AllowlistModule.AllowlistInput[](3);
         // case 1 - a selector (Counter.setNumber) + address (counters[0]) should match
         bytes4[] memory selectors1 = new bytes4[](1);
