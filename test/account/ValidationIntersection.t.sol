@@ -228,7 +228,7 @@ contract ValidationIntersectionTest is AccountTestBase {
         assertEq(address(uint160(returnedValidationData)), goodAuthorizer);
     }
 
-    function test_validationIntersect_authorizerAndTimeRange() public withSMATest {
+    function test_validationIntersect_authorizerAndTimeRangeAndPaymasterGuard() public withSMATest {
         uint48 start1 = uint48(10);
         uint48 end1 = uint48(20);
 
@@ -316,11 +316,12 @@ contract ValidationIntersectionTest is AccountTestBase {
         return uint160(authorizer) | (uint256(validUntil) << 160) | (uint256(validAfter) << (160 + 48));
     }
 
-    function _intersectTimeRange(uint48 validafter1, uint48 validuntil1, uint48 validafter2, uint48 validuntil2)
-        internal
-        pure
-        returns (uint48 validAfter, uint48 validUntil)
-    {
+    function _intersectTimeRangeAndPaymasterGuard(
+        uint48 validafter1,
+        uint48 validuntil1,
+        uint48 validafter2,
+        uint48 validuntil2
+    ) internal pure returns (uint48 validAfter, uint48 validUntil) {
         if (validafter1 < validafter2) {
             validAfter = validafter2;
         } else {

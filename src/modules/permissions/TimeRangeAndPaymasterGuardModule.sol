@@ -15,23 +15,27 @@ import {BaseModule} from "../../modules/BaseModule.sol";
 /// @notice This module allows for the setting and enforcement of time ranges for a validation function. Enforcement
 /// relies on `block.timestamp`, either within this module for runtime validation, or by the EntryPoint for user op
 /// validation. Time ranges are inclusive of both the beginning and ending timestamps.
-contract TimeRangeModule is IValidationHookModule, BaseModule {
-    struct TimeRange {
+contract TimeRangeAndPaymasterGuardModule is IValidationHookModule, BaseModule {
+    struct TimeRangeAndPaymasterGuard {
         uint48 validUntil;
         uint48 validAfter;
+        address requiredPaymaster;
     }
 
-    mapping(uint32 entityId => mapping(address account => TimeRange)) public timeRanges;
+    mapping(uint32 entityId => mapping(address account => TimeRangeAndPaymasterGuard)) public
+        timeRangeAndPaymasterGuards;
 
     error TimeRangeNotValid();
+    error BadPaymasterSpecified();
 
     /// @inheritdoc IModule
     /// @notice Initializes the module with the given time range for `msg.sender` with a given entity id.
     /// @dev data is abi-encoded as (uint32 entityId, uint48 validUntil, uint48 validAfter)
     function onInstall(bytes calldata data) external override {
-        (uint32 entityId, uint48 validUntil, uint48 validAfter) = abi.decode(data, (uint32, uint48, uint48));
+        (uint32 entityId, uint48 validUntil, uint48 validAfter, address requiredPaymaster) =
+            abi.decode(data, (uint32, uint48, uint48, address));
 
-        setTimeRange(entityId, validUntil, validAfter);
+        setTimeRangeAndPaymasterGuard(entityId, validUntil, validAfter, requiredPaymaster);
     }
 
     /// @inheritdoc IModule
@@ -40,24 +44,34 @@ contract TimeRangeModule is IValidationHookModule, BaseModule {
     function onUninstall(bytes calldata data) external override {
         uint32 entityId = abi.decode(data, (uint32));
 
-        delete timeRanges[entityId][msg.sender];
+        delete timeRangeAndPaymasterGuards[entityId][msg.sender];
     }
 
     /// @inheritdoc IValidationHookModule
     /// @notice Enforces the time range for a user op by returning the range in the ERC-4337 validation data.
-    function preUserOpValidationHook(uint32 entityId, PackedUserOperation calldata, bytes32)
+    function preUserOpValidationHook(uint32 entityId, PackedUserOperation calldata userOp, bytes32)
         external
         view
         override
         returns (uint256)
     {
         // todo: optimize between memory / storage
-        TimeRange memory timeRange = timeRanges[entityId][msg.sender];
-        return _packValidationData({
-            sigFailed: false,
-            validUntil: timeRange.validUntil,
-            validAfter: timeRange.validAfter
-        });
+        TimeRangeAndPaymasterGuard memory timeRangeAndPaymasterGuard =
+            timeRangeAndPaymasterGuards[entityId][msg.sender];
+        if (timeRangeAndPaymasterGuard.requiredPaymaster != address(0)) {
+            address payingPaymaster = address(bytes20(userOp.paymasterAndData));
+            if (payingPaymaster != timeRangeAndPaymasterGuard.requiredPaymaster) {
+                revert BadPaymasterSpecified();
+            }
+        }
+        return timeRangeAndPaymasterGuard.validUntil == uint48(0)
+            && timeRangeAndPaymasterGuard.validAfter == uint48(0)
+            ? 0
+            : _packValidationData({
+                sigFailed: false,
+                validUntil: timeRangeAndPaymasterGuard.validUntil,
+                validAfter: timeRangeAndPaymasterGuard.validAfter
+            });
     }
 
     /// @inheritdoc IValidationHookModule
@@ -68,8 +82,16 @@ contract TimeRangeModule is IValidationHookModule, BaseModule {
         view
         override
     {
-        TimeRange memory timeRange = timeRanges[entityId][msg.sender];
-        if (block.timestamp > timeRange.validUntil || block.timestamp < timeRange.validAfter) {
+        TimeRangeAndPaymasterGuard memory timeRangeAndPaymasterGuard =
+            timeRangeAndPaymasterGuards[entityId][msg.sender];
+        if (timeRangeAndPaymasterGuard.validUntil == uint48(0)) {
+            // no time range restriction, pass
+            return;
+        }
+        if (
+            block.timestamp > timeRangeAndPaymasterGuard.validUntil
+                || block.timestamp < timeRangeAndPaymasterGuard.validAfter
+        ) {
             revert TimeRangeNotValid();
         }
     }
@@ -91,8 +113,18 @@ contract TimeRangeModule is IValidationHookModule, BaseModule {
     /// @param entityId The entity id to set the time range for.
     /// @param validUntil The timestamp until which the time range is valid, inclusive.
     /// @param validAfter The timestamp after which the time range is valid, inclusive.
-    function setTimeRange(uint32 entityId, uint48 validUntil, uint48 validAfter) public {
-        timeRanges[entityId][msg.sender] = TimeRange(validUntil, validAfter);
+    /// @param requiredPaymaster The required paymaster for the validation entity.
+    function setTimeRangeAndPaymasterGuard(
+        uint32 entityId,
+        uint48 validUntil,
+        uint48 validAfter,
+        address requiredPaymaster
+    ) public {
+        if (validUntil != uint48(0) && validAfter > validUntil) {
+            revert TimeRangeNotValid();
+        }
+        timeRangeAndPaymasterGuards[entityId][msg.sender] =
+            TimeRangeAndPaymasterGuard(validUntil, validAfter, requiredPaymaster);
     }
 
     /// @inheritdoc IERC165

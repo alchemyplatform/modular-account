@@ -3,12 +3,12 @@ pragma solidity ^0.8.26;
 
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {PaymasterGuardModule} from "../../src/modules/permissions/PaymasterGuardModule.sol";
+import {TimeRangeAndPaymasterGuardModule} from "../../src/modules/permissions/TimeRangeAndPaymasterGuardModule.sol";
 
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
-contract PaymasterGuardModuleTest is AccountTestBase {
-    PaymasterGuardModule public module = new PaymasterGuardModule();
+contract PaymasterGuardTest is AccountTestBase {
+    TimeRangeAndPaymasterGuardModule public module = new TimeRangeAndPaymasterGuardModule();
 
     address public account;
     address public paymaster1;
@@ -23,16 +23,18 @@ contract PaymasterGuardModuleTest is AccountTestBase {
 
     function test_onInstall() public withSMATest {
         vm.startPrank(address(account));
-        module.onInstall(abi.encode(ENTITY_ID, paymaster1));
+        module.onInstall(abi.encode(ENTITY_ID, uint48(0), uint48(0), paymaster1));
 
-        assertEq(paymaster1, module.paymasters(ENTITY_ID, account));
+        (,, address paymaster) = module.timeRangeAndPaymasterGuards(ENTITY_ID, account);
+        assertEq(paymaster1, paymaster);
     }
 
     function test_onUninstall() public withSMATest {
         vm.startPrank(address(account));
         module.onUninstall(abi.encode(ENTITY_ID));
 
-        assertEq(address(0), module.paymasters(ENTITY_ID, account));
+        (,, address paymaster) = module.timeRangeAndPaymasterGuards(ENTITY_ID, account);
+        assertEq(address(0), paymaster);
     }
 
     function test_preUserOpValidationHook_success() public withSMATest {
@@ -40,7 +42,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
 
         vm.startPrank(address(account));
         // install the right paymaster
-        module.onInstall(abi.encode(ENTITY_ID, paymaster1));
+        module.onInstall(abi.encode(ENTITY_ID, uint48(0), uint48(0), paymaster1));
         uint256 res = module.preUserOpValidationHook(ENTITY_ID, uo, "");
 
         assertEq(res, 0);
@@ -50,7 +52,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         PackedUserOperation memory uo = _packUO("");
 
         vm.startPrank(address(account));
-        module.onInstall(abi.encode(ENTITY_ID, paymaster1));
+        module.onInstall(abi.encode(ENTITY_ID, uint48(0), uint48(0), paymaster1));
 
         vm.expectRevert();
         module.preUserOpValidationHook(ENTITY_ID, uo, "");
@@ -61,9 +63,9 @@ contract PaymasterGuardModuleTest is AccountTestBase {
 
         vm.startPrank(address(account));
         // install the wrong paymaster
-        module.onInstall(abi.encode(ENTITY_ID, paymaster2));
+        module.onInstall(abi.encode(ENTITY_ID, uint48(0), uint48(0), paymaster2));
 
-        vm.expectRevert(abi.encodeWithSelector(PaymasterGuardModule.BadPaymasterSpecified.selector));
+        vm.expectRevert(abi.encodeWithSelector(TimeRangeAndPaymasterGuardModule.BadPaymasterSpecified.selector));
         module.preUserOpValidationHook(ENTITY_ID, uo, "");
     }
 

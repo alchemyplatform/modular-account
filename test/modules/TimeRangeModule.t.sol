@@ -12,24 +12,24 @@ import {
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
 import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
-import {TimeRangeModule} from "../../src/modules/permissions/TimeRangeModule.sol";
+import {TimeRangeAndPaymasterGuardModule} from "../../src/modules/permissions/TimeRangeAndPaymasterGuardModule.sol";
 
 import {CustomValidationTestBase} from "../utils/CustomValidationTestBase.sol";
 
-contract TimeRangeModuleTest is CustomValidationTestBase {
-    TimeRangeModule public timeRangeModule;
+contract TimeRangeAndPaymasterGuardModuleTest is CustomValidationTestBase {
+    TimeRangeAndPaymasterGuardModule public timeRangeModule;
 
     uint32 public constant HOOK_ENTITY_ID = 0;
 
     HookConfig internal _hookEntity;
 
-    uint48 public validUntil;
-    uint48 public validAfter;
+    uint48 public validUntil = 2;
+    uint48 public validAfter = 1;
 
     function setUp() public override {
         _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
-        timeRangeModule = new TimeRangeModule();
+        timeRangeModule = new TimeRangeAndPaymasterGuardModule();
 
         _hookEntity = HookConfigLib.packValidationHook(address(timeRangeModule), HOOK_ENTITY_ID);
     }
@@ -58,8 +58,8 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         assertEq(validationData.selectors.length, 0);
 
         // Verify that the time range is set
-        (uint48 retrievedValidUntil, uint48 retrievedValidAfter) =
-            timeRangeModule.timeRanges(HOOK_ENTITY_ID, address(account1));
+        (uint48 retrievedValidUntil, uint48 retrievedValidAfter,) =
+            timeRangeModule.timeRangeAndPaymasterGuards(HOOK_ENTITY_ID, address(account1));
         assertEq(retrievedValidUntil, validUntil);
         assertEq(retrievedValidAfter, validAfter);
     }
@@ -73,14 +73,14 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
         vm.expectCall({
             callee: address(timeRangeModule),
-            data: abi.encodeCall(TimeRangeModule.onUninstall, (hookUninstallDatas[0]))
+            data: abi.encodeCall(TimeRangeAndPaymasterGuardModule.onUninstall, (hookUninstallDatas[0]))
         });
         vm.prank(address(account1));
         account1.uninstallValidation(_signerValidation, "", hookUninstallDatas);
 
         // Verify that the time range data is unset
-        (uint48 retrievedValidUntil, uint48 retrievedValidAfter) =
-            timeRangeModule.timeRanges(HOOK_ENTITY_ID, address(account1));
+        (uint48 retrievedValidUntil, uint48 retrievedValidAfter,) =
+            timeRangeModule.timeRangeAndPaymasterGuards(HOOK_ENTITY_ID, address(account1));
 
         assertEq(retrievedValidUntil, 0);
         assertEq(retrievedValidAfter, 0);
@@ -89,6 +89,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
     function testFuzz_timeRangeModule_userOp(uint48 _validUntil, uint48 _validAfter) public {
         validUntil = _validUntil;
         validAfter = _validAfter;
+        if (validAfter > validUntil) return;
 
         _customValidationSetup();
 
@@ -123,6 +124,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
     function testFuzz_timeRangeModule_userOp_fail(uint48 _validUntil, uint48 _validAfter) public {
         validUntil = _validUntil;
         validAfter = _validAfter;
+        if (validAfter > validUntil) return;
 
         _customValidationSetup();
 
@@ -167,7 +169,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
                 ModularAccountBase.PreRuntimeValidationHookFailed.selector,
                 timeRangeModule,
                 HOOK_ENTITY_ID,
-                abi.encodeWithSelector(TimeRangeModule.TimeRangeNotValid.selector)
+                abi.encodeWithSelector(TimeRangeAndPaymasterGuardModule.TimeRangeNotValid.selector)
             )
         );
         vm.prank(owner1);
@@ -208,7 +210,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
                 ModularAccountBase.PreRuntimeValidationHookFailed.selector,
                 timeRangeModule,
                 HOOK_ENTITY_ID,
-                abi.encodeWithSelector(TimeRangeModule.TimeRangeNotValid.selector)
+                abi.encodeWithSelector(TimeRangeAndPaymasterGuardModule.TimeRangeNotValid.selector)
             )
         );
         vm.prank(owner1);
@@ -227,7 +229,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         bytes[] memory hooks = new bytes[](1);
         hooks[0] = abi.encodePacked(
             HookConfigLib.packValidationHook(address(timeRangeModule), HOOK_ENTITY_ID),
-            abi.encode(HOOK_ENTITY_ID, validUntil, validAfter)
+            abi.encode(HOOK_ENTITY_ID, validUntil, validAfter, address(0))
         );
         // patched to also work during SMA tests by differentiating the validation
         _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), type(uint32).max - 1);

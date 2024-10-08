@@ -15,7 +15,7 @@ import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib
 import {ValidationConfig, ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
 import {AllowlistModule} from "../../src/modules/permissions/AllowlistModule.sol";
 import {ERC20TokenLimitModule} from "../../src/modules/permissions/ERC20TokenLimitModule.sol";
-import {TimeRangeModule} from "../../src/modules/permissions/TimeRangeModule.sol";
+import {TimeRangeAndPaymasterGuardModule} from "../../src/modules/permissions/TimeRangeAndPaymasterGuardModule.sol";
 import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 
 import {Counter} from "../../test/mocks/Counter.sol";
@@ -31,7 +31,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
     ECDSAValidationModule public ecdsaValidationModule;
 
     AllowlistModule public allowlistModule;
-    TimeRangeModule public timeRangeModule;
+    TimeRangeAndPaymasterGuardModule public timeRangeAndPaymasterGuardModule;
     ERC20TokenLimitModule public erc20SpendLimitModule;
 
     ModularAccount public account1;
@@ -54,7 +54,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         );
 
         allowlistModule = new AllowlistModule();
-        timeRangeModule = new TimeRangeModule();
+        timeRangeAndPaymasterGuardModule = new TimeRangeAndPaymasterGuardModule();
         erc20SpendLimitModule = new ERC20TokenLimitModule();
 
         counter = new Counter();
@@ -121,8 +121,8 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
         // Time range hook
         hooks[1] = abi.encodePacked(
-            HookConfigLib.packValidationHook({_module: address(timeRangeModule), _entityId: 0}),
-            abi.encode(uint32(0), 1000, 100)
+            HookConfigLib.packValidationHook({_module: address(timeRangeAndPaymasterGuardModule), _entityId: 0}),
+            abi.encode(uint32(0), 1000, 100, address(0))
         );
 
         // ERC-20 spend limit hook
@@ -170,7 +170,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         );
         assertEq(
             HookConfig.unwrap(validationData.validationHooks[1]),
-            HookConfig.unwrap(HookConfigLib.packValidationHook(address(timeRangeModule), 0))
+            HookConfig.unwrap(HookConfigLib.packValidationHook(address(timeRangeAndPaymasterGuardModule), 0))
         );
 
         // Execution hooks
@@ -210,7 +210,8 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         assertTrue(erc20TransferSelectorAllowed);
 
         // Time range
-        (uint48 validUntil, uint48 validAfter) = timeRangeModule.timeRanges(0, address(account1));
+        (uint48 validUntil, uint48 validAfter,) =
+            timeRangeAndPaymasterGuardModule.timeRangeAndPaymasterGuards(0, address(account1));
         assertEq(validUntil, 1000);
         assertEq(validAfter, 100);
 
