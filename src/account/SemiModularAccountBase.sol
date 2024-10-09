@@ -11,8 +11,9 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 import {DIRECT_CALL_VALIDATION_ENTITYID, FALLBACK_VALIDATION} from "../helpers/Constants.sol";
+
+import {SignatureType} from "../helpers/SignatureType.sol";
 import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
-import {SignatureType} from "../libraries/SignatureType.sol";
 
 import {SemiModularKnownSelectorsLib} from "../libraries/SemiModularKnownSelectorsLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";

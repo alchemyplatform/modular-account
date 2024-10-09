@@ -10,7 +10,7 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
-import {SignatureType} from "../../libraries/SignatureType.sol";
+import {SignatureType} from "../../helpers/SignatureType.sol";
 import {BaseModule} from "../BaseModule.sol";
 import {ReplaySafeWrapper} from "../ReplaySafeWrapper.sol";
 
