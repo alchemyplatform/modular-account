@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
+import {BaseModule} from "../../src/modules/BaseModule.sol";
 import {PaymasterGuardModule} from "../../src/modules/permissions/PaymasterGuardModule.sol";
 
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
@@ -41,7 +42,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         vm.startPrank(address(account));
         // install the right paymaster
         module.onInstall(abi.encode(ENTITY_ID, paymaster1));
-        uint256 res = module.preUserOpValidationHook(ENTITY_ID, uo, "");
+        uint256 res = module.preUserOpValidationHook(ENTITY_ID, uo, bytes32(0));
 
         assertEq(res, 0);
     }
@@ -53,7 +54,32 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         module.onInstall(abi.encode(ENTITY_ID, paymaster1));
 
         vm.expectRevert();
-        module.preUserOpValidationHook(ENTITY_ID, uo, "");
+        module.preUserOpValidationHook(ENTITY_ID, uo, bytes32(0));
+    }
+
+    function test_preUserOpValidationHook_failWithValidationData() public withSMATest {
+        PackedUserOperation memory uo = _packUO(abi.encodePacked(paymaster1, ""));
+
+        vm.startPrank(address(account));
+        // install the right paymaster
+        module.onInstall(abi.encode(ENTITY_ID, paymaster1));
+
+        // Assert that it would succeed
+
+        uint256 stateSnapshot = vm.snapshot();
+
+        uint256 res = module.preUserOpValidationHook(ENTITY_ID, uo, bytes32(0));
+
+        assertEq(res, 0);
+
+        vm.revertTo(stateSnapshot);
+
+        // Now, test with validation hook data, and expect failure
+
+        uo.signature = hex"1234";
+
+        vm.expectRevert(abi.encodeWithSelector(BaseModule.UnexpectedValidationData.selector));
+        module.preUserOpValidationHook(ENTITY_ID, uo, bytes32(0));
     }
 
     function test_preUserOpValidationHook_fail() public withSMATest {
@@ -64,7 +90,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         module.onInstall(abi.encode(ENTITY_ID, paymaster2));
 
         vm.expectRevert(abi.encodeWithSelector(PaymasterGuardModule.BadPaymasterSpecified.selector));
-        module.preUserOpValidationHook(ENTITY_ID, uo, "");
+        module.preUserOpValidationHook(ENTITY_ID, uo, bytes32(0));
     }
 
     function test_preRuntimeValidationHook_success() public withSMATest {

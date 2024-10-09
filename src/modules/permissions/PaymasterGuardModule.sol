@@ -38,6 +38,7 @@ contract PaymasterGuardModule is BaseModule, IValidationHookModule {
         external
         view
         override
+        noValidationData(userOp.signature)
         returns (uint256)
     {
         address payingPaymaster = address(bytes20(userOp.paymasterAndData[:20]));
