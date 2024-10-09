@@ -137,6 +137,17 @@ library MemManagementLib {
         _reverseArr(casted);
     }
 
+    // If the callData is an encoded function call to IModularAccount.execute, retrieves the target of the call.
+    function getExecuteTarget(bytes calldata callData) internal pure returns (address) {
+        address target;
+
+        assembly ("memory-safe") {
+            target := and(calldataload(add(callData.offset, 4)), 0xffffffffffffffffffffffffffffffffffffffff)
+        }
+
+        return target;
+    }
+
     // Used to load both pre-validation hooks and pre-execution hooks, associated with a validation function.
     // The caller must first get the length of the hooks from the ValidationData struct.
     function _loadValidationAssociatedHooks(uint256 hookCount, LinkedListSet storage hooks)

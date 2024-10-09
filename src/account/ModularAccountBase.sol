@@ -827,7 +827,7 @@ abstract contract ModularAccountBase is
         _checkIfValidationAppliesSelector(outerSelector, validationFunction, checkingType);
 
         if (outerSelector == IModularAccount.execute.selector) {
-            (address target,,) = abi.decode(callData[4:], (address, uint256, bytes));
+            address target = MemManagementLib.getExecuteTarget(callData);
 
             if (target == address(this)) {
                 // There is no point to call `execute` to recurse exactly once - this is equivalent to just having
