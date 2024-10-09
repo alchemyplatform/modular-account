@@ -838,28 +838,153 @@ abstract contract ModularAccountBase is
             // executeBatch may be used to batch account actions together, by targetting the account itself.
             // If this is done, we must ensure all of the inner calls are allowed by the provided validation
             // function.
+            _checkExecuteBatchApplicability(callData[4:], validationFunction, checkingType);
+        }
+    }
 
-            (Call[] memory calls) = abi.decode(callData[4:], (Call[]));
+    /// @notice Checks if the validation function is allowed to perform this call to `executeBatch`.
+    /// @param callData The calldata to check, excluding the `executeBatch` selector.
+    /// @param validationFunction The validation function to check against.
+    /// @param checkingType The type of validation checking to perform.
+    function _checkExecuteBatchApplicability(
+        bytes calldata callData,
+        ModuleEntity validationFunction,
+        ValidationCheckingType checkingType
+    ) internal view {
+        // Equivalent to the following code, but without using memory.
 
-            for (uint256 i = 0; i < calls.length; ++i) {
-                if (calls[i].target == address(this)) {
-                    bytes4 nestedSelector = bytes4(calls[i].data);
+        // (Call[] memory calls) = abi.decode(callData[4:], (Call[]));
 
-                    if (
-                        nestedSelector == IModularAccount.execute.selector
-                            || nestedSelector == IModularAccount.executeBatch.selector
-                    ) {
-                        // To prevent arbitrarily-deep recursive checking, we limit the depth of self-calls to one
-                        // for the purposes of batching.
-                        // This means that all self-calls must occur at the top level of the batch.
-                        // Note that modules of other contracts using `executeWithRuntimeValidation` may still
-                        // independently call into this account with a different validation function, allowing
-                        // composition of multiple batches.
-                        revert SelfCallRecursionDepthExceeded();
+        // for (uint256 i = 0; i < calls.length; ++i) {
+        //     if (calls[i].target == address(this)) {
+        //         bytes4 nestedSelector = bytes4(calls[i].data[:4]);
+
+        //         if (
+        //             nestedSelector == IModularAccount.execute.selector
+        //                 || nestedSelector == IModularAccount.executeBatch.selector
+        //         ) {
+        //
+        //             revert SelfCallRecursionDepthExceeded();
+        //         }
+
+        //         _checkIfValidationAppliesSelector(nestedSelector, validationFunction, checkingType);
+        //     }
+        // }
+
+        // The following is adapted from the compiler-generated ABI decoder for the `Call[]` parameter type.
+        // See test/mocks/MockDecoder.sol for more info.
+
+        // The end of allowed calldata to read. Declared in an outer context to make available to multiple code
+        // blocks.
+        uint256 dataEnd;
+
+        // The absolute offset of the start of the `Call[]` array.
+        uint256 arrayPos;
+        // The length of the `Call[]` array.
+        uint256 callsLength;
+
+        assembly ("memory-safe") {
+            // Set up the "safe data decoding range"
+            let headStart := callData.offset
+            dataEnd := add(headStart, callData.length)
+
+            // Assert it is safe to load the offset
+            if slt(sub(dataEnd, headStart), 32) { revert(0, 0) }
+
+            // Load and sanitize the offset
+            let relOffset := calldataload(callData.offset)
+            if gt(relOffset, 0xffffffffffffffff) { revert(0, 0) }
+
+            // Convert from a relative offset to an absolute offset.
+            let absOffset := add(headStart, relOffset)
+
+            // Assert it is safe to load the length
+            if iszero(slt(add(absOffset, 0x1f), dataEnd)) { revert(0, 0) }
+
+            // Load and sanitize the length
+            callsLength := calldataload(absOffset)
+            if gt(callsLength, 0xffffffffffffffff) { revert(0, 0) }
+
+            // Load the array position, and check that it fits within the alloted length.
+            arrayPos := add(absOffset, 0x20)
+            if gt(add(arrayPos, mul(callsLength, 0x20)), dataEnd) { revert(0, 0) }
+        }
+
+        // Now, we have the array length and data bounds.
+        // Iterate through the array elements, checking:
+        // - If the target is this account, assert that:
+        //   - the selector in the data field is not `execute` or `executeBatch`.
+        //   - the provided validation is allowed to call the selector.
+
+        for (uint256 i = 0; i < callsLength; ++i) {
+            address callTarget;
+            uint256 structAbsOffset;
+
+            assembly ("memory-safe") {
+                // Load and sanitize the struct offset.
+                // This is still safe to load, from the bounds check above.
+                let structRelOffset := calldataload(add(arrayPos, mul(i, 0x20)))
+                if gt(structRelOffset, 0xffffffffffffffff) { revert(0, 0) }
+                // Validate struct offset. If the offset points to a location with < 3 words of space before the
+                // end of data, revert.
+                if iszero(slt(structRelOffset, sub(sub(dataEnd, arrayPos), sub(0x60, 1)))) { revert(0, 0) }
+
+                structAbsOffset := add(arrayPos, structRelOffset)
+
+                // Load the address from the struct, and sanitize its contents, to mirror the behavior of the ABI
+                // decoder.
+                callTarget := calldataload(structAbsOffset)
+                if iszero(eq(and(callTarget, 0xffffffffffffffffffffffffffffffffffffffff), callTarget)) {
+                    revert(0, 0)
+                }
+            }
+
+            if (callTarget == address(this)) {
+                // In this case, we must load the selector, deny if it's `execute` or `executeBatch`, and check
+                // validation applicability.
+
+                uint32 selector;
+
+                assembly ("memory-safe") {
+                    // Load and sanitize the data offset.
+                    let dataRelOffset := calldataload(add(structAbsOffset, 0x40))
+                    if gt(dataRelOffset, 0xffffffffffffffff) { revert(0, 0) }
+
+                    // Validate data offset. If the offset points to a location with < 1 words of space before the
+                    // end of data, revert.
+                    if iszero(slt(dataRelOffset, sub(sub(dataEnd, structAbsOffset), sub(0x20, 1)))) {
+                        revert(0, 0)
                     }
 
-                    _checkIfValidationAppliesSelector(nestedSelector, validationFunction, checkingType);
+                    let dataAbsOffset := add(structAbsOffset, dataRelOffset)
+
+                    // Load and sanitize the data length.
+                    let dataLength := calldataload(dataAbsOffset)
+                    if gt(dataLength, 0xffffffff) { revert(0, 0) }
+
+                    // Get the data offset, and assert that the following data fits into the bounded calldata
+                    // range.
+                    let dataOffset := add(dataAbsOffset, 0x20)
+                    if sgt(dataOffset, sub(dataEnd, mul(dataLength, 0x01))) { revert(0, 0) }
+
+                    // Finally, load the selector being called. This will be the first 4 bytes of the data.
+                    // If the data length is less than 4, revert.
+                    if slt(dataLength, 4) { revert(0, 0) }
+                    selector := shr(224, calldataload(dataOffset))
                 }
+
+                if (selector == uint32(this.execute.selector) || selector == uint32(this.executeBatch.selector)) {
+                    // To prevent arbitrarily-deep recursive checking, we limit the depth of self-calls to one
+                    // for the purposes of batching.
+                    // This means that all self-calls must occur at the top level of the batch.
+                    // Note that modules of other contracts using `executeWithRuntimeValidation` may still
+                    // independently call into this account with a different validation function, allowing
+                    // composition of multiple batches.
+
+                    revert SelfCallRecursionDepthExceeded();
+                }
+
+                _checkIfValidationAppliesSelector(bytes4(selector), validationFunction, checkingType);
             }
         }
     }
