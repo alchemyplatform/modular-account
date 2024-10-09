@@ -409,10 +409,6 @@ abstract contract ModularAccountBase is
         override
         returns (uint256 validationData)
     {
-        if (userOp.callData.length < 4) {
-            revert UnrecognizedFunction(bytes4(userOp.callData));
-        }
-
         // Revert if the provided `authorization` less than 24 bytes long, rather than right-padding.
         ModuleEntity validationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
 
@@ -816,7 +812,11 @@ abstract contract ModularAccountBase is
         ModuleEntity validationFunction,
         ValidationCheckingType checkingType
     ) internal view {
-        bytes4 outerSelector = bytes4(callData[:4]);
+        if (callData.length < 4) {
+            revert UnrecognizedFunction(bytes4(callData));
+        }
+
+        bytes4 outerSelector = bytes4(callData);
         if (outerSelector == this.executeUserOp.selector) {
             // If the selector is executeUserOp, pull the actual selector from the following data,
             // and trim the calldata to ensure the self-call decoding is still accurate.
