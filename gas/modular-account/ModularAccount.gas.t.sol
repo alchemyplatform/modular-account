@@ -87,7 +87,8 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        userOp.signature = _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(r, s, v));
+        userOp.signature =
+            _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint256 gasUsed = _userOpBenchmark(userOp);
 
@@ -146,7 +147,8 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        userOp.signature = _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(r, s, v));
+        userOp.signature =
+            _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint256 gasUsed = _userOpBenchmark(userOp);
 
@@ -179,7 +181,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        bytes memory deferredValidationSig = abi.encodePacked(r, s, v);
+        bytes memory deferredValidationSig = abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
 
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
@@ -237,7 +239,8 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        userOp.signature = _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(r, s, v));
+        userOp.signature =
+            _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint256 gasUsed = _userOpBenchmark(userOp);
 
@@ -305,8 +308,9 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) =
             vm.sign(sessionSigner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        userOp.signature =
-            _encodeSignature(sessionKeyValidation, SELECTOR_ASSOCIATED_VALIDATION, abi.encodePacked(r, s, v));
+        userOp.signature = _encodeSignature(
+            sessionKeyValidation, SELECTOR_ASSOCIATED_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
+        );
 
         uint256 gasUsed = _userOpBenchmark(userOp);
 
@@ -379,8 +383,9 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) =
             vm.sign(sessionSigner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        userOp.signature =
-            _encodeSignature(sessionKeyValidation, SELECTOR_ASSOCIATED_VALIDATION, abi.encodePacked(r, s, v));
+        userOp.signature = _encodeSignature(
+            sessionKeyValidation, SELECTOR_ASSOCIATED_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
+        );
 
         uint256 gasUsed = _userOpBenchmark(userOp);
 

@@ -25,6 +25,7 @@ contract ModuleSignatureUtils {
 
     uint8 public constant SELECTOR_ASSOCIATED_VALIDATION = 0;
     uint8 public constant GLOBAL_VALIDATION = 1;
+    uint8 public constant EOA_TYPE_SIGNATURE = 0;
 
     bytes32 private constant _INSTALL_VALIDATION_TYPEHASH = keccak256(
         "InstallValidation(bytes25 validationConfig,bytes4[] selectors,bytes installData,bytes[] hooks,"
@@ -254,7 +255,7 @@ contract ModuleSignatureUtils {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerKey, replaySafeHash);
 
-        bytes memory rawDeferredInstallSig = abi.encodePacked(r, s, v);
+        bytes memory rawDeferredInstallSig = abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
 
         bytes memory deferredInstallSig = _packFinalSignature(rawDeferredInstallSig);
         return deferredInstallSig;

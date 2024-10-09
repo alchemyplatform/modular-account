@@ -51,7 +51,7 @@ contract DeferredValidationTest is AccountTestBase {
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        bytes memory deferredValidationSig = abi.encodePacked(r, s, v);
+        bytes memory deferredValidationSig = abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
 
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
@@ -98,7 +98,7 @@ contract DeferredValidationTest is AccountTestBase {
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        bytes memory deferredValidationSig = abi.encodePacked(r, s, v);
+        bytes memory deferredValidationSig = abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
 
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
@@ -136,7 +136,7 @@ contract DeferredValidationTest is AccountTestBase {
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        bytes memory deferredValidationSig = abi.encodePacked(r, s, v);
+        bytes memory deferredValidationSig = abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
 
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
@@ -224,7 +224,7 @@ contract DeferredValidationTest is AccountTestBase {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v,, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes32 r = keccak256("invalid");
-        bytes memory deferredValidationSig = abi.encodePacked(r, s, v);
+        bytes memory deferredValidationSig = abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
 
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
@@ -264,7 +264,7 @@ contract DeferredValidationTest is AccountTestBase {
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        bytes memory deferredValidationSig = abi.encodePacked(r, s, v);
+        bytes memory deferredValidationSig = abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
 
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
@@ -317,7 +317,7 @@ contract DeferredValidationTest is AccountTestBase {
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        bytes memory deferredValidationSig = abi.encodePacked(r, s, v);
+        bytes memory deferredValidationSig = abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
 
         userOp.signature = _buildFullDeferredInstallSig(
             vm,
