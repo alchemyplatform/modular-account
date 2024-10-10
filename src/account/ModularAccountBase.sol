@@ -236,7 +236,7 @@ abstract contract ModularAccountBase is
         bytes memory callData = ExecutionLib.getExecuteUOCallData(callBuffer, userOp.callData);
 
         // Manually call self, without collecting return data unless there's a revert.
-        ExecutionLib.callSelfBubbleOnRevert(callData);
+        ExecutionLib.callBubbleOnRevert(address(this), 0, callData);
 
         ExecutionLib.doCachedPostHooks(postHookData);
     }
@@ -250,7 +250,12 @@ abstract contract ModularAccountBase is
         wrapNativeFunction
         returns (bytes memory result)
     {
-        result = ExecutionLib.exec(target, value, data);
+        ExecutionLib.callBubbleOnRevertTransient(target, value, data);
+
+        // Only return data if not called by the EntryPoint
+        if (msg.sender != address(_ENTRY_POINT)) {
+            result = ExecutionLib.collectReturnData();
+        }
     }
 
     /// @inheritdoc IModularAccount
@@ -262,11 +267,20 @@ abstract contract ModularAccountBase is
         wrapNativeFunction
         returns (bytes[] memory results)
     {
+        bool needReturnData = (msg.sender != address(_ENTRY_POINT));
+
         uint256 callsLength = calls.length;
-        results = new bytes[](callsLength);
+
+        if (needReturnData) {
+            results = new bytes[](callsLength);
+        }
 
         for (uint256 i = 0; i < callsLength; ++i) {
-            results[i] = ExecutionLib.exec(calls[i].target, calls[i].value, calls[i].data);
+            ExecutionLib.callBubbleOnRevertTransient(calls[i].target, calls[i].value, calls[i].data);
+
+            if (needReturnData) {
+                results[i] = ExecutionLib.collectReturnData();
+            }
         }
     }
 
@@ -301,8 +315,8 @@ abstract contract ModularAccountBase is
 
         // Execute the call, reusing the already-allocated RT call buffers, if it exists.
         // In practice, this is cheaper than attempting to coalesce the (possibly two) buffers.
-        bytes memory returnData =
-            ExecutionLib.exec(address(this), 0 wei, ExecutionLib.getCallData(rtCallBuffer, data));
+        ExecutionLib.callBubbleOnRevert(address(this), 0 wei, ExecutionLib.getCallData(rtCallBuffer, data));
+        bytes memory returnData = ExecutionLib.collectReturnData();
 
         ExecutionLib.doCachedPostHooks(postHookData);
 
@@ -460,7 +474,7 @@ abstract contract ModularAccountBase is
             validationData = uint256(deadline) << 160;
 
             // Call `installValidation` on the account.
-            ExecutionLib.callSelfBubbleOnRevertTransient(encodedData[38:]);
+            ExecutionLib.callBubbleOnRevertTransient(address(this), 0, encodedData[38:]);
 
             // Update the UserOp signature to the remaining bytes.
             userOpSignature = userOp.signature[33 + encodedDataLength + deferredInstallSigLength:];
