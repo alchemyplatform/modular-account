@@ -52,7 +52,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         allowlistModule.onInstall(abi.encode(HOOK_ENTITY_ID, _getInputsForTests()));
 
         // verify case 1 - a selector (Counter.setNumber) + address (counters[0]) should match
-        (bool allowed, bool hasSelectorAllowlist) =
+        (bool allowed, bool hasSelectorAllowlist,) =
             allowlistModule.addressAllowlist(HOOK_ENTITY_ID, address(counters[0]), address(account1));
         assertTrue(allowed);
         assertTrue(hasSelectorAllowlist);
@@ -70,7 +70,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         );
 
         // verify case 3 - wildcard address (counters[1]), any selector works
-        (bool allowed3, bool hasSelectorAllowlist3) =
+        (bool allowed3, bool hasSelectorAllowlist3,) =
             allowlistModule.addressAllowlist(HOOK_ENTITY_ID, address(counters[1]), address(account1));
         assertTrue(allowed3);
         assertFalse(hasSelectorAllowlist3);
@@ -85,7 +85,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         vm.stopPrank();
 
         // verify case 1 - a selector (Counter.setNumber) + address (counters[0]) should match
-        (bool allowed, bool hasSelectorAllowlist) =
+        (bool allowed, bool hasSelectorAllowlist,) =
             allowlistModule.addressAllowlist(HOOK_ENTITY_ID, address(counters[0]), address(account1));
         assertFalse(allowed);
         assertFalse(hasSelectorAllowlist);
@@ -103,7 +103,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         );
 
         // verify case 3 - wildcard address (counters[1]), any selector works
-        (bool allowed3, bool hasSelectorAllowlist3) =
+        (bool allowed3, bool hasSelectorAllowlist3,) =
             allowlistModule.addressAllowlist(HOOK_ENTITY_ID, address(counters[1]), address(account1));
         assertFalse(allowed3);
         assertFalse(hasSelectorAllowlist3);
@@ -250,7 +250,8 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                 allowlistInputs[i].target,
                 AllowlistModule.AddressAllowlistEntry({
                     allowed: true,
-                    hasSelectorAllowlist: allowlistInputs[i].hasSelectorAllowlist
+                    hasSelectorAllowlist: allowlistInputs[i].hasSelectorAllowlist,
+                    hasERC20SpendLimit: false
                 })
             );
 
@@ -317,7 +318,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         for (uint256 i = 0; i < calls.length; i++) {
             Call memory call = calls[i];
 
-            (bool allowed, bool hasSelectorAllowlist) =
+            (bool allowed, bool hasSelectorAllowlist,) =
                 allowlistModule.addressAllowlist(HOOK_ENTITY_ID, call.target, address(account1));
             if (allowed) {
                 if (
@@ -350,7 +351,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         for (uint256 i = 0; i < calls.length; i++) {
             Call memory call = calls[i];
 
-            (bool allowed, bool hasSelectorAllowlist) =
+            (bool allowed, bool hasSelectorAllowlist,) =
                 allowlistModule.addressAllowlist(HOOK_ENTITY_ID, call.target, address(account1));
             if (allowed) {
                 if (
@@ -448,7 +449,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                 seed = _next(seed);
             }
 
-            inputs[i] = AllowlistModule.AllowlistInput(target, hasSelectorAllowlist, selectors);
+            inputs[i] = AllowlistModule.AllowlistInput(target, hasSelectorAllowlist, false, 0, selectors);
         }
 
         return (inputs, seed);
@@ -495,17 +496,26 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         inputs[0] = AllowlistModule.AllowlistInput({
             target: address(counters[0]),
             hasSelectorAllowlist: true,
+            hasERC20SpendLimit: false,
+            erc20SpendLimit: 0,
             selectors: selectors1
         });
         // case 2 - wildcard selector (Counter.increment), any address works
         bytes4[] memory selectors2 = new bytes4[](1);
         selectors2[0] = Counter.increment.selector;
-        inputs[1] =
-            AllowlistModule.AllowlistInput({target: address(0), hasSelectorAllowlist: true, selectors: selectors2});
+        inputs[1] = AllowlistModule.AllowlistInput({
+            target: address(0),
+            hasSelectorAllowlist: true,
+            hasERC20SpendLimit: false,
+            erc20SpendLimit: 0,
+            selectors: selectors2
+        });
         // case 3 - wildcard address (counters[1]), any selector works
         inputs[2] = AllowlistModule.AllowlistInput({
             target: address(counters[1]),
             hasSelectorAllowlist: false,
+            hasERC20SpendLimit: false,
+            erc20SpendLimit: 0,
             selectors: new bytes4[](0)
         });
         return inputs;

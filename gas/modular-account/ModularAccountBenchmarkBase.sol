@@ -19,7 +19,6 @@ import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBy
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
 import {AllowlistModule} from "../../src/modules/permissions/AllowlistModule.sol";
-import {ERC20TokenLimitModule} from "../../src/modules/permissions/ERC20TokenLimitModule.sol";
 import {TimeRangeModule} from "../../src/modules/permissions/TimeRangeModule.sol";
 import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
 
@@ -37,7 +36,6 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
     AllowlistModule public allowlistModule;
     TimeRangeModule public timeRangeModule;
-    ERC20TokenLimitModule public erc20SpendLimitModule;
 
     ModularAccount public account1;
     ModuleEntity public signerValidation;
@@ -60,7 +58,6 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
         allowlistModule = new AllowlistModule();
         timeRangeModule = new TimeRangeModule();
-        erc20SpendLimitModule = new ERC20TokenLimitModule();
 
         counter = new Counter();
         counter.increment();
@@ -107,18 +104,24 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         allowlistInput[0] = AllowlistModule.AllowlistInput({
             target: address(counter),
             hasSelectorAllowlist: false,
+            hasERC20SpendLimit: false,
+            erc20SpendLimit: 0,
             selectors: new bytes4[](0)
         });
 
         bytes4[] memory tokenSelectors = new bytes4[](1);
         tokenSelectors[0] = IERC20.transfer.selector;
 
+        // Allowlist with ERC-20 spend limit hook
         allowlistInput[1] = AllowlistModule.AllowlistInput({
             target: address(mockErc20),
             hasSelectorAllowlist: true,
+            hasERC20SpendLimit: true,
+            erc20SpendLimit: 100 ether,
             selectors: tokenSelectors
         });
 
+        // allowlist hook
         hooks[0] = abi.encodePacked(
             HookConfigLib.packValidationHook({_module: address(allowlistModule), _entityId: 0}),
             abi.encode(uint32(0), allowlistInput)
@@ -131,17 +134,14 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         );
 
         // ERC-20 spend limit hook
-        ERC20TokenLimitModule.ERC20SpendLimit[] memory spendLimits = new ERC20TokenLimitModule.ERC20SpendLimit[](1);
-        spendLimits[0] = ERC20TokenLimitModule.ERC20SpendLimit({token: address(mockErc20), limit: 100 ether});
-
         hooks[2] = abi.encodePacked(
             HookConfigLib.packExecHook({
-                _module: address(erc20SpendLimitModule),
+                _module: address(allowlistModule),
                 _entityId: 0,
                 _hasPre: true,
                 _hasPost: false
             }),
-            abi.encode(uint32(0), spendLimits)
+            ""
         );
 
         return
@@ -184,7 +184,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
             HookConfig.unwrap(validationData.executionHooks[0]),
             HookConfig.unwrap(
                 HookConfigLib.packExecHook({
-                    _module: address(erc20SpendLimitModule),
+                    _module: address(allowlistModule),
                     _entityId: 0,
                     _hasPre: true,
                     _hasPost: false
@@ -200,18 +200,19 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         // Assert hooks state is correctly set up
 
         // Allowlist
-        (bool counterAllowed, bool counterHasSelectorList) =
+        (bool counterAllowed, bool counterHasSelectorList,) =
             allowlistModule.addressAllowlist(0, address(counter), address(account1));
         assertTrue(counterAllowed);
         assertFalse(counterHasSelectorList);
 
-        (bool erc20Allowed, bool erc20HasSelectorList) =
+        (bool erc20Allowed, bool erc20HasSelectorList,) =
             allowlistModule.addressAllowlist(0, address(mockErc20), address(account1));
         assertTrue(erc20Allowed);
         assertTrue(erc20HasSelectorList);
 
         bool erc20TransferSelectorAllowed =
             allowlistModule.selectorAllowlist(0, IERC20.transfer.selector, address(mockErc20), address(account1));
+        allowlistModule.selectorAllowlist(0, IERC20.transfer.selector, address(mockErc20), address(account1));
         assertTrue(erc20TransferSelectorAllowed);
 
         // Time range
@@ -220,8 +221,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         assertEq(validAfter, 100);
 
         // ERC-20 spend limit
-        (bool hasLimit, uint256 limit) = erc20SpendLimitModule.limits(0, address(mockErc20), address(account1));
-        assertTrue(hasLimit);
+        uint256 limit = allowlistModule.erc20SpendLimits(0, address(mockErc20), address(account1));
         assertEq(limit, 100 ether);
     }
 }
