@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
-
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {LibClone} from "solady/utils/LibClone.sol";
 
 import {ModularAccount} from "../account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../account/SemiModularAccountBytecode.sol";
-import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
-
-import {LibClone} from "solady/utils/LibClone.sol";
 
 contract AccountFactory is Ownable {
     ModularAccount public immutable ACCOUNT_IMPL;

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
+import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
+import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
-import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
-
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
-import {HookConfigLib} from "../../src/libraries/HookConfigLib.sol";
-import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {AllowlistModule} from "../../src/modules/permissions/AllowlistModule.sol";
 
 import {Counter} from "../mocks/Counter.sol";

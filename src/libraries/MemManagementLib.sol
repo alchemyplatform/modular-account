@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {HookConfig} from "./HookConfigLib.sol";
-import {LinkedListSet, LinkedListSetLib, SENTINEL_VALUE, SetValue} from "./LinkedListSetLib.sol";
+import {HookConfig} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {ExecutionData, ValidationData} from "../account/AccountStorage.sol";
+import {LinkedListSet, LinkedListSetLib, SENTINEL_VALUE, SetValue} from "./LinkedListSetLib.sol";
 
 library MemManagementLib {
     function loadExecHooks(ExecutionData storage execData, ValidationData storage valData)

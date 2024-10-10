@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {
     ExecutionManifest,
@@ -17,15 +15,16 @@ import {
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
+import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
+import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 import {MAX_PRE_VALIDATION_HOOKS} from "../helpers/Constants.sol";
 import {ExecutionLib} from "../libraries/ExecutionLib.sol";
-import {HookConfigLib} from "../libraries/HookConfigLib.sol";
 import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
-import {ModuleEntityLib} from "../libraries/ModuleEntityLib.sol";
-import {ValidationConfigLib} from "../libraries/ValidationConfigLib.sol";
 import {AccountStorage, ExecutionData, ValidationData, getAccountStorage, toSetValue} from "./AccountStorage.sol";
 
 abstract contract ModuleManagerInternals is IModularAccount {

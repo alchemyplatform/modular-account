@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import {ReplaySafeWrapper} from "@erc6900/reference-implementation/modules/ReplaySafeWrapper.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -9,7 +10,6 @@ import {WebAuthn} from "webauthn-sol/src/WebAuthn.sol";
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 import {BaseModule} from "@erc6900/reference-implementation/modules/BaseModule.sol";
-import {ReplaySafeWrapper} from "@erc6900/reference-implementation/modules/ReplaySafeWrapper.sol";
 
 /// @title Webauthn Validation
 /// @author Alchemy

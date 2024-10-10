@@ -1,5 +1,4 @@
 ds-test/=lib/forge-std/lib/ds-test/src/
-@erc6900/modular-account-libs/=node_modules/@erc6900/modular-account-libs/src/
 @eth-infinitism/account-abstraction/=node_modules/account-abstraction/contracts/
 account-abstraction/=node_modules/account-abstraction/contracts/
 @openzeppelin/=lib/openzeppelin-contracts/

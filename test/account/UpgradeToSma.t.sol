@@ -2,6 +2,9 @@
 pragma solidity ^0.8.26;
 
 import {LightAccount} from "@alchemy/light-account/src/LightAccount.sol";
+
+import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -13,7 +16,6 @@ import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {SemiModularAccountBase} from "../../src/account/SemiModularAccountBase.sol";
 import {SemiModularAccountStorageOnly} from "../../src/account/SemiModularAccountStorageOnly.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
-import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
 

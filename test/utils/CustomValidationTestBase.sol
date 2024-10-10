@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
+import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-import {ModuleEntity, ModuleEntityLib} from "../../src/libraries/ModuleEntityLib.sol";
-import {ValidationConfigLib} from "../../src/libraries/ValidationConfigLib.sol";
+
 import {AccountTestBase} from "./AccountTestBase.sol";
 
 /// @dev This test contract base is used to test custom validation logic.
