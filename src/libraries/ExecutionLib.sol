@@ -434,7 +434,7 @@ library ExecutionLib {
         }
     }
 
-    function getCallData(RTCallBuffer buffer, bytes calldata data) internal pure returns (bytes memory) {
+    function executeRuntimeSelfCall(RTCallBuffer buffer, bytes calldata data) internal {
         bool bufferExists;
 
         assembly ("memory-safe") {
@@ -457,10 +457,11 @@ library ExecutionLib {
                 callData := add(buffer, 0xe4)
             }
 
-            return callData;
+            // Perform the call, bubbling up revert data on failure.
+            callBubbleOnRevert(address(this), 0, callData);
         } else {
-            // No buffer exists yet, just copy the data to memory and return it.
-            return data;
+            // No buffer exists yet, just copy the data to memory transiently and execute it.
+            callBubbleOnRevertTransient(address(this), 0, data);
         }
     }
 

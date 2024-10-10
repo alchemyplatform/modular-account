@@ -134,14 +134,8 @@ abstract contract ModularAccountBase is
         DensePostHookData postHookData = _checkPermittedCallerAndAssociatedHooks();
 
         // execute the function, bubbling up any reverts
-        (bool execSuccess, bytes memory execReturnData) = execModule.call(msg.data);
-
-        if (!execSuccess) {
-            // Bubble up revert reasons from modules
-            assembly ("memory-safe") {
-                revert(add(execReturnData, 32), mload(execReturnData))
-            }
-        }
+        ExecutionLib.callBubbleOnRevertTransient(execModule, 0 wei, msg.data);
+        bytes memory execReturnData = ExecutionLib.collectReturnData();
 
         ExecutionLib.doCachedPostHooks(postHookData);
 
@@ -315,7 +309,7 @@ abstract contract ModularAccountBase is
 
         // Execute the call, reusing the already-allocated RT call buffers, if it exists.
         // In practice, this is cheaper than attempting to coalesce the (possibly two) buffers.
-        ExecutionLib.callBubbleOnRevert(address(this), 0 wei, ExecutionLib.getCallData(rtCallBuffer, data));
+        ExecutionLib.executeRuntimeSelfCall(rtCallBuffer, data);
         bytes memory returnData = ExecutionLib.collectReturnData();
 
         ExecutionLib.doCachedPostHooks(postHookData);
