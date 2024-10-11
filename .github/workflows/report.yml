@@ -25,7 +25,7 @@ jobs:
         run: |
           {
           echo 'COVERAGE<<EOF'
-          forge coverage --no-match-coverage "(test)" | grep '^|'
+          forge coverage --no-match-coverage "(test)" --nmt "(testFuzz|invariant)" | grep '^|'
           echo EOF
           } >> "$GITHUB_OUTPUT"
 

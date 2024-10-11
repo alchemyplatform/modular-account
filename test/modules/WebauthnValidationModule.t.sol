@@ -53,7 +53,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         );
     }
 
-    function test_fail_isValidSignature(bytes32 message, uint256 sigR, uint256 sigS) external view {
+    function testFuzz_fail_isValidSignature(bytes32 message, uint256 sigR, uint256 sigS) external view {
         bytes32 challenge = module.replaySafeHash(account, message);
 
         // make sure r, s values isn't the right one by accident. checking 1 should be enough
@@ -105,7 +105,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
         assertEq(ModularAccountBase(account).validateUserOp(uo, uoHash, 0), _SIG_VALIDATION_PASSED);
     }
 
-    function test_uoValidaton_shouldFail(uint256 sigR, uint256 sigS) external {
+    function testFuzz_uoValidaton_shouldFail(uint256 sigR, uint256 sigS) external {
         PackedUserOperation memory uo;
         uo.sender = account;
         uo.callData = abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, new bytes(0)));
