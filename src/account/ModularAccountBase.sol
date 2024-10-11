@@ -42,6 +42,7 @@ import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
 import {TokenReceiver} from "./TokenReceiver.sol";
+import {ExecutionInstallLib} from "../libraries/ExecutionInstallLib.sol";
 
 /// @title Modular Account Base
 /// @author Alchemy
@@ -288,7 +289,7 @@ abstract contract ModularAccountBase is
         ExecutionManifest calldata manifest,
         bytes calldata moduleInstallData
     ) external override wrapNativeFunction {
-        _installExecution(module, manifest, moduleInstallData);
+        ExecutionInstallLib.installExecution(module, manifest, moduleInstallData);
     }
 
     /// @inheritdoc IModularAccount
@@ -298,7 +299,7 @@ abstract contract ModularAccountBase is
         ExecutionManifest calldata manifest,
         bytes calldata moduleUninstallData
     ) external override wrapNativeFunction {
-        _uninstallExecution(module, manifest, moduleUninstallData);
+        ExecutionInstallLib.uninstallExecution(module, manifest, moduleUninstallData);
     }
 
     /// @inheritdoc IModularAccount

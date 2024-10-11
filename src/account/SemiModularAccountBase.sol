@@ -13,7 +13,6 @@ import {FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {SignatureType} from "../helpers/SignatureType.sol";
 import {ERC7739ReplaySafeWrapperLib} from "../libraries/ERC7739ReplaySafeWrapperLib.sol";
 import {RTCallBuffer, SigCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
-import {SemiModularKnownSelectorsLib} from "../libraries/SemiModularKnownSelectorsLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
 
 abstract contract SemiModularAccountBase is ModularAccountBase {
