@@ -15,6 +15,7 @@ contract TokenReceiverTest is AccountTestBase {
     uint256 internal constant _NFT_TOKEN_COUNT = 10;
 
     function setUp() public override {
+        _revertSnapshot = vm.snapshot();
         // Compute counterfactual address
         // account1 = factory.createAccount(owner1, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID);
         // vm.deal(address(account1), 100 ether);

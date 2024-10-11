@@ -269,7 +269,11 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
         uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
-        bytes memory deferredValidationSig = _packFinalSignature(
+        (bytes32 structHash, bytes32 digest, bytes32 domainSeparator) = _getDeferredInstallStructAndHash(
+            account1, deferredInstallNonce, deferredInstallDeadline, deferredValidationInstallCall
+        );
+
+        bytes memory deferredValidationSig = _packFinal1271Signature(
             _signRawHash(
                 vm,
                 owner1Key,
@@ -283,7 +287,10 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
                         deferredValidationInstallCall
                     )
                 )
-            )
+            ),
+            domainSeparator,
+            structHash,
+            _DEFERRED_INSTALL_CONTENTS_TYPE
         );
 
         userOp.signature = _encodeDeferredInstallUOSignature(

@@ -17,6 +17,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
     uint32 public constant ENTITY_ID = 1;
 
     function setUp() public override {
+        _revertSnapshot = vm.snapshot();
         account = payable(makeAddr("account"));
         paymaster1 = payable(makeAddr("paymaster1"));
         paymaster2 = payable(makeAddr("paymaster2"));

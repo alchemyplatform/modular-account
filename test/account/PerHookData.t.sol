@@ -28,6 +28,7 @@ contract PerHookDataTest is CustomValidationTestBase {
     uint32 internal constant _PRE_HOOK_ENTITY_ID_2 = 1;
 
     function setUp() public override {
+        _revertSnapshot = vm.snapshot();
         _counter = new Counter();
 
         _accessControlHookModule = new MockAccessControlHookModule();
@@ -400,20 +401,36 @@ contract PerHookDataTest is CustomValidationTestBase {
     }
 
     function test_pass1271AccessControl() public withSMATest {
-        string memory message = "Hello, world!";
+        bytes32 messageHash = keccak256(abi.encodePacked("Hello, world!"));
 
-        bytes32 messageHash = keccak256(abi.encodePacked(message));
+        (bytes32 mockAppStructHash, bytes32 mockAppDigest) = _getMockApp712Contents(messageHash);
+        // we use module validation for both cases
+        bytes32 replaySafeHash = _getModuleReplaySafeHash(
+            address(account1),
+            address(ecdsaValidationModule),
+            _MOCK_APP_DOMAIN,
+            mockAppStructHash,
+            mockAppDigest,
+            _MOCK_APP_CONTENTS_TYPE
+        );
 
         bytes32 replaySafeHash = singleSignerValidationModule.replaySafeHash(address(account1), messageHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
-        preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(message)});
+        preValidationHookData[0] = PreValidationHookData({
+            index: 0,
+            validationData: abi.encodePacked(hex"1901", _MOCK_APP_DOMAIN, mockAppStructHash) // preimage of
+                // appDigest
+        });
 
         bytes4 result = account1.isValidSignature(
-            messageHash,
+            mockAppDigest,
             _encode1271Signature(
-                _signerValidation, preValidationHookData, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
+                _signerValidation,
+                preValidationHookData,
+                abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v),
+                mockAppStructHash
             )
         );
 
@@ -437,7 +454,10 @@ contract PerHookDataTest is CustomValidationTestBase {
         account1.isValidSignature(
             messageHash,
             _encode1271Signature(
-                _signerValidation, preValidationHookData, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
+                _signerValidation,
+                preValidationHookData,
+                abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v),
+                messageHash
             )
         );
     }
@@ -450,7 +470,9 @@ contract PerHookDataTest is CustomValidationTestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, messageHash);
 
         vm.expectRevert("Preimage not provided");
-        account1.isValidSignature(messageHash, _encode1271Signature(_signerValidation, abi.encodePacked(r, s, v)));
+        account1.isValidSignature(
+            messageHash, _encode1271Signature(_signerValidation, abi.encodePacked(r, s, v), messageHash)
+        );
     }
 
     function _installSecondPreHook() internal {

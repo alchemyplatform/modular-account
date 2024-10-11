@@ -20,6 +20,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
     ModuleEntity public comprehensiveModuleValidation;
 
     function setUp() public override {
+        _revertSnapshot = vm.snapshot();
         // install the comprehensive module to get new exec functions with different validations configured.
 
         comprehensiveModule = new ComprehensiveModule();

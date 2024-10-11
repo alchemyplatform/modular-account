@@ -53,6 +53,17 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
         );
     }
 
+    // fuzz message
+    function testFuzz_pass_isValidSignature(bytes32 message) public view {
+        bytes32 challenge = module.replaySafeHash(account, message);
+
+        assertTrue(
+            ModularAccountBase(account).isValidSignature(message, _get1271SigForChallenge(challenge, 0, 0))
+                == 0x1626ba7e
+        );
+    }
+
+    // Fuzz sig
     function testFuzz_fail_isValidSignature(bytes32 message, uint256 sigR, uint256 sigS) external view {
         bytes32 challenge = module.replaySafeHash(account, message);
 
@@ -97,7 +108,6 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
         PackedUserOperation memory uo;
         uo.sender = account;
         uo.callData = abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, new bytes(0)));
-
         bytes32 uoHash = entryPoint.getUserOpHash(uo);
         uo.signature = _getUOSigForChallenge(uoHash.toEthSignedMessageHash(), 0, 0);
 
@@ -105,7 +115,7 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
         assertEq(ModularAccountBase(account).validateUserOp(uo, uoHash, 0), _SIG_VALIDATION_PASSED);
     }
 
-    function testFuzz_uoValidaton_shouldFail(uint256 sigR, uint256 sigS) external {
+    function testFuzz_uoValidation_shouldFail(uint256 sigR, uint256 sigS) external {
         PackedUserOperation memory uo;
         uo.sender = account;
         uo.callData = abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, new bytes(0)));

@@ -17,7 +17,6 @@
 
 pragma solidity ^0.8.26;
 
-import {ReplaySafeWrapper} from "@erc6900/reference-implementation/modules/ReplaySafeWrapper.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -28,6 +27,7 @@ import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol"
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
 import {SignatureType} from "../../helpers/SignatureType.sol";
+import {ERC7739ReplaySafeWrapper} from "../../libraries/ERC7739ReplaySafeWrapper.sol";
 import {BaseModule} from "../BaseModule.sol";
 
 /// @title Single Signer Validation Module
@@ -45,6 +45,7 @@ import {BaseModule} from "../BaseModule.sol";
 /// to validate partially or fully.
 contract SingleSignerValidationModule is IValidationModule, ReplaySafeWrapper, BaseModule {
     using MessageHashUtils for bytes32;
+    using ERC7739ReplaySafeWrapper for address;
 
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
     uint256 internal constant _SIG_VALIDATION_FAILED = 1;
@@ -128,8 +129,8 @@ contract SingleSignerValidationModule is IValidationModule, ReplaySafeWrapper, B
         override
         returns (bytes4)
     {
-        bytes32 _replaySafeHash = replaySafeHash(account, digest);
-        if (_checkSig(signers[entityId][account], _replaySafeHash, signature)) {
+        (digest, signature) = account.validateERC7739SigFormatForModule(address(this), digest, signature);
+        if (_checkSig(signers[entityId][account], digest, signature)) {
             return _1271_MAGIC_VALUE;
         }
         return _1271_INVALID;

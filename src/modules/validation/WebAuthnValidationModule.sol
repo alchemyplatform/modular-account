@@ -25,7 +25,8 @@ import {WebAuthn} from "webauthn-sol/src/WebAuthn.sol";
 
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
-import {BaseModule} from "@erc6900/reference-implementation/modules/BaseModule.sol";
+
+import {BaseModule} from "../BaseModule.sol";
 
 /// @title WebAuthn Validation Module
 /// @author Alchemy

@@ -29,6 +29,7 @@ contract ValidationIntersectionTest is AccountTestBase {
     ModuleEntity public twoHookValidation;
 
     function setUp() public override {
+        _revertSnapshot = vm.snapshot();
         noHookModule = new MockUserOpValidationModule();
         oneHookModule = new MockUserOpValidation1HookModule();
         twoHookModule = new MockUserOpValidation2HookModule();
