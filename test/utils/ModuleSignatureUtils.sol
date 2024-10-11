@@ -2,7 +2,9 @@
 pragma solidity ^0.8.26;
 
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {ValidationConfig} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Vm} from "forge-std/src/Vm.sol";
 
@@ -25,8 +27,8 @@ contract ModuleSignatureUtils {
     uint8 public constant GLOBAL_VALIDATION = 1;
     uint8 public constant EOA_TYPE_SIGNATURE = 0;
 
-    bytes32 private constant _INSTALL_VALIDATION_TYPEHASH =
-        keccak256("InstallValidation(uint256 nonce,uint48 deadline,bytes validationInstall)");
+    bytes32 private constant _DEFERRED_ACTION_TYPEHASH =
+        keccak256("DeferredAction(uint256 nonce,uint48 deadline,bytes25 validationFunction,bytes call)");
 
     // helper function to encode a 1271 signature, according to the per-hook and per-validation data format.
     function _encode1271Signature(
@@ -193,12 +195,13 @@ contract ModuleSignatureUtils {
         );
     }
 
-    function _packDeferredInstallData(uint256 nonce, uint48 deadline, bytes memory installCall)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        bytes memory deferredInstallData = abi.encodePacked(nonce, deadline, installCall);
+    function _packDeferredInstallData(
+        uint256 nonce,
+        uint48 deadline,
+        ValidationConfig validationFunction,
+        bytes memory call
+    ) internal pure returns (bytes memory) {
+        bytes memory deferredInstallData = abi.encodePacked(nonce, deadline, validationFunction, call);
 
         return deferredInstallData;
     }
@@ -207,13 +210,15 @@ contract ModuleSignatureUtils {
         ModularAccount account,
         uint256 nonce,
         uint48 deadline,
-        bytes memory installCall
+        ValidationConfig validationFunction,
+        bytes memory selfCall
     ) internal view returns (bytes32) {
         bytes32 domainSeparator = _computeDomainSeparator(account);
 
-        bytes32 installCallHash = keccak256(installCall);
+        bytes32 selfCallHash = keccak256(selfCall);
 
-        bytes32 structHash = keccak256(abi.encode(_INSTALL_VALIDATION_TYPEHASH, nonce, deadline, installCallHash));
+        bytes32 structHash =
+            keccak256(abi.encode(_DEFERRED_ACTION_TYPEHASH, nonce, deadline, validationFunction, selfCallHash));
 
         bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(domainSeparator, structHash);
 

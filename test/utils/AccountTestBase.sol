@@ -5,7 +5,10 @@ import {
     Call, IModularAccount, ModuleEntity
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
-import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
+import {
+    ValidationConfig,
+    ValidationConfigLib
+} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -270,6 +273,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         uint256 deferredInstallNonce,
         uint48 deferredInstallDeadline,
         bytes memory deferredValidationInstallCall,
+        ValidationConfig uoValidationFunction,
         ModularAccount account,
         uint256 signingKey,
         bytes memory uoSig
@@ -277,7 +281,11 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         bytes memory deferredValidationSig = _packFinalSignature(
             _signEcdsaAccountAgnostic(
                 _getDeferredInstallHash(
-                    account, deferredInstallNonce, deferredInstallDeadline, deferredValidationInstallCall
+                    account,
+                    deferredInstallNonce,
+                    deferredInstallDeadline,
+                    uoValidationFunction,
+                    deferredValidationInstallCall
                 ),
                 signingKey,
                 account,
@@ -288,7 +296,9 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         return _encodeDeferredInstallUOSignature(
             _signerValidation,
             GLOBAL_VALIDATION,
-            _packDeferredInstallData(deferredInstallNonce, deferredInstallDeadline, deferredValidationInstallCall),
+            _packDeferredInstallData(
+                deferredInstallNonce, deferredInstallDeadline, uoValidationFunction, deferredValidationInstallCall
+            ),
             deferredValidationSig,
             uoSig
         );

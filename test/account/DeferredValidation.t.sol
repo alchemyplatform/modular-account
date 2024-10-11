@@ -23,6 +23,7 @@ contract DeferredValidationTest is AccountTestBase {
     ModuleEntity internal _deferredValidation;
     // The ABI-encoded call to `installValidation(...)` to be used with deferred validation install
     bytes internal _deferredValidationInstallCall;
+    ValidationConfig internal _newUOValidation;
 
     // The new signing key to be added via deferred validation install.
     // The public address is included as part of _deferredValidationInstallCall
@@ -37,19 +38,16 @@ contract DeferredValidationTest is AccountTestBase {
         _newSignerKey = newSignerKey;
         bytes memory deferredValidationInstallData = abi.encode(entityId, newSigner);
 
+        _newUOValidation = ValidationConfigLib.pack({
+            _validationFunction: _deferredValidation,
+            _isGlobal: true,
+            _isSignatureValidation: false,
+            _isUserOpValidation: true
+        });
+
         _deferredValidationInstallCall = abi.encodeCall(
             IModularAccount.installValidation,
-            (
-                ValidationConfigLib.pack({
-                    _validationFunction: _deferredValidation,
-                    _isGlobal: true,
-                    _isSignatureValidation: false,
-                    _isUserOpValidation: true
-                }),
-                new bytes4[](0),
-                deferredValidationInstallData,
-                new bytes[](0)
-            )
+            (_newUOValidation, new bytes4[](0), deferredValidationInstallData, new bytes[](0))
         );
     }
 
@@ -82,6 +80,7 @@ contract DeferredValidationTest is AccountTestBase {
             deferredInstallNonce,
             deferredInstallDeadline,
             _deferredValidationInstallCall,
+            _newUOValidation,
             account1,
             owner1Key,
             uoSig
@@ -93,7 +92,7 @@ contract DeferredValidationTest is AccountTestBase {
             IEntryPoint.FailedOpWithRevert.selector,
             0,
             "AA23 reverted",
-            abi.encodeWithSelector(ModularAccountBase.DeferredInstallNonceInvalid.selector)
+            abi.encodeWithSelector(ModularAccountBase.DeferredActionNonceInvalid.selector)
         );
 
         _sendOp(userOp, expectedRevertData);
@@ -129,6 +128,7 @@ contract DeferredValidationTest is AccountTestBase {
             deferredInstallNonce,
             deferredInstallDeadline,
             _deferredValidationInstallCall,
+            _newUOValidation,
             account1,
             owner1Key,
             uoSig
@@ -169,6 +169,7 @@ contract DeferredValidationTest is AccountTestBase {
             deferredInstallNonce,
             deferredInstallDeadline,
             _deferredValidationInstallCall,
+            _newUOValidation,
             account1,
             badSigningKey,
             uoSig
@@ -178,7 +179,7 @@ contract DeferredValidationTest is AccountTestBase {
             IEntryPoint.FailedOpWithRevert.selector,
             0,
             "AA23 reverted",
-            abi.encodeWithSelector(ModularAccountBase.DeferredInstallSignatureInvalid.selector)
+            abi.encodeWithSelector(ModularAccountBase.DeferredActionSignatureInvalid.selector)
         );
 
         _sendOp(userOp, expectedRevertData);
@@ -214,6 +215,7 @@ contract DeferredValidationTest is AccountTestBase {
             deferredInstallNonce,
             deferredInstallDeadline,
             _deferredValidationInstallCall,
+            _newUOValidation,
             account1,
             owner1Key,
             uoSig
@@ -223,7 +225,7 @@ contract DeferredValidationTest is AccountTestBase {
             IEntryPoint.FailedOpWithRevert.selector,
             0,
             "AA23 reverted",
-            abi.encodeWithSelector(ModularAccountBase.DeferredInstallNonceInvalid.selector)
+            abi.encodeWithSelector(ModularAccountBase.DeferredActionNonceInvalid.selector)
         );
 
         _sendOp(userOp, expectedRevertData);
@@ -256,6 +258,7 @@ contract DeferredValidationTest is AccountTestBase {
             deferredInstallNonce,
             deferredInstallDeadline,
             _deferredValidationInstallCall,
+            _newUOValidation,
             account1,
             owner1Key,
             uoSig
@@ -269,7 +272,7 @@ contract DeferredValidationTest is AccountTestBase {
 
     // Positives
 
-    function test_deferredValidation() external withSMATest {
+    function test_deferredValidation_deployed() external withSMATest {
         uint256 nonce = entryPoint.getNonce(address(account1), 0);
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -296,6 +299,7 @@ contract DeferredValidationTest is AccountTestBase {
             deferredInstallNonce,
             deferredInstallDeadline,
             _deferredValidationInstallCall,
+            _newUOValidation,
             account1,
             owner1Key,
             uoSig
@@ -349,6 +353,7 @@ contract DeferredValidationTest is AccountTestBase {
             deferredInstallNonce,
             deferredInstallDeadline,
             _deferredValidationInstallCall,
+            _newUOValidation,
             account2,
             owner1Key,
             uoSig
