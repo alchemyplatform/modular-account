@@ -62,15 +62,6 @@ abstract contract ModularAccountBase is
     using HookConfigLib for HookConfig;
     using SparseCalldataSegmentLib for bytes;
 
-    struct DeferredValidationInstallData {
-        ValidationConfig validationConfig;
-        bytes4[] selectors;
-        bytes installData;
-        bytes[] hooks;
-        uint256 nonce;
-        uint48 deadline;
-    }
-
     enum ValidationCheckingType {
         GLOBAL,
         SELECTOR,
@@ -81,10 +72,9 @@ abstract contract ModularAccountBase is
     bytes32 internal constant _DOMAIN_SEPARATOR_TYPEHASH =
         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
 
-    // keccak256("InstallValidation(bytes25 validationConfig,bytes4[] selectors,bytes installData,bytes[]
-    // hooks,uint256 nonce,uint48 deadline)");
+    // keccak256("InstallValidation(uint256 nonce,uint48 deadline,bytes validationInstall)")
     bytes32 internal constant _INSTALL_VALIDATION_TYPEHASH =
-        0xb5b726478a22c87521d285be8b6a8a12e8b0715e5b67a10114b963f2eac36d6c;
+        0x03ffe0a4f7bbcd0e07af14f95a1c08895063811809f7bedb7ac6a2cce22acd5f;
 
     // As per the EIP-165 spec, no interface should ever match 0xffffffff
     bytes4 internal constant _INTERFACE_ID_INVALID = 0xffffffff;
@@ -109,6 +99,7 @@ abstract contract ModularAccountBase is
     error UnexpectedAggregator(address module, uint32 entityId, address aggregator);
     error UnrecognizedFunction(bytes4 selector);
     error ValidationFunctionMissing(bytes4 selector);
+    error DeferredInstallSelectorInvalid();
     error DeferredInstallNonceInvalid();
     error DeferredInstallSignatureInvalid();
     error CreateFailed();
@@ -404,10 +395,6 @@ abstract contract ModularAccountBase is
         super.upgradeToAndCall(newImplementation, data);
     }
 
-    function domainSeparator() public view returns (bytes32) {
-        return keccak256(abi.encode(_DOMAIN_SEPARATOR_TYPEHASH, block.chainid, address(this)));
-    }
-
     function isValidSignature(bytes32 hash, bytes calldata signature) public view returns (bytes4) {
         ModuleEntity sigValidation = ModuleEntity.wrap(bytes24(signature));
         signature = signature[24:];
@@ -461,18 +448,6 @@ abstract contract ModularAccountBase is
             // Load the pointer to the abi-encoded data.
             bytes calldata encodedData = userOp.signature[29:29 + encodedDataLength];
 
-            // Struct addresses stack too deep issues
-            DeferredValidationInstallData memory deferredValidationInstallData;
-
-            (
-                deferredValidationInstallData.validationConfig,
-                deferredValidationInstallData.selectors,
-                deferredValidationInstallData.installData,
-                deferredValidationInstallData.hooks,
-                deferredValidationInstallData.nonce,
-                deferredValidationInstallData.deadline
-            ) = abi.decode(encodedData, (ValidationConfig, bytes4[], bytes, bytes[], uint256, uint48));
-
             // Get the deferred installation signature length.
             uint256 deferredInstallSigLength =
                 uint32(bytes4(userOp.signature[29 + encodedDataLength:33 + encodedDataLength]));
@@ -483,26 +458,21 @@ abstract contract ModularAccountBase is
                 userOp.signature[33 + encodedDataLength:33 + encodedDataLength + deferredInstallSigLength];
 
             //Validate the signature.
-            _validateDeferredInstallDataAndSetNonce(
-                validationFunction, deferredValidationInstallData, deferredInstallSig
-            );
+            uint48 deadline =
+                _validateDeferredInstallDataAndSetNonce(validationFunction, encodedData, deferredInstallSig);
+            // Update the validation data with the deadline.
+            validationData = uint256(deadline) << 160;
 
-            // Use a self-call to install the deferred validation.
-            this.installValidation(
-                deferredValidationInstallData.validationConfig,
-                deferredValidationInstallData.selectors,
-                deferredValidationInstallData.installData,
-                deferredValidationInstallData.hooks
-            );
-
-            // Update the outer scope functions to use the newly defer-installed validation and its isGlobal flag.
-            validationFunction = deferredValidationInstallData.validationConfig.moduleEntity();
-            isGlobalValidation = deferredValidationInstallData.validationConfig.isGlobal();
+            // Call `installValidation` on the account.
+            ExecutionLib.callSelfBubbleOnRevertTransient(encodedData[38:]);
 
             // Update the UserOp signature to the remaining bytes.
             userOpSignature = userOp.signature[33 + encodedDataLength + deferredInstallSigLength:];
 
-            validationData = uint256(deferredValidationInstallData.deadline) << 160;
+            // Load in the validation that was just installed.
+            ValidationConfig deferredInstallValidation = ValidationConfig.wrap(bytes25(encodedData[42:67]));
+            validationFunction = deferredInstallValidation.moduleEntity();
+            isGlobalValidation = deferredInstallValidation.isGlobal();
         } else {
             userOpSignature = userOp.signature[25:];
         }
@@ -535,38 +505,42 @@ abstract contract ModularAccountBase is
         }
     }
 
+    /// @return The deadline of the deferred validation.
     function _validateDeferredInstallDataAndSetNonce(
         ModuleEntity sigValidation,
-        DeferredValidationInstallData memory installData,
+        bytes calldata encodedData,
         bytes calldata sig
-    ) internal {
+    ) internal returns (uint48) {
+        // Decode stack vars for the deadline and nonce.
+        uint256 nonce = uint256(bytes32(encodedData[:32]));
+        uint48 deadline = uint48(bytes6(encodedData[32:38]));
+
+        // Assert the function being called is `installValidation`.
+        if (bytes4(encodedData[38:42]) != this.installValidation.selector) {
+            revert DeferredInstallSelectorInvalid();
+        }
+
         // Check that the passed nonce isn't already invalidated.
-        if (getAccountStorage().deferredInstallNonceUsed[installData.nonce]) {
+        if (getAccountStorage().deferredInstallNonceUsed[nonce]) {
             revert DeferredInstallNonceInvalid();
         }
 
         // Invalidate the nonce.
-        getAccountStorage().deferredInstallNonceUsed[installData.nonce] = true;
-        emit DeferredInstallNonceInvalidated(installData.nonce);
+        getAccountStorage().deferredInstallNonceUsed[nonce] = true;
+        emit DeferredInstallNonceInvalidated(nonce);
 
-        // Compute the struct hash to be used to compute the replay safe hash for
-        bytes32 structHash = keccak256(
-            abi.encode(
-                _INSTALL_VALIDATION_TYPEHASH,
-                installData.validationConfig,
-                installData.selectors,
-                installData.installData,
-                installData.hooks,
-                installData.nonce,
-                installData.deadline // Note that a zero deadline translates to "no deadline"
-            )
+        // Compute the typed data hash to verify the signature over
+        bytes32 typedDataHash = _computeDeferredValidationInstallTypedDataHash(
+            encodedData[38:], // The encoded call without the nonce and deadline
+            nonce,
+            deadline
         );
-
-        bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(domainSeparator(), structHash);
 
         if (_isValidSignature(sigValidation, typedDataHash, sig) != _1271_MAGIC_VALUE) {
             revert DeferredInstallSignatureInvalid();
         }
+
+        return deadline;
     }
 
     // To support gas estimation, we don't fail early when the failure is caused by a signature failure
@@ -929,6 +903,69 @@ abstract contract ModularAccountBase is
         returns (bool)
     {
         return getAccountStorage().validationData[validationFunction].selectors.contains(toSetValue(selector));
+    }
+
+    function _computeDeferredValidationInstallTypedDataHash(
+        bytes calldata encodedInstallCall,
+        uint256 nonce,
+        uint48 deadline
+    ) internal view returns (bytes32) {
+        // bytes32 result;
+
+        // Compute the hash without permanently allocating memory for each step.
+        // The following is equivalent to:
+        // keccak256(
+        //     abi.encode(
+        //         _INSTALL_VALIDATION_TYPEHASH,
+        //         nonce,
+        //         deadline,
+        //         keccak256(encodedInstallCall)
+        //     )
+        // )
+
+        // Note that a zero deadline translates to "no deadline"
+
+        bytes32 structHash;
+
+        assembly ("memory-safe") {
+            // Get the hash of the dynamic-length encoded install call
+            let fmp := mload(0x40)
+            calldatacopy(fmp, encodedInstallCall.offset, encodedInstallCall.length)
+            let installCallHash := keccak256(fmp, encodedInstallCall.length)
+
+            // Compute the struct hash
+            let ptr := fmp
+            mstore(ptr, _INSTALL_VALIDATION_TYPEHASH)
+            ptr := add(ptr, 0x20)
+            mstore(ptr, nonce)
+            ptr := add(ptr, 0x20)
+            // Clear the upper bits of the deadline, in case the caller didn't.
+            mstore(ptr, and(deadline, 0xffffffff))
+            ptr := add(ptr, 0x20)
+            mstore(ptr, installCallHash)
+
+            // Compute the struct hash
+            structHash := keccak256(fmp, 0x80)
+        }
+
+        bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(_domainSeparator(), structHash);
+
+        return typedDataHash;
+    }
+
+    function _domainSeparator() internal view returns (bytes32) {
+        bytes32 result;
+
+        // Compute the hash without permanently allocating memory
+        assembly ("memory-safe") {
+            let fmp := mload(0x40)
+            mstore(fmp, _DOMAIN_SEPARATOR_TYPEHASH)
+            mstore(add(fmp, 0x20), chainid())
+            mstore(add(fmp, 0x40), address())
+            result := keccak256(fmp, 0x60)
+        }
+
+        return result;
     }
 
     // A virtual function to detect if a validation function is natively implemented. Used for determining call

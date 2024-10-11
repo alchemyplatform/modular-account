@@ -262,6 +262,54 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         _signerValidation = FALLBACK_VALIDATION;
     }
 
+    // Uses state vars:
+    // - _signerValidation
+    // - ecdsaValidation, when not SMA
+    // for 1271 signing the deferred action of install
+    function _buildFullDeferredInstallSig(
+        uint256 deferredInstallNonce,
+        uint48 deferredInstallDeadline,
+        bytes memory deferredValidationInstallCall,
+        ModularAccount account,
+        uint256 signingKey,
+        bytes memory uoSig
+    ) internal view returns (bytes memory) {
+        bytes memory deferredValidationSig = _packFinalSignature(
+            _signEcdsaAccountAgnostic(
+                _getDeferredInstallHash(
+                    account, deferredInstallNonce, deferredInstallDeadline, deferredValidationInstallCall
+                ),
+                signingKey,
+                account,
+                ecdsaValidationModule
+            )
+        );
+
+        return _encodeDeferredInstallUOSignature(
+            _signerValidation,
+            GLOBAL_VALIDATION,
+            _packDeferredInstallData(deferredInstallNonce, deferredInstallDeadline, deferredValidationInstallCall),
+            deferredValidationSig,
+            uoSig
+        );
+    }
+
+    function _signEcdsaAccountAgnostic(
+        bytes32 hash,
+        uint256 signingKey,
+        ModularAccount account,
+        ECDSAValidationModule validationModule
+    ) internal view returns (bytes memory) {
+        bytes32 replaySafeHash;
+        if (_isSMATest) {
+            replaySafeHash = _getSMAReplaySafeHash(account, hash);
+        } else {
+            replaySafeHash = validationModule.replaySafeHash(address(account), hash);
+        }
+
+        return _signRawHash(vm, signingKey, replaySafeHash);
+    }
+
     // helper function to compress 2 gas values into a single bytes32
     function _encodeGas(uint256 g1, uint256 g2) internal pure returns (bytes32) {
         return bytes32(uint256((g1 << 128) + uint128(g2)));
