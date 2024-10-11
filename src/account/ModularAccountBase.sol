@@ -12,7 +12,7 @@ import {
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
-import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
+import {HookConfig, HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
@@ -27,7 +27,7 @@ import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "../helpers/Constants.sol";
 import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
-import {ExecutionLib} from "../libraries/ExecutionLib.sol";
+import {ExecutionLib, UOCallBuffer} from "../libraries/ExecutionLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {SparseCalldataSegmentLib} from "../libraries/SparseCalldataSegmentLib.sol";
@@ -510,7 +510,7 @@ abstract contract ModularAccountBase is
         ) {
             revert RequireUserOperationContext();
         }
-        uint256 userOpValidationRes = _doUserOpValidation(validationFunction, userOp, userOpSignature, userOpHash);
+        uint256 userOpValidationRes = _doUserOpValidation(userOp, userOpHash, validationFunction, userOpSignature);
 
         // We only coalesce validations if the validation data from deferred installation is nonzero.
         if (validationData != 0) {
@@ -559,10 +559,10 @@ abstract contract ModularAccountBase is
 
     // To support gas estimation, we don't fail early when the failure is caused by a signature failure
     function _doUserOpValidation(
+        PackedUserOperation calldata userOp,
+        bytes32 userOpHash,
         ModuleEntity userOpValidationFunction,
-        PackedUserOperation memory userOp,
-        bytes calldata signature,
-        bytes32 userOpHash
+        bytes calldata signature
     ) internal returns (uint256) {
         uint256 validationRes;
 
@@ -570,21 +570,27 @@ abstract contract ModularAccountBase is
         HookConfig[] memory preUserOpValidationHooks =
             MemManagementLib.loadValidationHooks(getAccountStorage().validationData[userOpValidationFunction]);
 
+        UOCallBuffer userOpCallBuffer;
+        if (!_validationIsNative(userOpValidationFunction) || preUserOpValidationHooks.length > 0) {
+            userOpCallBuffer = ExecutionLib.allocateUserOpValidationCallBuffer(userOp, userOpHash);
+        }
+        bytes calldata currentSignatureSlice;
         for (uint256 i = preUserOpValidationHooks.length; i > 0; i) {
             // Decrement here, instead of in the loop body, to convert from length to an index.
             unchecked {
                 --i;
             }
 
-            (userOp.signature, signature) =
+            (currentSignatureSlice, signature) =
                 signature.advanceSegmentIfAtIndex(uint8(preUserOpValidationHooks.length - i - 1));
 
-            (address module, uint32 entityId) = preUserOpValidationHooks[i].moduleEntity().unpack();
-            uint256 currentValidationRes =
-                IValidationHookModule(module).preUserOpValidationHook(entityId, userOp, userOpHash);
+            uint256 currentValidationRes = ExecutionLib.invokeUserOpCallBuffer(
+                userOpCallBuffer, preUserOpValidationHooks[i].moduleEntity(), currentSignatureSlice
+            );
 
             if (uint160(currentValidationRes) > 1) {
                 // If the aggregator is not 0 or 1, it is an unexpected value
+                (address module, uint32 entityId) = preUserOpValidationHooks[i].moduleEntity().unpack();
                 revert UnexpectedAggregator(module, entityId, address(uint160(currentValidationRes)));
             }
             validationRes = _coalescePreValidation(validationRes, currentValidationRes);
@@ -592,9 +598,11 @@ abstract contract ModularAccountBase is
 
         // Run the user op validation function
         {
-            userOp.signature = signature.getFinalSegment();
+            currentSignatureSlice = signature.getFinalSegment();
 
-            uint256 currentValidationRes = _execUserOpValidation(userOpValidationFunction, userOp, userOpHash);
+            uint256 currentValidationRes = _execUserOpValidation(
+                userOpValidationFunction, userOpHash, currentSignatureSlice, userOpCallBuffer
+            );
 
             if (preUserOpValidationHooks.length != 0) {
                 // If we have other validation data we need to coalesce with
@@ -781,18 +789,20 @@ abstract contract ModularAccountBase is
 
     function _execUserOpValidation(
         ModuleEntity userOpValidationFunction,
-        PackedUserOperation memory userOp,
-        bytes32 userOpHash
+        bytes32,
+        bytes calldata signatureSegment,
+        UOCallBuffer callBuffer
     ) internal virtual returns (uint256) {
         AccountStorage storage _storage = getAccountStorage();
 
-        (address module, uint32 entityId) = userOpValidationFunction.unpack();
-
         if (!_storage.validationData[userOpValidationFunction].isUserOpValidation) {
+            (address module, uint32 entityId) = userOpValidationFunction.unpack();
             revert UserOpValidationInvalid(module, entityId);
         }
 
-        return IValidationModule(module).validateUserOp(entityId, userOp, userOpHash);
+        ExecutionLib.convertToValidationBuffer(callBuffer);
+
+        return ExecutionLib.invokeUserOpCallBuffer(callBuffer, userOpValidationFunction, signatureSegment);
     }
 
     function _execRuntimeValidation(
@@ -977,5 +987,11 @@ abstract contract ModularAccountBase is
         returns (bool)
     {
         return getAccountStorage().validationData[validationFunction].selectors.contains(toSetValue(selector));
+    }
+
+    // A virtual function to detect if a validation function is natively implemented. Used for determining call
+    // buffer allocation.
+    function _validationIsNative(ModuleEntity) internal pure virtual returns (bool) {
+        return false;
     }
 }

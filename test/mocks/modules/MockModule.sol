@@ -6,6 +6,7 @@ import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
+import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
 contract MockModule is ERC165 {
@@ -75,6 +76,7 @@ contract MockModule is ERC165 {
         emit ReceivedCall(msg.data, msg.value);
         if (
             msg.sig == IValidationModule.validateUserOp.selector
+                || msg.sig == IValidationHookModule.preUserOpValidationHook.selector
                 || msg.sig == IValidationModule.validateRuntime.selector
                 || msg.sig == IExecutionHookModule.preExecutionHook.selector
         ) {

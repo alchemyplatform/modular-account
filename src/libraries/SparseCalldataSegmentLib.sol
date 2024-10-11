@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {RESERVED_VALIDATION_DATA_INDEX} from "../helpers/Constants.sol";
+import {getEmptyCalldataSlice} from "../helpers/EmptyCalldataSlice.sol";
 
 /// @title Sparse Calldata Segment Library
 /// @notice Library for working with sparsely-packed calldata segments, identified with an index.
@@ -51,7 +52,7 @@ library SparseCalldataSegmentLib {
     function advanceSegmentIfAtIndex(bytes calldata source, uint8 index)
         internal
         pure
-        returns (bytes memory, bytes calldata)
+        returns (bytes calldata, bytes calldata)
     {
         uint8 nextIndex = getIndex(source);
 
@@ -69,7 +70,7 @@ library SparseCalldataSegmentLib {
             return (segment, remainder);
         }
 
-        return ("", source);
+        return (getEmptyCalldataSlice(), source);
     }
 
     /// @notice Extracts the final segment from the source.

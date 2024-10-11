@@ -2,15 +2,16 @@
 pragma solidity ^0.8.26;
 
 import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
-import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 import {DIRECT_CALL_VALIDATION_ENTITYID, FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {SignatureType} from "../helpers/SignatureType.sol";
+import {UOCallBuffer} from "../libraries/ExecutionLib.sol";
 import {SemiModularKnownSelectorsLib} from "../libraries/SemiModularKnownSelectorsLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
 
@@ -101,19 +102,20 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
 
     function _execUserOpValidation(
         ModuleEntity userOpValidationFunction,
-        PackedUserOperation memory userOp,
-        bytes32 userOpHash
+        bytes32 userOpHash,
+        bytes calldata signatureSegment,
+        UOCallBuffer callBuffer
     ) internal override returns (uint256) {
         if (userOpValidationFunction.eq(FALLBACK_VALIDATION)) {
             address fallbackSigner = _getFallbackSigner();
 
-            if (_checkSignature(fallbackSigner, userOpHash.toEthSignedMessageHash(), userOp.signature)) {
+            if (_checkSignature(fallbackSigner, userOpHash.toEthSignedMessageHash(), signatureSegment)) {
                 return _SIG_VALIDATION_PASSED;
             }
             return _SIG_VALIDATION_FAILED;
         }
 
-        return super._execUserOpValidation(userOpValidationFunction, userOp, userOpHash);
+        return super._execUserOpValidation(userOpValidationFunction, userOpHash, signatureSegment, callBuffer);
     }
 
     function _execRuntimeValidation(
@@ -149,17 +151,12 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         return super._exec1271Validation(sigValidation, hash, signature);
     }
 
-    function _checkSignature(address owner, bytes32 digest, bytes memory sig) internal view returns (bool) {
+    function _checkSignature(address owner, bytes32 digest, bytes calldata sig) internal view returns (bool) {
         if (sig.length < 1) {
             revert InvalidSignatureType();
         }
         SignatureType sigType = SignatureType(uint8(bytes1(sig)));
-        // remove first byte from sig in memory
-        assembly ("memory-safe") {
-            let sigLen := mload(sig)
-            sig := add(sig, 1)
-            mstore(sig, sub(sigLen, 1))
-        }
+        sig = sig[1:];
         if (sigType == SignatureType.EOA) {
             (address recovered, ECDSA.RecoverError err,) = ECDSA.tryRecover(digest, sig);
             if (err == ECDSA.RecoverError.NoError && recovered == owner) {
@@ -248,5 +245,10 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     // Overrides ModuleManagerInternals
     function _isNativeFunction(bytes4 selector) internal pure override returns (bool) {
         return SemiModularKnownSelectorsLib.isNativeFunction(selector);
+    }
+
+    // Conditionally skip allocation of call buffers.
+    function _validationIsNative(ModuleEntity validationFunction) internal pure virtual override returns (bool) {
+        return validationFunction.eq(FALLBACK_VALIDATION);
     }
 }
