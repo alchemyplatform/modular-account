@@ -5,6 +5,7 @@ import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces
 import {HookConfig} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
+import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntity} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
@@ -17,10 +18,15 @@ type RTCallBuffer is bytes32;
 
 type PHCallBuffer is bytes32;
 
+type DensePostHookData is bytes32;
+
+using HookConfigLib for HookConfig;
+
 // Functions are more readable in original order
 // solhint-disable ordering
 library ExecutionLib {
     // Duplicate definition to make it easier to revert in the library.
+    error PostExecHookReverted(address module, uint32 entityId, bytes revertReason);
     error PreExecHookReverted(address module, uint32 entityId, bytes revertReason);
     error PreRuntimeValidationHookFailed(address module, uint32 entityId, bytes revertReason);
     error RuntimeValidationFunctionReverted(address module, uint32 entityId, bytes revertReason);
@@ -616,19 +622,6 @@ library ExecutionLib {
         }
     }
 
-    // Should only be called after calling `invokePreExecHook`.
-    function getPreHookReturnData(uint256 returnedBytesSize) internal pure returns (bytes memory) {
-        // Return the `bytes` return data from the pre hook,
-        bytes memory result = new bytes(returnedBytesSize);
-
-        // Copy the return data to the result.
-        assembly ("memory-safe") {
-            returndatacopy(add(result, 0x20), 0x40, returnedBytesSize)
-        }
-
-        return result;
-    }
-
     // Converts a PreHookCallBuffer to a `bytes memory`, to use for a self-call in `executeUserOp`.
     // Handles skipping ahead an extra 4 bytes to omit the `executeUserOp` selector, and updates the stored length
     // to do so. This will edit the buffer.
@@ -675,6 +668,213 @@ library ExecutionLib {
             // Skip the first 4 bytes in this function to save the computation on the buffer reuse case.
             return callData[4:];
         }
+    }
+
+    // DensePostHookData layout
+    // Very tricky to navigate, because we must do so backwards.
+
+    // type ~= struct[] but in reverse, the caller must advance through it backwards
+
+    // N instances of:
+    // - post hook address (will be squashed with the selector later, during invocation)
+    // - post hood entity Id
+    // - fixed preExecHookData offset (always 0x40)
+    // - preExecHookData length
+    // - var-length data (right-padded with zeros to be word aligned)
+    // - segment (struct) length (not counting this word, to traverse backwards)
+    // 1 count of post hooks to run. The returned memory pointer will point to this value.
+
+    function doPreHooks(HookConfig[] memory hooks, PHCallBuffer callBuffer)
+        internal
+        returns (DensePostHookData result)
+    {
+        uint256 hooksLength = hooks.length;
+
+        // How many "post hooks to run" there are.
+        uint256 resultCount;
+        // Where in memory to start writing the next "post hook to run".
+        bytes32 workingMemPtr;
+
+        // Start allocating the dense buffer. From this point out, avoid any high-level memory allocations,
+        // otherwise the data-in-flight may be corrupted.
+        assembly ("memory-safe") {
+            workingMemPtr := mload(0x40)
+        }
+
+        // Run the pre hooks and copy their return data to the dense post hooks data buffer array, if an associated
+        // post exec hook exists.
+        for (uint256 i = hooksLength; i > 0;) {
+            // Decrement here, instead of in the loop update step, to handle the case where the length is 0.
+            unchecked {
+                --i;
+            }
+
+            HookConfig hookConfig = hooks[i];
+
+            if (hookConfig.hasPreHook()) {
+                uint256 returnedBytesSize = ExecutionLib.invokePreExecHook(callBuffer, hookConfig);
+
+                // If there is an associated post exec hook, save the return data.
+                if (hookConfig.hasPostHook()) {
+                    // Case: both pre and post exec hook, need to save hook info, and pre hook return data
+
+                    workingMemPtr = _appendPostHookToRun(workingMemPtr, hookConfig, returnedBytesSize);
+
+                    ++resultCount;
+                }
+            } else if (hookConfig.hasPostHook()) {
+                // If there is no pre hook, but there is a post hook, we still need to save a placeholder for the
+                // post hook return data.
+
+                // Case: only post exec hook, need to save hook info, and no pre hook return data
+                // Call the append function with legnth 0 to put no pre hook return data.
+
+                workingMemPtr = _appendPostHookToRun(workingMemPtr, hookConfig, 0);
+
+                ++resultCount;
+            }
+        }
+
+        // Save the length, return a pointer to the length, and update the FMP
+        assembly ("memory-safe") {
+            mstore(workingMemPtr, resultCount)
+            result := workingMemPtr
+
+            workingMemPtr := add(workingMemPtr, 0x20)
+            mstore(0x40, workingMemPtr)
+        }
+    }
+
+    function doCachedPostHooks(DensePostHookData postHookData) internal {
+        uint256 postHookCount;
+        uint256 workingMemPtr;
+
+        assembly ("memory-safe") {
+            postHookCount := mload(postHookData)
+            workingMemPtr := sub(postHookData, 0x20)
+        }
+
+        uint32 selector = uint32(IExecutionHookModule.postExecutionHook.selector);
+
+        // Run the post hooks.
+        // This is tricky, unlike normal, we must traverse the data backwards, because the post exec hooks should
+        // be executed in reverse order of the pre exec hooks.
+        for (uint256 i = 0; i < postHookCount; i++) {
+            bool success;
+
+            address moduleAddress;
+            uint32 entityId;
+
+            assembly ("memory-safe") {
+                // The last word of each segment is the segment length
+                let segmentLength := mload(workingMemPtr)
+
+                // Step the working memory pointer back to the start of the segment, and preserve a copy to
+                // continue the loop
+                workingMemPtr := sub(workingMemPtr, segmentLength)
+                let segmentStart := workingMemPtr
+
+                // Load the post hook address
+                moduleAddress := mload(workingMemPtr)
+                // Load the entity id, just for the revert message
+                entityId := mload(add(workingMemPtr, 0x20))
+
+                // Squash the post hook address field with the selector
+                mstore(workingMemPtr, selector)
+
+                // Advance the working mem pointer to just before the selector, to prepare to make the call.
+                workingMemPtr := add(workingMemPtr, 0x1c)
+
+                // Compute the total call length, including the selector
+                // This will be seggment length - 0x1c (28), to take out the space not used in the selector
+                let callLength := sub(segmentLength, 0x1c)
+
+                // Perform the call
+                success :=
+                    call(
+                        gas(),
+                        moduleAddress,
+                        /*value*/
+                        0,
+                        /*argOffset*/
+                        workingMemPtr,
+                        /*argSize*/
+                        callLength,
+                        /*retOffset*/
+                        codesize(),
+                        /*retSize*/
+                        0
+                    )
+
+                // Step the working mem pointer back to the previous segment
+                workingMemPtr := sub(segmentStart, 0x20)
+            }
+
+            if (!success) {
+                revert PostExecHookReverted(moduleAddress, entityId, collectReturnData());
+            }
+        }
+    }
+
+    /// @return The new working memory pointer
+    function _appendPostHookToRun(bytes32 workingMemPtr, HookConfig hookConfig, uint256 returnedBytesSize)
+        private
+        pure
+        returns (bytes32)
+    {
+        // Each segment starts out at a length of 4 words:
+        // - post hook address
+        // - post hook entity Id
+        // - fixed preExecHookData offset (always 0x40)
+        // - preHookReturnData length
+        // Add to this the word-aligned length of the pre hook return data.
+        uint256 segmentLength = 0x80;
+
+        assembly ("memory-safe") {
+            // Load the module address and entity Id
+            let entityId := and(shr(64, hookConfig), 0xffffffff)
+            let moduleAddress := shr(96, hookConfig)
+
+            // Get the word-aligned data to copy length
+            let alignedDataLength := and(add(returnedBytesSize, 0x1f), not(0x1f))
+
+            segmentLength := add(segmentLength, alignedDataLength)
+
+            // Start writing to memory:
+
+            // Store the post hook address
+            mstore(workingMemPtr, moduleAddress)
+            workingMemPtr := add(workingMemPtr, 0x20)
+
+            // Store the post hook entity Id
+            mstore(workingMemPtr, entityId)
+            workingMemPtr := add(workingMemPtr, 0x20)
+
+            // Store the fixed preExecHookData offset
+            mstore(workingMemPtr, 0x40)
+            workingMemPtr := add(workingMemPtr, 0x20)
+
+            // Store the preHookReturnData length
+            mstore(workingMemPtr, returnedBytesSize)
+            workingMemPtr := add(workingMemPtr, 0x20)
+
+            // Copy in the pre hook return data, if any exists
+            if returnedBytesSize {
+                // Zero out the last memory word to encode in strict ABI mode
+                let roundedDownDataLength := and(returnedBytesSize, not(0x1f))
+                mstore(add(workingMemPtr, roundedDownDataLength), 0)
+
+                // Copy in the data
+                returndatacopy(workingMemPtr, 0x40, returnedBytesSize)
+                workingMemPtr := add(workingMemPtr, alignedDataLength)
+            }
+
+            // Store the overall segment length at the end
+            mstore(workingMemPtr, segmentLength)
+            workingMemPtr := add(workingMemPtr, 0x20)
+        }
+
+        return workingMemPtr;
     }
 
     function _prepareRuntimeCallBufferPreValidationHooks(RTCallBuffer buffer) private pure {
