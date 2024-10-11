@@ -11,7 +11,7 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 
 import {DIRECT_CALL_VALIDATION_ENTITYID, FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {SignatureType} from "../helpers/SignatureType.sol";
-import {UOCallBuffer} from "../libraries/ExecutionLib.sol";
+import {RTCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
 import {SemiModularKnownSelectorsLib} from "../libraries/SemiModularKnownSelectorsLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
 
@@ -120,7 +120,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
 
     function _execRuntimeValidation(
         ModuleEntity runtimeValidationFunction,
-        bytes calldata callData,
+        RTCallBuffer callBuffer,
         bytes calldata authorization
     ) internal override {
         if (runtimeValidationFunction.eq(FALLBACK_VALIDATION)) {
@@ -130,7 +130,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
                 revert FallbackSignerMismatch();
             }
         } else {
-            super._execRuntimeValidation(runtimeValidationFunction, callData, authorization);
+            super._execRuntimeValidation(runtimeValidationFunction, callBuffer, authorization);
         }
     }
 
