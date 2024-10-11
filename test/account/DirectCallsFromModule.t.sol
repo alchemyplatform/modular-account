@@ -123,6 +123,16 @@ contract DirectCallsFromModuleTest is AccountTestBase {
         account1.execute(CODELESS_ADDRESS, 0, "");
     }
 
+    function test_directCallFromModuleSequence_runHooks() external {
+        _installValidationGlobal();
+
+        vm.prank(address(_module));
+        account1.execute(CODELESS_ADDRESS, 0, "");
+
+        assertTrue(_module.preHookRan());
+        assertTrue(_module.postHookRan());
+    }
+
     function test_directCallsFromEOA() external withSMATest {
         address extraOwner = makeAddr("extraOwner");
 

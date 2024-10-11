@@ -312,7 +312,7 @@ contract HookOrderingTest is AccountTestBase {
         _checkInvokeOrderNoValidationAssocExec();
     }
 
-    function test_hookOrder_directCall_accountNativeFunction() public withSMATest {
+    function test_hookOrder_directCall_accountNativeFunction_withAssoc() public withSMATest {
         _installOrderCheckerModuleWithValidationAssocExec(DIRECT_CALL_VALIDATION_ENTITYID);
 
         vm.prank(address(hookOrderChecker));
