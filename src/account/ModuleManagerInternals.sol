@@ -15,8 +15,8 @@ import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookCon
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 
-import {ExecutionLib} from "../libraries/ExecutionLib.sol";
 import {ExecutionInstallLib} from "../libraries/ExecutionInstallLib.sol";
+import {ExecutionLib} from "../libraries/ExecutionLib.sol";
 import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";

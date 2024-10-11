@@ -26,6 +26,8 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
 import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
+
+import {ExecutionInstallLib} from "../libraries/ExecutionInstallLib.sol";
 import {
     DensePostHookData,
     ExecutionLib,
@@ -42,7 +44,6 @@ import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
 import {TokenReceiver} from "./TokenReceiver.sol";
-import {ExecutionInstallLib} from "../libraries/ExecutionInstallLib.sol";
 
 /// @title Modular Account Base
 /// @author Alchemy
