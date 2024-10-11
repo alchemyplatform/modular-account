@@ -23,6 +23,9 @@ import {ModuleInstallCommons} from "../libraries/ModuleInstallCommons.sol";
 contract ExecutionInstallDelegate {
     using LinkedListSetLib for LinkedListSet;
 
+    address internal immutable _THIS_ADDRESS;
+
+    error OnlyDelegateCall();
     error NullModule();
     error InterfaceNotSupported(address module);
     error ModuleInstallCallbackFailed(address module, bytes revertReason);
@@ -31,13 +34,24 @@ contract ExecutionInstallDelegate {
     error Erc4337FunctionNotAllowed(bytes4 selector);
     error ExecutionHookAlreadySet(HookConfig hookConfig);
 
+    modifier onlyDelegateCall() {
+        if (address(this) == _THIS_ADDRESS) {
+            revert OnlyDelegateCall();
+        }
+        _;
+    }
+
+    constructor() {
+        _THIS_ADDRESS = address(this);
+    }
+
     // External Functions
 
     function installExecution(
         address module,
         ExecutionManifest calldata manifest,
         bytes calldata moduleInstallData
-    ) external {
+    ) external onlyDelegateCall {
         AccountStorage storage _storage = getAccountStorage();
 
         if (module == address(0)) {
@@ -78,6 +92,7 @@ contract ExecutionInstallDelegate {
 
     function uninstallExecution(address module, ExecutionManifest calldata manifest, bytes calldata uninstallData)
         external
+        onlyDelegateCall
     {
         AccountStorage storage _storage = getAccountStorage();
 
@@ -120,7 +135,7 @@ contract ExecutionInstallDelegate {
         bool skipRuntimeValidation,
         bool allowGlobalValidation,
         address module
-    ) private {
+    ) internal {
         ExecutionData storage _executionData = getAccountStorage().executionData[selector];
 
         if (_executionData.module != address(0)) {
@@ -147,7 +162,7 @@ contract ExecutionInstallDelegate {
         _executionData.allowGlobalValidation = allowGlobalValidation;
     }
 
-    function _removeExecutionFunction(bytes4 selector) private {
+    function _removeExecutionFunction(bytes4 selector) internal {
         ExecutionData storage _executionData = getAccountStorage().executionData[selector];
 
         _executionData.module = address(0);
@@ -155,7 +170,7 @@ contract ExecutionInstallDelegate {
         _executionData.allowGlobalValidation = false;
     }
 
-    function _removeExecHooks(LinkedListSet storage hooks, HookConfig hookConfig) private {
+    function _removeExecHooks(LinkedListSet storage hooks, HookConfig hookConfig) internal {
         // Todo: use predecessor
         hooks.tryRemove(toSetValue(hookConfig));
     }
