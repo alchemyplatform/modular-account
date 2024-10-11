@@ -91,7 +91,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
                     revert PreValidationHookDuplicate();
                 }
 
-                ExecutionInstallLib.onInstall(
+                ModuleInstallCommons.onInstall(
                     hookConfig.module(), hookData, type(IValidationHookModule).interfaceId
                 );
 
@@ -110,9 +110,9 @@ abstract contract ModuleManagerInternals is IModularAccount {
             }
             // Hook is an execution hook
             _validationData.executionHookCount += 1;
-            ExecutionInstallLib.addExecHooks(_validationData.executionHooks, hookConfig);
+            ModuleInstallCommons.addExecHooks(_validationData.executionHooks, hookConfig);
 
-            ExecutionInstallLib.onInstall(hookConfig.module(), hookData, type(IExecutionHookModule).interfaceId);
+            ModuleInstallCommons.onInstall(hookConfig.module(), hookData, type(IExecutionHookModule).interfaceId);
         }
 
         length = selectors.length;
@@ -127,7 +127,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
         _validationStorage.isSignatureValidation = validationConfig.isSignatureValidation();
         _validationStorage.isUserOpValidation = validationConfig.isUserOpValidation();
 
-        ExecutionInstallLib.onInstall(validationConfig.module(), installData, type(IValidationModule).interfaceId);
+        ModuleInstallCommons.onInstall(validationConfig.module(), installData, type(IValidationModule).interfaceId);
         emit ValidationInstalled(validationConfig.module(), validationConfig.entityId());
     }
 
@@ -157,7 +157,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
             for (uint256 i = 0; i < length; ++i) {
                 bytes calldata hookData = hookUninstallDatas[hookIndex];
                 (address hookModule,) = ModuleEntityLib.unpack(validationHooks[i].moduleEntity());
-                onUninstallSuccess = onUninstallSuccess && ExecutionInstallLib.onUninstall(hookModule, hookData);
+                onUninstallSuccess = onUninstallSuccess && ModuleInstallCommons.onUninstall(hookModule, hookData);
                 hookIndex++;
             }
 
@@ -165,7 +165,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
             for (uint256 i = 0; i < length; ++i) {
                 bytes calldata hookData = hookUninstallDatas[hookIndex];
                 address hookModule = execHooks[i].module();
-                onUninstallSuccess = onUninstallSuccess && ExecutionInstallLib.onUninstall(hookModule, hookData);
+                onUninstallSuccess = onUninstallSuccess && ModuleInstallCommons.onUninstall(hookModule, hookData);
                 hookIndex++;
             }
         }
@@ -181,7 +181,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
         _validationStorage.selectors.clear();
 
         (address module, uint32 entityId) = ModuleEntityLib.unpack(validationFunction);
-        onUninstallSuccess = onUninstallSuccess && ExecutionInstallLib.onUninstall(module, uninstallData);
+        onUninstallSuccess = onUninstallSuccess && ModuleInstallCommons.onUninstall(module, uninstallData);
 
         emit ValidationUninstalled(module, entityId, onUninstallSuccess);
     }

@@ -9,19 +9,18 @@ import {
 import {HookConfig, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
-import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 import {AccountStorage, ExecutionData, getAccountStorage, toSetValue} from "../account/AccountStorage.sol";
-import {ExecutionLib} from "./ExecutionLib.sol";
-import {KnownSelectorsLib} from "./KnownSelectorsLib.sol";
-import {LinkedListSet, LinkedListSetLib} from "./LinkedListSetLib.sol";
+import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
+import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
+import {ModuleInstallCommons} from "../libraries/ModuleInstallCommons.sol";
 
-/// @title ExecutionInstallLib
+/// @title ExecutionInstallDelegate
 /// @author Alchemy
 ///
-/// @notice This is a hybrid external-internal library which externally handles execution function installation,
-/// while holding some common internal module installation-related functions.
-library ExecutionInstallLib {
+/// @notice This contract acts as an external library which is meant to handle Execution function installations and
+/// uninstallations via delegatecall.
+contract ExecutionInstallDelegate {
     using LinkedListSetLib for LinkedListSet;
 
     error NullModule();
@@ -64,7 +63,7 @@ library ExecutionInstallLib {
                 _hasPre: mh.isPreHook,
                 _hasPost: mh.isPostHook
             });
-            addExecHooks(executionData.executionHooks, hookConfig);
+            ModuleInstallCommons.addExecHooks(executionData.executionHooks, hookConfig);
         }
 
         length = manifest.interfaceIds.length;
@@ -72,7 +71,7 @@ library ExecutionInstallLib {
             _storage.supportedIfaces[manifest.interfaceIds[i]] += 1;
         }
 
-        onInstall(module, moduleInstallData, type(IModule).interfaceId);
+        ModuleInstallCommons.onInstall(module, moduleInstallData, type(IModule).interfaceId);
 
         emit IModularAccount.ExecutionInstalled(module, manifest);
     }
@@ -109,43 +108,9 @@ library ExecutionInstallLib {
         }
 
         // Clear the module storage for the account.
-        bool onUninstallSuccess = onUninstall(module, uninstallData);
+        bool onUninstallSuccess = ModuleInstallCommons.onUninstall(module, uninstallData);
 
         emit IModularAccount.ExecutionUninstalled(module, onUninstallSuccess, manifest);
-    }
-
-    // Internal Functions
-
-    function addExecHooks(LinkedListSet storage hooks, HookConfig hookConfig) internal {
-        if (!hooks.tryAdd(toSetValue(hookConfig))) {
-            revert ExecutionHookAlreadySet(hookConfig);
-        }
-    }
-
-    function onInstall(address module, bytes calldata data, bytes4 interfaceId) internal {
-        if (data.length > 0) {
-            if (!ERC165Checker.supportsERC165InterfaceUnchecked(module, interfaceId)) {
-                revert InterfaceNotSupported(module);
-            }
-            // solhint-disable-next-line no-empty-blocks
-            try IModule(module).onInstall(data) {}
-            catch {
-                bytes memory revertReason = ExecutionLib.collectReturnData();
-                revert ModuleInstallCallbackFailed(module, revertReason);
-            }
-        }
-    }
-
-    function onUninstall(address module, bytes calldata data) internal returns (bool onUninstallSuccess) {
-        onUninstallSuccess = true;
-        if (data.length > 0) {
-            // Clear the module storage for the account.
-            // solhint-disable-next-line no-empty-blocks
-            try IModule(module).onUninstall(data) {}
-            catch {
-                onUninstallSuccess = false;
-            }
-        }
     }
 
     // Private Functions

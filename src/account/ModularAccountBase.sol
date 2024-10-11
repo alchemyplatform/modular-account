@@ -27,7 +27,6 @@ import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
 import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
 
-import {ExecutionInstallLib} from "../libraries/ExecutionInstallLib.sol";
 import {
     DensePostHookData,
     ExecutionLib,
@@ -44,6 +43,7 @@ import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
 import {TokenReceiver} from "./TokenReceiver.sol";
+import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 
 /// @title Modular Account Base
 /// @author Alchemy
@@ -91,7 +91,9 @@ abstract contract ModularAccountBase is
     uint8 internal constant _IS_GLOBAL_VALIDATION_BIT = 1;
     uint8 internal constant _HAS_DEFERRED_ACTION_BIT = 2;
 
-    event DeferredActionNonceInvalidated(uint256 nonce);
+    address internal immutable _EXECUTION_INSTALL_DELEGATE;
+
+    event DeferredInstallNonceInvalidated(uint256 nonce);
 
     error CreateFailed();
     error DeferredActionNonceInvalid();
@@ -117,6 +119,8 @@ abstract contract ModularAccountBase is
 
     constructor(IEntryPoint anEntryPoint) AccountBase(anEntryPoint) {
         _disableInitializers();
+
+        _EXECUTION_INSTALL_DELEGATE = address(new ExecutionInstallDelegate());
     }
 
     // EXTERNAL FUNCTIONS
@@ -290,7 +294,17 @@ abstract contract ModularAccountBase is
         ExecutionManifest calldata manifest,
         bytes calldata moduleInstallData
     ) external override wrapNativeFunction {
-        ExecutionInstallLib.installExecution(module, manifest, moduleInstallData);
+        (bool success,) = _EXECUTION_INSTALL_DELEGATE.delegatecall(
+            abi.encodeCall(this.installExecution, (module, manifest, moduleInstallData))
+        );
+
+        assembly ("memory-safe") {
+            if iszero(success) {
+                let fmp := mload(0x40)
+                returndatacopy(fmp, 0, returndatasize())
+                revert(fmp, returndatasize())
+            }
+        }
     }
 
     /// @inheritdoc IModularAccount
@@ -300,7 +314,17 @@ abstract contract ModularAccountBase is
         ExecutionManifest calldata manifest,
         bytes calldata moduleUninstallData
     ) external override wrapNativeFunction {
-        ExecutionInstallLib.uninstallExecution(module, manifest, moduleUninstallData);
+        (bool success,) = _EXECUTION_INSTALL_DELEGATE.delegatecall(
+            abi.encodeCall(this.uninstallExecution, (module, manifest, moduleUninstallData))
+        );
+
+        assembly ("memory-safe") {
+            if iszero(success) {
+                let fmp := mload(0x40)
+                returndatacopy(fmp, 0, returndatasize())
+                revert(fmp, returndatasize())
+            }
+        }
     }
 
     /// @inheritdoc IModularAccount
