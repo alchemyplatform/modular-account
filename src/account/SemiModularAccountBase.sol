@@ -11,7 +11,7 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 
 import {DIRECT_CALL_VALIDATION_ENTITYID, FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {SignatureType} from "../helpers/SignatureType.sol";
-import {RTCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
+import {RTCallBuffer, SigCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
 import {SemiModularKnownSelectorsLib} from "../libraries/SemiModularKnownSelectorsLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
 
@@ -134,12 +134,12 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         }
     }
 
-    function _exec1271Validation(ModuleEntity sigValidation, bytes32 hash, bytes calldata signature)
-        internal
-        view
-        override
-        returns (bytes4)
-    {
+    function _exec1271Validation(
+        SigCallBuffer buffer,
+        bytes32 hash,
+        ModuleEntity sigValidation,
+        bytes calldata signature
+    ) internal view override returns (bytes4) {
         if (sigValidation.eq(FALLBACK_VALIDATION)) {
             address fallbackSigner = _getFallbackSigner();
 
@@ -148,7 +148,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
             }
             return _1271_INVALID;
         }
-        return super._exec1271Validation(sigValidation, hash, signature);
+        return super._exec1271Validation(buffer, hash, sigValidation, signature);
     }
 
     function _checkSignature(address owner, bytes32 digest, bytes calldata sig) internal view returns (bool) {

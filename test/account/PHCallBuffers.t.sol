@@ -94,7 +94,7 @@ contract PHCallBufferTest is AccountTestBase {
 
     // pre hooks in `executeWithRuntimeValidation` (freshly allocated buffer from SMA)
     // SMA allows for skipping allocation of an RT call buffer, even in the RT validation case.
-    function test_preExecHooksWithRtValidation_freshBuffer_regularCallData() public withSMATest {
+    function test_preExecHooksWithRtValidation_freshBuffer_regularCallData() public {
         _switchToSMA();
         _allowTestDirectCalls();
         _install3ValAssocExecHooks();
@@ -121,7 +121,7 @@ contract PHCallBufferTest is AccountTestBase {
     // SMA allows for skipping allocation of an RT call buffer, even in the RT validation case.
     // This alternate version of the tests checks behavior when the provided calldata is incorrectly abi-encoded
     // and not word-aligned.
-    function test_preExecHooksWithRtValidation_freshBuffer_unalignedCallData() public withSMATest {
+    function test_preExecHooksWithRtValidation_freshBuffer_unalignedCallData() public {
         _switchToSMA();
         _allowTestDirectCalls();
         _install3ValAssocExecHooks();
@@ -145,7 +145,7 @@ contract PHCallBufferTest is AccountTestBase {
         account1.executeWithRuntimeValidation(callData, authorization);
     }
 
-    function test_preExecHooksWithRtValidation_reusePRTOnlyBuffer_regularCalldata() public withSMATest {
+    function test_preExecHooksWithRtValidation_reusePRTOnlyBuffer_regularCalldata() public {
         _switchToSMA();
         _allowTestDirectCalls();
         _install3ValAssocExecHooks();

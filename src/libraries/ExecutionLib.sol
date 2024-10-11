@@ -18,6 +18,8 @@ type RTCallBuffer is bytes32;
 
 type PHCallBuffer is bytes32;
 
+type SigCallBuffer is bytes32;
+
 type DensePostHookData is bytes32;
 
 using HookConfigLib for HookConfig;
@@ -241,10 +243,7 @@ library ExecutionLib {
             result := buffer
         }
 
-        // Prepare the buffer for pre-runtime validation hooks.
-        _prepareRuntimeCallBufferPreValidationHooks(result);
-
-        // Buffer contents:
+        // Buffer contents, before update:
         // 0xAAAAAAAA // selector
         // 0x000: 0x________________________BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB // account
         // 0x020: 0x________________________________________________________CCCCCCCC // entityId
@@ -253,6 +252,9 @@ library ExecutionLib {
         // 0x080: 0x______________________________________________________________c0 // callData offset
         // 0x0a0: 0x_____________________________________________________________FFF // authorization offset
         // 0x0c0...                                                                  // dynamic fields
+
+        // Prepare the buffer for pre-runtime validation hooks.
+        _prepareRuntimeCallBufferPreValidationHooks(result);
     }
 
     function invokeRuntimeCallBufferPreValidationHook(
@@ -811,6 +813,161 @@ library ExecutionLib {
         }
     }
 
+    function allocateSigCallBuffer(bytes32 hash, bytes calldata signature)
+        internal
+        view
+        returns (SigCallBuffer result)
+    {
+        bytes memory buffer = abi.encodeCall(
+            IValidationModule.validateSignature, (address(0), uint32(0), msg.sender, hash, signature)
+        );
+
+        assembly ("memory-safe") {
+            result := buffer
+        }
+
+        // Buffer contents, before update:
+        // 0xAAAAAAAA // selector
+        // 0x000: 0x________________________BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB // account
+        // 0x020: 0x________________________________________________________CCCCCCCC // entityId
+        // 0x040: 0x________________________DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD // msg.sender
+        // 0x060: 0xEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE // hash
+        // 0x080: 0x______________________________________________________________a0 // signature offset
+        // 0x0a0...                                                                  // dynamic fields
+
+        // Prepare the buffer for pre-signature validation hooks.
+        _prepareSigValidationCallBufferPreSigValidationHooks(result);
+    }
+
+    function invokePreSignatureValidationHook(
+        SigCallBuffer buffer,
+        HookConfig hookEntity,
+        bytes calldata signatureSegment
+    ) internal view {
+        assembly ("memory-safe") {
+            // Load the module address and entity id
+            let entityId := and(shr(64, hookEntity), 0xffffffff)
+            let moduleAddress := shr(96, hookEntity)
+
+            // Update the buffer with the entity Id
+            mstore(add(buffer, 0x44), entityId)
+
+            // Copy in the signature segment
+            // Since the buffer's copy of the signature exceeds the length of any sub-segments, we can safely write
+            // over it.
+            mstore(add(buffer, 0xc4), signatureSegment.length)
+
+            // If there is a nonzero signature segment length, copy in the data.
+            if signatureSegment.length {
+                // Because we will be sending the data with word-aligned padding ("strict ABI encoding"), we need
+                // to zero out the last word of the buffer to prevent sending garbage data.
+                let roundedDownSignatureLength := and(signatureSegment.length, not(0x1f))
+                mstore(add(add(buffer, 0xe4), roundedDownSignatureLength), 0)
+                // Copy in the data
+                calldatacopy(add(buffer, 0xe4), signatureSegment.offset, signatureSegment.length)
+            }
+
+            // The data amount we actually want to call with is:
+            // 0xa4 (4 byte selector + 5 words of data: entity id, sender, hash, signature offset, signature
+            // length) + word-align(signature length)
+            let actualCallLength := add(0xa4, and(add(signatureSegment.length, 0x1f), not(0x1f)))
+
+            // Perform the call
+            let success :=
+                staticcall(
+                    gas(),
+                    moduleAddress,
+                    /*argOffset*/
+                    add(buffer, 0x40), // jump over 32 bytes for length, and another 32 bytes for the account
+                    /*argSize*/
+                    actualCallLength,
+                    /*retOffset*/
+                    0,
+                    /*retSize*/
+                    0x20
+                )
+
+            if iszero(success) {
+                // Bubble up the revert if the call reverts.
+                let m := mload(0x40)
+                returndatacopy(m, 0, returndatasize())
+                revert(m, returndatasize())
+            }
+        }
+    }
+
+    function invokeSignatureValidation(
+        SigCallBuffer buffer,
+        ModuleEntity validationFunction,
+        bytes calldata signatureSegment
+    ) internal view returns (bytes4 result) {
+        assembly ("memory-safe") {
+            // Load the module address and entity id
+            let entityId := and(shr(64, validationFunction), 0xffffffff)
+            let moduleAddress := shr(96, validationFunction)
+
+            // Store the account in the `account` field.
+            mstore(add(buffer, 0x24), address())
+
+            // Update the buffer with the entity Id
+            mstore(add(buffer, 0x44), entityId)
+
+            // Fix the calldata offsets of `signature`, due to including the `account` field for signature
+            // validation.
+            mstore(add(buffer, 0xa4), 0xa0)
+
+            // Copy in the signature segment
+            // Since the buffer's copy of the signature exceeds the length of any sub-segments, we can safely write
+            // over it.
+            mstore(add(buffer, 0xc4), signatureSegment.length)
+
+            // If there is a nonzero signature segment length, copy in the data.
+            if signatureSegment.length {
+                // Because we will be sending the data with word-aligned padding ("strict ABI encoding"), we need
+                // to zero out the last word of the buffer to prevent sending garbage data.
+                let roundedDownSignatureLength := and(signatureSegment.length, not(0x1f))
+                mstore(add(add(buffer, 0xe4), roundedDownSignatureLength), 0)
+                // Copy in the data
+                calldatacopy(add(buffer, 0xe4), signatureSegment.offset, signatureSegment.length)
+            }
+
+            // The data amount we actually want to call with is:
+            // 0xc4 (4 byte selector + 6 words of data: account, entity id, sender, hash, signature offset,
+            // signature length) + word-align(signature length)
+            let actualCallLength := add(0xc4, and(add(signatureSegment.length, 0x1f), not(0x1f)))
+
+            // Perform the call
+            switch and(
+                gt(returndatasize(), 0x1f),
+                staticcall(
+                    gas(),
+                    moduleAddress,
+                    /*argOffset*/
+                    add(buffer, 0x20), // jump over 32 bytes for length, and another 32 bytes for the account
+                    /*argSize*/
+                    actualCallLength,
+                    /*retOffset*/
+                    0,
+                    /*retSize*/
+                    0x20
+                )
+            )
+            case 0 {
+                // Bubble up the revert if the call reverts.
+                let m := mload(0x40)
+                returndatacopy(m, 0, returndatasize())
+                revert(m, returndatasize())
+            }
+            default {
+                // Otherwise, we return the first word of the return data as the signature validation result
+                result := mload(0)
+
+                // If any of the lower 28 bytes are nonzero, it would be an abi decoding failure.
+                if shl(32, result) { revert(0, 0) }
+            }
+        }
+    }
+
     /// @return The new working memory pointer
     function _appendPostHookToRun(bytes32 workingMemPtr, HookConfig hookConfig, uint256 returnedBytesSize)
         private
@@ -891,6 +1048,20 @@ library ExecutionLib {
             let authorizationOffset := mload(authorizationOffsetPtr)
             // Fix the stored offset value
             mstore(authorizationOffsetPtr, sub(authorizationOffset, 0x20))
+        }
+    }
+
+    function _prepareSigValidationCallBufferPreSigValidationHooks(SigCallBuffer buffer) private pure {
+        uint32 selector = uint32(IValidationHookModule.preSignatureValidationHook.selector);
+        assembly ("memory-safe") {
+            // Update the buffer with the selector. This will squash a portion of the `account` param for signature
+            // validation, but that will be restored before calling.
+            mstore(add(buffer, 0x24), selector)
+
+            // Fix the calldata offset of `signature`, due to excluding the `account` field.
+
+            // The offset of the signature starts out as 0xa0, but for pre-validation hooks, it should be 0x80.
+            mstore(add(buffer, 0xa4), 0x80)
         }
     }
 }

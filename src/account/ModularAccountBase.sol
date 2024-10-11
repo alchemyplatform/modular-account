@@ -9,8 +9,6 @@ import {
     ModuleEntity,
     ValidationConfig
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
-import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
-import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 import {HookConfig, HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
@@ -32,10 +30,11 @@ import {
     ExecutionLib,
     PHCallBuffer,
     RTCallBuffer,
+    SigCallBuffer,
     UOCallBuffer
 } from "../libraries/ExecutionLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
-import {MemManagementLib} from "../libraries/MemManagementLib.sol";
+import {MemManagementLib, MemSnapshot} from "../libraries/MemManagementLib.sol";
 import {SparseCalldataSegmentLib} from "../libraries/SparseCalldataSegmentLib.sol";
 import {AccountStorage, getAccountStorage, toSetValue} from "./AccountStorage.sol";
 import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
@@ -541,9 +540,12 @@ abstract contract ModularAccountBase is
             uoValidation
         );
 
+        // Clear the memory after performing signature validation
+        MemSnapshot memSnapshot = MemManagementLib.freezeFMP();
         if (_isValidSignature(sigValidation, typedDataHash, sig) != _1271_MAGIC_VALUE) {
             revert DeferredActionSignatureInvalid();
         }
+        MemManagementLib.restoreFMP(memSnapshot);
 
         return (deadline, uoValidation);
     }
@@ -753,45 +755,45 @@ abstract contract ModularAccountBase is
         HookConfig[] memory preSignatureValidationHooks =
             MemManagementLib.loadValidationHooks(getAccountStorage().validationData[sigValidation]);
 
+        SigCallBuffer sigCallBuffer;
+        if (!_validationIsNative(sigValidation) || preSignatureValidationHooks.length > 0) {
+            sigCallBuffer = ExecutionLib.allocateSigCallBuffer(hash, signature);
+        }
         for (uint256 i = preSignatureValidationHooks.length; i > 0;) {
             // Decrement here, instead of in the loop body, to convert from length to an index.
             unchecked {
                 --i;
             }
 
-            (address hookModule, uint32 hookEntityId) = preSignatureValidationHooks[i].moduleEntity().unpack();
-
-            bytes memory currentSignatureSegment;
+            bytes calldata currentSignatureSegment;
 
             (currentSignatureSegment, signature) =
                 signature.advanceSegmentIfAtIndex(uint8(preSignatureValidationHooks.length - i - 1));
 
-            // If this reverts, bubble up revert reason.
-            IValidationHookModule(hookModule).preSignatureValidationHook(
-                hookEntityId, msg.sender, hash, currentSignatureSegment
+            ExecutionLib.invokePreSignatureValidationHook(
+                sigCallBuffer, preSignatureValidationHooks[i], currentSignatureSegment
             );
         }
         signature = signature.getFinalSegment();
-        return _exec1271Validation(sigValidation, hash, signature);
+
+        return _exec1271Validation(sigCallBuffer, hash, sigValidation, signature);
     }
 
-    function _exec1271Validation(ModuleEntity sigValidation, bytes32 hash, bytes calldata signature)
-        internal
-        view
-        virtual
-        returns (bytes4)
-    {
+    function _exec1271Validation(
+        SigCallBuffer buffer,
+        bytes32 hash,
+        ModuleEntity sigValidation,
+        bytes calldata signatureSegment
+    ) internal view virtual returns (bytes4) {
+        (hash); // unused in ModularAccountBase, but used in SemiModularAccountBase
         AccountStorage storage _storage = getAccountStorage();
 
-        (address module, uint32 entityId) = sigValidation.unpack();
         if (!_storage.validationData[sigValidation].isSignatureValidation) {
+            (address module, uint32 entityId) = sigValidation.unpack();
             revert SignatureValidationInvalid(module, entityId);
         }
 
-        if (
-            IValidationModule(module).validateSignature(address(this), entityId, msg.sender, hash, signature)
-                == _1271_MAGIC_VALUE
-        ) {
+        if (ExecutionLib.invokeSignatureValidation(buffer, sigValidation, signatureSegment) == _1271_MAGIC_VALUE) {
             return _1271_MAGIC_VALUE;
         }
         return _1271_INVALID;
