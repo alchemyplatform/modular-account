@@ -85,11 +85,15 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
     }
 
     function _getPerformCreateCalldata(uint256 value) internal pure returns (bytes memory) {
-        return abi.encodeCall(ModularAccountBase.performCreate, (value, type(MockDeployment).creationCode));
+        return abi.encodeCall(
+            ModularAccountBase.performCreate, (value, type(MockDeployment).creationCode, false, bytes32(0))
+        );
     }
 
     function _getPerformCreate2Calldata(uint256 value, bytes32 salt) internal pure returns (bytes memory) {
-        return abi.encodeCall(ModularAccountBase.performCreate2, (value, type(MockDeployment).creationCode, salt));
+        return abi.encodeCall(
+            ModularAccountBase.performCreate, (value, type(MockDeployment).creationCode, true, salt)
+        );
     }
 
     function _getPackedUO(uint256 gas1, uint256 gas2, uint256 gas3, uint256 gasPrice, bytes memory callData)

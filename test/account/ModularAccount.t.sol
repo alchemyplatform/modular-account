@@ -590,7 +590,10 @@ contract ModularAccountTest is AccountTestBase {
         address expectedAddr = vm.computeCreateAddress(address(account1), vm.getNonce(address(account1)));
         vm.prank(address(entryPoint));
         address returnedAddr = account1.performCreate(
-            0, abi.encodePacked(type(ModularAccount).creationCode, abi.encode(address(entryPoint)))
+            0,
+            abi.encodePacked(type(ModularAccount).creationCode, abi.encode(address(entryPoint))),
+            false,
+            bytes32(0)
         );
 
         assertEq(returnedAddr, expectedAddr);
@@ -610,7 +613,7 @@ contract ModularAccountTest is AccountTestBase {
 
         address expectedAddr = vm.computeCreate2Address(salt, initCodeHash, address(account1));
         vm.prank(address(entryPoint));
-        address returnedAddr = account1.performCreate2(0, initCode, salt);
+        address returnedAddr = account1.performCreate(0, initCode, true, salt);
 
         assertEq(returnedAddr, expectedAddr);
         assertEq(address(ModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
@@ -618,7 +621,7 @@ contract ModularAccountTest is AccountTestBase {
         vm.expectRevert(ModularAccountBase.CreateFailed.selector);
         // re-deploying with same salt should revert
         vm.prank(address(entryPoint));
-        account1.performCreate2(0, initCode, salt);
+        account1.performCreate(0, initCode, true, salt);
     }
 
     function test_assertCallerEntryPoint() public withSMATest {

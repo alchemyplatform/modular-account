@@ -109,10 +109,7 @@ contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidation
             for (uint256 i = 0; i < calls.length; i++) {
                 value += calls[i].value;
             }
-        } else if (
-            selector == ModularAccountBase.performCreate.selector
-                || selector == ModularAccountBase.performCreate2.selector
-        ) {
+        } else if (selector == ModularAccountBase.performCreate.selector) {
             value = abi.decode(callData, (uint256));
         }
 

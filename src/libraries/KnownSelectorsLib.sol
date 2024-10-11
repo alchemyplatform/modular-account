@@ -40,8 +40,7 @@ library KnownSelectorsLib {
         || selector == IModularAccountView.getExecutionData.selector
             || selector == IModularAccountView.getValidationData.selector
         // check against ModularAccount methods
-        || selector == ModularAccountBase.performCreate.selector
-            || selector == ModularAccountBase.performCreate2.selector;
+        || selector == ModularAccountBase.performCreate.selector;
     }
 
     function isErc4337Function(bytes4 selector) internal pure returns (bool) {

@@ -144,7 +144,7 @@ abstract contract ModularAccountBase is
     /// @param value The value to send to the new contract constructor
     /// @param initCode The initCode to deploy.
     /// @return createdAddr The created contract address.
-    function performCreate(uint256 value, bytes calldata initCode)
+    function performCreate(uint256 value, bytes calldata initCode, bool isCreate2, bytes32 salt)
         external
         payable
         virtual
@@ -161,41 +161,9 @@ abstract contract ModularAccountBase is
             // Copy the initCode from callata to memory at the free memory pointer.
             calldatacopy(fmp, initCode.offset, len)
 
-            // Create the contract.
-            createdAddr := create(value, fmp, len)
-
-            if iszero(createdAddr) {
-                // If creation failed (the address returned is zero), revert with CreateFailed().
-                mstore(0x00, 0x7e16b8cd)
-                revert(0x1c, 0x04)
-            }
-        }
-    }
-
-    /// @notice Creates a contract using create2 deterministic deployment.
-    /// @param value The value to send to the new contract constructor.
-    /// @param initCode The initCode to deploy.
-    /// @param salt The salt to use for the create2 operation.
-    /// @return createdAddr The created contract address.
-    function performCreate2(uint256 value, bytes calldata initCode, bytes32 salt)
-        external
-        payable
-        virtual
-        wrapNativeFunction
-        returns (address createdAddr)
-    {
-        assembly ("memory-safe") {
-            // Load the free memory pointer.
-            let fmp := mload(0x40)
-
-            // Get the initCode length.
-            let len := initCode.length
-
-            // Copy the initCode from callata to memory at the free memory pointer.
-            calldatacopy(fmp, initCode.offset, len)
-
-            // Create the contract using Create2 with the passed salt parameter.
-            createdAddr := create2(value, fmp, len, salt)
+            switch isCreate2
+            case 1 { createdAddr := create2(value, fmp, len, salt) }
+            default { createdAddr := create(value, fmp, len) }
 
             if iszero(createdAddr) {
                 // If creation failed (the address returned is zero), revert with CreateFailed().
@@ -739,10 +707,6 @@ abstract contract ModularAccountBase is
         ExecutionLib.invokeRuntimeCallBufferValidation(callBuffer, runtimeValidationFunction, authorization);
     }
 
-    function _domainSeparator() internal view returns (bytes32) {
-        return keccak256(abi.encode(_DOMAIN_SEPARATOR_TYPEHASH, block.chainid, address(this)));
-    }
-
     function _isValidSignature(ModuleEntity sigValidation, bytes32 hash, bytes calldata signature)
         internal
         view
@@ -801,7 +765,7 @@ abstract contract ModularAccountBase is
                 || selector == this.installValidation.selector || selector == this.uninstallValidation.selector
                 || selector == this.upgradeToAndCall.selector
                 || selector == this.invalidateDeferredValidationInstallNonce.selector
-                || selector == this.performCreate.selector || selector == this.performCreate2.selector
+                || selector == this.performCreate.selector
         ) {
             return true;
         }
