@@ -510,7 +510,8 @@ abstract contract ModularAccountBase is
         bytes calldata sig
     ) internal returns (uint48, ValidationConfig) {
         // Decode stack vars for the deadline and nonce.
-        // The deadline, nonce, inner validation, and deferred call selector are all at fixed positions in the encodedData.
+        // The deadline, nonce, inner validation, and deferred call selector are all at fixed positions in the
+        // encodedData.
         uint256 nonce = uint256(bytes32(encodedData[:32]));
         uint48 deadline = uint48(bytes6(encodedData[32:38]));
 
