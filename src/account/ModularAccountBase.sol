@@ -424,36 +424,36 @@ abstract contract ModularAccountBase is
         bool isGlobalValidation = validationFlags & _IS_GLOBAL_VALIDATION_BIT != 0;
         bool hasDeferredAction = validationFlags & _HAS_DEFERRED_ACTION_BIT != 0;
 
-        // Assigned depending on whether the UO uses deferred validation installation or not.
+        // Assigned depending on whether the UO includes a deferred action or not.
         bytes calldata userOpSignature;
 
         /// The calldata layout is unique for deferred validation installation.
         /// Byte indices are [inclusive, exclusive]
         ///      [25:29] : uint32, encodedDatalength.
-        ///      [29:(29 + encodedDatalength)] : bytes, abi-encoded deferred validation data.
+        ///      [29:(29 + encodedDatalength)] : bytes, abi-encoded deferred action data.
         ///      [(29 + encodedDataLength):(33 + encodedDataLength)] : uint32, deferredActionSigLength.
         ///      [(33 + encodedDataLength):(33 + deferredActionSigLength + encodedDataLength)] : bytes,
-        ///         deferred install sig. This is the signature passed to the outer validation decoded earlier.
+        ///         deferred action sig. This is the signature passed to the outer validation decoded earlier.
         ///      [(33 + deferredActionSigLength + encodedDataLength):] : bytes, userOpSignature. This is the
-        ///         signature passed to the newly installed deferred validation.
+        ///         signature passed to the inner validation.
         if (hasDeferredAction) {
-            // Use outer validation as a 1271 validation, then use the installed validation to validate the rest.
+            // Use outer validation as a 1271 validation, then use the inner validation to validate the UO.
 
-            // Get the length of the abi-encoded `DeferredValidationInstallData` struct.
+            // Get the length of the deferred action data.
             uint256 encodedDataLength = uint32(bytes4(userOp.signature[25:29]));
 
             // Load the pointer to the abi-encoded data.
             bytes calldata encodedData = userOp.signature[29:29 + encodedDataLength];
 
-            // Get the deferred installation signature length.
+            // Get the deferred action signature length.
             uint256 deferredActionSigLength =
                 uint32(bytes4(userOp.signature[29 + encodedDataLength:33 + encodedDataLength]));
 
             // Update the UserOp signature to the remaining bytes.
             userOpSignature = userOp.signature[33 + encodedDataLength + deferredActionSigLength:];
 
-            // Get the deferred installation signature, which is passed to the outer validation to install the
-            // deferred validation.
+            // Get the deferred installation signature, which is passed to the outer validation to handle the
+            // deferred action.
             bytes calldata deferredActionSig =
                 userOp.signature[33 + encodedDataLength:33 + encodedDataLength + deferredActionSigLength];
 
@@ -467,7 +467,7 @@ abstract contract ModularAccountBase is
             // Call `installValidation` on the account.
             ExecutionLib.callBubbleOnRevertTransient(address(this), 0, encodedData[63:]);
 
-            // Load in the validation that was just installed.
+            // Load in the inner validation.
             validationFunction = newValidationFunction.moduleEntity();
             isGlobalValidation = newValidationFunction.isGlobal();
         } else {
@@ -502,7 +502,7 @@ abstract contract ModularAccountBase is
         }
     }
 
-    /// @return The deadline of the deferred validation and the validation function to use.
+    /// @return The deadline of the deferred action and the validation function to use.
     function _validateDeferredActionAndSetNonce(
         ModuleEntity sigValidation,
         bool isGlobalValidation,
@@ -510,6 +510,7 @@ abstract contract ModularAccountBase is
         bytes calldata sig
     ) internal returns (uint48, ValidationConfig) {
         // Decode stack vars for the deadline and nonce.
+        // The deadline, nonce, inner validation, and deferred call selector are all at fixed positions in the encodedData.
         uint256 nonce = uint256(bytes32(encodedData[:32]));
         uint48 deadline = uint48(bytes6(encodedData[32:38]));
 

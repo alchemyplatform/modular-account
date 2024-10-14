@@ -108,7 +108,7 @@ contract DeferredActionTest is AccountTestBase {
 
     // Install a new execution function that the validation does not have the privilege to call.
     // Assert that user op validation reverts if the deferred action tries to call it.
-    function test_noPrivilegeEscalation_deferredAction() public {
+    function test_deferredAction_noPrivilegeEscalation() public {
         bytes4 newFunctionSelector = bytes4(0xabcdabcd);
 
         ExecutionManifest memory m;
