@@ -118,11 +118,9 @@ contract UOCallBufferTest is AccountTestBase {
 
     function testFuzz_variableLengthUOCalls(
         uint8 preValidationHookCount,
-        bytes[254] memory preValidationHookData,
+        bytes[256] memory preValidationHookData,
         bytes memory validationData
     ) public withSMATest {
-        preValidationHookCount = uint8(bound(preValidationHookCount, 0, 254));
-
         ExecutionManifest memory m; // empty manifest
 
         // Install the pre validation hooks
