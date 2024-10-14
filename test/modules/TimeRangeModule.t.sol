@@ -12,6 +12,7 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+import {BaseModule} from "../../src/modules/BaseModule.sol";
 import {TimeRangeModule} from "../../src/modules/permissions/TimeRangeModule.sol";
 
 import {CustomValidationTestBase} from "../utils/CustomValidationTestBase.sol";
@@ -218,6 +219,37 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
             abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
+    }
+
+    function test_timeRangeModule_userOp_fails_extraValidationData() public withSMATest {
+        validUntil = 1000;
+        validAfter = 100;
+
+        _customValidationSetup();
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: hex"",
+            callData: abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
+            accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
+            preVerificationGas: 0,
+            gasFees: _encodeGas(1, 1),
+            paymasterAndData: hex"",
+            signature: hex""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+
+        // Pass the module validation hook data.
+        PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
+        preValidationHookData[0] = PreValidationHookData({index: uint8(0), validationData: "abcd"});
+
+        userOp.signature = _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, "");
+
+        vm.prank(address(entryPoint));
+        vm.expectRevert(abi.encodeWithSelector(BaseModule.UnexpectedValidationData.selector));
+        account1.validateUserOp(userOp, userOpHash, 0);
     }
 
     function _initialValidationConfig()

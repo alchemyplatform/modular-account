@@ -47,6 +47,7 @@ contract NativeTokenLimitModule is BaseModule, IExecutionHookModule, IValidation
     /// @inheritdoc IValidationHookModule
     function preUserOpValidationHook(uint32 entityId, PackedUserOperation calldata userOp, bytes32)
         external
+        noValidationData(userOp.signature)
         returns (uint256)
     {
         // Decrease limit only if no paymaster is used, or if its a special paymaster

@@ -13,6 +13,14 @@ import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol"
 /// happen via the standard execution funtions `execute` and `executeBatch`.
 abstract contract BaseModule is ERC165, IModule {
     error NotImplemented();
+    error UnexpectedValidationData();
+
+    modifier noValidationData(bytes calldata validationData) {
+        if (validationData.length > 0) {
+            revert UnexpectedValidationData();
+        }
+        _;
+    }
 
     /// @dev Returns true if this contract implements the interface defined by
     /// `interfaceId`. See the corresponding

@@ -45,10 +45,11 @@ contract TimeRangeModule is IValidationHookModule, BaseModule {
 
     /// @inheritdoc IValidationHookModule
     /// @notice Enforces the time range for a user op by returning the range in the ERC-4337 validation data.
-    function preUserOpValidationHook(uint32 entityId, PackedUserOperation calldata, bytes32)
+    function preUserOpValidationHook(uint32 entityId, PackedUserOperation calldata userOp, bytes32)
         external
         view
         override
+        noValidationData(userOp.signature)
         returns (uint256)
     {
         // todo: optimize between memory / storage

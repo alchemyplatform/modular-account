@@ -6,8 +6,11 @@ import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
+import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+import {BaseModule} from "../../src/modules/BaseModule.sol";
 import {AllowlistModule} from "../../src/modules/permissions/AllowlistModule.sol";
 
 import {Counter} from "../mocks/Counter.sol";
@@ -238,6 +241,82 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         } else {
             _runtimeExecBatch(calls, expectedError);
         }
+    }
+
+    function test_revertsOnUnnecessaryValidationData() public {
+        allowlistInputs.push(
+            AllowlistModule.AllowlistInput({
+                target: address(counters[0]),
+                hasSelectorAllowlist: false,
+                hasERC20SpendLimit: false,
+                erc20SpendLimit: 0,
+                selectors: new bytes4[](0)
+            })
+        );
+
+        _customValidationSetup();
+
+        uint256 nonce = entryPoint.getNonce(address(account1), 0);
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: nonce,
+            initCode: hex"",
+            callData: abi.encodeCall(
+                account1.execute, (address(counters[0]), 0, abi.encodeCall(Counter.increment, ()))
+            ),
+            accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
+            preVerificationGas: 0,
+            gasFees: _encodeGas(1, 1),
+            paymasterAndData: hex"",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+
+        userOp.signature =
+            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+
+        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
+        userOps[0] = userOp;
+
+        // assert that the user op would succeed
+
+        uint256 stateSnapshot = vm.snapshot();
+
+        vm.prank(beneficiary);
+        entryPoint.handleOps(userOps, beneficiary);
+
+        assertEq(counters[0].number(), 1);
+
+        vm.revertTo(stateSnapshot);
+
+        // Now, assert it fails with >0 validation data.
+
+        // Pass the module validation hook data.
+        PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
+        preValidationHookData[0] = PreValidationHookData({index: uint8(0), validationData: "abcd"});
+
+        userOp.signature = _encodeSignature(
+            _signerValidation,
+            GLOBAL_VALIDATION,
+            preValidationHookData,
+            abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
+        );
+
+        userOps[0] = userOp;
+
+        vm.prank(beneficiary);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IEntryPoint.FailedOpWithRevert.selector,
+                0,
+                "AA23 reverted",
+                abi.encodeWithSelector(BaseModule.UnexpectedValidationData.selector)
+            )
+        );
+        entryPoint.handleOps(userOps, beneficiary);
     }
 
     function _beforeInstallStep(address accountImpl) internal override {

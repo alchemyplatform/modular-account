@@ -132,6 +132,7 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, BaseMod
         external
         view
         override
+        noValidationData(userOp.signature)
         returns (uint256)
     {
         checkAllowlistCalldata(entityId, userOp.callData);
