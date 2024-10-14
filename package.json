@@ -12,7 +12,7 @@
   },
   "scripts": {
     "clean": "forge clean && FOUNDRY_PROFILE=optimized-build forge clean",
-    "coverage": "forge coverage --no-match-coverage '(test)'",
+    "coverage": "forge coverage --no-match-coverage '(test)' --nmt '(testFuzz|invariant)'",
     "fmt": "forge fmt && FOUNDRY_PROFILE=gas forge fmt",
     "fmt:check": "forge fmt --check && FOUNDRY_PROFILE=gas forge fmt --check",
     "gas": "FOUNDRY_PROFILE=gas forge test -vv",
