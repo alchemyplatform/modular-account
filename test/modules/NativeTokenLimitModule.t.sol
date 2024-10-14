@@ -285,7 +285,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
                 IEntryPoint.FailedOpWithRevert.selector,
                 0,
                 "AA23 reverted",
-                abi.encodeWithSelector(BaseModule.UnexpectedValidationData.selector)
+                abi.encodeWithSelector(BaseModule.UnexpectedDataPassed.selector)
             )
         );
         entryPoint.handleOps(uos, beneficiary);

@@ -78,7 +78,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
 
         uo.signature = hex"1234";
 
-        vm.expectRevert(abi.encodeWithSelector(BaseModule.UnexpectedValidationData.selector));
+        vm.expectRevert(abi.encodeWithSelector(BaseModule.UnexpectedDataPassed.selector));
         module.preUserOpValidationHook(ENTITY_ID, uo, bytes32(0));
     }
 

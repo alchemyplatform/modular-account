@@ -248,7 +248,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         userOp.signature = _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, "");
 
         vm.prank(address(entryPoint));
-        vm.expectRevert(abi.encodeWithSelector(BaseModule.UnexpectedValidationData.selector));
+        vm.expectRevert(abi.encodeWithSelector(BaseModule.UnexpectedDataPassed.selector));
         account1.validateUserOp(userOp, userOpHash, 0);
     }
 

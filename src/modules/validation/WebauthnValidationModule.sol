@@ -1,4 +1,20 @@
+// This file is part of Modular Account.
+//
+// Copyright 2024 Alchemy Insights, Inc.
+//
 // SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with this program. If not, see
+// <https://www.gnu.org/licenses/>.
+
 pragma solidity ^0.8.26;
 
 import {ReplaySafeWrapper} from "@erc6900/reference-implementation/modules/ReplaySafeWrapper.sol";
@@ -14,14 +30,14 @@ import {BaseModule} from "@erc6900/reference-implementation/modules/BaseModule.s
 /// @title Webauthn Validation
 /// @author Alchemy
 /// @dev Implementation referenced from Webauthn + Coinbase Smart Wallet developed by Base.
-/// @notice This validation enables Webauthn (secp256r1 curve) signature validation. It handles installation by
-/// each entity (entityId).
+/// @notice This validation module enables Webauthn (secp256r1 curve) signature validation.
 /// Note:
-///    - Uninstallation will NOT disable all installed validation entities.
-///    - None of the functions are installed on the account. Account states are to be retrieved from this global
+///     - Uninstallation will NOT disable all installed entity IDs of an account. It only uninstalls the
+/// entity ID that is passed in. Account must remove access for each entity ID if want to disable all.
+///     - None of the functions are installed on the account. Account states are to be retrieved from this global
 /// singleton directly.
-///    - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
-///    - This validation supports composition that other validation can relay on entities in this validation
+///     - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
+///     - This validation supports composition that other validation can relay on entities in this validation
 /// to validate partially or fully.
 contract WebauthnValidationModule is IValidationModule, ReplaySafeWrapper, BaseModule {
     using MessageHashUtils for bytes32;
@@ -41,8 +57,8 @@ contract WebauthnValidationModule is IValidationModule, ReplaySafeWrapper, BaseM
 
     mapping(uint32 entityId => mapping(address account => PubKey)) public signers;
 
-    /// @notice This event is emitted when Signer of the account's validation changes.
-    /// @param account The account whose validation Signer changed.
+    /// @notice This event is emitted when signer of the account's validation changes.
+    /// @param account The account whose validation signer changed.
     /// @param entityId The entityId for the account and the signer.
     /// @param newX X coordinate of the new signer.
     /// @param newY Y coordinate of the new signer.

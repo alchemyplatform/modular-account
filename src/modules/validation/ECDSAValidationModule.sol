@@ -1,4 +1,20 @@
+// This file is part of Modular Account.
+//
+// Copyright 2024 Alchemy Insights, Inc.
+//
 // SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with this program. If not, see
+// <https://www.gnu.org/licenses/>.
+
 pragma solidity ^0.8.26;
 
 import {ReplaySafeWrapper} from "@erc6900/reference-implementation/modules/ReplaySafeWrapper.sol";
@@ -15,16 +31,17 @@ import {SignatureType} from "../../helpers/SignatureType.sol";
 import {BaseModule} from "../BaseModule.sol";
 
 /// @title ECSDA Validation
-/// @author ERC-6900 Authors
+/// @author Alchemy
 /// @notice This validation enables any ECDSA (secp256k1 curve) signature validation or Contract Owner signature
 /// validation. It handles installation by each entity (entityId).
 /// Note:
-///    - Uninstallation will NOT disable all installed validation entities. Account must remove access for each
-/// validation if want to disable all validations.
-///    - None of the functions are installed on the account. Account states are to be retrieved from this global
+///     - The first byte of the to be checked Signature is the SignatureType, indicating EOA or Contract Owner.
+///     - Uninstallation will NOT disable all installed entity IDs of an account. It only uninstalls the
+/// entity ID that is passed in. Account must remove access for each entity ID if want to disable all.
+///     - None of the functions are installed on the account. Account states are to be retrieved from this global
 /// singleton directly.
-///    - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
-///    - This validation supports composition that other validation can relay on entities in this validation
+///     - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
+///     - This validation supports composition that other validation can relay on entities in this validation
 /// to validate partially or fully.
 contract ECDSAValidationModule is IValidationModule, ReplaySafeWrapper, BaseModule {
     using MessageHashUtils for bytes32;

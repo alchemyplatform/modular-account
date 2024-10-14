@@ -1,4 +1,20 @@
+// This file is part of Modular Account.
+//
+// Copyright 2024 Alchemy Insights, Inc.
+//
 // SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with this program. If not, see
+// <https://www.gnu.org/licenses/>.
+
 pragma solidity ^0.8.26;
 
 import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
@@ -8,16 +24,17 @@ import {ERC165, IERC165} from "@openzeppelin/contracts/utils/introspection/ERC16
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 
 /// @title Base contract for modules
+/// @author Alchemy
 /// @dev Implements ERC-165 to support IModule's interface, which is a requirement
 /// for module installation. This also ensures that module interactions cannot
 /// happen via the standard execution funtions `execute` and `executeBatch`.
 abstract contract BaseModule is ERC165, IModule {
     error NotImplemented();
-    error UnexpectedValidationData();
+    error UnexpectedDataPassed();
 
-    modifier noValidationData(bytes calldata validationData) {
-        if (validationData.length > 0) {
-            revert UnexpectedValidationData();
+    modifier assertNoData(bytes calldata data) {
+        if (data.length > 0) {
+            revert UnexpectedDataPassed();
         }
         _;
     }
@@ -38,6 +55,8 @@ abstract contract BaseModule is ERC165, IModule {
         return interfaceId == type(IModule).interfaceId || super.supportsInterface(interfaceId);
     }
 
+    /// @dev help method that returns extracted selector and calldata. If selector is executeUserOp, return the
+    /// selector and calldata of the inner call.
     function _getSelectorAndCalldata(bytes calldata data) internal pure returns (bytes4, bytes memory) {
         if (bytes4(data[:4]) == IAccountExecute.executeUserOp.selector) {
             (PackedUserOperation memory uo,) = abi.decode(data[4:], (PackedUserOperation, bytes32));

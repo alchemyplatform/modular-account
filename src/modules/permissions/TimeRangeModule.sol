@@ -1,4 +1,20 @@
+// This file is part of Modular Account.
+//
+// Copyright 2024 Alchemy Insights, Inc.
+//
 // SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with this program. If not, see
+// <https://www.gnu.org/licenses/>.
+
 pragma solidity ^0.8.26;
 
 import {_packValidationData} from "@eth-infinitism/account-abstraction/core/Helpers.sol";
@@ -12,9 +28,14 @@ import {BaseModule} from "../../modules/BaseModule.sol";
 
 /// @title Time Range Module
 /// @author Alchemy
-/// @notice This module allows for the setting and enforcement of time ranges for a validation function. Enforcement
-/// relies on `block.timestamp`, either within this module for runtime validation, or by the EntryPoint for user op
-/// validation. Time ranges are inclusive of both the beginning and ending timestamps.
+/// @notice This module allows for the setting and enforcement of time ranges for an entity ID.
+///    - Enforcement relies on `block.timestamp`, either within this module for runtime validation, or by the
+/// EntryPoint for user op validation.
+///    - Time ranges are inclusive of both the beginning and ending timestamps.
+///    - None of the functions are installed on the account. Account states are to be retrieved from this global
+/// singleton directly.
+///     - Uninstallation will NOT disable all installed hooks for an account. It only uninstalls hooks for the
+/// entity ID that is passed in. Account must remove access for each entity ID if want to disable all hooks.
 contract TimeRangeModule is IValidationHookModule, BaseModule {
     struct TimeRange {
         uint48 validUntil;
@@ -49,10 +70,9 @@ contract TimeRangeModule is IValidationHookModule, BaseModule {
         external
         view
         override
-        noValidationData(userOp.signature)
+        assertNoData(userOp.signature)
         returns (uint256)
     {
-        // todo: optimize between memory / storage
         TimeRange memory timeRange = timeRanges[entityId][msg.sender];
         return _packValidationData({
             sigFailed: false,
