@@ -125,7 +125,7 @@ abstract contract ModularAccountBase is
     /// @dev We route calls to execution functions based on incoming msg.sig
     /// @dev If there's no module associated with this function selector, revert
     fallback(bytes calldata) external payable returns (bytes memory) {
-        address execModule = getAccountStorage().executionData[msg.sig].module;
+        address execModule = getAccountStorage().executionStorage[msg.sig].module;
         if (execModule == address(0)) {
             revert UnrecognizedFunction(msg.sig);
         }
@@ -216,7 +216,7 @@ abstract contract ModularAccountBase is
         ModuleEntity userOpValidationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
 
         HookConfig[] memory validationAssocExecHooks =
-            MemManagementLib.loadExecHooks(getAccountStorage().validationData[userOpValidationFunction]);
+            MemManagementLib.loadExecHooks(getAccountStorage().validationStorage[userOpValidationFunction]);
 
         PHCallBuffer callBuffer;
         if (validationAssocExecHooks.length > 0) {
@@ -297,7 +297,7 @@ abstract contract ModularAccountBase is
 
         // If runtime validation passes, run exec hooks associated with the validator
         HookConfig[] memory validationAssocExecHooks =
-            MemManagementLib.loadExecHooks(getAccountStorage().validationData[runtimeValidationFunction]);
+            MemManagementLib.loadExecHooks(getAccountStorage().validationStorage[runtimeValidationFunction]);
 
         PHCallBuffer phCallBuffer;
         if (validationAssocExecHooks.length > 0) {
@@ -483,7 +483,7 @@ abstract contract ModularAccountBase is
         // `executeUserOp`. This check must be here because if context isn't passed, we can't tell in execution
         // which hooks should have ran.
         if (
-            getAccountStorage().validationData[validationFunction].executionHookCount > 0
+            getAccountStorage().validationStorage[validationFunction].executionHookCount > 0
                 && bytes4(userOp.callData[:4]) != this.executeUserOp.selector
         ) {
             revert RequireUserOperationContext();
@@ -561,7 +561,7 @@ abstract contract ModularAccountBase is
 
         // Do preUserOpValidation hooks
         HookConfig[] memory preUserOpValidationHooks =
-            MemManagementLib.loadValidationHooks(getAccountStorage().validationData[userOpValidationFunction]);
+            MemManagementLib.loadValidationHooks(getAccountStorage().validationStorage[userOpValidationFunction]);
 
         UOCallBuffer userOpCallBuffer;
         if (!_validationIsNative(userOpValidationFunction) || preUserOpValidationHooks.length > 0) {
@@ -615,7 +615,7 @@ abstract contract ModularAccountBase is
     ) internal returns (RTCallBuffer) {
         // run all preRuntimeValidation hooks
         HookConfig[] memory preRuntimeValidationHooks =
-            MemManagementLib.loadValidationHooks(getAccountStorage().validationData[runtimeValidationFunction]);
+            MemManagementLib.loadValidationHooks(getAccountStorage().validationStorage[runtimeValidationFunction]);
 
         RTCallBuffer callBuffer;
         if (!_validationIsNative(runtimeValidationFunction) || preRuntimeValidationHooks.length > 0) {
@@ -671,7 +671,7 @@ abstract contract ModularAccountBase is
         // and the selector isn't public.
         if (
             msg.sender != address(_ENTRY_POINT) && msg.sender != address(this)
-                && !_storage.executionData[msg.sig].skipRuntimeValidation
+                && !_storage.executionStorage[msg.sig].skipRuntimeValidation
         ) {
             ModuleEntity directCallValidationKey =
                 ModuleEntityLib.pack(msg.sender, DIRECT_CALL_VALIDATION_ENTITYID);
@@ -682,7 +682,7 @@ abstract contract ModularAccountBase is
 
             // Validation hooks
             HookConfig[] memory preRuntimeValidationHooks =
-                MemManagementLib.loadValidationHooks(_storage.validationData[directCallValidationKey]);
+                MemManagementLib.loadValidationHooks(_storage.validationStorage[directCallValidationKey]);
 
             uint256 preRuntimeValidationHooksLength = preRuntimeValidationHooks.length;
             if (preRuntimeValidationHooksLength > 0) {
@@ -702,12 +702,12 @@ abstract contract ModularAccountBase is
 
             //Load all execution hooks: both associated with the selector and the validation function.
             execHooks = MemManagementLib.loadExecHooks(
-                _storage.executionData[msg.sig], _storage.validationData[directCallValidationKey]
+                _storage.executionStorage[msg.sig], _storage.validationStorage[directCallValidationKey]
             );
         } else {
             // If the sender is the entry point or the account itself, or the selector is public, this indicates
             // that validation was done elsewhere. We only need to run selector-associated execution hooks.
-            execHooks = MemManagementLib.loadExecHooks(_storage.executionData[msg.sig]);
+            execHooks = MemManagementLib.loadExecHooks(_storage.executionStorage[msg.sig]);
         }
 
         PHCallBuffer preHookCallBuffer;
@@ -729,7 +729,7 @@ abstract contract ModularAccountBase is
     ) internal virtual returns (uint256) {
         AccountStorage storage _storage = getAccountStorage();
 
-        if (!_storage.validationData[userOpValidationFunction].isUserOpValidation) {
+        if (!_storage.validationStorage[userOpValidationFunction].isUserOpValidation) {
             (address module, uint32 entityId) = userOpValidationFunction.unpack();
             revert UserOpValidationInvalid(module, entityId);
         }
@@ -753,7 +753,7 @@ abstract contract ModularAccountBase is
         returns (bytes4)
     {
         HookConfig[] memory preSignatureValidationHooks =
-            MemManagementLib.loadValidationHooks(getAccountStorage().validationData[sigValidation]);
+            MemManagementLib.loadValidationHooks(getAccountStorage().validationStorage[sigValidation]);
 
         SigCallBuffer sigCallBuffer;
         if (!_validationIsNative(sigValidation) || preSignatureValidationHooks.length > 0) {
@@ -788,7 +788,7 @@ abstract contract ModularAccountBase is
         (hash); // unused in ModularAccountBase, but used in SemiModularAccountBase
         AccountStorage storage _storage = getAccountStorage();
 
-        if (!_storage.validationData[sigValidation].isSignatureValidation) {
+        if (!_storage.validationStorage[sigValidation].isSignatureValidation) {
             (address module, uint32 entityId) = sigValidation.unpack();
             revert SignatureValidationInvalid(module, entityId);
         }
@@ -811,11 +811,11 @@ abstract contract ModularAccountBase is
             return true;
         }
 
-        return getAccountStorage().executionData[selector].allowGlobalValidation;
+        return getAccountStorage().executionStorage[selector].allowGlobalValidation;
     }
 
     function _isValidationGlobal(ModuleEntity validationFunction) internal view virtual returns (bool) {
-        return getAccountStorage().validationData[validationFunction].isGlobal;
+        return getAccountStorage().validationStorage[validationFunction].isGlobal;
     }
 
     function _checkIfValidationAppliesCallData(
@@ -1049,7 +1049,7 @@ abstract contract ModularAccountBase is
         view
         returns (bool)
     {
-        return getAccountStorage().validationData[validationFunction].selectors.contains(toSetValue(selector));
+        return getAccountStorage().validationStorage[validationFunction].selectors.contains(toSetValue(selector));
     }
 
     function _computeDeferredValidationInstallTypedDataHash(

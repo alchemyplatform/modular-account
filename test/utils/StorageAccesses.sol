@@ -83,14 +83,14 @@ library StorageAccesses {
 
         uint256 root = uint256(_ACCOUNT_STORAGE_SLOT);
 
-        uint256 validationDataMappingSlot = root + 2;
-        uint256 validationDataSlot =
-            getMappingEntrySlot(validationDataMappingSlot, uint256(bytes32(ModuleEntity.unwrap(validation))));
+        uint256 validationStorageMappingSlot = root + 2;
+        uint256 validationStorageSlot =
+            getMappingEntrySlot(validationStorageMappingSlot, uint256(bytes32(ModuleEntity.unwrap(validation))));
 
-        slots[0] = bytes32(validationDataSlot);
+        slots[0] = bytes32(validationStorageSlot);
         names[0] = "Validation data slot (contains flags)";
 
-        uint256 preValidationHooksLengthSlot = validationDataSlot + 1;
+        uint256 preValidationHooksLengthSlot = validationStorageSlot + 1;
         slots[1] = bytes32(preValidationHooksLengthSlot);
         names[1] = "Pre-validation hooks length slot";
 
@@ -98,12 +98,12 @@ library StorageAccesses {
         slots[2] = bytes32(preValidationHooksContentSlot);
         names[2] = "Pre-validation hooks content slot";
 
-        uint256 executionHooksMappingSlot = validationDataSlot + 2;
+        uint256 executionHooksMappingSlot = validationStorageSlot + 2;
         uint256 executionHooksFirstElementSlot = getMappingEntrySlot(executionHooksMappingSlot, uint256(1));
         slots[3] = bytes32(executionHooksFirstElementSlot);
         names[3] = "Execution hooks first element slot";
 
-        uint256 selectorsMappingSlot = validationDataSlot + 3;
+        uint256 selectorsMappingSlot = validationStorageSlot + 3;
         uint256 selectorsFirstElementSlot = getMappingEntrySlot(selectorsMappingSlot, uint256(1));
         slots[4] = bytes32(selectorsFirstElementSlot);
         names[4] = "Selectors first element slot";
@@ -111,14 +111,14 @@ library StorageAccesses {
         slots[5] = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
         names[5] = "ERC-1967 proxy implementation slot";
 
-        uint256 executionDataMappingSlot = root + 1;
-        uint256 executionDataSlot =
-            getMappingEntrySlot(executionDataMappingSlot, uint256(bytes32(executionSelector)));
+        uint256 executionStorageMappingSlot = root + 1;
+        uint256 executionStorageSlot =
+            getMappingEntrySlot(executionStorageMappingSlot, uint256(bytes32(executionSelector)));
 
-        slots[6] = bytes32(executionDataSlot);
+        slots[6] = bytes32(executionStorageSlot);
         names[6] = "Execution data slot (contains module address and flags)";
 
-        uint256 selectorExecutionHooksMappingSlot = executionDataSlot + 1;
+        uint256 selectorExecutionHooksMappingSlot = executionStorageSlot + 1;
         uint256 selectorExecutionHooksFirstElementSlot =
             getMappingEntrySlot(selectorExecutionHooksMappingSlot, uint256(1));
         slots[7] = bytes32(selectorExecutionHooksFirstElementSlot);

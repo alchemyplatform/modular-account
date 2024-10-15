@@ -25,7 +25,13 @@ import {ExecutionLib} from "../libraries/ExecutionLib.sol";
 import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
-import {AccountStorage, ExecutionData, ValidationData, getAccountStorage, toSetValue} from "./AccountStorage.sol";
+import {
+    AccountStorage,
+    ExecutionStorage,
+    ValidationStorage,
+    getAccountStorage,
+    toSetValue
+} from "./AccountStorage.sol";
 
 abstract contract ModuleManagerInternals is IModularAccount {
     using LinkedListSetLib for LinkedListSet;
@@ -55,9 +61,9 @@ abstract contract ModuleManagerInternals is IModularAccount {
         bool allowGlobalValidation,
         address module
     ) internal {
-        ExecutionData storage _executionData = getAccountStorage().executionData[selector];
+        ExecutionStorage storage _executionStorage = getAccountStorage().executionStorage[selector];
 
-        if (_executionData.module != address(0)) {
+        if (_executionStorage.module != address(0)) {
             revert ExecutionFunctionAlreadySet(selector);
         }
 
@@ -81,25 +87,25 @@ abstract contract ModuleManagerInternals is IModularAccount {
             revert Erc4337FunctionNotAllowed(selector);
         }
 
-        _executionData.module = module;
-        _executionData.skipRuntimeValidation = skipRuntimeValidation;
-        _executionData.allowGlobalValidation = allowGlobalValidation;
+        _executionStorage.module = module;
+        _executionStorage.skipRuntimeValidation = skipRuntimeValidation;
+        _executionStorage.allowGlobalValidation = allowGlobalValidation;
     }
 
     function _removeExecutionFunction(bytes4 selector) internal {
-        ExecutionData storage _executionData = getAccountStorage().executionData[selector];
+        ExecutionStorage storage _executionStorage = getAccountStorage().executionStorage[selector];
 
-        _executionData.module = address(0);
-        _executionData.skipRuntimeValidation = false;
-        _executionData.allowGlobalValidation = false;
+        _executionStorage.module = address(0);
+        _executionStorage.skipRuntimeValidation = false;
+        _executionStorage.allowGlobalValidation = false;
     }
 
     function _removeValidationFunction(ModuleEntity validationFunction) internal {
-        ValidationData storage _validationData = getAccountStorage().validationData[validationFunction];
+        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[validationFunction];
 
-        _validationData.isGlobal = false;
-        _validationData.isSignatureValidation = false;
-        _validationData.isUserOpValidation = false;
+        _validationStorage.isGlobal = false;
+        _validationStorage.isSignatureValidation = false;
+        _validationStorage.isUserOpValidation = false;
     }
 
     function _addExecHooks(LinkedListSet storage hooks, HookConfig hookConfig) internal {
@@ -136,14 +142,14 @@ abstract contract ModuleManagerInternals is IModularAccount {
         length = manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
-            ExecutionData storage executionData = _storage.executionData[mh.executionSelector];
+            ExecutionStorage storage executionStorage = _storage.executionStorage[mh.executionSelector];
             HookConfig hookConfig = HookConfigLib.packExecHook({
                 _module: module,
                 _entityId: mh.entityId,
                 _hasPre: mh.isPreHook,
                 _hasPost: mh.isPostHook
             });
-            _addExecHooks(executionData.executionHooks, hookConfig);
+            _addExecHooks(executionStorage.executionHooks, hookConfig);
         }
 
         length = manifest.interfaceIds.length;
@@ -166,7 +172,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
         uint256 length = manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
-            ExecutionData storage execData = _storage.executionData[mh.executionSelector];
+            ExecutionStorage storage execData = _storage.executionStorage[mh.executionSelector];
             HookConfig hookConfig = HookConfigLib.packExecHook({
                 _module: module,
                 _entityId: mh.entityId,
@@ -225,8 +231,8 @@ abstract contract ModuleManagerInternals is IModularAccount {
         bytes calldata installData,
         bytes[] calldata hooks
     ) internal {
-        ValidationData storage _validationData =
-            getAccountStorage().validationData[validationConfig.moduleEntity()];
+        ValidationStorage storage _validationStorage =
+            getAccountStorage().validationStorage[validationConfig.moduleEntity()];
         ModuleEntity moduleEntity = validationConfig.moduleEntity();
 
         for (uint256 i = 0; i < hooks.length; ++i) {
@@ -237,14 +243,14 @@ abstract contract ModuleManagerInternals is IModularAccount {
                 // Increment the stored length of validation hooks, and revert if the limit is exceeded.
 
                 unchecked {
-                    if (uint256(_validationData.validationHookCount) + 1 > MAX_VALIDATION_ASSOC_HOOKS) {
+                    if (uint256(_validationStorage.validationHookCount) + 1 > MAX_VALIDATION_ASSOC_HOOKS) {
                         revert ValidationAssocHookLimitExceeded();
                     }
 
-                    ++_validationData.validationHookCount;
+                    ++_validationStorage.validationHookCount;
                 }
 
-                if (!_validationData.validationHooks.tryAdd(toSetValue(hookConfig))) {
+                if (!_validationStorage.validationHooks.tryAdd(toSetValue(hookConfig))) {
                     revert PreValidationHookDuplicate();
                 }
 
@@ -255,28 +261,28 @@ abstract contract ModuleManagerInternals is IModularAccount {
             // Hook is an execution hook
 
             unchecked {
-                if (uint256(_validationData.executionHookCount) + 1 > MAX_VALIDATION_ASSOC_HOOKS) {
+                if (uint256(_validationStorage.executionHookCount) + 1 > MAX_VALIDATION_ASSOC_HOOKS) {
                     revert ValidationAssocHookLimitExceeded();
                 }
 
-                ++_validationData.executionHookCount;
+                ++_validationStorage.executionHookCount;
             }
 
-            _addExecHooks(_validationData.executionHooks, hookConfig);
+            _addExecHooks(_validationStorage.executionHooks, hookConfig);
 
             _onInstall(hookConfig.module(), hookData, type(IExecutionHookModule).interfaceId);
         }
 
         for (uint256 i = 0; i < selectors.length; ++i) {
             bytes4 selector = selectors[i];
-            if (!_validationData.selectors.tryAdd(toSetValue(selector))) {
+            if (!_validationStorage.selectors.tryAdd(toSetValue(selector))) {
                 revert ValidationAlreadySet(selector, moduleEntity);
             }
         }
 
-        _validationData.isGlobal = validationConfig.isGlobal();
-        _validationData.isSignatureValidation = validationConfig.isSignatureValidation();
-        _validationData.isUserOpValidation = validationConfig.isUserOpValidation();
+        _validationStorage.isGlobal = validationConfig.isGlobal();
+        _validationStorage.isSignatureValidation = validationConfig.isSignatureValidation();
+        _validationStorage.isUserOpValidation = validationConfig.isUserOpValidation();
 
         _onInstall(validationConfig.module(), installData, type(IValidationModule).interfaceId);
         emit ValidationInstalled(validationConfig.module(), validationConfig.entityId());
@@ -287,15 +293,15 @@ abstract contract ModuleManagerInternals is IModularAccount {
         bytes calldata uninstallData,
         bytes[] calldata hookUninstallDatas
     ) internal {
-        ValidationData storage _validationData = getAccountStorage().validationData[validationFunction];
+        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[validationFunction];
         bool onUninstallSuccess = true;
 
         _removeValidationFunction(validationFunction);
 
         // Send `onUninstall` to hooks
         if (hookUninstallDatas.length > 0) {
-            HookConfig[] memory execHooks = MemManagementLib.loadExecHooks(_validationData);
-            HookConfig[] memory validationHooks = MemManagementLib.loadValidationHooks(_validationData);
+            HookConfig[] memory execHooks = MemManagementLib.loadExecHooks(_validationStorage);
+            HookConfig[] memory validationHooks = MemManagementLib.loadValidationHooks(_validationStorage);
 
             // If any uninstall data is provided, assert it is of the correct length.
             if (hookUninstallDatas.length != validationHooks.length + execHooks.length) {
@@ -320,14 +326,14 @@ abstract contract ModuleManagerInternals is IModularAccount {
         }
 
         // Clear all stored hooks
-        _validationData.validationHookCount = 0;
-        _validationData.validationHooks.clear();
+        _validationStorage.validationHookCount = 0;
+        _validationStorage.validationHooks.clear();
 
-        _validationData.executionHookCount = 0;
-        _validationData.executionHooks.clear();
+        _validationStorage.executionHookCount = 0;
+        _validationStorage.executionHooks.clear();
 
         // Clear selectors
-        _validationData.selectors.clear();
+        _validationStorage.selectors.clear();
 
         (address module, uint32 entityId) = ModuleEntityLib.unpack(validationFunction);
         onUninstallSuccess = onUninstallSuccess && _onUninstall(module, uninstallData);

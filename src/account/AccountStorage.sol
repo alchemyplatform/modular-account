@@ -10,7 +10,7 @@ import {LinkedListSet, SetValue} from "../libraries/LinkedListSetLib.sol";
 bytes32 constant _ACCOUNT_STORAGE_SLOT = 0x596912a710dec01bac203cb0ed2c7e56a2ce6b2a68276967fff6dd57561bdd00;
 
 /// @notice Represents data associated with a specific function selector.
-struct ExecutionData {
+struct ExecutionStorage {
     // The module that implements this execution function.
     // If this is a native function, the address should remain address(0).
     address module;
@@ -26,7 +26,7 @@ struct ExecutionData {
 }
 
 /// @notice Represents data associated with a specific validation function.
-struct ValidationData {
+struct ValidationStorage {
     // Whether or not this validation can be used as a global validation function.
     bool isGlobal;
     // Whether or not this validation is allowed to validate ERC-1271 signatures.
@@ -53,9 +53,9 @@ struct AccountStorage {
     uint8 initialized;
     bool initializing;
     // Execution functions and their associated functions.
-    mapping(bytes4 selector => ExecutionData) executionData;
+    mapping(bytes4 selector => ExecutionStorage) executionStorage;
     // Validation functions and their associated functions.
-    mapping(ModuleEntity validationFunction => ValidationData) validationData;
+    mapping(ModuleEntity validationFunction => ValidationStorage) validationStorage;
     // Module-defined ERC-165 interfaces installed on the account.
     mapping(bytes4 => uint256) supportedIfaces;
     // Nonce usage state for deferred actions.
