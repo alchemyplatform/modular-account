@@ -16,7 +16,7 @@ import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/Modul
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
-import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
+import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 import {MockModule} from "../mocks/modules/MockModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
@@ -99,8 +99,8 @@ contract UpgradeModuleTest is AccountTestBase {
 
     function test_upgradeModuleValidationFunction() public withSMATest {
         // Setup new validaiton with pre validation and execution hooks associated with a validator
-        ECDSAValidationModule validation1 = new ECDSAValidationModule();
-        ECDSAValidationModule validation2 = new ECDSAValidationModule();
+        SingleSignerValidationModule validation1 = new SingleSignerValidationModule();
+        SingleSignerValidationModule validation2 = new SingleSignerValidationModule();
         uint32 validationEntityId1 = 10;
         uint32 validationEntityId2 = 11;
 

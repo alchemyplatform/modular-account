@@ -31,7 +31,7 @@ contract DeferredValidationTest is AccountTestBase {
 
     function setUp() public override {
         _encodedCall = abi.encodeCall(ModularAccountBase.execute, (makeAddr("dead"), 0, ""));
-        _deferredValidation = ModuleEntityLib.pack(address(_deployECDSAValidationModule()), 0);
+        _deferredValidation = ModuleEntityLib.pack(address(_deploySingleSignerValidationModule()), 0);
         uint32 entityId = 0;
 
         (address newSigner, uint256 newSignerKey) = makeAddrAndKey("newSigner");

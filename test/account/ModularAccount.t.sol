@@ -19,7 +19,7 @@ import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ModuleManagerInternals} from "../../src/account/ModuleManagerInternals.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
-import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
+import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 import {Counter} from "../mocks/Counter.sol";
 import {ComprehensiveModule} from "../mocks/modules/ComprehensiveModule.sol";
@@ -104,9 +104,11 @@ contract ModularAccountTest is AccountTestBase {
             : abi.encodeCall(
                 ModularAccountBase.execute,
                 (
-                    address(ecdsaValidationModule),
+                    address(singleSignerValidationModule),
                     0,
-                    abi.encodeCall(ECDSAValidationModule.transferSigner, (TEST_DEFAULT_VALIDATION_ENTITY_ID, owner2))
+                    abi.encodeCall(
+                        SingleSignerValidationModule.transferSigner, (TEST_DEFAULT_VALIDATION_ENTITY_ID, owner2)
+                    )
                 )
             );
 
@@ -398,26 +400,33 @@ contract ModularAccountTest is AccountTestBase {
         vm.stopPrank();
     }
 
-    // TODO: Consider if this test belongs here or in the tests specific to the ECDSAValidationModule
+    // TODO: Consider if this test belongs here or in the tests specific to the SingleSignerValidationModule
     function test_transferOwnership() public withSMATest {
         if (_isSMATest) {
             // Note: replaced "owner1" with address(0), this doesn't actually affect the account, but allows the
             // test to pass by ensuring the signer can be set in the validation.
             assertEq(
-                ecdsaValidationModule.signers(TEST_DEFAULT_VALIDATION_ENTITY_ID, address(account1)), address(0)
+                singleSignerValidationModule.signers(TEST_DEFAULT_VALIDATION_ENTITY_ID, address(account1)),
+                address(0)
             );
         } else {
-            assertEq(ecdsaValidationModule.signers(TEST_DEFAULT_VALIDATION_ENTITY_ID, address(account1)), owner1);
+            assertEq(
+                singleSignerValidationModule.signers(TEST_DEFAULT_VALIDATION_ENTITY_ID, address(account1)), owner1
+            );
         }
 
         vm.prank(address(entryPoint));
         account1.execute(
-            address(ecdsaValidationModule),
+            address(singleSignerValidationModule),
             0,
-            abi.encodeCall(ECDSAValidationModule.transferSigner, (TEST_DEFAULT_VALIDATION_ENTITY_ID, owner2))
+            abi.encodeCall(
+                SingleSignerValidationModule.transferSigner, (TEST_DEFAULT_VALIDATION_ENTITY_ID, owner2)
+            )
         );
 
-        assertEq(ecdsaValidationModule.signers(TEST_DEFAULT_VALIDATION_ENTITY_ID, address(account1)), owner2);
+        assertEq(
+            singleSignerValidationModule.signers(TEST_DEFAULT_VALIDATION_ENTITY_ID, address(account1)), owner2
+        );
     }
 
     function test_isValidSignature() public withSMATest {
@@ -425,7 +434,7 @@ contract ModularAccountTest is AccountTestBase {
 
         bytes32 replaySafeHash = _isSMATest
             ? SemiModularAccountBytecode(payable(account1)).replaySafeHash(message)
-            : ecdsaValidationModule.replaySafeHash(address(account1), message);
+            : singleSignerValidationModule.replaySafeHash(address(account1), message);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
 
@@ -439,11 +448,11 @@ contract ModularAccountTest is AccountTestBase {
 
     // Only need a test case for the negative case, as the positive case is covered by the isValidSignature test
     function test_signatureValidationFlag_enforce() public withSMATest {
-        // Install a new copy of ECDSAValidationModule with the signature validation flag set to false
+        // Install a new copy of SingleSignerValidationModule with the signature validation flag set to false
         uint32 newEntityId = 2;
         vm.prank(address(entryPoint));
         account1.installValidation(
-            ValidationConfigLib.pack(address(ecdsaValidationModule), newEntityId, false, false, true),
+            ValidationConfigLib.pack(address(singleSignerValidationModule), newEntityId, false, false, true),
             new bytes4[](0),
             abi.encode(newEntityId, owner1),
             new bytes[](0)
@@ -453,28 +462,28 @@ contract ModularAccountTest is AccountTestBase {
 
         bytes32 replaySafeHash = _isSMATest
             ? SemiModularAccountBytecode(payable(account1)).replaySafeHash(message)
-            : ecdsaValidationModule.replaySafeHash(address(account1), message);
+            : singleSignerValidationModule.replaySafeHash(address(account1), message);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
 
         bytes memory signature = _encode1271Signature(
-            ModuleEntityLib.pack(address(ecdsaValidationModule), newEntityId), abi.encodePacked(r, s, v)
+            ModuleEntityLib.pack(address(singleSignerValidationModule), newEntityId), abi.encodePacked(r, s, v)
         );
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccountBase.SignatureValidationInvalid.selector, ecdsaValidationModule, newEntityId
+                ModularAccountBase.SignatureValidationInvalid.selector, singleSignerValidationModule, newEntityId
             )
         );
         IERC1271(address(account1)).isValidSignature(message, signature);
     }
 
     function test_userOpValidationFlag_enforce() public withSMATest {
-        // Install a new copy of ECDSAValidationModule with the userOp validation flag set to false
+        // Install a new copy of SingleSignerValidationModule with the userOp validation flag set to false
         uint32 newEntityId = 2;
         vm.prank(address(entryPoint));
         account1.installValidation(
-            ValidationConfigLib.pack(address(ecdsaValidationModule), newEntityId, true, false, false),
+            ValidationConfigLib.pack(address(singleSignerValidationModule), newEntityId, true, false, false),
             new bytes4[](0),
             abi.encode(newEntityId, owner1),
             new bytes[](0)
@@ -496,7 +505,7 @@ contract ModularAccountTest is AccountTestBase {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
         userOp.signature = _encodeSignature(
-            ModuleEntityLib.pack(address(ecdsaValidationModule), newEntityId),
+            ModuleEntityLib.pack(address(singleSignerValidationModule), newEntityId),
             GLOBAL_VALIDATION,
             abi.encodePacked(r, s, v)
         );
@@ -510,7 +519,7 @@ contract ModularAccountTest is AccountTestBase {
                 0,
                 "AA23 reverted",
                 abi.encodeWithSelector(
-                    ModularAccountBase.UserOpValidationInvalid.selector, ecdsaValidationModule, newEntityId
+                    ModularAccountBase.UserOpValidationInvalid.selector, singleSignerValidationModule, newEntityId
                 )
             )
         );
@@ -521,7 +530,7 @@ contract ModularAccountTest is AccountTestBase {
         account1.executeWithRuntimeValidation(
             abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
             _encodeSignature(
-                ModuleEntityLib.pack(address(ecdsaValidationModule), newEntityId), GLOBAL_VALIDATION, ""
+                ModuleEntityLib.pack(address(singleSignerValidationModule), newEntityId), GLOBAL_VALIDATION, ""
             )
         );
 

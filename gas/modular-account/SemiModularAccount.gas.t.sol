@@ -14,8 +14,7 @@ import {Vm} from "forge-std/src/Vm.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
-
-import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
+import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 import {ModularAccountBenchmarkBase} from "./ModularAccountBenchmarkBase.sol";
 
@@ -238,7 +237,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
 
         vm.deal(address(account1), 1 ether);
 
-        ECDSAValidationModule newValidationModule = _deployECDSAValidationModule();
+        SingleSignerValidationModule newValidationModule = _deploySingleSignerValidationModule();
         uint32 newEntityId = 0;
         (address owner2, uint256 owner2Key) = makeAddrAndKey("owner2");
 

@@ -20,7 +20,7 @@ import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
 import {AllowlistModule} from "../../src/modules/permissions/AllowlistModule.sol";
 import {TimeRangeModule} from "../../src/modules/permissions/TimeRangeModule.sol";
-import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
+import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 import {Counter} from "../../test/mocks/Counter.sol";
 import {ModuleSignatureUtils} from "../../test/utils/ModuleSignatureUtils.sol";
@@ -32,7 +32,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
     AccountFactory public factory;
     ModularAccount public accountImpl;
     SemiModularAccountBytecode public semiModularImpl;
-    ECDSAValidationModule public ecdsaValidationModule;
+    SingleSignerValidationModule public singleSignerValidationModule;
 
     AllowlistModule public allowlistModule;
     TimeRangeModule public timeRangeModule;
@@ -50,10 +50,10 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
         accountImpl = _deployModularAccount(IEntryPoint(entryPoint));
         semiModularImpl = _deploySemiModularAccountBytecode(IEntryPoint(entryPoint));
-        ecdsaValidationModule = _deployECDSAValidationModule();
+        singleSignerValidationModule = _deploySingleSignerValidationModule();
 
         factory = new AccountFactory(
-            entryPoint, accountImpl, semiModularImpl, address(ecdsaValidationModule), address(this)
+            entryPoint, accountImpl, semiModularImpl, address(singleSignerValidationModule), address(this)
         );
 
         allowlistModule = new AllowlistModule();
@@ -65,7 +65,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
     function _deployAccount1() internal {
         account1 = factory.createAccount(owner1, 0, 0);
-        signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), 0);
+        signerValidation = ModuleEntityLib.pack(address(singleSignerValidationModule), 0);
     }
 
     function _deploySemiModularAccountBytecode1() internal {
@@ -84,7 +84,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         uint32 sessionKeyEntityId = 1;
 
         ValidationConfig validationConfig = ValidationConfigLib.pack({
-            _module: address(ecdsaValidationModule),
+            _module: address(singleSignerValidationModule),
             _entityId: sessionKeyEntityId,
             _isGlobal: false,
             _isSignatureValidation: false,
@@ -153,14 +153,14 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         (bool success,) = address(account1).call(_getInstallDataSessionKeyCase1());
         require(success, "Install Session key 1 failed");
 
-        return ModuleEntityLib.pack(address(ecdsaValidationModule), 1);
+        return ModuleEntityLib.pack(address(singleSignerValidationModule), 1);
     }
 
     function _verifySessionKeyCase1InstallState() internal view {
         // Assert account state is correctly set up
 
         ValidationDataView memory validationData =
-            account1.getValidationData(ModuleEntityLib.pack(address(ecdsaValidationModule), 1));
+            account1.getValidationData(ModuleEntityLib.pack(address(singleSignerValidationModule), 1));
 
         // Flags
         assertFalse(validationData.isGlobal);

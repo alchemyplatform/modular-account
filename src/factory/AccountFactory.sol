@@ -26,13 +26,13 @@ contract AccountFactory is Ownable {
         IEntryPoint _entryPoint,
         ModularAccount _accountImpl,
         SemiModularAccountBytecode _semiModularImpl,
-        address _ecdsaValidationModule,
+        address _singleSignerValidationModule,
         address owner
     ) Ownable(owner) {
         ENTRY_POINT = _entryPoint;
         ACCOUNT_IMPL = _accountImpl;
         SEMI_MODULAR_ACCOUNT_IMPL = _semiModularImpl;
-        SINGLE_SIGNER_VALIDATION_MODULE = _ecdsaValidationModule;
+        SINGLE_SIGNER_VALIDATION_MODULE = _singleSignerValidationModule;
     }
 
     /**
