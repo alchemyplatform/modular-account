@@ -20,7 +20,7 @@ import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/Modul
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
-import {MAX_PRE_VALIDATION_HOOKS} from "../helpers/Constants.sol";
+import {MAX_VALIDATION_ASSOC_HOOKS} from "../helpers/Constants.sol";
 import {ExecutionLib} from "../libraries/ExecutionLib.sol";
 import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
@@ -43,9 +43,9 @@ abstract contract ModuleManagerInternals is IModularAccount {
     error ExecutionHookAlreadySet(HookConfig hookConfig);
     error ModuleInstallCallbackFailed(address module, bytes revertReason);
     error ModuleNotInstalled(address module);
-    error PreValidationHookLimitExceeded();
     error PreValidationHookDuplicate();
     error ValidationAlreadySet(bytes4 selector, ModuleEntity validationFunction);
+    error ValidationAssocHookLimitExceeded();
 
     // Storage update operations
 
@@ -234,10 +234,14 @@ abstract contract ModuleManagerInternals is IModularAccount {
             bytes calldata hookData = hooks[i][25:];
 
             if (hookConfig.isValidationHook()) {
-                // Increment the stored length of validation hooks, and revert if the limit is exceeded, to avoid a
-                // collision between the reserved signature data index and actual indices
-                if (++_validationData.validationHookCount > MAX_PRE_VALIDATION_HOOKS) {
-                    revert PreValidationHookLimitExceeded();
+                // Increment the stored length of validation hooks, and revert if the limit is exceeded.
+
+                unchecked {
+                    if (uint256(_validationData.validationHookCount) + 1 > MAX_VALIDATION_ASSOC_HOOKS) {
+                        revert ValidationAssocHookLimitExceeded();
+                    }
+
+                    ++_validationData.validationHookCount;
                 }
 
                 if (!_validationData.validationHooks.tryAdd(toSetValue(hookConfig))) {
@@ -249,7 +253,15 @@ abstract contract ModuleManagerInternals is IModularAccount {
                 continue;
             }
             // Hook is an execution hook
-            _validationData.executionHookCount += 1;
+
+            unchecked {
+                if (uint256(_validationData.executionHookCount) + 1 > MAX_VALIDATION_ASSOC_HOOKS) {
+                    revert ValidationAssocHookLimitExceeded();
+                }
+
+                ++_validationData.executionHookCount;
+            }
+
             _addExecHooks(_validationData.executionHooks, hookConfig);
 
             _onInstall(hookConfig.module(), hookData, type(IExecutionHookModule).interfaceId);
