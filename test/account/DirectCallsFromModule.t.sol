@@ -93,7 +93,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
     {
         bytes memory encodedCall = abi.encodeCall(DirectCallModule.directCall, ());
 
-        vm.prank(address(entryPoint));
+        vm.prank(address(account1));
         bytes memory result = account1.execute(address(_module), 0, encodedCall);
 
         assertTrue(_module.preHookRan());

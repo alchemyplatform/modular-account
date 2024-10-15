@@ -134,14 +134,8 @@ abstract contract ModularAccountBase is
         DensePostHookData postHookData = _checkPermittedCallerAndAssociatedHooks();
 
         // execute the function, bubbling up any reverts
-        (bool execSuccess, bytes memory execReturnData) = execModule.call(msg.data);
-
-        if (!execSuccess) {
-            // Bubble up revert reasons from modules
-            assembly ("memory-safe") {
-                revert(add(execReturnData, 32), mload(execReturnData))
-            }
-        }
+        ExecutionLib.callBubbleOnRevertTransient(execModule, 0 wei, msg.data);
+        bytes memory execReturnData = ExecutionLib.collectReturnData();
 
         ExecutionLib.doCachedPostHooks(postHookData);
 
@@ -236,7 +230,7 @@ abstract contract ModularAccountBase is
         bytes memory callData = ExecutionLib.getExecuteUOCallData(callBuffer, userOp.callData);
 
         // Manually call self, without collecting return data unless there's a revert.
-        ExecutionLib.callSelfBubbleOnRevert(callData);
+        ExecutionLib.callBubbleOnRevert(address(this), 0, callData);
 
         ExecutionLib.doCachedPostHooks(postHookData);
     }
@@ -250,7 +244,12 @@ abstract contract ModularAccountBase is
         wrapNativeFunction
         returns (bytes memory result)
     {
-        result = ExecutionLib.exec(target, value, data);
+        ExecutionLib.callBubbleOnRevertTransient(target, value, data);
+
+        // Only return data if not called by the EntryPoint
+        if (msg.sender != address(_ENTRY_POINT)) {
+            result = ExecutionLib.collectReturnData();
+        }
     }
 
     /// @inheritdoc IModularAccount
@@ -262,11 +261,20 @@ abstract contract ModularAccountBase is
         wrapNativeFunction
         returns (bytes[] memory results)
     {
+        bool needReturnData = (msg.sender != address(_ENTRY_POINT));
+
         uint256 callsLength = calls.length;
-        results = new bytes[](callsLength);
+
+        if (needReturnData) {
+            results = new bytes[](callsLength);
+        }
 
         for (uint256 i = 0; i < callsLength; ++i) {
-            results[i] = ExecutionLib.exec(calls[i].target, calls[i].value, calls[i].data);
+            ExecutionLib.callBubbleOnRevertTransient(calls[i].target, calls[i].value, calls[i].data);
+
+            if (needReturnData) {
+                results[i] = ExecutionLib.collectReturnData();
+            }
         }
     }
 
@@ -301,8 +309,8 @@ abstract contract ModularAccountBase is
 
         // Execute the call, reusing the already-allocated RT call buffers, if it exists.
         // In practice, this is cheaper than attempting to coalesce the (possibly two) buffers.
-        bytes memory returnData =
-            ExecutionLib.exec(address(this), 0 wei, ExecutionLib.getCallData(rtCallBuffer, data));
+        ExecutionLib.executeRuntimeSelfCall(rtCallBuffer, data);
+        bytes memory returnData = ExecutionLib.collectReturnData();
 
         ExecutionLib.doCachedPostHooks(postHookData);
 
@@ -409,10 +417,6 @@ abstract contract ModularAccountBase is
         override
         returns (uint256 validationData)
     {
-        if (userOp.callData.length < 4) {
-            revert UnrecognizedFunction(bytes4(userOp.callData));
-        }
-
         // Revert if the provided `authorization` less than 24 bytes long, rather than right-padding.
         ModuleEntity validationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
 
@@ -464,7 +468,7 @@ abstract contract ModularAccountBase is
             validationData = uint256(deadline) << 160;
 
             // Call `installValidation` on the account.
-            ExecutionLib.callSelfBubbleOnRevertTransient(encodedData[38:]);
+            ExecutionLib.callBubbleOnRevertTransient(address(this), 0, encodedData[38:]);
 
             // Update the UserOp signature to the remaining bytes.
             userOpSignature = userOp.signature[33 + encodedDataLength + deferredInstallSigLength:];
@@ -816,7 +820,11 @@ abstract contract ModularAccountBase is
         ModuleEntity validationFunction,
         ValidationCheckingType checkingType
     ) internal view {
-        bytes4 outerSelector = bytes4(callData[:4]);
+        if (callData.length < 4) {
+            revert UnrecognizedFunction(bytes4(callData));
+        }
+
+        bytes4 outerSelector = bytes4(callData);
         if (outerSelector == this.executeUserOp.selector) {
             // If the selector is executeUserOp, pull the actual selector from the following data,
             // and trim the calldata to ensure the self-call decoding is still accurate.
@@ -827,7 +835,7 @@ abstract contract ModularAccountBase is
         _checkIfValidationAppliesSelector(outerSelector, validationFunction, checkingType);
 
         if (outerSelector == IModularAccount.execute.selector) {
-            (address target,,) = abi.decode(callData[4:], (address, uint256, bytes));
+            address target = MemManagementLib.getExecuteTarget(callData);
 
             if (target == address(this)) {
                 // There is no point to call `execute` to recurse exactly once - this is equivalent to just having
@@ -838,28 +846,164 @@ abstract contract ModularAccountBase is
             // executeBatch may be used to batch account actions together, by targetting the account itself.
             // If this is done, we must ensure all of the inner calls are allowed by the provided validation
             // function.
+            _checkExecuteBatchValidationApplicability(callData[4:], validationFunction, checkingType);
+        }
+    }
 
-            (Call[] memory calls) = abi.decode(callData[4:], (Call[]));
+    /// @notice Checks if the validation function is allowed to perform this call to `executeBatch`.
+    /// @param callData The calldata to check, excluding the `executeBatch` selector.
+    /// @param validationFunction The validation function to check against.
+    /// @param checkingType The type of validation checking to perform.
+    function _checkExecuteBatchValidationApplicability(
+        bytes calldata callData,
+        ModuleEntity validationFunction,
+        ValidationCheckingType checkingType
+    ) internal view {
+        // Equivalent to the following code, but without using memory.
 
-            for (uint256 i = 0; i < calls.length; ++i) {
-                if (calls[i].target == address(this)) {
-                    bytes4 nestedSelector = bytes4(calls[i].data);
+        // (Call[] memory calls) = abi.decode(callData[4:], (Call[]));
 
-                    if (
-                        nestedSelector == IModularAccount.execute.selector
-                            || nestedSelector == IModularAccount.executeBatch.selector
-                    ) {
-                        // To prevent arbitrarily-deep recursive checking, we limit the depth of self-calls to one
-                        // for the purposes of batching.
-                        // This means that all self-calls must occur at the top level of the batch.
-                        // Note that modules of other contracts using `executeWithRuntimeValidation` may still
-                        // independently call into this account with a different validation function, allowing
-                        // composition of multiple batches.
-                        revert SelfCallRecursionDepthExceeded();
+        // for (uint256 i = 0; i < calls.length; ++i) {
+        //     if (calls[i].target == address(this)) {
+        //         bytes4 nestedSelector = bytes4(calls[i].data[:4]);
+
+        //         if (
+        //             nestedSelector == IModularAccount.execute.selector
+        //                 || nestedSelector == IModularAccount.executeBatch.selector
+        //         ) {
+        //
+        //             revert SelfCallRecursionDepthExceeded();
+        //         }
+
+        //         _checkIfValidationAppliesSelector(nestedSelector, validationFunction, checkingType);
+        //     }
+        // }
+
+        // The following is adapted from the compiler-generated ABI decoder for the `Call[] calldata` parameter
+        // type. See test/mocks/MockDecoder.sol for more info.
+        // This allows the decoding behavior here, in the validation step, to match what would happen during the
+        // actual execution of `executeBatch`.
+        // This follows the compiler-generated behavior of:
+        // - asserting the data to load fits in the remaining space of the current `bytes calldata`.
+        // - asserting that the ABI-encoded offsets and lengths do not exceed the constant value
+        // 0xffffffffffffffff.
+
+        // The end of allowed calldata to read. Declared in an outer context to make available to multiple code
+        // blocks.
+        uint256 dataEnd;
+
+        // The absolute offset of the start of the `Call[]` array.
+        uint256 arrayPos;
+        // The length of the `Call[]` array.
+        uint256 callsLength;
+
+        // This block is retrieving the actual Call[] location and length, asserting it doesn't go out of bounds.
+        assembly ("memory-safe") {
+            // Set up the "safe data decoding range"
+            let headStart := callData.offset
+            dataEnd := add(headStart, callData.length)
+
+            // Assert it is safe to load the offset
+            if slt(sub(dataEnd, headStart), 32) { revert(0, 0) }
+
+            // Load and sanitize the offset
+            let relOffset := calldataload(callData.offset)
+            if gt(relOffset, 0xffffffffffffffff) { revert(0, 0) }
+
+            // Convert from a relative offset to an absolute offset.
+            let absOffset := add(headStart, relOffset)
+
+            // Assert it is safe to load the length
+            if iszero(slt(add(absOffset, 0x1f), dataEnd)) { revert(0, 0) }
+
+            // Load and sanitize the length
+            callsLength := calldataload(absOffset)
+            if gt(callsLength, 0xffffffffffffffff) { revert(0, 0) }
+
+            // Load the array position, and check that it fits within the alloted length.
+            arrayPos := add(absOffset, 0x20)
+            if gt(add(arrayPos, mul(callsLength, 0x20)), dataEnd) { revert(0, 0) }
+        }
+
+        // Now, we have the array length and data bounds.
+        // Iterate through the array elements, checking:
+        // - If the target is this account, assert that:
+        //   - the selector in the data field is not `execute` or `executeBatch`.
+        //   - the provided validation is allowed to call the selector.
+
+        for (uint256 i = 0; i < callsLength; ++i) {
+            address callTarget;
+            uint256 structAbsOffset;
+
+            // This block is retrieving the actual calls[i] struct location and contents, asserting it doesn't go
+            // out of bounds.
+            assembly ("memory-safe") {
+                // Load and sanitize the struct offset.
+                // This is still safe to load, from the bounds check above.
+                let structRelOffset := calldataload(add(arrayPos, mul(i, 0x20)))
+                if gt(structRelOffset, 0xffffffffffffffff) { revert(0, 0) }
+                // Validate struct offset. If the offset points to a location with < 3 words of space before the
+                // end of data, revert.
+                if iszero(slt(structRelOffset, sub(sub(dataEnd, arrayPos), sub(0x60, 1)))) { revert(0, 0) }
+
+                structAbsOffset := add(arrayPos, structRelOffset)
+
+                // Load the address from the struct, and sanitize its contents, to mirror the behavior of the ABI
+                // decoder.
+                callTarget := calldataload(structAbsOffset)
+                if iszero(eq(and(callTarget, 0xffffffffffffffffffffffffffffffffffffffff), callTarget)) {
+                    revert(0, 0)
+                }
+            }
+
+            if (callTarget == address(this)) {
+                // In this case, we must load the selector, deny if it's `execute` or `executeBatch`, and check
+                // validation applicability.
+
+                uint32 selector;
+
+                // This block is retrieving the selector from the first 4 bytes of calls[i].data, asserting it
+                // doesn't go out of bounds and that the data is at least 4 bytes long.
+                assembly ("memory-safe") {
+                    // Load and sanitize the data offset.
+                    let dataRelOffset := calldataload(add(structAbsOffset, 0x40))
+                    if gt(dataRelOffset, 0xffffffffffffffff) { revert(0, 0) }
+
+                    // Validate data offset. If the offset points to a location with < 1 words of space before the
+                    // end of data, revert.
+                    if iszero(slt(dataRelOffset, sub(sub(dataEnd, structAbsOffset), sub(0x20, 1)))) {
+                        revert(0, 0)
                     }
 
-                    _checkIfValidationAppliesSelector(nestedSelector, validationFunction, checkingType);
+                    let dataAbsOffset := add(structAbsOffset, dataRelOffset)
+
+                    // Load and sanitize the data length.
+                    let dataLength := calldataload(dataAbsOffset)
+                    if gt(dataLength, 0xffffffff) { revert(0, 0) }
+
+                    // Get the data offset, and assert that the following data fits into the bounded calldata
+                    // range.
+                    let dataOffset := add(dataAbsOffset, 0x20)
+                    if sgt(dataOffset, sub(dataEnd, mul(dataLength, 0x01))) { revert(0, 0) }
+
+                    // Finally, load the selector being called. This will be the first 4 bytes of the data.
+                    // If the data length is less than 4, revert.
+                    if slt(dataLength, 4) { revert(0, 0) }
+                    selector := shr(224, calldataload(dataOffset))
                 }
+
+                if (selector == uint32(this.execute.selector) || selector == uint32(this.executeBatch.selector)) {
+                    // To prevent arbitrarily-deep recursive checking, we limit the depth of self-calls to one
+                    // for the purposes of batching.
+                    // This means that all self-calls must occur at the top level of the batch.
+                    // Note that modules of other contracts using `executeWithRuntimeValidation` may still
+                    // independently call into this account with a different validation function, allowing
+                    // composition of multiple batches.
+
+                    revert SelfCallRecursionDepthExceeded();
+                }
+
+                _checkIfValidationAppliesSelector(bytes4(selector), validationFunction, checkingType);
             }
         }
     }

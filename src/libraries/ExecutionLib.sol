@@ -31,39 +31,17 @@ library ExecutionLib {
     error PreRuntimeValidationHookFailed(address module, uint32 entityId, bytes revertReason);
     error RuntimeValidationFunctionReverted(address module, uint32 entityId, bytes revertReason);
 
-    /// @param target The address of the contract to call.
-    /// @param value The value to send with the call.
-    /// @param data The call data.
-    /// @return result The return data of the call, or the error message from the call if call reverts.
-    function exec(address target, uint256 value, bytes memory data) internal returns (bytes memory result) {
-        // Manually call, collecting return data.
-        assembly ("memory-safe") {
-            let success := call(gas(), target, value, add(data, 0x20), mload(data), codesize(), 0)
-
-            // Allocate space for the return data, advancing the memory pointer to the nearest word
-            result := mload(0x40)
-            mstore(0x40, and(add(add(result, returndatasize()), 0x3f), not(0x1f)))
-
-            // Copy the returned data to the allocated space.
-            mstore(result, returndatasize())
-            returndatacopy(add(result, 0x20), 0, returndatasize())
-
-            // Revert if the call was not successful.
-            if iszero(success) { revert(add(result, 0x20), returndatasize()) }
-        }
-    }
-
-    // Call the following function to address(this), without capturing any return data.
+    // Perform the following call, without capturing any return data.
     // If the call reverts, the revert message will be directly bubbled up.
-    function callSelfBubbleOnRevert(bytes memory callData) internal {
+    function callBubbleOnRevert(address target, uint256 value, bytes memory callData) internal {
         // Manually call, without collecting return data unless there's a revert.
         assembly ("memory-safe") {
             let success :=
                 call(
                     gas(),
-                    address(),
+                    target,
                     /*value*/
-                    0,
+                    value,
                     /*argOffset*/
                     add(callData, 0x20),
                     /*argSize*/
@@ -86,9 +64,8 @@ library ExecutionLib {
         }
     }
 
-    // Just like `callSelfBubbleOnRevert`, but with a `bytes calldata` parameter. This will be transiently stored
-    // in memory past-the-end of the used memory.
-    function callSelfBubbleOnRevertTransient(bytes calldata callData) internal {
+    // Transiently copy the call data to a memory, and perform a self-call.
+    function callBubbleOnRevertTransient(address target, uint256 value, bytes calldata callData) internal {
         bytes memory callToSelf;
 
         assembly ("memory-safe") {
@@ -99,7 +76,7 @@ library ExecutionLib {
             calldatacopy(add(callToSelf, 0x20), callData.offset, callData.length)
         }
 
-        callSelfBubbleOnRevert(callToSelf);
+        callBubbleOnRevert(target, value, callToSelf);
         // Memory is discarded afterwards
     }
 
@@ -457,7 +434,7 @@ library ExecutionLib {
         }
     }
 
-    function getCallData(RTCallBuffer buffer, bytes calldata data) internal pure returns (bytes memory) {
+    function executeRuntimeSelfCall(RTCallBuffer buffer, bytes calldata data) internal {
         bool bufferExists;
 
         assembly ("memory-safe") {
@@ -480,10 +457,11 @@ library ExecutionLib {
                 callData := add(buffer, 0xe4)
             }
 
-            return callData;
+            // Perform the call, bubbling up revert data on failure.
+            callBubbleOnRevert(address(this), 0, callData);
         } else {
-            // No buffer exists yet, just copy the data to memory and return it.
-            return data;
+            // No buffer exists yet, just copy the data to memory transiently and execute it.
+            callBubbleOnRevertTransient(address(this), 0, data);
         }
     }
 

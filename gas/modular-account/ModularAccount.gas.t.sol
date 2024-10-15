@@ -2,6 +2,8 @@
 pragma solidity ^0.8.26;
 
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+
+import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -157,6 +159,80 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         assertEq(mockErc20.balanceOf(recipient), 10 ether);
 
         _snap(USER_OP, "Erc20Transfer", gasUsed);
+    }
+
+    // Batch transfers: both native token transfer and ERC-20 transfer
+
+    function test_modularAccountGas_runtime_batchTransers() public {
+        _deployAccount1();
+
+        vm.deal(address(account1), 1 ether);
+        mockErc20.mint(address(account1), 100 ether);
+
+        Call[] memory calls = new Call[](2);
+        calls[0] = Call({target: recipient, value: 0.1 ether, data: ""});
+        calls[1] = Call({
+            target: address(mockErc20),
+            value: 0,
+            data: abi.encodeCall(mockErc20.transfer, (recipient, 10 ether))
+        });
+
+        uint256 gasUsed = _runtimeBenchmark(
+            owner1,
+            address(account1),
+            abi.encodeCall(
+                ModularAccountBase.executeWithRuntimeValidation,
+                (
+                    abi.encodeCall(ModularAccountBase.executeBatch, (calls)),
+                    _encodeSignature(signerValidation, GLOBAL_VALIDATION, "")
+                )
+            )
+        );
+
+        assertEq(address(recipient).balance, 0.1 ether + 1 wei);
+        assertEq(mockErc20.balanceOf(recipient), 10 ether);
+
+        _snap(RUNTIME, "BatchTransfers", gasUsed);
+    }
+
+    function test_modularAccountGas_userOp_batchTransfers() public {
+        _deployAccount1();
+
+        vm.deal(address(account1), 1 ether);
+        mockErc20.mint(address(account1), 100 ether);
+
+        Call[] memory calls = new Call[](2);
+        calls[0] = Call({target: recipient, value: 0.1 ether, data: ""});
+        calls[1] = Call({
+            target: address(mockErc20),
+            value: 0,
+            data: abi.encodeCall(mockErc20.transfer, (recipient, 10 ether))
+        });
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: abi.encodeCall(ModularAccountBase.executeBatch, (calls)),
+            // don't over-estimate by a lot here, otherwise a fee is assessed.
+            accountGasLimits: _encodeGasLimits(60_000, 100_000),
+            preVerificationGas: 0,
+            gasFees: _encodeGasFees(1, 1),
+            paymasterAndData: "",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        userOp.signature =
+            _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+
+        uint256 gasUsed = _userOpBenchmark(userOp);
+
+        assertEq(address(recipient).balance, 0.1 ether + 1 wei);
+        assertEq(mockErc20.balanceOf(recipient), 10 ether);
+
+        _snap(USER_OP, "BatchTransfers", gasUsed);
     }
 
     function test_modularAccountGas_userOp_deferredValidationInstall() public {
