@@ -6,6 +6,8 @@ import {HookConfig} from "@erc6900/reference-implementation/interfaces/IModularA
 import {ExecutionData, ValidationData} from "../account/AccountStorage.sol";
 import {LinkedListSet, LinkedListSetLib, SENTINEL_VALUE, SetValue} from "./LinkedListSetLib.sol";
 
+type MemSnapshot is uint256;
+
 library MemManagementLib {
     function loadExecHooks(ExecutionData storage execData, ValidationData storage valData)
         internal
@@ -146,6 +148,22 @@ library MemManagementLib {
         }
 
         return target;
+    }
+
+    function freezeFMP() internal pure returns (MemSnapshot) {
+        MemSnapshot snapshot;
+
+        assembly ("memory-safe") {
+            snapshot := mload(0x40)
+        }
+
+        return snapshot;
+    }
+
+    function restoreFMP(MemSnapshot snapshot) internal pure {
+        assembly ("memory-safe") {
+            mstore(0x40, snapshot)
+        }
     }
 
     // Used to load both pre-validation hooks and pre-execution hooks, associated with a validation function.
