@@ -1,4 +1,20 @@
-// SPDX-License-Identifier: UNLICENSED
+// This file is part of Modular Account.
+//
+// Copyright 2024 Alchemy Insights, Inc.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This program is free software: you can redistribute it and/or modify it under the terms of the GNU General
+// Public License as published by the Free Software Foundation, either version 3 of the License, or (at your
+// option) any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the
+// implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with this program. If not, see
+// <https://www.gnu.org/licenses/>.
+
 pragma solidity ^0.8.26;
 
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
@@ -14,31 +30,33 @@ import {BaseModule} from "../../modules/BaseModule.sol";
 
 /// @title Allowlist with ERC20 spend limit Module
 /// @author Alchemy
-/// @notice This module allows for the setting and enforcement of allowlists for validation functions.
-///    - These allowlists can specify which addresses and or selectors can be called by the validation function. It
+/// @notice This module allows for the setting and enforcement of allowlists with ERC20 spend limit for an entity.
+///     - Uninstallation will NOT disable all installed hooks for an account. It only uninstalls hooks for the
+/// entity ID that is passed in. Account must remove access for each entity ID if want to disable all hooks.
+///     - None of the functions are installed on the account. Account states are to be retrieved from this global
+/// singleton directly.
+///     - To enable allowlisting, the account must have this module installed as a validation hook.
+///         - These allowlists can specify which addresses and or selectors can be called by the entity. It
 /// supports:
-///       - specific addresss + specific selectors
-///       - specific addresss + any selectors
-///       - any addresss + specific selectors
-///    - These restrictions only apply to the `IModularAccount.execute` and `IModularAccount.executeBatch`
+///             - Specific addresss + specific selectors
+///             - Specific addresss + wildcard selectors
+///             - Wildcard addresss + specific selectors
+///         - These restrictions only apply to the `IModularAccount.execute` and `IModularAccount.executeBatch`
 /// functions.
-///    - The order of permission checking:
-///       - if wildcard address (any selector allowed), pass
-///       - if wildcard selecor (any address allowed), pass
-///       - if sepecific address + sepecific selector, pass
-///       - revert all other cases
-///    - Uninstallation will not remove all state for account. Account must pass all data to remove all rules for
-/// an validation entity.
-/// If specific address is set, a ERC20TokenSpendLimit might be set for it. If so, the following features and
-/// restrictions apply:
-///    - The execution hooks to be associated with validations should be used.
-///    - For any validation function with this execution hook installed, only token contracts with a set limit will
-/// be checked, other addresses will be allowed. To protect the account's balance of non-tracked tokens, users are
-/// recommended to also install an allowlist hook, to limit which addresses the validation may perform calls to.
-///    - Only spending request through the following native execution functions are supported:
+///         - The order of permission checks:
+///             - If wildcard address (any selector allowed), pass
+///             - If wildcard selector (any address allowed), pass
+///             - If specific address + specific selector, pass
+///             - Revert all other cases
+///     - To enable ERC20 spend limits, the account must also have this module installed as a validation associated
+/// execution hook. The following features and restrictions apply:
+///         - Only token contracts with a set limit will be checked, other allowed addresses will be allowed. To
+/// protect the account's balance of non-tracked tokens, users are recommended to also install the allowlist
+/// validation hook, to limit which addresses the validation may perform calls to.
+///         - Spending requests are only supported through the following native execution functions:
 /// IModularAccount.execute, IModularAccount.executeWithRuntimeValidation, IAccountExecute.executeUserOp,
 /// IModularAccount.executeBatch. All other spending request will revert.
-///    - This module is opinionated on what selectors can be called for token contracts: only `transfer` and
+///         - This module is opinionated on what selectors can be called for token contracts: only `transfer` and
 /// `approve` are allowed. This guards against edge cases, where token contracts like DAI have other functions that
 /// result in ERC-20 transfers or allowance changes.
 contract AllowlistModule is IExecutionHookModule, IValidationHookModule, BaseModule {
@@ -82,7 +100,6 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, BaseMod
     error AddressNotAllowed();
     error SelectorNotAllowed();
     error NoSelectorSpecified();
-
     error ExceededTokenLimit();
     error SpendingRequestNotAllowed(bytes4);
     error ERC20NotAllowed(address);
@@ -132,7 +149,7 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, BaseMod
         external
         view
         override
-        noValidationData(userOp.signature)
+        assertNoData(userOp.signature)
         returns (uint256)
     {
         checkAllowlistCalldata(entityId, userOp.callData);
