@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@erc6900/reference-implementation':
         specifier: github:erc6900/reference-implementation#v0.8.0-rc.5
-        version: https://codeload.github.com/erc6900/reference-implementation/tar.gz/81357297a5b630c5dca9306afbba768d95645189
+        version: https://codeload.github.com/erc6900/reference-implementation/tar.gz/e5f55ab1c3ac2f78efa14967e90e95c3e4ace38c
       account-abstraction:
         specifier: github:eth-infinitism/account-abstraction#v0.7.0
         version: accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/d99245ddb2d7bde4d2132757c4394818f1d11da0(ethers@5.7.2)(hardhat@2.22.10(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
@@ -39,8 +39,8 @@ packages:
     resolution: {integrity: sha512-EStJpq4OuY8xYfhGVXngigBJRWxftKX9ksiGDnmlY3o7B/V7KIAc9X4oiK87uPJSc/vs5L869bem5fhZa8caZw==}
     engines: {node: '>=6.9.0'}
 
-  '@erc6900/reference-implementation@https://codeload.github.com/erc6900/reference-implementation/tar.gz/81357297a5b630c5dca9306afbba768d95645189':
-    resolution: {tarball: https://codeload.github.com/erc6900/reference-implementation/tar.gz/81357297a5b630c5dca9306afbba768d95645189}
+  '@erc6900/reference-implementation@https://codeload.github.com/erc6900/reference-implementation/tar.gz/e5f55ab1c3ac2f78efa14967e90e95c3e4ace38c':
+    resolution: {tarball: https://codeload.github.com/erc6900/reference-implementation/tar.gz/e5f55ab1c3ac2f78efa14967e90e95c3e4ace38c}
     version: 0.8.0-rc.5
 
   '@ethereumjs/rlp@4.0.1':
@@ -1806,7 +1806,7 @@ snapshots:
       js-tokens: 4.0.0
       picocolors: 1.1.0
 
-  '@erc6900/reference-implementation@https://codeload.github.com/erc6900/reference-implementation/tar.gz/81357297a5b630c5dca9306afbba768d95645189': {}
+  '@erc6900/reference-implementation@https://codeload.github.com/erc6900/reference-implementation/tar.gz/e5f55ab1c3ac2f78efa14967e90e95c3e4ace38c': {}
 
   '@ethereumjs/rlp@4.0.1': {}
 
