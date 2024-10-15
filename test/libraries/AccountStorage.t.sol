@@ -35,4 +35,9 @@ contract AccountStorageTest is Test {
         // post init slot should contains: packed(uint8 initialized = 1, bool initializing = 0)
         assertEq(uint256(vm.load(proxy, _ACCOUNT_STORAGE_SLOT)), uint256(1));
     }
+
+    function test_accountStorage_revertOnBadDisableInitializers() public {
+        vm.expectRevert(AccountStorageInitializable.InvalidInitialization.selector);
+        MockDiamondStorageContract(proxy).badDisableInitializers();
+    }
 }
