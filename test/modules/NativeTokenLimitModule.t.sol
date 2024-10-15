@@ -13,6 +13,7 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
 import {BaseModule} from "../../src/modules/BaseModule.sol";
 import {NativeTokenLimitModule} from "../../src/modules/permissions/NativeTokenLimitModule.sol";
 
@@ -107,7 +108,13 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         assertEq(result, expected);
 
         // uses 200k + 1 wei of gas
-        vm.expectRevert(NativeTokenLimitModule.ExceededNativeTokenLimit.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExecutionLib.PreUserOpValidationHookReverted.selector,
+                ModuleEntityLib.pack(address(module), entityId),
+                abi.encodeWithSelector(NativeTokenLimitModule.ExceededNativeTokenLimit.selector)
+            )
+        );
         result =
             account1.validateUserOp(_getPackedUO(100_000, 100_000, 1, 1, _getExecuteWithValue(0)), bytes32(0), 0);
 
@@ -124,13 +131,10 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
 
         // uses 5e + 1wei of native tokens
         vm.expectRevert(
-            abi.encodePacked(
-                ModularAccountBase.PreExecHookReverted.selector,
-                abi.encode(
-                    address(module),
-                    uint32(0),
-                    abi.encodePacked(NativeTokenLimitModule.ExceededNativeTokenLimit.selector)
-                )
+            abi.encodeWithSelector(
+                ExecutionLib.PreExecHookReverted.selector,
+                ModuleEntityLib.pack(address(module), uint32(0)),
+                abi.encodePacked(NativeTokenLimitModule.ExceededNativeTokenLimit.selector)
             )
         );
         account1.executeUserOp(_getPackedUO(0, 0, 0, 0, _getExecuteWithValue(5 ether + 1)), bytes32(0));
@@ -286,7 +290,11 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
                 IEntryPoint.FailedOpWithRevert.selector,
                 0,
                 "AA23 reverted",
-                abi.encodeWithSelector(BaseModule.UnexpectedDataPassed.selector)
+                abi.encodeWithSelector(
+                    ExecutionLib.PreUserOpValidationHookReverted.selector,
+                    ModuleEntityLib.pack(address(module), entityId),
+                    abi.encodeWithSelector(BaseModule.UnexpectedDataPassed.selector)
+                )
             )
         );
         entryPoint.handleOps(uos, beneficiary);

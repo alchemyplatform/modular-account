@@ -10,6 +10,7 @@ import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/Modul
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
 import {BaseModule} from "../../src/modules/BaseModule.sol";
 import {PaymasterGuardModule} from "../../src/modules/permissions/PaymasterGuardModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
@@ -179,7 +180,13 @@ contract PaymasterGuardModuleTest is AccountTestBase {
             abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
         );
 
-        vm.expectRevert(abi.encodeWithSelector(PaymasterGuardModule.BadPaymasterSpecified.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExecutionLib.PreUserOpValidationHookReverted.selector,
+                ModuleEntityLib.pack(address(module), ENTITY_ID),
+                abi.encodeWithSelector(PaymasterGuardModule.BadPaymasterSpecified.selector)
+            )
+        );
         vm.prank(address(entryPoint));
         account1.validateUserOp(userOp, userOpHash, 0);
     }

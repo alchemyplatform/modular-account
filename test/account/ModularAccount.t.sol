@@ -11,6 +11,7 @@ import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/V
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
@@ -22,6 +23,8 @@ import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBy
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 import {Counter} from "../mocks/Counter.sol";
+import {MockInterface} from "../mocks/MockInterface.sol";
+import {MockRevertingConstructor} from "../mocks/MockRevertingConstructor.sol";
 import {ComprehensiveModule} from "../mocks/modules/ComprehensiveModule.sol";
 import {MockExecutionInstallationModule} from "../mocks/modules/MockExecutionInstallationModule.sol";
 import {MockModule} from "../mocks/modules/MockModule.sol";
@@ -495,7 +498,8 @@ contract ModularAccountTest is AccountTestBase {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccountBase.SignatureValidationInvalid.selector, singleSignerValidationModule, newEntityId
+                ModularAccountBase.SignatureValidationInvalid.selector,
+                ModuleEntityLib.pack(address(singleSignerValidationModule), newEntityId)
             )
         );
         IERC1271(address(account1)).isValidSignature(message, signature);
@@ -542,7 +546,8 @@ contract ModularAccountTest is AccountTestBase {
                 0,
                 "AA23 reverted",
                 abi.encodeWithSelector(
-                    ModularAccountBase.UserOpValidationInvalid.selector, singleSignerValidationModule, newEntityId
+                    ModularAccountBase.UserOpValidationInvalid.selector,
+                    ModuleEntityLib.pack(address(singleSignerValidationModule), newEntityId)
                 )
             )
         );
@@ -570,6 +575,11 @@ contract ModularAccountTest is AccountTestBase {
 
         assertEq(returnedAddr, expectedAddr);
         assertEq(address(ModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
+
+        // Assert a reverting constructor causes a `CreateFailed` error
+        vm.prank(address(entryPoint));
+        vm.expectRevert(ModularAccountBase.CreateFailed.selector);
+        account1.performCreate(0, abi.encodePacked(type(MockRevertingConstructor).creationCode));
     }
 
     function test_performCreate2() public withSMATest {
@@ -602,6 +612,74 @@ contract ModularAccountTest is AccountTestBase {
         vm.prank(beneficiary);
         vm.expectRevert(BaseAccount.NotEntryPoint.selector);
         account1.executeUserOp(userOp, bytes32(0));
+    }
+
+    function test_revertOnNoInstalledModuleExecFunction() public withSMATest {
+        bytes4 nonInstalledSelector = MockInterface.doSomething.selector;
+
+        vm.prank(beneficiary);
+        vm.expectRevert(
+            abi.encodeWithSelector(ModularAccountBase.UnrecognizedFunction.selector, nonInstalledSelector)
+        );
+        MockInterface(address(account1)).doSomething();
+    }
+
+    function test_modularAccountBase_supportsInterface() public withSMATest {
+        // Assert that the invalid interface ID is not supported
+        assertFalse(account1.supportsInterface(0xffffffff));
+
+        // Assert that the ERC165 interface ID is supported
+        assertTrue(account1.supportsInterface(type(IERC165).interfaceId));
+
+        // Assert that the interfaceId for a new interface starts out unsupported, but becomes supported after
+        // install.
+        assertFalse(account1.supportsInterface(type(MockInterface).interfaceId));
+
+        // Install the interface id.
+        ExecutionManifest memory manifest;
+        manifest.interfaceIds = new bytes4[](1);
+        manifest.interfaceIds[0] = type(MockInterface).interfaceId;
+
+        vm.prank(address(entryPoint));
+        account1.installExecution(makeAddr("mockModule"), manifest, "");
+
+        assertTrue(account1.supportsInterface(type(MockInterface).interfaceId));
+    }
+
+    function test_validationRevertsOnShortCalldata() public withSMATest {
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: abi.encodePacked(bytes3(ModularAccountBase.execute.selector)), // Short calldata
+            accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
+            preVerificationGas: 0,
+            gasFees: _encodeGas(1, 1),
+            paymasterAndData: "",
+            signature: ""
+        });
+
+        // Generate signature
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        userOp.signature =
+            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+
+        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
+        userOps[0] = userOp;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IEntryPoint.FailedOpWithRevert.selector,
+                0,
+                "AA23 reverted",
+                abi.encodeWithSelector(
+                    ModularAccountBase.UnrecognizedFunction.selector,
+                    bytes4(bytes3(ModularAccountBase.execute.selector))
+                )
+            )
+        );
+        entryPoint.handleOps(userOps, beneficiary);
     }
 
     // Internal Functions

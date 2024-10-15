@@ -204,8 +204,9 @@ contract ValidationIntersectionTest is AccountTestBase {
         vm.expectRevert(
             abi.encodeWithSelector(
                 ModularAccountBase.UnexpectedAggregator.selector,
-                address(oneHookModule),
-                MockBaseUserOpValidationModule.EntityId.PRE_VALIDATION_HOOK_1,
+                ModuleEntityLib.pack(
+                    address(oneHookModule), uint32(MockBaseUserOpValidationModule.EntityId.PRE_VALIDATION_HOOK_1)
+                ),
                 badAuthorizer
             )
         );

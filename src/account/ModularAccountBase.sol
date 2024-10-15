@@ -91,21 +91,16 @@ abstract contract ModularAccountBase is
 
     event DeferredActionNonceInvalidated(uint256 nonce);
 
-    error PostExecHookReverted(address module, uint32 entityId, bytes revertReason);
-    error PreExecHookReverted(address module, uint32 entityId, bytes revertReason);
-    error PreRuntimeValidationHookFailed(address module, uint32 entityId, bytes revertReason);
-    error RequireUserOperationContext();
-    error RuntimeValidationFunctionReverted(address module, uint32 entityId, bytes revertReason);
-    error SelfCallRecursionDepthExceeded();
-    error SignatureValidationInvalid(address module, uint32 entityId);
-    error UserOpValidationInvalid(address module, uint32 entityId);
-    error UnexpectedAggregator(address module, uint32 entityId, address aggregator);
-    error UnrecognizedFunction(bytes4 selector);
-    error ValidationFunctionMissing(bytes4 selector);
+    error CreateFailed();
     error DeferredActionNonceInvalid();
     error DeferredActionSignatureInvalid();
-    // This error is trigged in performCreate and performCreate2
-    error CreateFailed();
+    error RequireUserOperationContext();
+    error SelfCallRecursionDepthExceeded();
+    error SignatureValidationInvalid(ModuleEntity validationFunction);
+    error UserOpValidationInvalid(ModuleEntity validationFunction);
+    error UnexpectedAggregator(ModuleEntity validationFunction, address aggregator);
+    error UnrecognizedFunction(bytes4 selector);
+    error ValidationFunctionMissing(bytes4 selector);
 
     // Wraps execution of a native function with runtime validation and hooks
     // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution,
@@ -577,14 +572,14 @@ abstract contract ModularAccountBase is
             (currentSignatureSlice, signature) =
                 signature.advanceSegmentIfAtIndex(uint8(preUserOpValidationHooks.length - i - 1));
 
-            uint256 currentValidationRes = ExecutionLib.invokeUserOpCallBuffer(
-                userOpCallBuffer, preUserOpValidationHooks[i].moduleEntity(), currentSignatureSlice
-            );
+            ModuleEntity uoValidationHook = preUserOpValidationHooks[i].moduleEntity();
+
+            uint256 currentValidationRes =
+                ExecutionLib.invokeUserOpCallBuffer(userOpCallBuffer, uoValidationHook, currentSignatureSlice);
 
             if (uint160(currentValidationRes) > 1) {
                 // If the aggregator is not 0 or 1, it is an unexpected value
-                (address module, uint32 entityId) = preUserOpValidationHooks[i].moduleEntity().unpack();
-                revert UnexpectedAggregator(module, entityId, address(uint160(currentValidationRes)));
+                revert UnexpectedAggregator(uoValidationHook, address(uint160(currentValidationRes)));
             }
             validationRes = _coalescePreValidation(validationRes, currentValidationRes);
         }
@@ -730,8 +725,7 @@ abstract contract ModularAccountBase is
         AccountStorage storage _storage = getAccountStorage();
 
         if (!_storage.validationStorage[userOpValidationFunction].isUserOpValidation) {
-            (address module, uint32 entityId) = userOpValidationFunction.unpack();
-            revert UserOpValidationInvalid(module, entityId);
+            revert UserOpValidationInvalid(userOpValidationFunction);
         }
 
         ExecutionLib.convertToValidationBuffer(callBuffer);
@@ -789,8 +783,7 @@ abstract contract ModularAccountBase is
         AccountStorage storage _storage = getAccountStorage();
 
         if (!_storage.validationStorage[sigValidation].isSignatureValidation) {
-            (address module, uint32 entityId) = sigValidation.unpack();
-            revert SignatureValidationInvalid(module, entityId);
+            revert SignatureValidationInvalid(sigValidation);
         }
 
         if (ExecutionLib.invokeSignatureValidation(buffer, sigValidation, signatureSegment) == _1271_MAGIC_VALUE) {

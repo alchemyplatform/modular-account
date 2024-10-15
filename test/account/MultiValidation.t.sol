@@ -10,6 +10,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
@@ -59,9 +60,8 @@ contract MultiValidationTest is AccountTestBase {
         vm.prank(owner1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccountBase.RuntimeValidationFunctionReverted.selector,
-                address(validator2),
-                TEST_DEFAULT_VALIDATION_ENTITY_ID,
+                ExecutionLib.RuntimeValidationFunctionReverted.selector,
+                ModuleEntityLib.pack(address(validator2), TEST_DEFAULT_VALIDATION_ENTITY_ID),
                 abi.encodeWithSignature("NotAuthorized()")
             )
         );

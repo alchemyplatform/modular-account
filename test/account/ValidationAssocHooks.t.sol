@@ -4,7 +4,9 @@ pragma solidity ^0.8.26;
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
+import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ModuleManagerInternals} from "../../src/account/ModuleManagerInternals.sol";
 
 import {MockModule} from "../mocks/modules/MockModule.sol";
@@ -23,7 +25,7 @@ contract ValidationAssocHooksTest is AccountTestBase {
         }
     }
 
-    function test_validationAssocHooks_maxValidationHooks() public {
+    function test_validationAssocHooks_maxValidationHooks() public withSMATest {
         // Attempt to install 257 validation hooks, expect a revert.
 
         bytes[] memory hookInstalls = new bytes[](257);
@@ -48,7 +50,7 @@ contract ValidationAssocHooksTest is AccountTestBase {
         );
     }
 
-    function test_validationAssocHooks_maxExecHooks() public {
+    function test_validationAssocHooks_maxExecHooks() public withSMATest {
         // Attempt to install 257 exec hooks, expect a revert.
 
         bytes[] memory hookInstalls = new bytes[](257);
@@ -75,6 +77,42 @@ contract ValidationAssocHooksTest is AccountTestBase {
             new bytes4[](0),
             "",
             hookInstalls
+        );
+    }
+
+    function test_revertOnMissingExecuteUserOp() public withSMATest {
+        // install a validation-association execution hook, and expect a revert unless called via `executeUserOp`.
+
+        ExecutionManifest memory m; // empty manifest
+
+        hooks.push(new MockModule(m));
+
+        bytes[] memory hookInstalls = new bytes[](1);
+        hookInstalls[0] = abi.encodePacked(
+            HookConfigLib.packExecHook({_module: address(hooks[0]), _entityId: 0, _hasPre: false, _hasPost: false})
+        );
+
+        account1.installValidation(
+            ValidationConfigLib.pack({
+                _validationFunction: _signerValidation,
+                _isGlobal: true,
+                _isSignatureValidation: true,
+                _isUserOpValidation: true
+            }),
+            new bytes4[](0),
+            "",
+            hookInstalls
+        );
+
+        _runExecUserOp(
+            makeAddr("target"),
+            "",
+            abi.encodeWithSelector(
+                IEntryPoint.FailedOpWithRevert.selector,
+                0,
+                "AA23 reverted",
+                abi.encodeWithSelector(ModularAccountBase.RequireUserOperationContext.selector)
+            )
         );
     }
 }

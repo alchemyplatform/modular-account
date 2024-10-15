@@ -4,12 +4,12 @@ pragma solidity ^0.8.26;
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
-
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntity, ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
+import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
 import {MockModule} from "../mocks/modules/MockModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
@@ -227,7 +227,13 @@ contract UOCallBufferTest is AccountTestBase {
         );
 
         vm.prank(address(entryPoint));
-        vm.expectRevert(bytes(hex"abcdabcd"));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExecutionLib.PreUserOpValidationHookReverted.selector,
+                ModuleEntityLib.pack(address(validationHooks[0]), 0),
+                bytes(hex"abcdabcd")
+            )
+        );
         account1.validateUserOp(userOp, userOpHash, 1 wei);
 
         vm.clearMockedCalls();

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
@@ -75,5 +76,43 @@ contract GlobalValidationTest is AccountTestBase {
         );
 
         assertEq(ethRecipient.balance, 2 wei);
+    }
+
+    function test_globalValidation_failsOnSelectorApplicability() public withSMATest {
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account2),
+            nonce: 0,
+            initCode: abi.encodePacked(
+                address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
+            ),
+            callData: abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
+            accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
+            preVerificationGas: 0,
+            gasFees: _encodeGas(1, 1),
+            paymasterAndData: "",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, userOpHash.toEthSignedMessageHash());
+        // Use the wrong checking mode - SELECTOR_ASSOCIATED_VALIDATION
+        userOp.signature = _encodeSignature(
+            _signerValidation, SELECTOR_ASSOCIATED_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
+        );
+
+        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
+        userOps[0] = userOp;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IEntryPoint.FailedOpWithRevert.selector,
+                0,
+                "AA23 reverted",
+                abi.encodeWithSelector(
+                    ModularAccountBase.ValidationFunctionMissing.selector, ModularAccountBase.execute.selector
+                )
+            )
+        );
+        entryPoint.handleOps(userOps, beneficiary);
     }
 }

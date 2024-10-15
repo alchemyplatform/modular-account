@@ -27,11 +27,14 @@ using HookConfigLib for HookConfig;
 // Functions are more readable in original order
 // solhint-disable ordering
 library ExecutionLib {
-    // Duplicate definition to make it easier to revert in the library.
-    error PostExecHookReverted(address module, uint32 entityId, bytes revertReason);
-    error PreExecHookReverted(address module, uint32 entityId, bytes revertReason);
-    error PreRuntimeValidationHookFailed(address module, uint32 entityId, bytes revertReason);
-    error RuntimeValidationFunctionReverted(address module, uint32 entityId, bytes revertReason);
+    error PostExecHookReverted(ModuleEntity moduleFunction, bytes revertReason);
+    error PreExecHookReverted(ModuleEntity moduleFunction, bytes revertReason);
+    error PreRuntimeValidationHookReverted(ModuleEntity moduleFunction, bytes revertReason);
+    error PreSignatureValidationHookReverted(ModuleEntity moduleFunction, bytes revertReason);
+    error PreUserOpValidationHookReverted(ModuleEntity moduleFunction, bytes revertReason);
+    error RuntimeValidationFunctionReverted(ModuleEntity moduleFunction, bytes revertReason);
+    error SignatureValidationFunctionReverted(ModuleEntity moduleFunction, bytes revertReason);
+    error UserOpValidationFunctionReverted(ModuleEntity moduleFunction, bytes revertReason);
 
     // Perform the following call, without capturing any return data.
     // If the call reverts, the revert message will be directly bubbled up.
@@ -153,10 +156,14 @@ library ExecutionLib {
         ModuleEntity moduleEntity,
         bytes calldata signatureSegment
     ) internal returns (uint256 validationData) {
+        bool success;
+        address moduleAddress;
+        uint32 entityId;
+
         assembly ("memory-safe") {
             // Load the module address and entity Id
-            let entityId := and(shr(64, moduleEntity), 0xffffffff)
-            let moduleAddress := shr(96, moduleEntity)
+            entityId := and(shr(64, moduleEntity), 0xffffffff)
+            moduleAddress := shr(96, moduleEntity)
 
             // Update the buffer with the entity Id
             mstore(add(buffer, 0x24), entityId)
@@ -196,35 +203,51 @@ library ExecutionLib {
             actualCallLength := add(actualCallLength, and(add(signatureSegment.length, 0x1f), not(0x1f)))
 
             // Perform the call, reverting on failure or insufficient return data.
-            switch and(
-                gt(returndatasize(), 0x1f),
-                call(
-                    // If gas is the leftmost item before the call, it *should* be placed immediately before the
-                    // call opcode and be allowed in validation.
-                    gas(),
-                    moduleAddress,
-                    /*value*/
-                    0,
-                    /*argOffset*/
-                    add(buffer, 0x20), // jump over 32 bytes for length
-                    /*argSize*/
-                    actualCallLength,
-                    /*retOffset*/
-                    0,
-                    /*retSize*/
-                    0x20
+
+            success :=
+                and(
+                    gt(returndatasize(), 0x1f),
+                    call(
+                        // If gas is the leftmost item before the call, it *should* be placed immediately before the
+                        // call opcode and be allowed in validation.
+                        gas(),
+                        moduleAddress,
+                        /*value*/
+                        0,
+                        /*argOffset*/
+                        add(buffer, 0x20), // jump over 32 bytes for length
+                        /*argSize*/
+                        actualCallLength,
+                        /*retOffset*/
+                        0,
+                        /*retSize*/
+                        0x20
+                    )
                 )
-            )
-            case 0 {
-                // Bubble up the revert if the call reverts.
-                let m := mload(0x40)
-                returndatacopy(m, 0, returndatasize())
-                revert(m, returndatasize())
-            }
-            default {
-                // Otherwise, we return the first word of the return data as the validation data
+        }
+
+        if (success) {
+            assembly ("memory-safe") {
+                // If the call was successful, we return the first word of the return data as the validation data.
                 validationData := mload(0)
             }
+        } else {
+            // Revert with the appropriate error type for the selector used.
+
+            uint32 selectorUsed;
+            uint32 errorSelector;
+
+            assembly ("memory-safe") {
+                selectorUsed := and(mload(add(buffer, 0x4)), 0xffffffff)
+            }
+
+            if (selectorUsed == uint32(IValidationHookModule.preUserOpValidationHook.selector)) {
+                errorSelector = uint32(PreUserOpValidationHookReverted.selector);
+            } else {
+                errorSelector = uint32(UserOpValidationFunctionReverted.selector);
+            }
+
+            _revertModuleFunction(errorSelector, moduleAddress, entityId);
         }
     }
 
@@ -331,7 +354,7 @@ library ExecutionLib {
         }
 
         if (!success) {
-            revert PreRuntimeValidationHookFailed(moduleAddress, entityId, collectReturnData());
+            _revertModuleFunction(uint32(PreRuntimeValidationHookReverted.selector), moduleAddress, entityId);
         }
     }
 
@@ -432,7 +455,7 @@ library ExecutionLib {
         }
 
         if (!success) {
-            revert RuntimeValidationFunctionReverted(moduleAddress, entityId, collectReturnData());
+            _revertModuleFunction(uint32(RuntimeValidationFunctionReverted.selector), moduleAddress, entityId);
         }
     }
 
@@ -615,7 +638,7 @@ library ExecutionLib {
         }
 
         if (!success) {
-            revert PreExecHookReverted(moduleAddress, entityId, collectReturnData());
+            _revertModuleFunction(uint32(PreExecHookReverted.selector), moduleAddress, entityId);
         }
     }
 
@@ -808,7 +831,7 @@ library ExecutionLib {
             }
 
             if (!success) {
-                revert PostExecHookReverted(moduleAddress, entityId, collectReturnData());
+                _revertModuleFunction(uint32(PostExecHookReverted.selector), moduleAddress, entityId);
             }
         }
     }
@@ -844,10 +867,14 @@ library ExecutionLib {
         HookConfig hookEntity,
         bytes calldata signatureSegment
     ) internal view {
+        bool success;
+        address moduleAddress;
+        uint32 entityId;
+
         assembly ("memory-safe") {
             // Load the module address and entity id
-            let entityId := and(shr(64, hookEntity), 0xffffffff)
-            let moduleAddress := shr(96, hookEntity)
+            entityId := and(shr(64, hookEntity), 0xffffffff)
+            moduleAddress := shr(96, hookEntity)
 
             // Update the buffer with the entity Id
             mstore(add(buffer, 0x44), entityId)
@@ -873,7 +900,7 @@ library ExecutionLib {
             let actualCallLength := add(0xa4, and(add(signatureSegment.length, 0x1f), not(0x1f)))
 
             // Perform the call
-            let success :=
+            success :=
                 staticcall(
                     gas(),
                     moduleAddress,
@@ -886,13 +913,10 @@ library ExecutionLib {
                     /*retSize*/
                     0x20
                 )
+        }
 
-            if iszero(success) {
-                // Bubble up the revert if the call reverts.
-                let m := mload(0x40)
-                returndatacopy(m, 0, returndatasize())
-                revert(m, returndatasize())
-            }
+        if (!success) {
+            _revertModuleFunction(uint32(PreSignatureValidationHookReverted.selector), moduleAddress, entityId);
         }
     }
 
@@ -901,10 +925,14 @@ library ExecutionLib {
         ModuleEntity validationFunction,
         bytes calldata signatureSegment
     ) internal view returns (bytes4 result) {
+        bool success;
+        address moduleAddress;
+        uint32 entityId;
+
         assembly ("memory-safe") {
             // Load the module address and entity id
-            let entityId := and(shr(64, validationFunction), 0xffffffff)
-            let moduleAddress := shr(96, validationFunction)
+            entityId := and(shr(64, validationFunction), 0xffffffff)
+            moduleAddress := shr(96, validationFunction)
 
             // Store the account in the `account` field.
             mstore(add(buffer, 0x24), address())
@@ -937,34 +965,34 @@ library ExecutionLib {
             let actualCallLength := add(0xc4, and(add(signatureSegment.length, 0x1f), not(0x1f)))
 
             // Perform the call
-            switch and(
-                gt(returndatasize(), 0x1f),
-                staticcall(
-                    gas(),
-                    moduleAddress,
-                    /*argOffset*/
-                    add(buffer, 0x20), // jump over 32 bytes for length, and another 32 bytes for the account
-                    /*argSize*/
-                    actualCallLength,
-                    /*retOffset*/
-                    0,
-                    /*retSize*/
-                    0x20
+            success :=
+                and(
+                    gt(returndatasize(), 0x1f),
+                    staticcall(
+                        gas(),
+                        moduleAddress,
+                        /*argOffset*/
+                        add(buffer, 0x20), // jump over 32 bytes for length, and another 32 bytes for the account
+                        /*argSize*/
+                        actualCallLength,
+                        /*retOffset*/
+                        0,
+                        /*retSize*/
+                        0x20
+                    )
                 )
-            )
-            case 0 {
-                // Bubble up the revert if the call reverts.
-                let m := mload(0x40)
-                returndatacopy(m, 0, returndatasize())
-                revert(m, returndatasize())
-            }
-            default {
+        }
+
+        if (success) {
+            assembly ("memory-safe") {
                 // Otherwise, we return the first word of the return data as the signature validation result
                 result := mload(0)
 
                 // If any of the lower 28 bytes are nonzero, it would be an abi decoding failure.
                 if shl(32, result) { revert(0, 0) }
             }
+        } else {
+            _revertModuleFunction(uint32(SignatureValidationFunctionReverted.selector), moduleAddress, entityId);
         }
     }
 
@@ -1027,6 +1055,37 @@ library ExecutionLib {
         }
 
         return workingMemPtr;
+    }
+
+    function _revertModuleFunction(uint32 errorSelector, address moduleAddress, uint32 entityId) private pure {
+        // All of the module function reverts have the same parameter layout:
+        // - module address
+        // - entity Id
+        // - revert data
+
+        assembly ("memory-safe") {
+            let m := mload(0x40)
+            // Write in order of entityId -> address -> selector, to avoid masking or shifts.
+            mstore(add(m, 0x18), entityId)
+            mstore(add(m, 0x14), moduleAddress)
+            mstore(m, errorSelector)
+            mstore(add(m, 0x40), 0x40) // fixed offset for the revert data
+            mstore(add(m, 0x60), returndatasize())
+
+            if returndatasize() {
+                // Store a zero in the last word of the revert data, to do strict ABI-encoding for the error.
+                let roundedDownDataLength := and(returndatasize(), not(0x1f))
+                mstore(add(m, add(0x80, roundedDownDataLength)), 0)
+                returndatacopy(add(m, 0x80), 0, returndatasize())
+            }
+
+            let roundedUpDataLength := and(add(returndatasize(), 0x1f), not(0x1f))
+
+            // 4 bytes for the selector, and 0x60 for the 3 words of fixed-size data.
+            let totalRevertDataLength := add(0x64, roundedUpDataLength)
+
+            revert(add(m, 0x1c), totalRevertDataLength)
+        }
     }
 
     function _prepareRuntimeCallBufferPreValidationHooks(RTCallBuffer buffer) private pure {
