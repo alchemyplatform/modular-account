@@ -25,7 +25,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
-import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
+import {_coalesceValidationRes} from "../helpers/ValidationResHelpers.sol";
 import {
     DensePostHookData,
     ExecutionLib,
@@ -492,10 +492,7 @@ abstract contract ModularAccountBase is
 
         // We only coalesce validations if the validation data from deferred installation is nonzero.
         if (validationData != 0) {
-            // Parameter ordering is important here. We treat the validationData as pre-validation data because it
-            // may be empty, or it may contain only the deadline from deferred installation, so
-            // `_coalesceValidation()` must treat it as preValidationData.
-            validationData = _coalesceValidation(validationData, userOpValidationRes);
+            validationData = _coalesceValidationRes(validationData, userOpValidationRes);
         } else {
             validationData = userOpValidationRes;
         }
@@ -586,7 +583,7 @@ abstract contract ModularAccountBase is
                 (address module, uint32 entityId) = preUserOpValidationHooks[i].moduleEntity().unpack();
                 revert UnexpectedAggregator(module, entityId, address(uint160(currentValidationRes)));
             }
-            validationRes = _coalescePreValidation(validationRes, currentValidationRes);
+            validationRes = _coalesceValidationRes(validationRes, currentValidationRes);
         }
 
         // Run the user op validation function
@@ -599,7 +596,7 @@ abstract contract ModularAccountBase is
 
             if (preUserOpValidationHooks.length != 0) {
                 // If we have other validation data we need to coalesce with
-                validationRes = _coalesceValidation(validationRes, currentValidationRes);
+                validationRes = _coalesceValidationRes(validationRes, currentValidationRes);
             } else {
                 validationRes = currentValidationRes;
             }
