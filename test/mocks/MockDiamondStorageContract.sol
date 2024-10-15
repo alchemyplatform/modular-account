@@ -10,4 +10,9 @@ contract MockDiamondStorageContract is AccountStorageInitializable {
 
     // solhint-disable-next-line no-empty-blocks
     function initialize() external initializer {}
+
+    // Can't call disable initializers during initialization.
+    function badDisableInitializers() external initializer {
+        _disableInitializers();
+    }
 }

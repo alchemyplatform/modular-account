@@ -5,17 +5,18 @@ import {HookConfig, ModuleEntity} from "@erc6900/reference-implementation/interf
 
 import {LinkedListSet, SetValue} from "../libraries/LinkedListSetLib.sol";
 
-// bytes = keccak256("ERC6900.ModularAccount.Storage")
-bytes32 constant _ACCOUNT_STORAGE_SLOT = 0xc531f081ecdb5a90f38c197521797881a6e5c752a7d451780f325a95f8b91f45;
+// ERC-7201 derived storage slot.
+// keccak256(abi.encode(uint256(keccak256("Alchemy.ModularAccount.Storage_V2")) - 1)) & ~bytes32(uint256(0xff))
+bytes32 constant _ACCOUNT_STORAGE_SLOT = 0x596912a710dec01bac203cb0ed2c7e56a2ce6b2a68276967fff6dd57561bdd00;
 
 // Represents data associated with a specifc function selector.
 struct ExecutionData {
     // The module that implements this execution function.
-    // If this is a native function, the address must remain address(0).
+    // If this is a native function, the address should remain address(0).
     address module;
-    // Whether or not the function needs runtime validation, or can be called by anyone. The function can still be
-    // state changing if this flag is set to true.
-    // Note that even if this is set to true, user op validation will still be required, otherwise anyone could
+    // Whether or not the function needs runtime validation, or can be called without any validation. The function
+    // can still be state changing if this flag is set to true.
+    // Note that even if this is set to true, user op validation will still be required, otherwise any caller could
     // drain the account of native tokens by wasting gas.
     bool skipRuntimeValidation;
     // Whether or not a global validation function may be used to validate this function.
@@ -45,15 +46,18 @@ struct ValidationData {
     LinkedListSet selectors;
 }
 
+/// @custom:storage-location erc7201:Alchemy.ModularAccount.Storage_V2
 struct AccountStorage {
-    // AccountStorageInitializable variables
+    // AccountStorageInitializable variables.
     uint8 initialized;
     bool initializing;
-    // Execution functions and their associated functions
+    // Execution functions and their associated functions.
     mapping(bytes4 selector => ExecutionData) executionData;
+    // Validation functions and their associated functions.
     mapping(ModuleEntity validationFunction => ValidationData) validationData;
-    // For ERC165 introspection
+    // Module-defined ERC-165 interfaces installed on the account.
     mapping(bytes4 => uint256) supportedIfaces;
+    // Nonce usage state for deferred actions.
     mapping(uint256 => bool) deferredActionNonceUsed;
 }
 

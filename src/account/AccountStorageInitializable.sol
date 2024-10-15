@@ -4,7 +4,9 @@ pragma solidity ^0.8.26;
 import {AccountStorage, getAccountStorage} from "./AccountStorage.sol";
 
 /// @title AccountStorageInitializable
-/// @dev Bulk of the impl is lifted from OZ 5.0 Initializible
+/// @notice A contract mixin that provides the functionality of OpenZeppelin's Initializable contract, using the
+/// custom storage layout defined by the AccountStorage struct.
+/// @dev The implementation logic here is modified from OpenZeppelin's Initializable contract from v5.0.
 abstract contract AccountStorageInitializable {
     /**
      * @dev Triggered when the contract has been initialized or reinitialized.
@@ -53,7 +55,7 @@ abstract contract AccountStorageInitializable {
     }
 
     /// @notice Internal function to disable calls to initialization functions
-    /// @dev Reverts if the contract has already been initialized
+    /// @dev Reverts if the contract is currently initializing.
     function _disableInitializers() internal virtual {
         AccountStorage storage $ = getAccountStorage();
         if ($.initializing) {
