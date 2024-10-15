@@ -22,7 +22,6 @@ abstract contract BaseAccount is IAccount {
     /// @inheritdoc IAccount
     function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash, uint256 missingAccountFunds)
         external
-        virtual
         override
         returns (uint256 validationData)
     {
@@ -31,7 +30,6 @@ abstract contract BaseAccount is IAccount {
         validationData = _validateUserOp(userOp, userOpHash);
 
         // Pay the prefund if necessary.
-        // todo: storage-warming optimization if nonzero requiredPrefund
         assembly ("memory-safe") {
             if missingAccountFunds {
                 // Ignore failure (it's EntryPoint's job to verify, not the account's).
@@ -54,7 +52,7 @@ abstract contract BaseAccount is IAccount {
         returns (uint256 validationData);
 
     /// @notice Revert if the sender is not the EntryPoint.
-    function _requireFromEntryPoint() internal view virtual {
+    function _requireFromEntryPoint() internal view {
         if (msg.sender != address(_ENTRY_POINT)) {
             revert NotEntryPoint();
         }

@@ -14,6 +14,7 @@ import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
+import {BaseAccount} from "../../src/account/BaseAccount.sol";
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ModuleManagerInternals} from "../../src/account/ModuleManagerInternals.sol";
@@ -556,6 +557,19 @@ contract ModularAccountTest is AccountTestBase {
         // re-deploying with same salt should revert
         vm.prank(address(entryPoint));
         account1.performCreate2(0, initCode, salt);
+    }
+
+    function test_assertCallerEntryPoint() public withSMATest {
+        PackedUserOperation memory userOp;
+
+        // Prank a non-EP address
+        vm.prank(beneficiary);
+        vm.expectRevert(BaseAccount.NotEntryPoint.selector);
+        account1.validateUserOp(userOp, bytes32(0), 0);
+
+        vm.prank(beneficiary);
+        vm.expectRevert(BaseAccount.NotEntryPoint.selector);
+        account1.executeUserOp(userOp, bytes32(0));
     }
 
     // Internal Functions
