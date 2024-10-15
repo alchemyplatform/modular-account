@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/src/Test.sol";
 
-import {SparseCalldataSegmentLib} from "../../src/libraries/SparseCalldataSegmentLib.sol";
+import {SparseCalldataSegmentLib} from "@erc6900/reference-implementation/libraries/SparseCalldataSegmentLib.sol";
 
 contract SparseCalldataSegmentLibTest is Test {
     using SparseCalldataSegmentLib for bytes;

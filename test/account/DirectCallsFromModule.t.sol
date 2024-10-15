@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
+import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {
     Call,
     IModularAccount,
@@ -12,7 +13,7 @@ import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/Modul
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
-import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../src/helpers/Constants.sol";
+
 import {DirectCallModule} from "../mocks/modules/DirectCallModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
