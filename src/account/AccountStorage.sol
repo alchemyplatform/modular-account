@@ -9,7 +9,7 @@ import {LinkedListSet, SetValue} from "../libraries/LinkedListSetLib.sol";
 // keccak256(abi.encode(uint256(keccak256("Alchemy.ModularAccount.Storage_V2")) - 1)) & ~bytes32(uint256(0xff))
 bytes32 constant _ACCOUNT_STORAGE_SLOT = 0x596912a710dec01bac203cb0ed2c7e56a2ce6b2a68276967fff6dd57561bdd00;
 
-// Represents data associated with a specifc function selector.
+/// @notice Represents data associated with a specific function selector.
 struct ExecutionData {
     // The module that implements this execution function.
     // If this is a native function, the address should remain address(0).
@@ -25,6 +25,7 @@ struct ExecutionData {
     LinkedListSet executionHooks;
 }
 
+/// @notice Represents data associated with a specific validation function.
 struct ValidationData {
     // Whether or not this validation can be used as a global validation function.
     bool isGlobal;
