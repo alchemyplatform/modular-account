@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {
     ExecutionManifest,
     ManifestExecutionHook
@@ -10,8 +11,6 @@ import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookCon
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-
-import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../src/helpers/Constants.sol";
 
 import {HookOrderCheckerModule} from "../mocks/modules/HookOrderCheckerModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";

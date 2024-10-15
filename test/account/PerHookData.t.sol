@@ -4,13 +4,13 @@ pragma solidity ^0.8.26;
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {SparseCalldataSegmentLib} from "@erc6900/reference-implementation/libraries/SparseCalldataSegmentLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
-import {SparseCalldataSegmentLib} from "../../src/libraries/SparseCalldataSegmentLib.sol";
 
 import {Counter} from "../mocks/Counter.sol";
 import {MockAccessControlHookModule} from "../mocks/modules/MockAccessControlHookModule.sol";

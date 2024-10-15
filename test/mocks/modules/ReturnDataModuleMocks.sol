@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.26;
 
+import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {
     ExecutionManifest,
     IExecutionModule,
@@ -11,7 +12,6 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {DIRECT_CALL_VALIDATION_ENTITYID} from "../../../src/helpers/Constants.sol";
 import {BaseModule} from "../../../src/modules/BaseModule.sol";
 import {ModuleSignatureUtils} from "../../utils/ModuleSignatureUtils.sol";
 

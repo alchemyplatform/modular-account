@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import {MAX_VALIDATION_ASSOC_HOOKS} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {
     ExecutionManifest,
@@ -20,7 +21,6 @@ import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/Modul
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
-import {MAX_VALIDATION_ASSOC_HOOKS} from "../helpers/Constants.sol";
 import {ExecutionLib} from "../libraries/ExecutionLib.sol";
 import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
