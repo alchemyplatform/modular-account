@@ -10,14 +10,14 @@ import {Utils, WebAuthnInfo} from "webauthn-sol/test/Utils.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
-import {WebauthnValidationModule} from "../../src/modules/validation/WebauthnValidationModule.sol";
+import {WebAuthnValidationModule} from "../../src/modules/validation/WebAuthnValidationModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
 
-contract WebauthnValidationModuleTest is AccountTestBase {
+contract WebAuthnValidationModuleTest is AccountTestBase {
     using MessageHashUtils for bytes32;
 
-    WebauthnValidationModule public module;
+    WebAuthnValidationModule public module;
     address payable public account;
     uint32 public entityId = 1;
     // Example key from Coinbase Smart Wallet
@@ -32,7 +32,7 @@ contract WebauthnValidationModuleTest is AccountTestBase {
     uint256 internal constant _SIG_VALIDATION_FAILED = 1;
 
     function setUp() public override {
-        module = new WebauthnValidationModule();
+        module = new WebAuthnValidationModule();
         account = payable(account1);
         vm.prank(address(entryPoint));
         ModularAccount(account).installValidation(

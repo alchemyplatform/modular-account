@@ -27,10 +27,10 @@ import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol"
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 import {BaseModule} from "@erc6900/reference-implementation/modules/BaseModule.sol";
 
-/// @title Webauthn Validation
+/// @title WebAuthn Validation
 /// @author Alchemy
-/// @dev Implementation referenced from Webauthn + Coinbase Smart Wallet developed by Base.
-/// @notice This validation module enables Webauthn (secp256r1 curve) signature validation.
+/// @dev Implementation referenced from WebAuthn + Coinbase Smart Wallet developed by Base.
+/// @notice This validation module enables WebAuthn (secp256r1 curve) signature validation.
 /// Note:
 ///     - Uninstallation will NOT disable all installed entity IDs of an account. It only uninstalls the
 /// entity ID that is passed in. Account must remove access for each entity ID if want to disable all.
@@ -39,7 +39,7 @@ import {BaseModule} from "@erc6900/reference-implementation/modules/BaseModule.s
 ///     - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
 ///     - This validation supports composition that other validation can relay on entities in this validation
 /// to validate partially or fully.
-contract WebauthnValidationModule is IValidationModule, ReplaySafeWrapper, BaseModule {
+contract WebAuthnValidationModule is IValidationModule, ReplaySafeWrapper, BaseModule {
     using MessageHashUtils for bytes32;
     using WebAuthn for WebAuthn.WebAuthnAuth;
 
