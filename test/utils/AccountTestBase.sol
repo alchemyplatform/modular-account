@@ -18,7 +18,7 @@ import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
-import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
+import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 import {ModuleSignatureUtils} from "./ModuleSignatureUtils.sol";
 import {OptimizedTest} from "./OptimizedTest.sol";
@@ -26,7 +26,7 @@ import {TEST_DEFAULT_VALIDATION_ENTITY_ID as EXT_CONST_TEST_DEFAULT_VALIDATION_E
     "./TestConstants.sol";
 
 /// @dev This contract handles common boilerplate setup for tests using ModularAccount with
-/// ECDSAValidationModule.
+/// SingleSignerValidationModule.
 abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     using ModuleEntityLib for ModuleEntity;
     using MessageHashUtils for bytes32;
@@ -34,7 +34,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     EntryPoint public entryPoint;
     address payable public beneficiary;
 
-    ECDSAValidationModule public ecdsaValidationModule;
+    SingleSignerValidationModule public singleSignerValidationModule;
     ModularAccount public accountImplementation;
     SemiModularAccountBytecode public semiModularAccountImplementation;
     AccountFactory public factory;
@@ -79,12 +79,12 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         factoryOwner = makeAddr("factoryOwner");
         beneficiary = payable(makeAddr("beneficiary"));
 
-        // address deployedECDSAValidationModule = address(_deployECDSAValidationModule());
+        // address deployedSingleSignerValidationModule = address(_deploySingleSignerValidationModule());
 
         // We etch the single signer validation to the max address, such that it coincides with the fallback
         // validation module entity for semi modular account tests.
-        ecdsaValidationModule = _deployECDSAValidationModule();
-        // vm.etch(address(0), deployedECDSAValidationModule.code);
+        singleSignerValidationModule = _deploySingleSignerValidationModule();
+        // vm.etch(address(0), deployedSingleSignerValidationModule.code);
 
         accountImplementation = _deployModularAccount(entryPoint);
 
@@ -95,7 +95,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
             entryPoint,
             accountImplementation,
             semiModularAccountImplementation,
-            address(ecdsaValidationModule),
+            address(singleSignerValidationModule),
             factoryOwner
         );
 
@@ -103,7 +103,8 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
 
         vm.deal(address(account1), 100 ether);
 
-        _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
+        _signerValidation =
+            ModuleEntityLib.pack(address(singleSignerValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         _revertSnapshot = vm.snapshot();
     }
@@ -231,10 +232,11 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
             abi.encodeCall(
                 account1.execute,
                 (
-                    address(ecdsaValidationModule),
+                    address(singleSignerValidationModule),
                     0,
                     abi.encodeCall(
-                        ECDSAValidationModule.transferSigner, (TEST_DEFAULT_VALIDATION_ENTITY_ID, address(this))
+                        SingleSignerValidationModule.transferSigner,
+                        (TEST_DEFAULT_VALIDATION_ENTITY_ID, address(this))
                     )
                 )
             ),
@@ -289,7 +291,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
                 ),
                 signingKey,
                 account,
-                ecdsaValidationModule
+                singleSignerValidationModule
             )
         );
 
@@ -308,7 +310,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         bytes32 hash,
         uint256 signingKey,
         ModularAccount account,
-        ECDSAValidationModule validationModule
+        SingleSignerValidationModule validationModule
     ) internal view returns (bytes memory) {
         bytes32 replaySafeHash;
         if (_isSMATest) {

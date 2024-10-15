@@ -10,7 +10,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
-import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
+import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {CODELESS_ADDRESS, TEST_DEFAULT_VALIDATION_ENTITY_ID} from "../utils/TestConstants.sol";
@@ -19,13 +19,13 @@ contract MultiValidationTest is AccountTestBase {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
 
-    ECDSAValidationModule public validator2;
+    SingleSignerValidationModule public validator2;
 
     address public owner2;
     uint256 public owner2Key;
 
     function setUp() public override {
-        validator2 = new ECDSAValidationModule();
+        validator2 = new SingleSignerValidationModule();
 
         (owner2, owner2Key) = makeAddrAndKey("owner2");
     }

@@ -11,7 +11,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
-import {ECDSAValidationModule} from "../../src/modules/validation/ECDSAValidationModule.sol";
+import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 /// @dev Utilities for encoding signatures for modular account validation. Used for encoding user op, runtime, and
 /// 1271 signatures.
@@ -147,7 +147,7 @@ contract ModuleSignatureUtils {
 
     function _getECDSAReplaySafeHash(
         ModularAccount account,
-        ECDSAValidationModule validationModule,
+        SingleSignerValidationModule validationModule,
         bytes32 typedDataHash
     ) internal view returns (bytes32) {
         return validationModule.replaySafeHash(address(account), typedDataHash);

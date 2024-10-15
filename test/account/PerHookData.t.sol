@@ -404,7 +404,7 @@ contract PerHookDataTest is CustomValidationTestBase {
 
         bytes32 messageHash = keccak256(abi.encodePacked(message));
 
-        bytes32 replaySafeHash = ecdsaValidationModule.replaySafeHash(address(account1), messageHash);
+        bytes32 replaySafeHash = singleSignerValidationModule.replaySafeHash(address(account1), messageHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
@@ -500,7 +500,7 @@ contract PerHookDataTest is CustomValidationTestBase {
             abi.encode(_PRE_HOOK_ENTITY_ID_1, _counter)
         );
         // patched to work during SMA tests by enforcing that the new validation is not the fallback validation.
-        _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), _VALIDATION_ENTITY_ID);
+        _signerValidation = ModuleEntityLib.pack(address(singleSignerValidationModule), _VALIDATION_ENTITY_ID);
         return (
             _signerValidation, true, true, true, new bytes4[](0), abi.encode(_VALIDATION_ENTITY_ID, owner1), hooks
         );

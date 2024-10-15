@@ -43,7 +43,7 @@ import {BaseModule} from "../BaseModule.sol";
 ///     - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
 ///     - This validation supports composition that other validation can relay on entities in this validation
 /// to validate partially or fully.
-contract ECDSAValidationModule is IValidationModule, ReplaySafeWrapper, BaseModule {
+contract SingleSignerValidationModule is IValidationModule, ReplaySafeWrapper, BaseModule {
     using MessageHashUtils for bytes32;
 
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;

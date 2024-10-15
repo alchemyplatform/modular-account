@@ -28,7 +28,8 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
     uint48 public validAfter;
 
     function setUp() public override {
-        _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
+        _signerValidation =
+            ModuleEntityLib.pack(address(singleSignerValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         timeRangeModule = new TimeRangeModule();
 
@@ -264,7 +265,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
             abi.encode(HOOK_ENTITY_ID, validUntil, validAfter)
         );
         // patched to also work during SMA tests by differentiating the validation
-        _signerValidation = ModuleEntityLib.pack(address(ecdsaValidationModule), type(uint32).max - 1);
+        _signerValidation = ModuleEntityLib.pack(address(singleSignerValidationModule), type(uint32).max - 1);
         return
             (_signerValidation, true, true, true, new bytes4[](0), abi.encode(type(uint32).max - 1, owner1), hooks);
     }
