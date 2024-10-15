@@ -19,7 +19,7 @@ import {ExecutionStorage, ValidationStorage, getAccountStorage} from "./AccountS
 
 /// @title Modular Account Data Viewer
 /// @author Alchemy
-/// @notice This abstract contract implements the two get methods to get validation and execution data for an
+/// @notice This abstract contract implements the two view functions to get validation and execution data for an
 /// account.
 abstract contract ModularAccountView is IModularAccountView {
     /// @inheritdoc IModularAccountView
