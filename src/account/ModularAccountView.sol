@@ -15,7 +15,7 @@ import {
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
-import {ExecutionData, ValidationData, getAccountStorage} from "./AccountStorage.sol";
+import {ExecutionStorage, ValidationStorage, getAccountStorage} from "./AccountStorage.sol";
 
 abstract contract ModularAccountView is IModularAccountView {
     /// @inheritdoc IModularAccountView
@@ -29,12 +29,12 @@ abstract contract ModularAccountView is IModularAccountView {
             data.module = address(this);
             data.allowGlobalValidation = true;
         } else {
-            ExecutionData storage executionData = getAccountStorage().executionData[selector];
-            data.module = executionData.module;
-            data.skipRuntimeValidation = executionData.skipRuntimeValidation;
-            data.allowGlobalValidation = executionData.allowGlobalValidation;
+            ExecutionStorage storage executionStorage = getAccountStorage().executionStorage[selector];
+            data.module = executionStorage.module;
+            data.skipRuntimeValidation = executionStorage.skipRuntimeValidation;
+            data.allowGlobalValidation = executionStorage.allowGlobalValidation;
 
-            HookConfig[] memory hooks = MemManagementLib.loadExecHooks(executionData);
+            HookConfig[] memory hooks = MemManagementLib.loadExecHooks(executionStorage);
             MemManagementLib.reverseArr(hooks);
             data.executionHooks = hooks;
         }
@@ -47,18 +47,18 @@ abstract contract ModularAccountView is IModularAccountView {
         override
         returns (ValidationDataView memory data)
     {
-        ValidationData storage validationData = getAccountStorage().validationData[validationFunction];
-        data.isGlobal = validationData.isGlobal;
-        data.isSignatureValidation = validationData.isSignatureValidation;
-        data.isUserOpValidation = validationData.isUserOpValidation;
-        data.validationHooks = MemManagementLib.loadValidationHooks(validationData);
+        ValidationStorage storage validationStorage = getAccountStorage().validationStorage[validationFunction];
+        data.isGlobal = validationStorage.isGlobal;
+        data.isSignatureValidation = validationStorage.isSignatureValidation;
+        data.isUserOpValidation = validationStorage.isUserOpValidation;
+        data.validationHooks = MemManagementLib.loadValidationHooks(validationStorage);
         MemManagementLib.reverseArr(data.validationHooks);
 
-        HookConfig[] memory hooks = MemManagementLib.loadExecHooks(validationData);
+        HookConfig[] memory hooks = MemManagementLib.loadExecHooks(validationStorage);
         MemManagementLib.reverseArr(hooks);
         data.executionHooks = hooks;
 
-        bytes4[] memory selectors = MemManagementLib.loadSelectors(validationData);
+        bytes4[] memory selectors = MemManagementLib.loadSelectors(validationStorage);
         MemManagementLib.reverseArr(selectors);
         data.selectors = selectors;
     }

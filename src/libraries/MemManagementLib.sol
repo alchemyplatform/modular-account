@@ -3,13 +3,13 @@ pragma solidity ^0.8.26;
 
 import {HookConfig} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
-import {ExecutionData, ValidationData} from "../account/AccountStorage.sol";
+import {ExecutionStorage, ValidationStorage} from "../account/AccountStorage.sol";
 import {LinkedListSet, LinkedListSetLib, SENTINEL_VALUE, SetValue} from "./LinkedListSetLib.sol";
 
 type MemSnapshot is uint256;
 
 library MemManagementLib {
-    function loadExecHooks(ExecutionData storage execData, ValidationData storage valData)
+    function loadExecHooks(ExecutionStorage storage execData, ValidationStorage storage valData)
         internal
         view
         returns (HookConfig[] memory hooks)
@@ -79,7 +79,7 @@ library MemManagementLib {
         return hooks;
     }
 
-    function loadExecHooks(ExecutionData storage execData) internal view returns (HookConfig[] memory) {
+    function loadExecHooks(ExecutionStorage storage execData) internal view returns (HookConfig[] memory) {
         HookConfig[] memory hooks;
 
         SetValue[] memory hooksSet = LinkedListSetLib.getAll(execData.executionHooks);
@@ -93,19 +93,19 @@ library MemManagementLib {
         return hooks;
     }
 
-    function loadExecHooks(ValidationData storage valData) internal view returns (HookConfig[] memory) {
+    function loadExecHooks(ValidationStorage storage valData) internal view returns (HookConfig[] memory) {
         uint256 validationAssocHooksLength = valData.executionHookCount;
 
         return _loadValidationAssociatedHooks(validationAssocHooksLength, valData.executionHooks);
     }
 
-    function loadValidationHooks(ValidationData storage valData) internal view returns (HookConfig[] memory) {
+    function loadValidationHooks(ValidationStorage storage valData) internal view returns (HookConfig[] memory) {
         uint256 validationHookCount = valData.validationHookCount;
 
         return _loadValidationAssociatedHooks(validationHookCount, valData.validationHooks);
     }
 
-    function loadSelectors(ValidationData storage valData) internal view returns (bytes4[] memory selectors) {
+    function loadSelectors(ValidationStorage storage valData) internal view returns (bytes4[] memory selectors) {
         SetValue[] memory selectorsSet = LinkedListSetLib.getAll(valData.selectors);
 
         // SetValue is internally a bytes30, and both bytes4 and bytes30 are left-aligned. This cast is safe so
@@ -167,7 +167,7 @@ library MemManagementLib {
     }
 
     // Used to load both pre-validation hooks and pre-execution hooks, associated with a validation function.
-    // The caller must first get the length of the hooks from the ValidationData struct.
+    // The caller must first get the length of the hooks from the ValidationStorage struct.
     function _loadValidationAssociatedHooks(uint256 hookCount, LinkedListSet storage hooks)
         private
         view
