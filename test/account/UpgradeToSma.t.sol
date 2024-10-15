@@ -163,7 +163,7 @@ contract UpgradeToSmaTest is AccountTestBase {
         bytes memory encodedCall,
         bytes memory expectedRevertData
     ) internal {
-        uint256 nonce = entryPoint.getNonce(address(account), 0);
+        uint256 nonce = entryPoint.getNonce(account, 0);
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: account,
