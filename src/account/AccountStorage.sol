@@ -54,7 +54,7 @@ struct AccountStorage {
     mapping(ModuleEntity validationFunction => ValidationData) validationData;
     // For ERC165 introspection
     mapping(bytes4 => uint256) supportedIfaces;
-    mapping(uint256 => bool) deferredInstallNonceUsed;
+    mapping(uint256 => bool) deferredActionNonceUsed;
 }
 
 function getAccountStorage() pure returns (AccountStorage storage _storage) {

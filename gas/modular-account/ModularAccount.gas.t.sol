@@ -4,7 +4,10 @@ pragma solidity ^0.8.26;
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
-import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
+import {
+    ValidationConfig,
+    ValidationConfigLib
+} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Vm} from "forge-std/src/Vm.sol";
@@ -261,14 +264,12 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes memory uoValidationSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
+        ValidationConfig newUOValidation =
+            ValidationConfigLib.pack(address(newValidationModule), newEntityId, true, false, true);
+
         bytes memory deferredValidationInstallCall = abi.encodeCall(
             ModularAccountBase.installValidation,
-            (
-                ValidationConfigLib.pack(address(newValidationModule), newEntityId, true, false, true),
-                new bytes4[](0),
-                abi.encode(newEntityId, owner2),
-                new bytes[](0)
-            )
+            (newUOValidation, new bytes4[](0), abi.encode(newEntityId, owner2), new bytes[](0))
         );
 
         uint256 deferredInstallNonce = 0;
@@ -282,7 +283,11 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
                     account1,
                     ecdsaValidationModule,
                     _getDeferredInstallHash(
-                        account1, deferredInstallNonce, deferredInstallDeadline, deferredValidationInstallCall
+                        account1,
+                        deferredInstallNonce,
+                        deferredInstallDeadline,
+                        newUOValidation,
+                        deferredValidationInstallCall
                     )
                 )
             )
@@ -291,7 +296,9 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         userOp.signature = _encodeDeferredInstallUOSignature(
             signerValidation,
             GLOBAL_VALIDATION,
-            _packDeferredInstallData(deferredInstallNonce, deferredInstallDeadline, deferredValidationInstallCall),
+            _packDeferredInstallData(
+                deferredInstallNonce, deferredInstallDeadline, newUOValidation, deferredValidationInstallCall
+            ),
             deferredValidationSig,
             uoValidationSig
         );
