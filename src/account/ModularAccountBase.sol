@@ -846,7 +846,7 @@ abstract contract ModularAccountBase is
             // executeBatch may be used to batch account actions together, by targetting the account itself.
             // If this is done, we must ensure all of the inner calls are allowed by the provided validation
             // function.
-            _checkExecuteBatchApplicability(callData[4:], validationFunction, checkingType);
+            _checkExecuteBatchValidationApplicability(callData[4:], validationFunction, checkingType);
         }
     }
 
@@ -854,7 +854,7 @@ abstract contract ModularAccountBase is
     /// @param callData The calldata to check, excluding the `executeBatch` selector.
     /// @param validationFunction The validation function to check against.
     /// @param checkingType The type of validation checking to perform.
-    function _checkExecuteBatchApplicability(
+    function _checkExecuteBatchValidationApplicability(
         bytes calldata callData,
         ModuleEntity validationFunction,
         ValidationCheckingType checkingType
@@ -879,8 +879,14 @@ abstract contract ModularAccountBase is
         //     }
         // }
 
-        // The following is adapted from the compiler-generated ABI decoder for the `Call[]` parameter type.
-        // See test/mocks/MockDecoder.sol for more info.
+        // The following is adapted from the compiler-generated ABI decoder for the `Call[] calldata` parameter
+        // type. See test/mocks/MockDecoder.sol for more info.
+        // This allows the decoding behavior here, in the validation step, to match what would happen during the
+        // actual execution of `executeBatch`.
+        // This follows the compiler-generated behavior of:
+        // - asserting the data to load fits in the remaining space of the current `bytes calldata`.
+        // - asserting that the ABI-encoded offsets and lengths do not exceed the constant value
+        // 0xffffffffffffffff.
 
         // The end of allowed calldata to read. Declared in an outer context to make available to multiple code
         // blocks.
@@ -891,6 +897,7 @@ abstract contract ModularAccountBase is
         // The length of the `Call[]` array.
         uint256 callsLength;
 
+        // This block is retrieving the actual Call[] location and length, asserting it doesn't go out of bounds.
         assembly ("memory-safe") {
             // Set up the "safe data decoding range"
             let headStart := callData.offset
@@ -928,6 +935,8 @@ abstract contract ModularAccountBase is
             address callTarget;
             uint256 structAbsOffset;
 
+            // This block is retrieving the actual calls[i] struct location and contents, asserting it doesn't go
+            // out of bounds.
             assembly ("memory-safe") {
                 // Load and sanitize the struct offset.
                 // This is still safe to load, from the bounds check above.
@@ -953,6 +962,8 @@ abstract contract ModularAccountBase is
 
                 uint32 selector;
 
+                // This block is retrieving the selector from the first 4 bytes of calls[i].data, asserting it
+                // doesn't go out of bounds and that the data is at least 4 bytes long.
                 assembly ("memory-safe") {
                     // Load and sanitize the data offset.
                     let dataRelOffset := calldataload(add(structAbsOffset, 0x40))
