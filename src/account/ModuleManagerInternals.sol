@@ -33,6 +33,10 @@ import {
     toSetValue
 } from "./AccountStorage.sol";
 
+/// @title Modular Manager Internal Methods
+/// @author Alchemy
+/// @notice This abstract contract hosts the internal installation and uninstallation methods of execution and
+/// validation functions. Methods here update the account storage.
 abstract contract ModuleManagerInternals is IModularAccount {
     using LinkedListSetLib for LinkedListSet;
     using ModuleEntityLib for ModuleEntity;
@@ -52,8 +56,6 @@ abstract contract ModuleManagerInternals is IModularAccount {
     error PreValidationHookDuplicate();
     error ValidationAlreadySet(bytes4 selector, ModuleEntity validationFunction);
     error ValidationAssocHookLimitExceeded();
-
-    // Storage update operations
 
     function _setExecutionFunction(
         bytes4 selector,
@@ -115,10 +117,10 @@ abstract contract ModuleManagerInternals is IModularAccount {
     }
 
     function _removeExecHooks(LinkedListSet storage hooks, HookConfig hookConfig) internal {
-        // Todo: use predecessor
         hooks.tryRemove(toSetValue(hookConfig));
     }
 
+    /// @notice Update components according to the manifest.
     function _installExecution(
         address module,
         ExecutionManifest calldata manifest,
@@ -130,7 +132,6 @@ abstract contract ModuleManagerInternals is IModularAccount {
             revert NullModule();
         }
 
-        // Update components according to the manifest.
         uint256 length = manifest.executionFunctions.length;
         for (uint256 i = 0; i < length; ++i) {
             bytes4 selector = manifest.executionFunctions[i].executionSelector;
@@ -142,14 +143,14 @@ abstract contract ModuleManagerInternals is IModularAccount {
         length = manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
-            ExecutionStorage storage executionStorage = _storage.executionStorage[mh.executionSelector];
+            LinkedListSet storage executionHooks = _storage.executionStorage[mh.executionSelector].executionHooks;
             HookConfig hookConfig = HookConfigLib.packExecHook({
                 _module: module,
                 _entityId: mh.entityId,
                 _hasPre: mh.isPreHook,
                 _hasPost: mh.isPostHook
             });
-            _addExecHooks(executionStorage.executionHooks, hookConfig);
+            _addExecHooks(executionHooks, hookConfig);
         }
 
         length = manifest.interfaceIds.length;
@@ -162,24 +163,24 @@ abstract contract ModuleManagerInternals is IModularAccount {
         emit ExecutionInstalled(module, manifest);
     }
 
+    /// @notice Remove components according to the manifest, in reverse order (by component type) of their
+    /// installation.
     function _uninstallExecution(address module, ExecutionManifest calldata manifest, bytes calldata uninstallData)
         internal
     {
         AccountStorage storage _storage = getAccountStorage();
 
-        // Remove components according to the manifest, in reverse order (by component type) of their installation.
-
         uint256 length = manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
-            ExecutionStorage storage execData = _storage.executionStorage[mh.executionSelector];
+            LinkedListSet storage executionHooks = _storage.executionStorage[mh.executionSelector].executionHooks;
             HookConfig hookConfig = HookConfigLib.packExecHook({
                 _module: module,
                 _entityId: mh.entityId,
                 _hasPre: mh.isPreHook,
                 _hasPost: mh.isPostHook
             });
-            _removeExecHooks(execData.executionHooks, hookConfig);
+            _removeExecHooks(executionHooks, hookConfig);
         }
 
         length = manifest.executionFunctions.length;
@@ -199,6 +200,8 @@ abstract contract ModuleManagerInternals is IModularAccount {
         emit ExecutionUninstalled(module, onUninstallSuccess, manifest);
     }
 
+    /// @dev setup the module storage for the account, reverts are bubbled up into a custom
+    /// ModuleInstallCallbackFailed
     function _onInstall(address module, bytes calldata data, bytes4 interfaceId) internal {
         if (data.length > 0) {
             if (!ERC165Checker.supportsERC165InterfaceUnchecked(module, interfaceId)) {
@@ -213,6 +216,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
         }
     }
 
+    /// @dev clear the module storage for the account, reverts are IGNORED. Status is included in emitted event.
     function _onUninstall(address module, bytes calldata data) internal returns (bool onUninstallSuccess) {
         onUninstallSuccess = true;
         if (data.length > 0) {
@@ -225,6 +229,8 @@ abstract contract ModuleManagerInternals is IModularAccount {
         }
     }
 
+    /// @dev install a validation function for the account. If the validation function is already installed,
+    /// certain fields may be updated; more (not duplicated) hooks and selectors can be added.
     function _installValidation(
         ValidationConfig validationConfig,
         bytes4[] calldata selectors,
@@ -235,13 +241,16 @@ abstract contract ModuleManagerInternals is IModularAccount {
             getAccountStorage().validationStorage[validationConfig.moduleEntity()];
         ModuleEntity moduleEntity = validationConfig.moduleEntity();
 
-        for (uint256 i = 0; i < hooks.length; ++i) {
+        uint256 length = hooks.length;
+        for (uint256 i = 0; i < length; ++i) {
             HookConfig hookConfig = HookConfig.wrap(bytes25(hooks[i][:25]));
             bytes calldata hookData = hooks[i][25:];
 
             if (hookConfig.isValidationHook()) {
                 // Increment the stored length of validation hooks, and revert if the limit is exceeded.
 
+                // Safety:
+                //     validationHookCount is uint8, so math operations here should never overflow
                 unchecked {
                     if (uint256(_validationStorage.validationHookCount) + 1 > MAX_VALIDATION_ASSOC_HOOKS) {
                         revert ValidationAssocHookLimitExceeded();
@@ -255,25 +264,26 @@ abstract contract ModuleManagerInternals is IModularAccount {
                 }
 
                 _onInstall(hookConfig.module(), hookData, type(IValidationHookModule).interfaceId);
+            } else {
+                // Hook is an execution hook
 
-                continue;
-            }
-            // Hook is an execution hook
+                // Safety:
+                //     validationHookCount is uint8, so math operations here should never overflow
+                unchecked {
+                    if (uint256(_validationStorage.executionHookCount) + 1 > MAX_VALIDATION_ASSOC_HOOKS) {
+                        revert ValidationAssocHookLimitExceeded();
+                    }
 
-            unchecked {
-                if (uint256(_validationStorage.executionHookCount) + 1 > MAX_VALIDATION_ASSOC_HOOKS) {
-                    revert ValidationAssocHookLimitExceeded();
+                    ++_validationStorage.executionHookCount;
                 }
 
-                ++_validationStorage.executionHookCount;
+                _addExecHooks(_validationStorage.executionHooks, hookConfig);
+                _onInstall(hookConfig.module(), hookData, type(IExecutionHookModule).interfaceId);
             }
-
-            _addExecHooks(_validationStorage.executionHooks, hookConfig);
-
-            _onInstall(hookConfig.module(), hookData, type(IExecutionHookModule).interfaceId);
         }
 
-        for (uint256 i = 0; i < selectors.length; ++i) {
+        length = selectors.length;
+        for (uint256 i = 0; i < length; ++i) {
             bytes4 selector = selectors[i];
             if (!_validationStorage.selectors.tryAdd(toSetValue(selector))) {
                 revert ValidationAlreadySet(selector, moduleEntity);
@@ -310,14 +320,16 @@ abstract contract ModuleManagerInternals is IModularAccount {
 
             // Hook uninstall data is provided in the order of pre validation hooks, then execution hooks.
             uint256 hookIndex = 0;
-            for (uint256 i = 0; i < validationHooks.length; ++i) {
+            uint256 length = validationHooks.length;
+            for (uint256 i = 0; i < length; ++i) {
                 bytes calldata hookData = hookUninstallDatas[hookIndex];
                 (address hookModule,) = ModuleEntityLib.unpack(validationHooks[i].moduleEntity());
                 onUninstallSuccess = onUninstallSuccess && _onUninstall(hookModule, hookData);
                 hookIndex++;
             }
 
-            for (uint256 i = 0; i < execHooks.length; ++i) {
+            length = execHooks.length;
+            for (uint256 i = 0; i < length; ++i) {
                 bytes calldata hookData = hookUninstallDatas[hookIndex];
                 address hookModule = execHooks[i].module();
                 onUninstallSuccess = onUninstallSuccess && _onUninstall(hookModule, hookData);
