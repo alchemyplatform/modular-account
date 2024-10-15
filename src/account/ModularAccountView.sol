@@ -17,6 +17,10 @@ import {
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {ExecutionStorage, ValidationStorage, getAccountStorage} from "./AccountStorage.sol";
 
+/// @title Modular Account Data Viewer
+/// @author Alchemy
+/// @notice This abstract contract implements the two get methods to get validation and execution data for an
+/// account.
 abstract contract ModularAccountView is IModularAccountView {
     /// @inheritdoc IModularAccountView
     function getExecutionData(bytes4 selector) external view override returns (ExecutionDataView memory data) {
