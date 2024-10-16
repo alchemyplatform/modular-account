@@ -12,16 +12,15 @@ contract ValidationResHelpersTest is Test {
         // both validation res have all three values
         assertEq(
             _coalesceValidationRes(
-                _packValidationData(false, uint48(5), uint48(0)), _packValidationData(false, uint48(6), uint48(1))
+                _packValidationData(false, uint48(5), uint48(2)), _packValidationData(false, uint48(6), uint48(2))
             ),
-            _packValidationData(false, uint48(5), uint48(1))
+            _packValidationData(false, uint48(5), uint48(2))
         );
-
         assertEq(
             _coalesceValidationRes(
-                _packValidationData(true, uint48(5), uint48(0)), _packValidationData(false, uint48(6), uint48(1))
+                _packValidationData(true, uint48(5), uint48(1)), _packValidationData(false, uint48(6), uint48(2))
             ),
-            _packValidationData(true, uint48(5), uint48(1))
+            _packValidationData(true, uint48(5), uint48(2))
         );
 
         // one validation res missing
@@ -40,6 +39,34 @@ contract ValidationResHelpersTest is Test {
         assertEq(
             _coalesceValidationRes(_packValidationData(true, uint48(5), uint48(0)), 0),
             _packValidationData(true, uint48(5), uint48(0))
+        );
+
+        // one validation only has validUntil
+        assertEq(
+            _coalesceValidationRes(
+                _packValidationData(false, uint48(5), uint48(0)), _packValidationData(false, uint48(6), uint48(1))
+            ),
+            _packValidationData(false, uint48(5), uint48(1))
+        );
+        assertEq(
+            _coalesceValidationRes(
+                _packValidationData(false, uint48(6), uint48(1)), _packValidationData(false, uint48(5), uint48(0))
+            ),
+            _packValidationData(false, uint48(5), uint48(1))
+        );
+
+        // one validation only has validUntil, one only has validAfter
+        assertEq(
+            _coalesceValidationRes(
+                _packValidationData(false, uint48(5), uint48(0)), _packValidationData(false, uint48(0), uint48(1))
+            ),
+            _packValidationData(false, uint48(5), uint48(1))
+        );
+        assertEq(
+            _coalesceValidationRes(
+                _packValidationData(false, uint48(0), uint48(1)), _packValidationData(false, uint48(5), uint48(0))
+            ),
+            _packValidationData(false, uint48(5), uint48(1))
         );
     }
 }
