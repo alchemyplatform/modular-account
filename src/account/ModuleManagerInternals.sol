@@ -31,14 +31,6 @@ abstract contract ModuleManagerInternals is IModularAccount {
     using HookConfigLib for HookConfig;
 
     error ArrayLengthMismatch();
-    error Erc4337FunctionNotAllowed(bytes4 selector);
-    error ExecutionFunctionAlreadySet(bytes4 selector);
-    error IModuleFunctionNotAllowed(bytes4 selector);
-    error InterfaceNotSupported(address module);
-    error NullModule();
-    error ExecutionHookAlreadySet(HookConfig hookConfig);
-    error ModuleInstallCallbackFailed(address module, bytes revertReason);
-    error ModuleNotInstalled(address module);
     error PreValidationHookDuplicate();
     error ValidationAlreadySet(bytes4 selector, ModuleEntity validationFunction);
     error ValidationAssocHookLimitExceeded();

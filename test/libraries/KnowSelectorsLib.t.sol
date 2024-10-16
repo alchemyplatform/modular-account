@@ -15,26 +15,30 @@ import {KnownSelectorsLib} from "../../src/libraries/KnownSelectorsLib.sol";
 
 contract KnownSelectorsLibTest is Test {
     function test_isErc4337Function() public pure {
-        assertTrue(KnownSelectorsLib.isErc4337Function(IAggregator.validateSignatures.selector));
-        assertTrue(KnownSelectorsLib.isErc4337Function(IAggregator.validateUserOpSignature.selector));
-        assertTrue(KnownSelectorsLib.isErc4337Function(IAggregator.aggregateSignatures.selector));
-        assertTrue(KnownSelectorsLib.isErc4337Function(IPaymaster.validatePaymasterUserOp.selector));
-        assertTrue(KnownSelectorsLib.isErc4337Function(IPaymaster.postOp.selector));
+        assertTrue(KnownSelectorsLib.isErc4337Function(uint32(IAggregator.validateSignatures.selector)));
+        assertTrue(KnownSelectorsLib.isErc4337Function(uint32(IAggregator.validateUserOpSignature.selector)));
+        assertTrue(KnownSelectorsLib.isErc4337Function(uint32(IAggregator.aggregateSignatures.selector)));
+        assertTrue(KnownSelectorsLib.isErc4337Function(uint32(IPaymaster.validatePaymasterUserOp.selector)));
+        assertTrue(KnownSelectorsLib.isErc4337Function(uint32(IPaymaster.postOp.selector)));
 
-        assertFalse(KnownSelectorsLib.isErc4337Function(IAccount.validateUserOp.selector));
+        assertFalse(KnownSelectorsLib.isErc4337Function(uint32(IAccount.validateUserOp.selector)));
     }
 
     function test_isIModuleFunction() public pure {
-        assertTrue(KnownSelectorsLib.isIModuleFunction(IModule.onInstall.selector));
-        assertTrue(KnownSelectorsLib.isIModuleFunction(IModule.onUninstall.selector));
-        assertTrue(KnownSelectorsLib.isIModuleFunction(IModule.moduleId.selector));
-        assertTrue(KnownSelectorsLib.isIModuleFunction(IValidationHookModule.preUserOpValidationHook.selector));
-        assertTrue(KnownSelectorsLib.isIModuleFunction(IValidationModule.validateUserOp.selector));
-        assertTrue(KnownSelectorsLib.isIModuleFunction(IValidationHookModule.preRuntimeValidationHook.selector));
-        assertTrue(KnownSelectorsLib.isIModuleFunction(IValidationModule.validateRuntime.selector));
-        assertTrue(KnownSelectorsLib.isIModuleFunction(IExecutionHookModule.preExecutionHook.selector));
-        assertTrue(KnownSelectorsLib.isIModuleFunction(IExecutionHookModule.postExecutionHook.selector));
+        assertTrue(KnownSelectorsLib.isIModuleFunction(uint32(IModule.onInstall.selector)));
+        assertTrue(KnownSelectorsLib.isIModuleFunction(uint32(IModule.onUninstall.selector)));
+        assertTrue(KnownSelectorsLib.isIModuleFunction(uint32(IModule.moduleId.selector)));
+        assertTrue(
+            KnownSelectorsLib.isIModuleFunction(uint32(IValidationHookModule.preUserOpValidationHook.selector))
+        );
+        assertTrue(KnownSelectorsLib.isIModuleFunction(uint32(IValidationModule.validateUserOp.selector)));
+        assertTrue(
+            KnownSelectorsLib.isIModuleFunction(uint32(IValidationHookModule.preRuntimeValidationHook.selector))
+        );
+        assertTrue(KnownSelectorsLib.isIModuleFunction(uint32(IValidationModule.validateRuntime.selector)));
+        assertTrue(KnownSelectorsLib.isIModuleFunction(uint32(IExecutionHookModule.preExecutionHook.selector)));
+        assertTrue(KnownSelectorsLib.isIModuleFunction(uint32(IExecutionHookModule.postExecutionHook.selector)));
 
-        assertFalse(KnownSelectorsLib.isIModuleFunction(IPaymaster.postOp.selector));
+        assertFalse(KnownSelectorsLib.isIModuleFunction(uint32(IPaymaster.postOp.selector)));
     }
 }

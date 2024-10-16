@@ -29,9 +29,9 @@ contract ExecutionInstallDelegate {
     error NullModule();
     error InterfaceNotSupported(address module);
     error ModuleInstallCallbackFailed(address module, bytes revertReason);
-    error ExecutionFunctionAlreadySet(bytes4 selector);
-    error IModuleFunctionNotAllowed(bytes4 selector);
-    error Erc4337FunctionNotAllowed(bytes4 selector);
+    error ExecutionFunctionAlreadySet(uint32 selector);
+    error IModuleFunctionNotAllowed(uint32 selector);
+    error Erc4337FunctionNotAllowed(uint32 selector);
     error ExecutionHookAlreadySet(HookConfig hookConfig);
 
     modifier onlyDelegateCall() {
@@ -137,25 +137,25 @@ contract ExecutionInstallDelegate {
         bool allowGlobalValidation,
         address module
     ) internal {
-        ExecutionStorage storage _executionStorage = getAccountStorage().executionStorage[selector];
+        ExecutionStorage storage _executionStorage = getAccountStorage().executionStorage[bytes4(selector)];
 
         if (_executionStorage.module != address(0)) {
-            revert ExecutionFunctionAlreadySet(selector);
+            revert ExecutionFunctionAlreadySet(uint32(selector));
         }
 
         // Note that there is no check for native function selectors. Installing a function with a colliding
         // selector will lead to the installed function being unreachable.
 
         // Make sure incoming execution function is not a function in IModule
-        if (KnownSelectorsLib.isIModuleFunction(selector)) {
-            revert IModuleFunctionNotAllowed(selector);
+        if (KnownSelectorsLib.isIModuleFunction(uint32(selector))) {
+            revert IModuleFunctionNotAllowed(uint32(selector));
         }
 
         // Also make sure it doesn't collide with functions defined by ERC-4337 and called by the entry point. This
         // prevents a malicious module from sneaking in a function with the same selector as e.g.
         // `validatePaymasterUserOp` and turning the account into their own personal paymaster.
-        if (KnownSelectorsLib.isErc4337Function(selector)) {
-            revert Erc4337FunctionNotAllowed(selector);
+        if (KnownSelectorsLib.isErc4337Function(uint32(selector))) {
+            revert Erc4337FunctionNotAllowed(uint32(selector));
         }
 
         _executionStorage.module = module;

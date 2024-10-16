@@ -13,8 +13,8 @@ import {LinkedListSet, LinkedListSetLib} from "./LinkedListSetLib.sol";
 /// @title ModuleInstallCommons
 /// @author Alchemy
 ///
-/// @notice This is an internal library which externally holds module installation-related functions relevant to
-/// both the ExecutionInstallDelegate and the ModuleManagerInternals contracts.
+/// @notice This is an internal library which holds module installation-related functions relevant to both the
+/// ExecutionInstallDelegate and the ModuleManagerInternals contracts.
 library ModuleInstallCommons {
     using LinkedListSetLib for LinkedListSet;
 

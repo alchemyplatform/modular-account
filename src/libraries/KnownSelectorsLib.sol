@@ -13,22 +13,24 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 /// @dev Library to help to check if a selector is a know function selector of the modular account or ERC-4337
 /// contract.
 library KnownSelectorsLib {
-    function isErc4337Function(bytes4 selector) internal pure returns (bool) {
-        return selector == IAggregator.validateSignatures.selector
-            || selector == IAggregator.validateUserOpSignature.selector
-            || selector == IAggregator.aggregateSignatures.selector
-            || selector == IPaymaster.validatePaymasterUserOp.selector || selector == IPaymaster.postOp.selector;
+    function isErc4337Function(uint32 selector) internal pure returns (bool) {
+        return selector == uint32(IAggregator.validateSignatures.selector)
+            || selector == uint32(IAggregator.validateUserOpSignature.selector)
+            || selector == uint32(IAggregator.aggregateSignatures.selector)
+            || selector == uint32(IPaymaster.validatePaymasterUserOp.selector)
+            || selector == uint32(IPaymaster.postOp.selector);
     }
 
-    function isIModuleFunction(bytes4 selector) internal pure returns (bool) {
-        return selector == IModule.onInstall.selector || selector == IModule.onUninstall.selector
-            || selector == IModule.moduleId.selector || selector == IExecutionModule.executionManifest.selector
-            || selector == IExecutionHookModule.preExecutionHook.selector
-            || selector == IExecutionHookModule.postExecutionHook.selector
-            || selector == IValidationModule.validateUserOp.selector
-            || selector == IValidationModule.validateRuntime.selector
-            || selector == IValidationModule.validateSignature.selector
-            || selector == IValidationHookModule.preUserOpValidationHook.selector
-            || selector == IValidationHookModule.preRuntimeValidationHook.selector;
+    function isIModuleFunction(uint32 selector) internal pure returns (bool) {
+        return selector == uint32(IModule.onInstall.selector) || selector == uint32(IModule.onUninstall.selector)
+            || selector == uint32(IModule.moduleId.selector)
+            || selector == uint32(IExecutionModule.executionManifest.selector)
+            || selector == uint32(IExecutionHookModule.preExecutionHook.selector)
+            || selector == uint32(IExecutionHookModule.postExecutionHook.selector)
+            || selector == uint32(IValidationModule.validateUserOp.selector)
+            || selector == uint32(IValidationModule.validateRuntime.selector)
+            || selector == uint32(IValidationModule.validateSignature.selector)
+            || selector == uint32(IValidationHookModule.preUserOpValidationHook.selector)
+            || selector == uint32(IValidationHookModule.preRuntimeValidationHook.selector);
     }
 }
