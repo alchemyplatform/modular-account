@@ -45,7 +45,7 @@ import {TokenReceiver} from "./TokenReceiver.sol";
 
 /// @title Modular Account Base
 /// @author Alchemy
-/// @notice This abstract account is a modular account that is compliant with ERC-6900 standard. It supports
+/// @notice This abstract contract is a modular account that is compliant with ERC-6900 standard. It supports
 /// deferred actions during validation.
 abstract contract ModularAccountBase is
     IModularAccount,
