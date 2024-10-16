@@ -21,6 +21,8 @@ function _coalesceValidationRes(uint256 validationRes1, uint256 validationRes2)
 
     resValidationData |= ((validAfter1 < validAfter2) ? uint256(validAfter2) << 208 : uint256(validAfter1) << 208);
 
-    // Once we know that the authorizer field is 0 or 1, we can safely bubble up SIG_FAIL with bitwise OR
-    resValidationData |= uint160(validationRes1) | uint160(validationRes2);
+    // If one res with sig fail, we set authorizer field to fail (1), otherwise, either 0 or authorizer value
+    resValidationData |= (uint160(validationRes1) == 1 || uint160(validationRes2) == 1)
+        ? 1
+        : (uint160(validationRes1) | uint160(validationRes2));
 }
