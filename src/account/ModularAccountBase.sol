@@ -127,8 +127,10 @@ abstract contract ModularAccountBase is
     receive() external payable {}
 
     /// @notice Fallback function
-    /// @dev We route calls to execution functions based on incoming msg.sig
-    /// @dev If there's no module associated with this function selector, revert
+    /// @dev Routes calls to execution functions based on the incoming msg.sig. If there's no module associated
+    /// with this function selector, revert.
+    ///
+    /// @return The raw returned data from the invoked execution function.
     fallback(bytes calldata) external payable returns (bytes memory) {
         address execModule = getAccountStorage().executionStorage[msg.sig].module;
         if (execModule == address(0)) {
