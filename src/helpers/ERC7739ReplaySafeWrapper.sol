@@ -140,7 +140,7 @@ library ERC7739ReplaySafeWrapper {
     /// @param module The module address
     /// @return m The location of all the types
     function typedDataSignFieldsForModule(address account, address module) internal view returns (TypeStruct m) {
-        bytes1 fields = bytes1(hex"0E"); // 001110
+        bytes1 fields = bytes1(hex"1C"); // 011100
         // !string memory name;
         // !string memory version;
         // uint256 chainId = chainId;
