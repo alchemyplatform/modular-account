@@ -118,9 +118,6 @@ library ExecutionLib {
                 revert(revertDataLocation, returndatasize())
             }
         }
-
-        // Manually call, without collecting return data unless there's a revert.
-        assembly ("memory-safe") {}
         // Memory is discarded afterwards
     }
 

@@ -25,9 +25,8 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
-import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
-
 import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
+import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
 import {
     DensePostHookData,
     ExecutionLib,
@@ -290,10 +289,12 @@ abstract contract ModularAccountBase is
     /// @inheritdoc IModularAccount
     /// @notice May be validated by a global validation.
     function installExecution(
-        address, // module
-        ExecutionManifest calldata, // manifest
-        bytes calldata // moduleInstallData
+        address module,
+        ExecutionManifest calldata manifest,
+        bytes calldata moduleInstallData
     ) external override wrapNativeFunction {
+        // Access params to prevent compiler unused parameter flags.
+        (module, manifest, moduleInstallData);
         address delegate = _EXECUTION_INSTALL_DELEGATE;
         ExecutionLib.delegatecallBubbleOnRevertTransient(delegate);
     }
@@ -301,10 +302,12 @@ abstract contract ModularAccountBase is
     /// @inheritdoc IModularAccount
     /// @notice May be validated by a global validation.
     function uninstallExecution(
-        address, // module
-        ExecutionManifest calldata, // manifest
-        bytes calldata // moduleUninstallData
+        address module,
+        ExecutionManifest calldata manifest,
+        bytes calldata moduleUninstallData
     ) external override wrapNativeFunction {
+        // Access params to prevent compiler unused parameter flags.
+        (module, manifest, moduleUninstallData);
         address delegate = _EXECUTION_INSTALL_DELEGATE;
         ExecutionLib.delegatecallBubbleOnRevertTransient(delegate);
     }
