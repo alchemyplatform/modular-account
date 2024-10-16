@@ -71,17 +71,56 @@ library ExecutionLib {
 
     // Transiently copy the call data to a memory, and perform a self-call.
     function callBubbleOnRevertTransient(address target, uint256 value, bytes calldata callData) internal {
-        bytes memory callToSelf;
+        bytes memory encodedCall;
 
         assembly ("memory-safe") {
             // Store the length of the call
-            callToSelf := mload(0x40)
-            mstore(callToSelf, callData.length)
+            encodedCall := mload(0x40)
+            mstore(encodedCall, callData.length)
             // Copy in the calldata
-            calldatacopy(add(callToSelf, 0x20), callData.offset, callData.length)
+            calldatacopy(add(encodedCall, 0x20), callData.offset, callData.length)
         }
 
-        callBubbleOnRevert(target, value, callToSelf);
+        callBubbleOnRevert(target, value, encodedCall);
+        // Memory is discarded afterwards
+    }
+
+    // Transiently copy the call data to a memory, and perform a self-call.
+    function delegatecallBubbleOnRevertTransient(address target) internal {
+        assembly ("memory-safe") {
+            // Store the length of the call
+            let fmp := mload(0x40)
+
+            // Copy in the entire calldata
+            calldatacopy(fmp, 0, calldatasize())
+
+            let success :=
+                delegatecall(
+                    gas(),
+                    target,
+                    /*argOffset*/
+                    fmp,
+                    /*argSize*/
+                    calldatasize(),
+                    /*retOffset*/
+                    codesize(),
+                    /*retSize*/
+                    0
+                )
+
+            // directly bubble up revert messages, if any.
+            if iszero(success) {
+                // For memory safety, copy this revert data to scratch space past the end of used memory. Because
+                // we immediately revert, we can omit storing the length as we normally would for a `bytes memory`
+                // type, as well as omit finalizing the allocation by updating the free memory pointer.
+                let revertDataLocation := mload(0x40)
+                returndatacopy(revertDataLocation, 0, returndatasize())
+                revert(revertDataLocation, returndatasize())
+            }
+        }
+
+        // Manually call, without collecting return data unless there's a revert.
+        assembly ("memory-safe") {}
         // Memory is discarded afterwards
     }
 

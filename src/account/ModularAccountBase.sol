@@ -290,41 +290,23 @@ abstract contract ModularAccountBase is
     /// @inheritdoc IModularAccount
     /// @notice May be validated by a global validation.
     function installExecution(
-        address module,
-        ExecutionManifest calldata manifest,
-        bytes calldata moduleInstallData
+        address, // module
+        ExecutionManifest calldata, // manifest
+        bytes calldata // moduleInstallData
     ) external override wrapNativeFunction {
         address delegate = _EXECUTION_INSTALL_DELEGATE;
-        bytes memory encodedCall = abi.encodeCall(this.installExecution, (module, manifest, moduleInstallData));
-
-        assembly ("memory-safe") {
-            let success := delegatecall(gas(), delegate, add(encodedCall, 0x20), mload(encodedCall), 0, 0)
-            if iszero(success) {
-                let fmp := mload(0x40)
-                returndatacopy(fmp, 0, returndatasize())
-                revert(fmp, returndatasize())
-            }
-        }
+        ExecutionLib.delegatecallBubbleOnRevertTransient(delegate);
     }
 
     /// @inheritdoc IModularAccount
     /// @notice May be validated by a global validation.
     function uninstallExecution(
-        address module,
-        ExecutionManifest calldata manifest,
-        bytes calldata moduleUninstallData
+        address, // module
+        ExecutionManifest calldata, // manifest
+        bytes calldata // moduleUninstallData
     ) external override wrapNativeFunction {
         address delegate = _EXECUTION_INSTALL_DELEGATE;
-        bytes memory encodedCall = abi.encodeCall(this.uninstallExecution, (module, manifest, moduleUninstallData));
-
-        assembly ("memory-safe") {
-            let success := delegatecall(gas(), delegate, add(encodedCall, 0x20), mload(encodedCall), 0, 0)
-            if iszero(success) {
-                let fmp := mload(0x40)
-                returndatacopy(fmp, 0, returndatasize())
-                revert(fmp, returndatasize())
-            }
-        }
+        ExecutionLib.delegatecallBubbleOnRevertTransient(delegate);
     }
 
     /// @inheritdoc IModularAccount

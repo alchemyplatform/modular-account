@@ -29,7 +29,7 @@ depth = 10
 deny_warnings = true
 via_ir = true
 test = 'src'
-optimizer_runs = 10000
+optimizer_runs = 15000
 out = 'out-optimized'
 cache_path = 'cache-optimized'
 
@@ -59,7 +59,7 @@ depth = 32
 via_ir = true
 deny_warnings = true
 test = 'gas'
-optimizer_runs = 10000
+optimizer_runs = 15000
 out = 'out-optimized'
 cache_path = 'cache-optimized'
 ffi = true
