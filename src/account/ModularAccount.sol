@@ -6,6 +6,11 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 
 import {ModularAccountBase} from "./ModularAccountBase.sol";
 
+/// @title Modular Account
+/// @author Alchemy
+/// @notice This contract allow initionalizing with a passed in validation config (of a validation module), which
+/// will be installed onto the account. Therefore, the account can be used with the validation after or with (if
+/// deferred) creation.
 contract ModularAccount is ModularAccountBase {
     constructor(IEntryPoint anEntryPoint) ModularAccountBase(anEntryPoint) {}
 

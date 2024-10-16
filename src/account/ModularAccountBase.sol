@@ -43,6 +43,10 @@ import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
 import {TokenReceiver} from "./TokenReceiver.sol";
 
+/// @title Modular Account
+/// @author Alchemy
+/// @notice This abstract account is a modular account that is compliant with ERC-6900 standard. It supports
+/// deferred account creation.
 abstract contract ModularAccountBase is
     IModularAccount,
     ModularAccountView,
@@ -100,7 +104,8 @@ abstract contract ModularAccountBase is
     error ValidationFunctionMissing(bytes4 selector);
     error DeferredActionNonceInvalid();
     error DeferredActionSignatureInvalid();
-    error CreateFailed();
+    // This error is trigged in performCreate and performCreate2
+    // error CreateFailed();
 
     // Wraps execution of a native function with runtime validation and hooks
     // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution,
@@ -144,13 +149,6 @@ abstract contract ModularAccountBase is
     /// @param value The value to send to the new contract constructor
     /// @param initCode The initCode to deploy.
     /// @return createdAddr The created contract address.
-    ///
-    /// @dev Assembly procedure:
-    ///     1. Load the free memory pointer.
-    ///     2. Get the initCode length.
-    ///     3. Copy the initCode from callata to memory at the free memory pointer.
-    ///     4. Create the contract.
-    ///     5. If creation failed (the address returned is zero), revert with CreateFailed().
     function performCreate(uint256 value, bytes calldata initCode)
         external
         payable
@@ -159,15 +157,21 @@ abstract contract ModularAccountBase is
         returns (address createdAddr)
     {
         assembly ("memory-safe") {
+            // Load the free memory pointer.
             let fmp := mload(0x40)
+
+            // Get the initCode length.
             let len := initCode.length
+
+            // Copy the initCode from callata to memory at the free memory pointer.
             calldatacopy(fmp, initCode.offset, len)
 
+            // Create the contract.
             createdAddr := create(value, fmp, len)
 
             if iszero(createdAddr) {
-                let createFailedError := 0x7e16b8cd
-                mstore(0x00, createFailedError)
+                // If creation failed (the address returned is zero), revert with CreateFailed().
+                mstore(0x00, 0x7e16b8cd)
                 revert(0x1c, 0x04)
             }
         }
@@ -178,13 +182,6 @@ abstract contract ModularAccountBase is
     /// @param initCode The initCode to deploy.
     /// @param salt The salt to use for the create2 operation.
     /// @return createdAddr The created contract address.
-    ///
-    /// @dev Assembly procedure:
-    ///     1. Load the free memory pointer.
-    ///     2. Get the initCode length.
-    ///     3. Copy the initCode from callata to memory at the free memory pointer.
-    ///     4. Create the contract using Create2 with the passed salt parameter.
-    ///     5. If creation failed (the address returned is zero), revert with CreateFailed().
     function performCreate2(uint256 value, bytes calldata initCode, bytes32 salt)
         external
         payable
@@ -193,15 +190,21 @@ abstract contract ModularAccountBase is
         returns (address createdAddr)
     {
         assembly ("memory-safe") {
+            // Load the free memory pointer.
             let fmp := mload(0x40)
+
+            // Get the initCode length.
             let len := initCode.length
+
+            // Copy the initCode from callata to memory at the free memory pointer.
             calldatacopy(fmp, initCode.offset, len)
 
+            // Create the contract using Create2 with the passed salt parameter.
             createdAddr := create2(value, fmp, len, salt)
 
             if iszero(createdAddr) {
-                let createFailedError := 0x7e16b8cd
-                mstore(0x00, createFailedError)
+                // If creation failed (the address returned is zero), revert with CreateFailed().
+                mstore(0x00, 0x7e16b8cd)
                 revert(0x1c, 0x04)
             }
         }
