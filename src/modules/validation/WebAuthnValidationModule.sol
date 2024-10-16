@@ -27,7 +27,7 @@ import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol"
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 import {BaseModule} from "@erc6900/reference-implementation/modules/BaseModule.sol";
 
-/// @title WebAuthn Validation
+/// @title WebAuthn Validation Module
 /// @author Alchemy
 /// @dev Implementation referenced from WebAuthn + Coinbase Smart Wallet developed by Base.
 /// @notice This validation module enables WebAuthn (secp256r1 curve) signature validation.
