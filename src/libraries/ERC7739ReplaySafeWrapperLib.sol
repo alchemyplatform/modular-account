@@ -3,10 +3,10 @@ pragma solidity ^0.8.26;
 
 /// @notice A library for ERC7739-compliant nested EIP-712 wrappers over EIP-1271 digests.
 /// @dev This allows for efficient, readable ERC-1271 signature schemes for smart contract accounts.
-/// @dev The difference between a module hash and an account hash is:
-/// @dev Account domains include only chainId and verifyingContract of itself (not the implementation)
-/// @dev Module domains include chainId, verifyingContract of the module, and uses the optional salt param, using
-///      the account address
+///  The difference between a module hash and an account hash is:
+///  Account domains include only chainId and verifyingContract of itself (not the implementation)
+///  Module domains include chainId, verifyingContract of the module, and uses the optional salt param, using
+///  the account address
 library ERC7739ReplaySafeWrapperLib {
     // Points to a location in memory with EIP-712 formatted `encodeType(TypedDataSign)`, excluding the first two
     // words for typeHash(TypedDataSign)` and `typeHash(contents)`. Does not store the length, because this has a
@@ -209,9 +209,9 @@ library ERC7739ReplaySafeWrapperLib {
     /// @notice Helper function to validate ERC7739 compatible nested EIP712 structs to guard against signature
     /// replay
     /// @dev Parses out the inner signature from the full signature and returns it
-    /// @dev Implementation is lifted from
+    /// Implementation is lifted from
     /// github/Vectorized/solady/blob/351548a824d57c1c0fec688fdfe3a44a8e17efc3/src/accounts/ERC1271.sol#L191
-    /// @dev Also see:
+    /// Also see:
     /// github/erc7579/erc7739Validator/blob/f8cbd4b58a7226cce18e9b8bc380da51174daf53/src/ERC7739Validator.sol#L22
     /// @param t The location of all the types
     /// @param hash The incoming app digest. This should be generated through an EIP-712 process
