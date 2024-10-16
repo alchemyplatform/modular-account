@@ -1,22 +1,21 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-// A library for ERC7739-compliant nested EIP-712 wrappers over EIP-1271 digests.
-// This allows for efficient, readable ERC-1271 signature schemes for smart contract accounts.
+/// @notice A library for ERC7739-compliant nested EIP-712 wrappers over EIP-1271 digests.
+/// @dev This allows for efficient, readable ERC-1271 signature schemes for smart contract accounts.
+/// @dev The difference between a module hash and an account hash is:
+/// @dev Account domains include only chainId and verifyingContract of itself (not the implementation)
+/// @dev Module domains include chainId, verifyingContract of the module, and uses the optional salt param, using
+///      the account address
 library ERC7739ReplaySafeWrapperLib {
     // Points to a location in memory with EIP-712 formatted `encodeType(TypedDataSign)`, excluding the first two
     // words for typeHash(TypedDataSign)` and `typeHash(contents)`. Does not store the length, because this has a
     // fixed size of `0x120` (9 words).
-    type TypeStruct is bytes32;
+    type MemoryLocation is bytes32;
 
     /// @dev `keccak256("PersonalSign(bytes prefixed)")`.
     bytes32 internal constant _PERSONAL_SIGN_TYPEHASH =
         0x983e65e5148e570cd828ead231ee759a8d7958721a768f93bc4483ba005c32de;
-
-    // The difference between a module hash and an account hash is:
-    // Account domains include only chainId and verifyingContract of itself (not the implementation)
-    // Module domains include chainId, verifyingContract of the module, and uses the optional salt param, using the
-    // account address
 
     // keccak256("EIP712Domain(uint256 chainId,address verifyingContract,bytes32 salt)")
     bytes32 internal constant _DOMAIN_SEPARATOR_TYPEHASH_MODULE =
@@ -42,7 +41,7 @@ library ERC7739ReplaySafeWrapperLib {
         view
         returns (bytes32, bytes calldata)
     {
-        TypeStruct t;
+        MemoryLocation t;
         (t, hash, signature) = _validateERC7739SigFormat(typedDataSignFieldsForAccount(account), hash, signature);
         if (isZero(t)) hash = hashTypedDataForAccount(account, hash); // `PersonalSign` workflow.
         return (hash, signature);
@@ -54,8 +53,8 @@ library ERC7739ReplaySafeWrapperLib {
     /// which is based on
     /// github/Vectorized/solady/blob/351548a824d57c1c0fec688fdfe3a44a8e17efc3/src/accounts/ERC1271.sol#L253
     /// @param account The account address
-    /// @return m The location of all the types
-    function typedDataSignFieldsForAccount(address account) internal view returns (TypeStruct m) {
+    /// @return m  The memory location of this struct
+    function typedDataSignFieldsForAccount(address account) internal view returns (MemoryLocation m) {
         bytes1 fields = bytes1(hex"0C"); // 001100
         // !string memory name;
         // !string memory version;
@@ -123,7 +122,7 @@ library ERC7739ReplaySafeWrapperLib {
         bytes32 hash,
         bytes calldata signature
     ) internal view returns (bytes32, bytes calldata) {
-        TypeStruct t;
+        MemoryLocation t;
         (t, hash, signature) =
             _validateERC7739SigFormat(typedDataSignFieldsForModule(account, module), hash, signature);
         if (isZero(t)) hash = hashTypedDataForModule(account, module, hash); // `PersonalSign` workflow.
@@ -137,8 +136,12 @@ library ERC7739ReplaySafeWrapperLib {
     /// github/Vectorized/solady/blob/351548a824d57c1c0fec688fdfe3a44a8e17efc3/src/accounts/ERC1271.sol#L253
     /// @param account The account address
     /// @param module The module address
-    /// @return m The location of all the types
-    function typedDataSignFieldsForModule(address account, address module) internal view returns (TypeStruct m) {
+    /// @return m The memory location of this struct
+    function typedDataSignFieldsForModule(address account, address module)
+        internal
+        view
+        returns (MemoryLocation m)
+    {
         bytes1 fields = bytes1(hex"0E"); // 001110
         // !string memory name;
         // !string memory version;
@@ -199,8 +202,8 @@ library ERC7739ReplaySafeWrapperLib {
         }
     }
 
-    function isZero(TypeStruct t) internal pure returns (bool) {
-        return TypeStruct.unwrap(t) == bytes32(0);
+    function isZero(MemoryLocation t) internal pure returns (bool) {
+        return MemoryLocation.unwrap(t) == bytes32(0);
     }
 
     /// @notice Helper function to validate ERC7739 compatible nested EIP712 structs to guard against signature
@@ -210,15 +213,15 @@ library ERC7739ReplaySafeWrapperLib {
     /// github/Vectorized/solady/blob/351548a824d57c1c0fec688fdfe3a44a8e17efc3/src/accounts/ERC1271.sol#L191
     /// @dev Also see:
     /// github/erc7579/erc7739Validator/blob/f8cbd4b58a7226cce18e9b8bc380da51174daf53/src/ERC7739Validator.sol#L22
-    /// @param t Type to use
+    /// @param t The location of all the types
     /// @param hash The incoming app digest. This should be generated through an EIP-712 process
-    /// @return TypeStruct the location of all the types
+    /// @return MemoryLocation the location of all the types. 0 signifies that PersonalSign should be used
     /// @return bytes32 Replay-safe hash, computed by wrapping the input hash in an EIP-712 struct.
     /// @return bytes Inner signature to use for verification.
-    function _validateERC7739SigFormat(TypeStruct t, bytes32 hash, bytes calldata signature)
+    function _validateERC7739SigFormat(MemoryLocation t, bytes32 hash, bytes calldata signature)
         private
         pure
-        returns (TypeStruct, bytes32, bytes calldata)
+        returns (MemoryLocation, bytes32, bytes calldata)
     {
         /// @solidity memory-safe-assembly
         assembly {

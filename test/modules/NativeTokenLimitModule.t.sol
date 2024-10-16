@@ -235,6 +235,39 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         assertEq(recipient.balance, 0);
     }
 
+    function test_userOp_paymaster() public withSMATest {
+        vm.startPrank(address(entryPoint));
+
+        assertEq(module.limits(0, address(account1)), 10 ether);
+        PackedUserOperation memory uo = _getPackedUO(200_000, 200_000, 200_000, 1, _getExecuteWithValue(10 ether));
+        uo.paymasterAndData =
+            abi.encodePacked(address(account1), uint128(uint256(1_000_000)), uint128(uint256(1_000_000)));
+        uint256 validationData = account1.validateUserOp(uo, bytes32(0), 0);
+
+        assertEq(validationData & 0x1, 0); // check for success
+        assertEq(module.limits(0, address(account1)), 10 ether); // limit should not decrease
+        assertEq(recipient.balance, 0);
+        vm.stopPrank();
+    }
+
+    function test_userOp_specialPaymaster() public withSMATest {
+        vm.prank(address(account1));
+        module.updateSpecialPaymaster(address(account1), true);
+
+        vm.startPrank(address(entryPoint));
+
+        assertEq(module.limits(0, address(account1)), 10 ether);
+        PackedUserOperation memory uo = _getPackedUO(200_000, 200_000, 200_000, 1, _getExecuteWithValue(5 ether));
+        uo.paymasterAndData =
+            abi.encodePacked(address(account1), uint128(uint256(200_000)), uint128(uint256(200_000)));
+        uint256 validationData = account1.validateUserOp(uo, bytes32(0), 0);
+
+        assertEq(validationData & 0x1, 0); // check for success
+        assertEq(module.limits(0, address(account1)), 10 ether - 200_000 * 5); // limit should not decrease
+        assertEq(recipient.balance, 0);
+        vm.stopPrank();
+    }
+
     function test_runtime_executeLimit() public withSMATest {
         assertEq(module.limits(0, address(account1)), 10 ether);
         account1.executeWithRuntimeValidation(
