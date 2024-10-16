@@ -15,18 +15,10 @@ import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookCon
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 
-import {ExecutionLib} from "../libraries/ExecutionLib.sol";
-import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {ModuleInstallCommons} from "../libraries/ModuleInstallCommons.sol";
-import {
-    AccountStorage,
-    ExecutionStorage,
-    ValidationStorage,
-    getAccountStorage,
-    toSetValue
-} from "./AccountStorage.sol";
+import {ValidationStorage, getAccountStorage, toSetValue} from "./AccountStorage.sol";
 
 /// @title Modular Manager Internal Methods
 /// @author Alchemy
