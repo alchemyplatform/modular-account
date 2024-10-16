@@ -483,10 +483,10 @@ library ExecutionLib {
             }
 
             // Perform the call, bubbling up revert data on failure.
-            callBubbleOnRevert(address(this), 0, callData);
+            callBubbleOnRevert(address(this), msg.value, callData);
         } else {
             // No buffer exists yet, just copy the data to memory transiently and execute it.
-            callBubbleOnRevertTransient(address(this), 0, data);
+            callBubbleOnRevertTransient(address(this), msg.value, data);
         }
     }
 
