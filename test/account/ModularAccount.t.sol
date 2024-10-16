@@ -562,7 +562,7 @@ contract ModularAccountTest is AccountTestBase {
         assertEq(returnedAddr, expectedAddr);
         assertEq(address(ModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
 
-        vm.expectRevert(bytes4(keccak256("CreateFailed()")));
+        vm.expectRevert(ModularAccountBase.CreateFailed.selector);
         // re-deploying with same salt should revert
         vm.prank(address(entryPoint));
         account1.performCreate2(0, initCode, salt);

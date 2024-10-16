@@ -43,10 +43,10 @@ import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
 import {TokenReceiver} from "./TokenReceiver.sol";
 
-/// @title Modular Account
+/// @title Modular Account Base
 /// @author Alchemy
 /// @notice This abstract account is a modular account that is compliant with ERC-6900 standard. It supports
-/// deferred account creation.
+/// deferred actions during validation.
 abstract contract ModularAccountBase is
     IModularAccount,
     ModularAccountView,
@@ -105,7 +105,7 @@ abstract contract ModularAccountBase is
     error DeferredActionNonceInvalid();
     error DeferredActionSignatureInvalid();
     // This error is trigged in performCreate and performCreate2
-    // error CreateFailed();
+    error CreateFailed();
 
     // Wraps execution of a native function with runtime validation and hooks
     // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution,
