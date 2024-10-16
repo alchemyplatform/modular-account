@@ -175,7 +175,7 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
 
     /// @inheritdoc IModule
     function moduleId() external pure returns (string memory) {
-        return "alchemy.allowlist-module.0.0.1";
+        return "alchemy.allowlist-module.1.0.0";
     }
 
     /// @notice Update the token limit of a validation

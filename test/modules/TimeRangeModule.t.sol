@@ -54,7 +54,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
     }
 
     function test_timeRangeModule_moduleId() public view {
-        assertEq(timeRangeModule.moduleId(), "alchemy.timerange-module.0.0.1");
+        assertEq(timeRangeModule.moduleId(), "alchemy.time-range-module.1.0.0");
     }
 
     function test_timeRangeModule_install() public withSMATest {

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {ValidationConfig} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {
+    IModularAccount, ValidationConfig
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {ModularAccountBase} from "./ModularAccountBase.sol";
@@ -22,5 +24,10 @@ contract ModularAccount is ModularAccountBase {
         bytes[] calldata hooks
     ) external virtual initializer {
         _installValidation(validationConfig, selectors, installData, hooks);
+    }
+
+    /// @inheritdoc IModularAccount
+    function accountId() external pure override returns (string memory) {
+        return "alchemy.modular-account.2.0.0";
     }
 }

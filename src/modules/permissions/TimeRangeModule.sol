@@ -104,7 +104,7 @@ contract TimeRangeModule is IValidationHookModule, ModuleBase {
 
     /// @inheritdoc IModule
     function moduleId() external pure returns (string memory) {
-        return "alchemy.timerange-module.0.0.1";
+        return "alchemy.time-range-module.1.0.0";
     }
 
     /// @notice Sets the time range for the sending account (`msg.sender`) and a given entity id.

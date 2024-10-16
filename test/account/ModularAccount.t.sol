@@ -230,7 +230,7 @@ contract ModularAccountTest is AccountTestBase {
 
     function test_accountId() public withSMATest {
         string memory accountId = account1.accountId();
-        assertEq(accountId, _isSMATest ? "alchemy.semi-modular-account.0.0.1" : "alchemy.modular-account.0.0.1");
+        assertEq(accountId, _isSMATest ? "alchemy.sma-bytecode.1.0.0" : "alchemy.modular-account.2.0.0");
     }
 
     function test_contractInteraction() public withSMATest {
