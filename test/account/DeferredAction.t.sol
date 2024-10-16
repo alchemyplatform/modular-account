@@ -30,6 +30,7 @@ contract DeferredActionTest is AccountTestBase {
     MockModule public mockModule;
 
     function setUp() public override {
+        _revertSnapshot = vm.snapshot();
         erc20 = new MockERC20();
         paymaster = new MockTokenPaymaster(erc20, entryPoint);
 

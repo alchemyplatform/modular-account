@@ -33,6 +33,10 @@ contract UpgradeModuleTest is AccountTestBase {
     // From MockModule
     event ReceivedCall(bytes msgData, uint256 msgValue);
 
+    function setUp() public override {
+        _revertSnapshot = vm.snapshot();
+    }
+
     function test_upgradeModuleExecutionFunction() public withSMATest {
         ExecutionManifest memory m;
         ManifestExecutionFunction[] memory executionFunctions = new ManifestExecutionFunction[](1);

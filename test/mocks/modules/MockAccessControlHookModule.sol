@@ -8,7 +8,7 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 import {BaseModule} from "../../../src/modules/BaseModule.sol";
 
-// A pre validaiton hook module that uses per-hook data.
+// A pre validation hook module that uses per-hook data.
 // This example enforces that the target of an `execute` call must only be the previously specified address.
 // This is just a mock - it does not enforce this over `executeBatch` and other methods of making calls, and should
 // not be used in production..

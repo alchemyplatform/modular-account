@@ -25,6 +25,7 @@ contract ModularAccountViewTest is CustomValidationTestBase {
     ModuleEntity public comprehensiveModuleValidation;
 
     function setUp() public override {
+        _revertSnapshot = vm.snapshot();
         comprehensiveModule = new ComprehensiveModule();
         comprehensiveModuleValidation =
             ModuleEntityLib.pack(address(comprehensiveModule), uint32(ComprehensiveModule.EntityId.VALIDATION));

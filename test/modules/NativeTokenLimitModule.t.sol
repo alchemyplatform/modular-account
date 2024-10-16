@@ -31,6 +31,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
     uint32 public entityId = 0;
 
     function setUp() public override {
+        _revertSnapshot = vm.snapshot();
         // Set up a validator with hooks from the gas spend limit module attached
 
         ModuleEntity[] memory preValidationHooks = new ModuleEntity[](1);

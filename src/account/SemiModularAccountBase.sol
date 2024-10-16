@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
-import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -12,6 +11,7 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 
 import {FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {SignatureType} from "../helpers/SignatureType.sol";
+import {ERC7739ReplaySafeWrapperLib} from "../libraries/ERC7739ReplaySafeWrapperLib.sol";
 import {RTCallBuffer, SigCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
 import {SemiModularKnownSelectorsLib} from "../libraries/SemiModularKnownSelectorsLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
@@ -19,6 +19,7 @@ import {ModularAccountBase} from "./ModularAccountBase.sol";
 abstract contract SemiModularAccountBase is ModularAccountBase {
     using MessageHashUtils for bytes32;
     using ModuleEntityLib for ModuleEntity;
+    using ERC7739ReplaySafeWrapperLib for address;
 
     struct SemiModularAccountStorage {
         address fallbackSigner;
@@ -28,10 +29,6 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     // keccak256("ERC6900.SemiModularAccount.Storage")
     uint256 internal constant _SEMI_MODULAR_ACCOUNT_STORAGE_SLOT =
         0x5b9dc9aa943f8fa2653ceceda5e3798f0686455280432166ba472eca0bc17a32;
-
-    // keccak256("ReplaySafeHash(bytes32 hash)")
-    bytes32 private constant _REPLAY_SAFE_HASH_TYPEHASH =
-        0x294a8735843d4afb4f017c76faf3b7731def145ed0025fc9b1d5ce30adf113ff;
 
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
     uint256 internal constant _SIG_VALIDATION_FAILED = 1;
@@ -83,24 +80,6 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         return "alchemy.semi-modular-account.0.0.1";
     }
 
-    /// @notice Returns the replay-safe hash generated from the passed typed data hash for 1271 validation.
-    /// @param hash The typed data hash to wrap in a replay-safe hash.
-    /// @return The replay-safe hash, to be used for 1271 signature generation.
-    ///
-    /// @dev Generates a replay-safe hash to wrap a standard typed data hash. This prevents replay attacks by
-    /// enforcing the domain separator, which includes this contract's address and the chainId. This is only
-    /// relevant for 1271 validation because UserOp validation relies on the UO hash and the Entrypoint has
-    /// safeguards.
-    ///
-    /// NOTE: Like in signature-based validation modules, the returned hash should be used to generate signatures,
-    /// but the original hash should be passed to the external-facing function for 1271 validation.
-    function replaySafeHash(bytes32 hash) public view virtual returns (bytes32) {
-        return MessageHashUtils.toTypedDataHash({
-            domainSeparator: _domainSeparator(),
-            structHash: _hashStructReplaySafeHash(hash)
-        });
-    }
-
     function _execUserOpValidation(
         ModuleEntity userOpValidationFunction,
         bytes32 userOpHash,
@@ -144,7 +123,9 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         if (sigValidation.eq(FALLBACK_VALIDATION)) {
             address fallbackSigner = _getFallbackSigner();
 
-            if (_checkSignature(fallbackSigner, replaySafeHash(hash), signature)) {
+            (bytes32 digest, bytes calldata innerSignature) =
+                address(this).validateERC7739SigFormatForAccount(hash, signature);
+            if (_checkSignature(fallbackSigner, digest, innerSignature)) {
                 return _1271_MAGIC_VALUE;
             }
             return _1271_INVALID;
@@ -231,16 +212,6 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
             _storage.slot := _SEMI_MODULAR_ACCOUNT_STORAGE_SLOT
         }
         return _storage;
-    }
-
-    function _hashStructReplaySafeHash(bytes32 hash) internal pure virtual returns (bytes32) {
-        bytes32 res;
-        assembly ("memory-safe") {
-            mstore(0x00, _REPLAY_SAFE_HASH_TYPEHASH)
-            mstore(0x20, hash)
-            res := keccak256(0, 0x40)
-        }
-        return res;
     }
 
     // Overrides ModuleManagerInternals

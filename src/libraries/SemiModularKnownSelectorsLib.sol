@@ -12,7 +12,6 @@ library SemiModularKnownSelectorsLib {
             || selector == SemiModularAccountBase.updateFallbackSigner.selector
             || selector == SemiModularAccountBase.setFallbackSignerDisabled.selector
             || selector == SemiModularAccountBase.isFallbackSignerDisabled.selector
-            || selector == SemiModularAccountBase.getFallbackSigner.selector
-            || selector == SemiModularAccountBase.replaySafeHash.selector;
+            || selector == SemiModularAccountBase.getFallbackSigner.selector;
     }
 }

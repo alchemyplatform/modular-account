@@ -21,6 +21,7 @@ contract SemiModularAccountDirectCallTest is AccountTestBase {
     ModuleEntity internal _fallbackDirectCallModuleEntity;
 
     function setUp() public override {
+        _revertSnapshot = vm.snapshot();
         _module = new MockSMADirectFallbackModule();
         _directCallModuleEntity = ModuleEntityLib.pack(address(_module), DIRECT_CALL_VALIDATION_ENTITYID);
 

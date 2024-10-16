@@ -36,6 +36,7 @@ contract HookOrderingTest is AccountTestBase {
     ModuleEntity public orderCheckerValidationEntity;
 
     function setUp() public override {
+        _revertSnapshot = vm.snapshot();
         hookOrderChecker = new HookOrderCheckerModule();
     }
 
@@ -336,7 +337,8 @@ contract HookOrderingTest is AccountTestBase {
         // because it will be invoked with `staticcall`, so we call `isValidSignature` directly with `call`.
 
         bytes memory callData = abi.encodeCall(
-            account1.isValidSignature, (bytes32(0), _encode1271Signature(orderCheckerValidationEntity, hex""))
+            account1.isValidSignature,
+            (bytes32(0), _encode1271Signature(orderCheckerValidationEntity, hex"", bytes32(0)))
         );
 
         (bool success,) = address(account1).call(callData);
