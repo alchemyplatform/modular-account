@@ -19,9 +19,10 @@ import {ExecutionStorage, ValidationStorage, getAccountStorage} from "./AccountS
 abstract contract ModularAccountView is IModularAccountView {
     /// @inheritdoc IModularAccountView
     function getExecutionData(bytes4 selector) external view override returns (ExecutionDataView memory data) {
+        // return ModularAccountViewLib.getExecutionData(selector, _isNativeFunction(selector));
         ExecutionStorage storage executionStorage = getAccountStorage().executionStorage[selector];
 
-        if (KnownSelectorsLib.isNativeFunction(selector)) {
+        if (_isNativeFunction(uint32(selector))) {
             data.module = address(this);
             data.allowGlobalValidation = true;
         } else {
@@ -56,5 +57,9 @@ abstract contract ModularAccountView is IModularAccountView {
         bytes4[] memory selectors = MemManagementLib.loadSelectors(validationStorage);
         MemManagementLib.reverseArr(selectors);
         data.selectors = selectors;
+    }
+
+    function _isNativeFunction(uint32 selector) internal pure virtual returns (bool) {
+        return KnownSelectorsLib.isNativeFunction(selector);
     }
 }

@@ -203,4 +203,11 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     function _validationIsNative(ModuleEntity validationFunction) internal pure virtual override returns (bool) {
         return validationFunction.eq(FALLBACK_VALIDATION);
     }
+
+    // overrides ModularAccountView
+    function _isNativeFunction(uint32 selector) internal pure virtual override returns (bool) {
+        return super._isNativeFunction(selector) || selector == uint32(this.updateFallbackSignerData.selector)
+            || selector == uint32(this.getFallbackSignerData.selector)
+            || selector == uint32(this.replaySafeHash.selector);
+    }
 }
