@@ -27,7 +27,7 @@ import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol"
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
 import {SignatureType} from "../../helpers/SignatureType.sol";
-import {ERC7739ReplaySafeWrapper} from "../../libraries/ERC7739ReplaySafeWrapper.sol";
+import {ERC7739ReplaySafeWrapperLib} from "../../libraries/ERC7739ReplaySafeWrapperLib.sol";
 import {BaseModule} from "../BaseModule.sol";
 
 /// @title Single Signer Validation Module
@@ -45,7 +45,7 @@ import {BaseModule} from "../BaseModule.sol";
 /// to validate partially or fully.
 contract SingleSignerValidationModule is IValidationModule, BaseModule {
     using MessageHashUtils for bytes32;
-    using ERC7739ReplaySafeWrapper for address;
+    using ERC7739ReplaySafeWrapperLib for address;
 
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
     uint256 internal constant _SIG_VALIDATION_FAILED = 1;

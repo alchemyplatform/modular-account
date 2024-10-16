@@ -10,13 +10,13 @@ import {ValidationConfig} from "@erc6900/reference-implementation/libraries/Vali
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-import {ERC7739ReplaySafeWrapper} from "../../src/libraries/ERC7739ReplaySafeWrapper.sol";
+import {ERC7739ReplaySafeWrapperLib} from "../../src/libraries/ERC7739ReplaySafeWrapperLib.sol";
 
 /// @dev Utilities for encoding signatures for modular account validation. Used for encoding user op, runtime, and
 /// 1271 signatures.
 contract ModuleSignatureUtils {
     using ModuleEntityLib for ModuleEntity;
-    using ERC7739ReplaySafeWrapper for address;
+    using ERC7739ReplaySafeWrapperLib for address;
 
     struct PreValidationHookData {
         uint8 index;
@@ -347,7 +347,7 @@ contract ModuleSignatureUtils {
 
     function _computeDomainSeparator(address account) internal view returns (bytes32) {
         return keccak256(
-            abi.encode(ERC7739ReplaySafeWrapper._DOMAIN_SEPARATOR_TYPEHASH_ACCOUNT, block.chainid, account)
+            abi.encode(ERC7739ReplaySafeWrapperLib._DOMAIN_SEPARATOR_TYPEHASH_ACCOUNT, block.chainid, account)
         );
     }
 }
