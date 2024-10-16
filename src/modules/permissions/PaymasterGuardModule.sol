@@ -17,12 +17,11 @@
 
 pragma solidity ^0.8.26;
 
-import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
+import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {BaseModule, IERC165} from "../BaseModule.sol";
+import {IERC165, ModuleBase} from "../ModuleBase.sol";
 
 /// @title Paymaster Guard Module
 /// @author Alchemy
@@ -33,7 +32,7 @@ import {BaseModule, IERC165} from "../BaseModule.sol";
 /// singleton directly.
 ///     - Uninstallation will NOT disable all installed hooks for an account. It only uninstalls hooks for the
 /// entity ID that is passed in. Account must remove access for each entity ID if want to disable all hooks.
-contract PaymasterGuardModule is BaseModule, IValidationHookModule {
+contract PaymasterGuardModule is ModuleBase, IValidationHookModule {
     mapping(uint32 entityId => mapping(address account => address paymaster)) public paymasters;
 
     error BadPaymasterSpecified();
@@ -85,12 +84,12 @@ contract PaymasterGuardModule is BaseModule, IValidationHookModule {
         return "alchemy.paymaster-guard-module.0.0.1";
     }
 
-    /// @inheritdoc BaseModule
+    /// @inheritdoc ModuleBase
     function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
-        override(BaseModule, IERC165)
+        override(ModuleBase, IERC165)
         returns (bool)
     {
         return interfaceId == type(IValidationHookModule).interfaceId || super.supportsInterface(interfaceId);

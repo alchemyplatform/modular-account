@@ -7,10 +7,10 @@ import {
     ManifestExecutionFunction
 } from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 
-import {BaseModule} from "../../../src/modules/BaseModule.sol";
+import {ModuleBase} from "../../../src/modules/ModuleBase.sol";
 import {ResultCreatorModule} from "./ReturnDataModuleMocks.sol";
 
-contract PermittedCallerModule is IExecutionModule, BaseModule {
+contract PermittedCallerModule is IExecutionModule, ModuleBase {
     function onInstall(bytes calldata) external override {}
 
     function onUninstall(bytes calldata) external override {}

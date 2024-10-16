@@ -11,13 +11,13 @@ import {
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 
-import {BaseModule} from "../../../src/modules/BaseModule.sol";
+import {ModuleBase} from "../../../src/modules/ModuleBase.sol";
 
 abstract contract MockBaseUserOpValidationModule is
     IExecutionModule,
     IValidationModule,
     IValidationHookModule,
-    BaseModule
+    ModuleBase
 {
     enum EntityId {
         USER_OP_VALIDATION,

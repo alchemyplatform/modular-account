@@ -5,9 +5,9 @@ import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces
 import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
-import {BaseModule} from "../../../src/modules/BaseModule.sol";
+import {ModuleBase} from "../../../src/modules/ModuleBase.sol";
 
-contract DirectCallModule is BaseModule, IExecutionHookModule {
+contract DirectCallModule is ModuleBase, IExecutionHookModule {
     bool public preHookRan = false;
     bool public postHookRan = false;
 
@@ -49,7 +49,7 @@ contract DirectCallModule is BaseModule, IExecutionHookModule {
         public
         view
         virtual
-        override(BaseModule, IERC165)
+        override(ModuleBase, IERC165)
         returns (bool)
     {
         return interfaceId == type(IExecutionHookModule).interfaceId || super.supportsInterface(interfaceId);

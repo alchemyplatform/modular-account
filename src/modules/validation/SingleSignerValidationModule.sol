@@ -17,18 +17,17 @@
 
 pragma solidity ^0.8.26;
 
+import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
+import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
-import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
-import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
-
 import {SignatureType} from "../../helpers/SignatureType.sol";
 import {ERC7739ReplaySafeWrapperLib} from "../../libraries/ERC7739ReplaySafeWrapperLib.sol";
-import {BaseModule} from "../BaseModule.sol";
+import {ModuleBase} from "../ModuleBase.sol";
 
 /// @title Single Signer Validation Module
 /// @author Alchemy
@@ -43,7 +42,7 @@ import {BaseModule} from "../BaseModule.sol";
 ///     - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
 ///     - This validation supports composition that other validation can relay on entities in this validation
 /// to validate partially or fully.
-contract SingleSignerValidationModule is IValidationModule, BaseModule {
+contract SingleSignerValidationModule is IValidationModule, ModuleBase {
     using MessageHashUtils for bytes32;
     using ERC7739ReplaySafeWrapperLib for address;
 
@@ -149,7 +148,7 @@ contract SingleSignerValidationModule is IValidationModule, BaseModule {
         public
         view
         virtual
-        override(BaseModule, IERC165)
+        override(ModuleBase, IERC165)
         returns (bool)
     {
         return (interfaceId == type(IValidationModule).interfaceId || super.supportsInterface(interfaceId));

@@ -36,9 +36,9 @@ import {
 } from "../libraries/ExecutionLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib, MemSnapshot} from "../libraries/MemManagementLib.sol";
+import {AccountBase} from "./AccountBase.sol";
 import {AccountStorage, getAccountStorage, toSetValue} from "./AccountStorage.sol";
 import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
-import {BaseAccount} from "./BaseAccount.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
 import {TokenReceiver} from "./TokenReceiver.sol";
@@ -51,7 +51,7 @@ abstract contract ModularAccountBase is
     IModularAccount,
     ModularAccountView,
     AccountStorageInitializable,
-    BaseAccount,
+    AccountBase,
     IERC1271,
     IERC165,
     IAccountExecute,
@@ -113,7 +113,7 @@ abstract contract ModularAccountBase is
         ExecutionLib.doCachedPostHooks(postHookData);
     }
 
-    constructor(IEntryPoint anEntryPoint) BaseAccount(anEntryPoint) {
+    constructor(IEntryPoint anEntryPoint) AccountBase(anEntryPoint) {
         _disableInitializers();
     }
 

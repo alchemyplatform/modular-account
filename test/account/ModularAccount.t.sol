@@ -19,7 +19,7 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import {BaseAccount} from "../../src/account/BaseAccount.sol";
+import {AccountBase} from "../../src/account/AccountBase.sol";
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ModuleManagerInternals} from "../../src/account/ModuleManagerInternals.sol";
@@ -610,11 +610,11 @@ contract ModularAccountTest is AccountTestBase {
 
         // Prank a non-EP address
         vm.prank(beneficiary);
-        vm.expectRevert(BaseAccount.NotEntryPoint.selector);
+        vm.expectRevert(AccountBase.NotEntryPoint.selector);
         account1.validateUserOp(userOp, bytes32(0), 0);
 
         vm.prank(beneficiary);
-        vm.expectRevert(BaseAccount.NotEntryPoint.selector);
+        vm.expectRevert(AccountBase.NotEntryPoint.selector);
         account1.executeUserOp(userOp, bytes32(0));
     }
 

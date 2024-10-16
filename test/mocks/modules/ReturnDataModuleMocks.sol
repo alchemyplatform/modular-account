@@ -12,7 +12,7 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-import {BaseModule} from "../../../src/modules/BaseModule.sol";
+import {ModuleBase} from "../../../src/modules/ModuleBase.sol";
 import {ModuleSignatureUtils} from "../../utils/ModuleSignatureUtils.sol";
 
 contract RegularResultContract {
@@ -25,7 +25,7 @@ contract RegularResultContract {
     }
 }
 
-contract ResultCreatorModule is IExecutionModule, BaseModule {
+contract ResultCreatorModule is IExecutionModule, ModuleBase {
     function onInstall(bytes calldata) external override {}
 
     function onUninstall(bytes calldata) external override {}
@@ -61,7 +61,7 @@ contract ResultCreatorModule is IExecutionModule, BaseModule {
     }
 }
 
-contract ResultConsumerModule is IExecutionModule, BaseModule, IValidationModule, ModuleSignatureUtils {
+contract ResultConsumerModule is IExecutionModule, ModuleBase, IValidationModule, ModuleSignatureUtils {
     ResultCreatorModule public immutable RESULT_CREATOR;
     RegularResultContract public immutable REGULAR_RESULT_CONTRACT;
 

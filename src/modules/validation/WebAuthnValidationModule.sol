@@ -17,15 +17,15 @@
 
 pragma solidity ^0.8.26;
 
+import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
+import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 import {ReplaySafeWrapper} from "@erc6900/reference-implementation/modules/ReplaySafeWrapper.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {WebAuthn} from "webauthn-sol/src/WebAuthn.sol";
 
-import {BaseModule} from "../BaseModule.sol";
-import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
-import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
+import {ModuleBase} from "../ModuleBase.sol";
 
 /// @title WebAuthn Validation Module
 /// @author Alchemy
@@ -39,7 +39,7 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 ///     - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
 ///     - This validation supports composition that other validation can relay on entities in this validation
 /// to validate partially or fully.
-contract WebAuthnValidationModule is IValidationModule, ReplaySafeWrapper, BaseModule {
+contract WebAuthnValidationModule is IValidationModule, ReplaySafeWrapper, ModuleBase {
     using MessageHashUtils for bytes32;
     using WebAuthn for WebAuthn.WebAuthnAuth;
 
@@ -151,7 +151,7 @@ contract WebAuthnValidationModule is IValidationModule, ReplaySafeWrapper, BaseM
         public
         view
         virtual
-        override(BaseModule, IERC165)
+        override(ModuleBase, IERC165)
         returns (bool)
     {
         return (interfaceId == type(IValidationModule).interfaceId || super.supportsInterface(interfaceId));
