@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 // A library for ERC7739-compliant nested EIP-712 wrappers over EIP-1271 digests.
 // This allows for efficient, readable ERC-1271 signature schemes for smart contract accounts.
 library ERC7739ReplaySafeWrapper {
+    // Points to a location in memory with EIP-712 formatted `encodeType(TypedDataSign)`, excluding the first two words for typeHash(TypedDataSign)` and `typeHash(contents)`. Does not store the length, because this has a fixed size of `0x120` (9 words).
     type TypeStruct is bytes32;
 
     /// @dev `keccak256("PersonalSign(bytes prefixed)")`.
