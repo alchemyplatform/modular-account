@@ -1,19 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-
-import {
-    HookConfig,
-    IModularAccount,
-    ModuleEntity
-} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {HookConfig, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {
     ExecutionDataView,
     IModularAccountView,
     ValidationDataView
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 
+import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {ExecutionStorage, ValidationStorage, getAccountStorage} from "./AccountStorage.sol";
 
@@ -24,24 +19,20 @@ import {ExecutionStorage, ValidationStorage, getAccountStorage} from "./AccountS
 abstract contract ModularAccountView is IModularAccountView {
     /// @inheritdoc IModularAccountView
     function getExecutionData(bytes4 selector) external view override returns (ExecutionDataView memory data) {
-        if (
-            selector == IModularAccount.execute.selector || selector == IModularAccount.executeBatch.selector
-                || selector == UUPSUpgradeable.upgradeToAndCall.selector
-                || selector == IModularAccount.installExecution.selector
-                || selector == IModularAccount.uninstallExecution.selector
-        ) {
+        ExecutionStorage storage executionStorage = getAccountStorage().executionStorage[selector];
+
+        if (KnownSelectorsLib.isNativeFunction(selector)) {
             data.module = address(this);
             data.allowGlobalValidation = true;
         } else {
-            ExecutionStorage storage executionStorage = getAccountStorage().executionStorage[selector];
             data.module = executionStorage.module;
             data.skipRuntimeValidation = executionStorage.skipRuntimeValidation;
             data.allowGlobalValidation = executionStorage.allowGlobalValidation;
-
-            HookConfig[] memory hooks = MemManagementLib.loadExecHooks(executionStorage);
-            MemManagementLib.reverseArr(hooks);
-            data.executionHooks = hooks;
         }
+
+        HookConfig[] memory hooks = MemManagementLib.loadExecHooks(executionStorage);
+        MemManagementLib.reverseArr(hooks);
+        data.executionHooks = hooks;
     }
 
     /// @inheritdoc IModularAccountView
