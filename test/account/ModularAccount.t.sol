@@ -3,7 +3,11 @@ pragma solidity ^0.8.26;
 
 import {console} from "forge-std/src/Test.sol";
 
-import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
+import {
+    ExecutionManifest,
+    ManifestExecutionHook
+} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ExecutionDataView} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
@@ -680,6 +684,43 @@ contract ModularAccountTest is AccountTestBase {
             )
         );
         entryPoint.handleOps(userOps, beneficiary);
+    }
+
+    function test_rtValidationWithValue() public withSMATest {
+        address mockedModule;
+
+        // Get different addresses to ensure expectCall works across the two settings
+        if (_isSMATest) {
+            mockedModule = address(new MockModule{salt: keccak256("rtWithValueSMA")}(_manifest));
+        } else {
+            mockedModule = address(new MockModule{salt: keccak256("rtWithValueMA")}(_manifest));
+        }
+
+        ExecutionManifest memory m;
+        m.executionHooks = new ManifestExecutionHook[](1);
+        m.executionHooks[0] = ManifestExecutionHook({
+            executionSelector: account1.execute.selector,
+            entityId: 0,
+            isPreHook: true,
+            isPostHook: false
+        });
+
+        vm.prank(address(entryPoint));
+        account1.installExecution({module: mockedModule, manifest: m, moduleInstallData: ""});
+
+        vm.expectCall(
+            address(mockedModule),
+            abi.encodeCall(
+                IExecutionHookModule.preExecutionHook,
+                (0, address(account1), 0.5 ether, abi.encodeCall(account1.execute, (ethRecipient, 1 wei, "")))
+            )
+        );
+        vm.deal(address(owner1), 1 ether);
+        vm.prank(owner1);
+        account1.executeWithRuntimeValidation{value: 0.5 ether}(
+            abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
+            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
+        );
     }
 
     // Internal Functions
