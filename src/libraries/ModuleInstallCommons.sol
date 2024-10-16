@@ -26,6 +26,8 @@ library ModuleInstallCommons {
 
     // We don't need to bring the exec hook removal function here since it's only ever used in the
     // ExecutionInstallLib
+
+    /// @dev adds an execution hook to a specific set of hooks.
     function addExecHooks(LinkedListSet storage hooks, HookConfig hookConfig) internal {
         if (!hooks.tryAdd(toSetValue(hookConfig))) {
             revert ExecutionHookAlreadySet(hookConfig);

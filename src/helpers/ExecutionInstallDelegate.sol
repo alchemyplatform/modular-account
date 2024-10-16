@@ -29,9 +29,9 @@ contract ExecutionInstallDelegate {
     error NullModule();
     error InterfaceNotSupported(address module);
     error ModuleInstallCallbackFailed(address module, bytes revertReason);
-    error ExecutionFunctionAlreadySet(uint32 selector);
-    error IModuleFunctionNotAllowed(uint32 selector);
-    error Erc4337FunctionNotAllowed(uint32 selector);
+    error ExecutionFunctionAlreadySet();
+    error IModuleFunctionNotAllowed();
+    error Erc4337FunctionNotAllowed();
     error ExecutionHookAlreadySet(HookConfig hookConfig);
 
     modifier onlyDelegateCall() {
@@ -140,7 +140,7 @@ contract ExecutionInstallDelegate {
         ExecutionStorage storage _executionStorage = getAccountStorage().executionStorage[bytes4(selector)];
 
         if (_executionStorage.module != address(0)) {
-            revert ExecutionFunctionAlreadySet(uint32(selector));
+            revert ExecutionFunctionAlreadySet();
         }
 
         // Note that there is no check for native function selectors. Installing a function with a colliding
@@ -148,14 +148,14 @@ contract ExecutionInstallDelegate {
 
         // Make sure incoming execution function is not a function in IModule
         if (KnownSelectorsLib.isIModuleFunction(uint32(selector))) {
-            revert IModuleFunctionNotAllowed(uint32(selector));
+            revert IModuleFunctionNotAllowed();
         }
 
         // Also make sure it doesn't collide with functions defined by ERC-4337 and called by the entry point. This
         // prevents a malicious module from sneaking in a function with the same selector as e.g.
         // `validatePaymasterUserOp` and turning the account into their own personal paymaster.
         if (KnownSelectorsLib.isErc4337Function(uint32(selector))) {
-            revert Erc4337FunctionNotAllowed(uint32(selector));
+            revert Erc4337FunctionNotAllowed();
         }
 
         _executionStorage.module = module;
