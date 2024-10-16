@@ -38,8 +38,9 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {AccountBase} from "../../src/account/AccountBase.sol";
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
-import {ModuleManagerInternals} from "../../src/account/ModuleManagerInternals.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
+import {ExecutionInstallDelegate} from "../../src/helpers/ExecutionInstallDelegate.sol";
+import {ModuleInstallCommons} from "../../src/libraries/ModuleInstallCommons.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 import {Counter} from "../mocks/Counter.sol";
@@ -124,7 +125,7 @@ contract ModularAccountTest is AccountTestBase {
 
     function test_basicUserOp_withInitCode() public withSMATest {
         bytes memory callData = _isSMATest
-            ? abi.encodeCall(SemiModularAccountBytecode(payable(account1)).updateFallbackSigner, (owner2))
+            ? abi.encodeCall(SemiModularAccountBytecode(payable(account1)).updateFallbackSignerData, (owner2, false))
             : abi.encodeCall(
                 ModularAccountBase.execute,
                 (
@@ -334,7 +335,7 @@ contract ModularAccountTest is AccountTestBase {
 
         address badModule = CODELESS_ADDRESS;
         vm.expectRevert(
-            abi.encodeWithSelector(ModuleManagerInternals.InterfaceNotSupported.selector, address(badModule))
+            abi.encodeWithSelector(ModuleInstallCommons.InterfaceNotSupported.selector, address(badModule))
         );
 
         ExecutionManifest memory m;
@@ -354,12 +355,7 @@ contract ModularAccountTest is AccountTestBase {
         });
 
         vm.prank(address(entryPoint));
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                ModuleManagerInternals.ExecutionFunctionAlreadySet.selector,
-                MockExecutionInstallationModule.executionInstallationExecute.selector
-            )
-        );
+        vm.expectRevert(ExecutionInstallDelegate.ExecutionFunctionAlreadySet.selector);
         account1.installExecution({
             module: address(mockExecutionInstallationModule),
             manifest: m,
@@ -424,7 +420,6 @@ contract ModularAccountTest is AccountTestBase {
         vm.stopPrank();
     }
 
-    // TODO: Consider if this test belongs here or in the tests specific to the SingleSignerValidationModule
     function test_transferOwnership() public withSMATest {
         if (_isSMATest) {
             // Note: replaced "owner1" with address(0), this doesn't actually affect the account, but allows the
@@ -590,7 +585,10 @@ contract ModularAccountTest is AccountTestBase {
         address expectedAddr = vm.computeCreateAddress(address(account1), vm.getNonce(address(account1)));
         vm.prank(address(entryPoint));
         address returnedAddr = account1.performCreate(
-            0, abi.encodePacked(type(ModularAccount).creationCode, abi.encode(address(entryPoint)))
+            0,
+            abi.encodePacked(type(ModularAccount).creationCode, abi.encode(address(entryPoint))),
+            false,
+            bytes32(0)
         );
 
         assertEq(returnedAddr, expectedAddr);
@@ -599,7 +597,7 @@ contract ModularAccountTest is AccountTestBase {
         // Assert a reverting constructor causes a `CreateFailed` error
         vm.prank(address(entryPoint));
         vm.expectRevert(ModularAccountBase.CreateFailed.selector);
-        account1.performCreate(0, abi.encodePacked(type(MockRevertingConstructor).creationCode));
+        account1.performCreate(0, abi.encodePacked(type(MockRevertingConstructor).creationCode), false, 0);
     }
 
     function test_performCreate2() public withSMATest {
@@ -610,7 +608,7 @@ contract ModularAccountTest is AccountTestBase {
 
         address expectedAddr = vm.computeCreate2Address(salt, initCodeHash, address(account1));
         vm.prank(address(entryPoint));
-        address returnedAddr = account1.performCreate2(0, initCode, salt);
+        address returnedAddr = account1.performCreate(0, initCode, true, salt);
 
         assertEq(returnedAddr, expectedAddr);
         assertEq(address(ModularAccount(payable(expectedAddr)).entryPoint()), address(entryPoint));
@@ -618,7 +616,7 @@ contract ModularAccountTest is AccountTestBase {
         vm.expectRevert(ModularAccountBase.CreateFailed.selector);
         // re-deploying with same salt should revert
         vm.prank(address(entryPoint));
-        account1.performCreate2(0, initCode, salt);
+        account1.performCreate(0, initCode, true, salt);
     }
 
     function test_assertCallerEntryPoint() public withSMATest {

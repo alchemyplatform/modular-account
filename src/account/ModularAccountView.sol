@@ -8,7 +8,7 @@ import {
     ValidationDataView
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 
-import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
+import {NativeFunctionDelegate} from "../helpers/NativeFunctionDelegate.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {ExecutionStorage, ValidationStorage, getAccountStorage} from "./AccountStorage.sol";
 
@@ -17,11 +17,18 @@ import {ExecutionStorage, ValidationStorage, getAccountStorage} from "./AccountS
 /// @notice This abstract contract implements the two view functions to get validation and execution data for an
 /// account.
 abstract contract ModularAccountView is IModularAccountView {
+    NativeFunctionDelegate internal immutable _NATIVE_FUNCTION_DELEGATE;
+
+    constructor() {
+        _NATIVE_FUNCTION_DELEGATE = new NativeFunctionDelegate();
+    }
+
     /// @inheritdoc IModularAccountView
     function getExecutionData(bytes4 selector) external view override returns (ExecutionDataView memory data) {
+        // return ModularAccountViewLib.getExecutionData(selector, _isNativeFunction(selector));
         ExecutionStorage storage executionStorage = getAccountStorage().executionStorage[selector];
 
-        if (KnownSelectorsLib.isNativeFunction(selector)) {
+        if (_isNativeFunction(uint32(selector))) {
             data.module = address(this);
             data.allowGlobalValidation = true;
         } else {
@@ -56,5 +63,9 @@ abstract contract ModularAccountView is IModularAccountView {
         bytes4[] memory selectors = MemManagementLib.loadSelectors(validationStorage);
         MemManagementLib.reverseArr(selectors);
         data.selectors = selectors;
+    }
+
+    function _isNativeFunction(uint32 selector) internal view virtual returns (bool) {
+        return _NATIVE_FUNCTION_DELEGATE.isNativeFunction(selector);
     }
 }

@@ -25,6 +25,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
+import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
 import {
     DensePostHookData,
@@ -89,6 +90,8 @@ abstract contract ModularAccountBase is
     uint8 internal constant _IS_GLOBAL_VALIDATION_BIT = 1;
     uint8 internal constant _HAS_DEFERRED_ACTION_BIT = 2;
 
+    address internal immutable _EXECUTION_INSTALL_DELEGATE;
+
     event DeferredActionNonceInvalidated(uint256 nonce);
 
     error CreateFailed();
@@ -115,6 +118,8 @@ abstract contract ModularAccountBase is
 
     constructor(IEntryPoint anEntryPoint) AccountBase(anEntryPoint) {
         _disableInitializers();
+
+        _EXECUTION_INSTALL_DELEGATE = address(new ExecutionInstallDelegate());
     }
 
     // EXTERNAL FUNCTIONS
@@ -122,8 +127,10 @@ abstract contract ModularAccountBase is
     receive() external payable {}
 
     /// @notice Fallback function
-    /// @dev We route calls to execution functions based on incoming msg.sig
-    /// @dev If there's no module associated with this function selector, revert
+    /// @dev Routes calls to execution functions based on the incoming msg.sig. If there's no module associated
+    /// with this function selector, revert.
+    ///
+    /// @return The raw returned data from the invoked execution function.
     fallback(bytes calldata) external payable returns (bytes memory) {
         address execModule = getAccountStorage().executionStorage[msg.sig].module;
         if (execModule == address(0)) {
@@ -144,7 +151,7 @@ abstract contract ModularAccountBase is
     /// @param value The value to send to the new contract constructor
     /// @param initCode The initCode to deploy.
     /// @return createdAddr The created contract address.
-    function performCreate(uint256 value, bytes calldata initCode)
+    function performCreate(uint256 value, bytes calldata initCode, bool isCreate2, bytes32 salt)
         external
         payable
         virtual
@@ -161,41 +168,9 @@ abstract contract ModularAccountBase is
             // Copy the initCode from callata to memory at the free memory pointer.
             calldatacopy(fmp, initCode.offset, len)
 
-            // Create the contract.
-            createdAddr := create(value, fmp, len)
-
-            if iszero(createdAddr) {
-                // If creation failed (the address returned is zero), revert with CreateFailed().
-                mstore(0x00, 0x7e16b8cd)
-                revert(0x1c, 0x04)
-            }
-        }
-    }
-
-    /// @notice Creates a contract using create2 deterministic deployment.
-    /// @param value The value to send to the new contract constructor.
-    /// @param initCode The initCode to deploy.
-    /// @param salt The salt to use for the create2 operation.
-    /// @return createdAddr The created contract address.
-    function performCreate2(uint256 value, bytes calldata initCode, bytes32 salt)
-        external
-        payable
-        virtual
-        wrapNativeFunction
-        returns (address createdAddr)
-    {
-        assembly ("memory-safe") {
-            // Load the free memory pointer.
-            let fmp := mload(0x40)
-
-            // Get the initCode length.
-            let len := initCode.length
-
-            // Copy the initCode from callata to memory at the free memory pointer.
-            calldatacopy(fmp, initCode.offset, len)
-
-            // Create the contract using Create2 with the passed salt parameter.
-            createdAddr := create2(value, fmp, len, salt)
+            switch isCreate2
+            case 1 { createdAddr := create2(value, fmp, len, salt) }
+            default { createdAddr := create(value, fmp, len) }
 
             if iszero(createdAddr) {
                 // If creation failed (the address returned is zero), revert with CreateFailed().
@@ -320,7 +295,10 @@ abstract contract ModularAccountBase is
         ExecutionManifest calldata manifest,
         bytes calldata moduleInstallData
     ) external override wrapNativeFunction {
-        _installExecution(module, manifest, moduleInstallData);
+        // Access params to prevent compiler unused parameter flags.
+        (module, manifest, moduleInstallData);
+        address delegate = _EXECUTION_INSTALL_DELEGATE;
+        ExecutionLib.delegatecallBubbleOnRevertTransient(delegate);
     }
 
     /// @inheritdoc IModularAccount
@@ -330,7 +308,10 @@ abstract contract ModularAccountBase is
         ExecutionManifest calldata manifest,
         bytes calldata moduleUninstallData
     ) external override wrapNativeFunction {
-        _uninstallExecution(module, manifest, moduleUninstallData);
+        // Access params to prevent compiler unused parameter flags.
+        (module, manifest, moduleUninstallData);
+        address delegate = _EXECUTION_INSTALL_DELEGATE;
+        ExecutionLib.delegatecallBubbleOnRevertTransient(delegate);
     }
 
     /// @inheritdoc IModularAccount
@@ -797,7 +778,7 @@ abstract contract ModularAccountBase is
                 || selector == this.installValidation.selector || selector == this.uninstallValidation.selector
                 || selector == this.upgradeToAndCall.selector
                 || selector == this.invalidateDeferredValidationInstallNonce.selector
-                || selector == this.performCreate.selector || selector == this.performCreate2.selector
+                || selector == this.performCreate.selector
         ) {
             return true;
         }

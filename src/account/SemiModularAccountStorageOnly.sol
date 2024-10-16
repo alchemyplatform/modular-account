@@ -9,10 +9,12 @@ import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 /// @title SemiModularAccountStorageOnly
 /// @author Alchemy
 ///
-/// @notice A basic Semi-Modular Account with an initializer to set the fallback signer in storage.
+/// @notice An implementation of a semi-modular account which includes an initializer to set the fallback signer in
+/// storage upon initialization.
 ///
-/// @dev Note that the initializer has no access control and should be called via `upgradeToAndCall()`.
-/// It's recommended to opt for the variant `SemiModularAccountBytecode` instead for new accounts.
+/// @dev Inherits SemiModularAccountBase. Note that the initializer has no access control and should be called via
+/// `upgradeToAndCall()`. Use the `SemiModularAccountBytecode` instead for new accounts, this implementation should
+/// only be used for account upgrades.
 contract SemiModularAccountStorageOnly is SemiModularAccountBase {
     constructor(IEntryPoint anEntryPoint) SemiModularAccountBase(anEntryPoint) {}
 
@@ -22,9 +24,7 @@ contract SemiModularAccountStorageOnly is SemiModularAccountBase {
         smaStorage.fallbackSigner = initialSigner;
         smaStorage.fallbackSignerDisabled = false;
 
-        // Note that it's technically possible for the fallback signer in storage to be nonzero before
-        // initialization. However, reading it here would add costs in the vast majority of cases.
-        emit FallbackSignerSet(address(0), initialSigner);
+        emit FallbackSignerUpdated(initialSigner, false);
     }
 
     /// @inheritdoc IModularAccount

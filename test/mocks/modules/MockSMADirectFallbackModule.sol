@@ -54,7 +54,7 @@ contract MockSMADirectFallbackModule is ModuleBase, IExecutionHookModule, IValid
         override
         returns (bytes memory)
     {
-        address fallbackSigner = SemiModularAccountBase(payable(msg.sender)).getFallbackSigner();
+        (address fallbackSigner,) = SemiModularAccountBase(payable(msg.sender)).getFallbackSignerData();
         require(sender == fallbackSigner, "mock SMA fallback direct call call pre execution hook failed");
         preHookRan = true;
         return abi.encode(keccak256(hex"04546b"));

@@ -13,9 +13,16 @@ import {FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {SignatureType} from "../helpers/SignatureType.sol";
 import {ERC7739ReplaySafeWrapperLib} from "../libraries/ERC7739ReplaySafeWrapperLib.sol";
 import {RTCallBuffer, SigCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
-import {SemiModularKnownSelectorsLib} from "../libraries/SemiModularKnownSelectorsLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
 
+/// @title SemiModularAccountBase
+/// @author Alchemy
+///
+/// @notice Abstract base contract for the Alchemy Semi-Modular Account variants. Includes fallback signer
+/// functionality.
+///
+/// @dev Inherits ModularAccountBase. Overrides certain functionality from ModularAccountBase, and exposes an
+/// internal virtual getter for the fallback signer.
 abstract contract SemiModularAccountBase is ModularAccountBase {
     using MessageHashUtils for bytes32;
     using ModuleEntityLib for ModuleEntity;
@@ -33,8 +40,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
     uint256 internal constant _SIG_VALIDATION_FAILED = 1;
 
-    event FallbackSignerSet(address indexed previousFallbackSigner, address indexed newFallbackSigner);
-    event FallbackSignerDisabledSet(bool prevDisabled, bool newDisabled);
+    event FallbackSignerUpdated(address indexed newFallbackSigner, bool isDisabled);
 
     error FallbackSignerMismatch();
     error FallbackSignerDisabled();
@@ -43,36 +49,24 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
 
     constructor(IEntryPoint anEntryPoint) ModularAccountBase(anEntryPoint) {}
 
-    /// @notice Updates the fallback signer address in storage.
+    /// @notice Updates the fallback signer data in storage.
     /// @param fallbackSigner The new signer to set.
-    function updateFallbackSigner(address fallbackSigner) external wrapNativeFunction {
+    /// @param isDisabled Whether to disable fallback signing entirely.
+    function updateFallbackSignerData(address fallbackSigner, bool isDisabled) external wrapNativeFunction {
         SemiModularAccountStorage storage _storage = _getSemiModularAccountStorage();
-        emit FallbackSignerSet(_storage.fallbackSigner, fallbackSigner);
 
         _storage.fallbackSigner = fallbackSigner;
-    }
-
-    /// @notice Sets whether the fallback signer validation should be enabled or disabled.
-    /// @dev Due to being initially zero, we need to store "disabled" rather than "enabled" in storage.
-    /// @param isDisabled True to disable fallback signer validation, false to enable it.
-    function setFallbackSignerDisabled(bool isDisabled) external wrapNativeFunction {
-        SemiModularAccountStorage storage _storage = _getSemiModularAccountStorage();
-        emit FallbackSignerDisabledSet(_storage.fallbackSignerDisabled, isDisabled);
-
         _storage.fallbackSignerDisabled = isDisabled;
+
+        emit FallbackSignerUpdated(fallbackSigner, isDisabled);
     }
 
-    /// @notice Returns whether the fallback signer validation is disabled.
-    /// @return True if the fallback signer validation is disabled, false if it is enabled.
-    function isFallbackSignerDisabled() external view returns (bool) {
-        return _getSemiModularAccountStorage().fallbackSignerDisabled;
-    }
-
-    /// @notice Returns the fallback signer associated with this account, regardless if the fallback signer
-    /// validation is enabled or not.
-    /// @return The fallback signer address, either overriden in storage, or read from bytecode.
-    function getFallbackSigner() external view returns (address) {
-        return _retrieveFallbackSignerUnchecked(_getSemiModularAccountStorage());
+    /// @notice Returns the fallback signer data in storage.
+    /// @return The fallback signer and a boolean, true if the fallback signer validation is disabled, false if it
+    /// is enabled.
+    function getFallbackSignerData() external view returns (address, bool) {
+        SemiModularAccountStorage storage _storage = _getSemiModularAccountStorage();
+        return (_retrieveFallbackSignerUnchecked(_storage), _storage.fallbackSignerDisabled);
     }
 
     function _execUserOpValidation(
@@ -147,8 +141,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     }
 
     function _globalValidationAllowed(bytes4 selector) internal view override returns (bool) {
-        return selector == this.setFallbackSignerDisabled.selector
-            || selector == this.updateFallbackSigner.selector || super._globalValidationAllowed(selector);
+        return selector == this.updateFallbackSignerData.selector || super._globalValidationAllowed(selector);
     }
 
     function _isValidationGlobal(ModuleEntity validationFunction) internal view override returns (bool) {
@@ -201,17 +194,18 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         return _storage.fallbackSigner;
     }
 
+    // overrides ModularAccountView
+    function _isNativeFunction(uint32 selector) internal view override returns (bool) {
+        return super._isNativeFunction(selector) || selector == uint32(this.updateFallbackSignerData.selector)
+            || selector == uint32(this.getFallbackSignerData.selector);
+    }
+
     function _getSemiModularAccountStorage() internal pure returns (SemiModularAccountStorage storage) {
         SemiModularAccountStorage storage _storage;
         assembly ("memory-safe") {
             _storage.slot := _SEMI_MODULAR_ACCOUNT_STORAGE_SLOT
         }
         return _storage;
-    }
-
-    // Overrides ModuleManagerInternals
-    function _isNativeFunction(bytes4 selector) internal pure override returns (bool) {
-        return SemiModularKnownSelectorsLib.isNativeFunction(selector);
     }
 
     // Conditionally skip allocation of call buffers.

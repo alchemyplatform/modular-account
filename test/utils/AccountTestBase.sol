@@ -238,7 +238,9 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
 
         if (_isSMATest) {
             account1.executeWithRuntimeValidation(
-                abi.encodeCall(SemiModularAccountBytecode(payable(account1)).updateFallbackSigner, (address(this))),
+                abi.encodeCall(
+                    SemiModularAccountBytecode(payable(account1)).updateFallbackSignerData, (address(this), false)
+                ),
                 _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
             );
             return;
