@@ -17,16 +17,15 @@
 
 pragma solidity ^0.8.26;
 
-import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
+import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {BaseModule} from "../../modules/BaseModule.sol";
+import {ModuleBase} from "../../modules/ModuleBase.sol";
 
 /// @title Allowlist with ERC20 spend limit Module
 /// @author Alchemy
@@ -59,7 +58,7 @@ import {BaseModule} from "../../modules/BaseModule.sol";
 ///         - This module is opinionated on what selectors can be called for token contracts: only `transfer` and
 /// `approve` are allowed. This guards against edge cases, where token contracts like DAI have other functions that
 /// result in ERC-20 transfers or allowance changes.
-contract AllowlistModule is IExecutionHookModule, IValidationHookModule, BaseModule {
+contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleBase {
     struct AllowlistInput {
         address target;
         // if target is address(0), hasSelectorAllowlist is ignored.
@@ -294,7 +293,7 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, BaseMod
         public
         view
         virtual
-        override(BaseModule, IERC165)
+        override(ModuleBase, IERC165)
         returns (bool)
     {
         return interfaceId == type(IValidationHookModule).interfaceId

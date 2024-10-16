@@ -6,13 +6,13 @@ import {IValidationHookModule} from "@erc6900/reference-implementation/interface
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
-import {BaseModule} from "../../../src/modules/BaseModule.sol";
+import {ModuleBase} from "../../../src/modules/ModuleBase.sol";
 
 // A pre validation hook module that uses per-hook data.
 // This example enforces that the target of an `execute` call must only be the previously specified address.
 // This is just a mock - it does not enforce this over `executeBatch` and other methods of making calls, and should
 // not be used in production..
-contract MockAccessControlHookModule is IValidationHookModule, BaseModule {
+contract MockAccessControlHookModule is IValidationHookModule, ModuleBase {
     mapping(uint32 entityId => mapping(address account => address allowedTarget)) public allowedTargets;
 
     function onInstall(bytes calldata data) external override {
@@ -86,7 +86,7 @@ contract MockAccessControlHookModule is IValidationHookModule, BaseModule {
         public
         view
         virtual
-        override(BaseModule, IERC165)
+        override(ModuleBase, IERC165)
         returns (bool)
     {
         return interfaceId == type(IValidationHookModule).interfaceId || super.supportsInterface(interfaceId);

@@ -10,9 +10,8 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
-
 import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
-import {BaseModule} from "../../src/modules/BaseModule.sol";
+import {ModuleBase} from "../../src/modules/ModuleBase.sol";
 import {AllowlistModule} from "../../src/modules/permissions/AllowlistModule.sol";
 
 import {Counter} from "../mocks/Counter.sol";
@@ -319,7 +318,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                 abi.encodeWithSelector(
                     ExecutionLib.PreUserOpValidationHookReverted.selector,
                     ModuleEntityLib.pack(address(allowlistModule), HOOK_ENTITY_ID),
-                    abi.encodeWithSelector(BaseModule.UnexpectedDataPassed.selector)
+                    abi.encodeWithSelector(ModuleBase.UnexpectedDataPassed.selector)
                 )
             )
         );

@@ -14,7 +14,7 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
-import {BaseModule} from "../../src/modules/BaseModule.sol";
+import {ModuleBase} from "../../src/modules/ModuleBase.sol";
 import {NativeTokenLimitModule} from "../../src/modules/permissions/NativeTokenLimitModule.sol";
 
 import {MockDeployment} from "../mocks/MockDeployment.sol";
@@ -293,7 +293,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
                 abi.encodeWithSelector(
                     ExecutionLib.PreUserOpValidationHookReverted.selector,
                     ModuleEntityLib.pack(address(module), entityId),
-                    abi.encodeWithSelector(BaseModule.UnexpectedDataPassed.selector)
+                    abi.encodeWithSelector(ModuleBase.UnexpectedDataPassed.selector)
                 )
             )
         );

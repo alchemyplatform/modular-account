@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
-
 import {Vm} from "forge-std/src/Vm.sol";
 
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
@@ -15,8 +12,10 @@ import {
 } from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
+import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
+import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 
-import {BaseModule} from "../../../src/modules/BaseModule.sol";
+import {ModuleBase} from "../../../src/modules/ModuleBase.sol";
 
 // Used within HookOrdering.t.sol, see that file for details on usage.
 contract HookOrderCheckerModule is
@@ -24,7 +23,7 @@ contract HookOrderCheckerModule is
     IValidationHookModule,
     IExecutionModule,
     IExecutionHookModule,
-    BaseModule
+    ModuleBase
 {
     // Stored as a uint256 to make it easier to do the VM staticcall storage writes
     uint256[] public recordedFunctionCalls;

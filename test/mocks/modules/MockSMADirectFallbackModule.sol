@@ -8,9 +8,9 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
 import {SemiModularAccountBase} from "../../../src/account/SemiModularAccountBase.sol";
-import {BaseModule} from "../../../src/modules/BaseModule.sol";
+import {ModuleBase} from "../../../src/modules/ModuleBase.sol";
 
-contract MockSMADirectFallbackModule is BaseModule, IExecutionHookModule, IValidationHookModule {
+contract MockSMADirectFallbackModule is ModuleBase, IExecutionHookModule, IValidationHookModule {
     bool public preHookRan = false;
     bool public postHookRan = false;
     bool public validationHookRan = false;
@@ -56,7 +56,7 @@ contract MockSMADirectFallbackModule is BaseModule, IExecutionHookModule, IValid
         public
         view
         virtual
-        override(BaseModule, IERC165)
+        override(ModuleBase, IERC165)
         returns (bool)
     {
         return interfaceId == type(IExecutionHookModule).interfaceId

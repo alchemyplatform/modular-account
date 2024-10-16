@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
+import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
-import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
-import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
-import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
-
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
-import {BaseModule} from "../../src/modules/BaseModule.sol";
+import {ModuleBase} from "../../src/modules/ModuleBase.sol";
 import {PaymasterGuardModule} from "../../src/modules/permissions/PaymasterGuardModule.sol";
+
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
 contract PaymasterGuardModuleTest is AccountTestBase {
@@ -107,7 +107,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
 
         uo.signature = hex"1234";
 
-        vm.expectRevert(abi.encodeWithSelector(BaseModule.UnexpectedDataPassed.selector));
+        vm.expectRevert(abi.encodeWithSelector(ModuleBase.UnexpectedDataPassed.selector));
         module.preUserOpValidationHook(ENTITY_ID, uo, bytes32(0));
         vm.stopPrank();
     }

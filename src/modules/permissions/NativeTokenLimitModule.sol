@@ -17,15 +17,15 @@
 
 pragma solidity ^0.8.26;
 
-import {UserOperationLib} from "@eth-infinitism/account-abstraction/core/UserOperationLib.sol";
-import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-
-import {ModularAccountBase} from "../../account/ModularAccountBase.sol";
-import {BaseModule, IERC165} from "../BaseModule.sol";
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
+import {UserOperationLib} from "@eth-infinitism/account-abstraction/core/UserOperationLib.sol";
+import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
+
+import {ModularAccountBase} from "../../account/ModularAccountBase.sol";
+import {IERC165, ModuleBase} from "../ModuleBase.sol";
 
 /// @title Native Token Limit Module
 /// @author Alchemy
@@ -38,7 +38,7 @@ import {IValidationHookModule} from "@erc6900/reference-implementation/interface
 /// paymaster that converts non-native tokens in the account to pay for gas, this paymaster should be added to the
 /// `specialPaymasters` list to enable the correct accounting of spend limits. When these paymasters are used to
 /// pay for a UO, spend limits would be decremented.
-contract NativeTokenLimitModule is BaseModule, IExecutionHookModule, IValidationHookModule {
+contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidationHookModule {
     using UserOperationLib for PackedUserOperation;
 
     mapping(uint256 entityId => mapping(address account => uint256 limit)) public limits;
@@ -162,8 +162,8 @@ contract NativeTokenLimitModule is BaseModule, IExecutionHookModule, IValidation
     // ┃    EIP-165    ┃
     // ┗━━━━━━━━━━━━━━━┛
 
-    /// @inheritdoc BaseModule
-    function supportsInterface(bytes4 interfaceId) public view override(BaseModule, IERC165) returns (bool) {
+    /// @inheritdoc ModuleBase
+    function supportsInterface(bytes4 interfaceId) public view override(ModuleBase, IERC165) returns (bool) {
         return interfaceId == type(IExecutionHookModule).interfaceId || super.supportsInterface(interfaceId);
     }
 }

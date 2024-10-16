@@ -17,14 +17,13 @@
 
 pragma solidity ^0.8.26;
 
+import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
+import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {_packValidationData} from "@eth-infinitism/account-abstraction/core/Helpers.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
-import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
-import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
-
-import {BaseModule} from "../../modules/BaseModule.sol";
+import {ModuleBase} from "../../modules/ModuleBase.sol";
 
 /// @title Time Range Module
 /// @author Alchemy
@@ -36,7 +35,7 @@ import {BaseModule} from "../../modules/BaseModule.sol";
 /// singleton directly.
 ///     - Uninstallation will NOT disable all installed hooks for an account. It only uninstalls hooks for the
 /// entity ID that is passed in. Account must remove access for each entity ID if want to disable all hooks.
-contract TimeRangeModule is IValidationHookModule, BaseModule {
+contract TimeRangeModule is IValidationHookModule, ModuleBase {
     struct TimeRange {
         uint48 validUntil;
         uint48 validAfter;
@@ -121,7 +120,7 @@ contract TimeRangeModule is IValidationHookModule, BaseModule {
         public
         view
         virtual
-        override(BaseModule, IERC165)
+        override(ModuleBase, IERC165)
         returns (bool)
     {
         return interfaceId == type(IValidationHookModule).interfaceId || super.supportsInterface(interfaceId);

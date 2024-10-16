@@ -10,7 +10,7 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 /// nonce. The nonce may be retrieved from the EntryPoint contract.
 /// Implementing contracts should override the _validateUserOp function to provide account-specific validation
 /// logic.
-abstract contract BaseAccount is IAccount {
+abstract contract AccountBase is IAccount {
     IEntryPoint internal immutable _ENTRY_POINT;
 
     error NotEntryPoint();
