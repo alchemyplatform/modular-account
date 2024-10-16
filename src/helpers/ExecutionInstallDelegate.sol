@@ -27,12 +27,9 @@ contract ExecutionInstallDelegate {
 
     error OnlyDelegateCall();
     error NullModule();
-    error InterfaceNotSupported(address module);
-    error ModuleInstallCallbackFailed(address module, bytes revertReason);
     error ExecutionFunctionAlreadySet();
     error IModuleFunctionNotAllowed();
     error Erc4337FunctionNotAllowed();
-    error ExecutionHookAlreadySet(HookConfig hookConfig);
 
     modifier onlyDelegateCall() {
         if (address(this) == _THIS_ADDRESS) {
