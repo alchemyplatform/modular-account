@@ -32,6 +32,8 @@ library ModuleInstallCommons {
         }
     }
 
+    /// @dev setup the module storage for the account, reverts are bubbled up into a custom
+    /// ModuleInstallCallbackFailed
     function onInstall(address module, bytes calldata data, bytes4 interfaceId) internal {
         if (data.length > 0) {
             if (!ERC165Checker.supportsERC165InterfaceUnchecked(module, interfaceId)) {
@@ -46,6 +48,7 @@ library ModuleInstallCommons {
         }
     }
 
+    /// @dev clear the module storage for the account, reverts are IGNORED. Status is included in emitted event.
     function onUninstall(address module, bytes calldata data) internal returns (bool onUninstallSuccess) {
         onUninstallSuccess = true;
         if (data.length > 0) {

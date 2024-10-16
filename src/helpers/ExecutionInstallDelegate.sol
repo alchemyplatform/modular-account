@@ -47,6 +47,7 @@ contract ExecutionInstallDelegate {
 
     // External Functions
 
+    /// @notice Update components according to the manifest.
     function installExecution(
         address module,
         ExecutionManifest calldata manifest,
@@ -70,14 +71,14 @@ contract ExecutionInstallDelegate {
         length = manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
-            ExecutionStorage storage executionStorage = _storage.executionStorage[mh.executionSelector];
+            LinkedListSet storage executionHooks = _storage.executionStorage[mh.executionSelector].executionHooks;
             HookConfig hookConfig = HookConfigLib.packExecHook({
                 _module: module,
                 _entityId: mh.entityId,
                 _hasPre: mh.isPreHook,
                 _hasPost: mh.isPostHook
             });
-            ModuleInstallCommons.addExecHooks(executionStorage.executionHooks, hookConfig);
+            ModuleInstallCommons.addExecHooks(executionHooks, hookConfig);
         }
 
         length = manifest.interfaceIds.length;
@@ -90,25 +91,25 @@ contract ExecutionInstallDelegate {
         emit IModularAccount.ExecutionInstalled(module, manifest);
     }
 
+    /// @notice Remove components according to the manifest, in reverse order (by component type) of their
+    /// installation.
     function uninstallExecution(address module, ExecutionManifest calldata manifest, bytes calldata uninstallData)
         external
         onlyDelegateCall
     {
         AccountStorage storage _storage = getAccountStorage();
 
-        // Remove components according to the manifest, in reverse order (by component type) of their installation.
-
         uint256 length = manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
-            ExecutionStorage storage execData = _storage.executionStorage[mh.executionSelector];
+            LinkedListSet storage executionHooks = _storage.executionStorage[mh.executionSelector].executionHooks;
             HookConfig hookConfig = HookConfigLib.packExecHook({
                 _module: module,
                 _entityId: mh.entityId,
                 _hasPre: mh.isPreHook,
                 _hasPost: mh.isPostHook
             });
-            _removeExecHooks(execData.executionHooks, hookConfig);
+            _removeExecHooks(executionHooks, hookConfig);
         }
 
         length = manifest.executionFunctions.length;
@@ -136,9 +137,9 @@ contract ExecutionInstallDelegate {
         bool allowGlobalValidation,
         address module
     ) internal {
-        ExecutionStorage storage _executionData = getAccountStorage().executionStorage[selector];
+        ExecutionStorage storage _executionStorage = getAccountStorage().executionStorage[selector];
 
-        if (_executionData.module != address(0)) {
+        if (_executionStorage.module != address(0)) {
             revert ExecutionFunctionAlreadySet(selector);
         }
 
@@ -157,17 +158,17 @@ contract ExecutionInstallDelegate {
             revert Erc4337FunctionNotAllowed(selector);
         }
 
-        _executionData.module = module;
-        _executionData.skipRuntimeValidation = skipRuntimeValidation;
-        _executionData.allowGlobalValidation = allowGlobalValidation;
+        _executionStorage.module = module;
+        _executionStorage.skipRuntimeValidation = skipRuntimeValidation;
+        _executionStorage.allowGlobalValidation = allowGlobalValidation;
     }
 
     function _removeExecutionFunction(bytes4 selector) internal {
-        ExecutionStorage storage _executionData = getAccountStorage().executionStorage[selector];
+        ExecutionStorage storage _executionStorage = getAccountStorage().executionStorage[selector];
 
-        _executionData.module = address(0);
-        _executionData.skipRuntimeValidation = false;
-        _executionData.allowGlobalValidation = false;
+        _executionStorage.module = address(0);
+        _executionStorage.skipRuntimeValidation = false;
+        _executionStorage.allowGlobalValidation = false;
     }
 
     function _removeExecHooks(LinkedListSet storage hooks, HookConfig hookConfig) internal {
