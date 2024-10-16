@@ -435,8 +435,17 @@ contract ModularAccountTest is AccountTestBase {
 
         (bytes32 mockAppStructHash, bytes32 mockAppDigest) = _getMockApp712Contents(message);
         bytes32 replaySafeHash = _isSMATest
-            ? SemiModularAccountBytecode(payable(account1)).replaySafeHash(message)
-            : singleSignerValidationModule.replaySafeHash(address(account1), message);
+            ? _getSMAReplaySafeHash(
+                address(account1), _MOCK_APP_DOMAIN, mockAppStructHash, mockAppDigest, _MOCK_APP_CONTENTS_TYPE
+            )
+            : _getModuleReplaySafeHash(
+                address(account1),
+                address(singleSignerValidationModule),
+                _MOCK_APP_DOMAIN,
+                mockAppStructHash,
+                mockAppDigest,
+                _MOCK_APP_CONTENTS_TYPE
+            );
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
 
@@ -451,7 +460,7 @@ contract ModularAccountTest is AccountTestBase {
 
     // Only need a test case for the negative case, as the positive case is covered by the isValidSignature test
     function test_signatureValidationFlag_enforce() public withSMATest {
-        // Install a new copy of SingleSignerValidationModule with the signature validation flag set to false
+        // Install a new copy of ECDSAValidationModule with the signature validation flag set to false
         uint32 newEntityId = 2;
         vm.prank(address(entryPoint));
         account1.installValidation(
@@ -464,13 +473,24 @@ contract ModularAccountTest is AccountTestBase {
         bytes32 message = keccak256("hello world");
         (bytes32 mockAppStructHash, bytes32 mockAppDigest) = _getMockApp712Contents(message);
         bytes32 replaySafeHash = _isSMATest
-            ? SemiModularAccountBytecode(payable(account1)).replaySafeHash(message)
-            : singleSignerValidationModule.replaySafeHash(address(account1), message);
+            ? _getSMAReplaySafeHash(
+                address(account1), _MOCK_APP_DOMAIN, mockAppStructHash, mockAppDigest, _MOCK_APP_CONTENTS_TYPE
+            )
+            : _getModuleReplaySafeHash(
+                address(account1),
+                address(singleSignerValidationModule),
+                _MOCK_APP_DOMAIN,
+                mockAppStructHash,
+                mockAppDigest,
+                _MOCK_APP_CONTENTS_TYPE
+            );
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
 
         bytes memory signature = _encode1271Signature(
-            ModuleEntityLib.pack(address(singleSignerValidationModule), newEntityId), abi.encodePacked(r, s, v)
+            ModuleEntityLib.pack(address(singleSignerValidationModule), newEntityId),
+            abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v),
+            message
         );
 
         vm.expectRevert(

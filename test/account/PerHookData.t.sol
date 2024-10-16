@@ -407,14 +407,13 @@ contract PerHookDataTest is CustomValidationTestBase {
         // we use module validation for both cases
         bytes32 replaySafeHash = _getModuleReplaySafeHash(
             address(account1),
-            address(ecdsaValidationModule),
+            address(singleSignerValidationModule),
             _MOCK_APP_DOMAIN,
             mockAppStructHash,
             mockAppDigest,
             _MOCK_APP_CONTENTS_TYPE
         );
 
-        bytes32 replaySafeHash = singleSignerValidationModule.replaySafeHash(address(account1), messageHash);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);

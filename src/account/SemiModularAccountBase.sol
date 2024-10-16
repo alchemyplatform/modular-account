@@ -11,6 +11,8 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 
 import {FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {SignatureType} from "../helpers/SignatureType.sol";
+
+import {ERC7739ReplaySafeWrapper} from "../libraries/ERC7739ReplaySafeWrapper.sol";
 import {RTCallBuffer, SigCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
 import {SemiModularKnownSelectorsLib} from "../libraries/SemiModularKnownSelectorsLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";

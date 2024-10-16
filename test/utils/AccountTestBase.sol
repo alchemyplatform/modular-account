@@ -280,46 +280,48 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         uint256 signingKey,
         bytes memory uoSig
     ) internal view returns (bytes memory) {
-        bytes memory deferredValidationSig = _packFinalSignature(
-            _signEcdsaAccountAgnostic(
-                _getDeferredInstallHash(
-                    account,
-                    deferredInstallNonce,
-                    deferredInstallDeadline,
-                    uoValidationFunction,
-                    deferredValidationInstallCall
-                ),
-                signingKey,
+        bytes memory deferredValidationSig;
+        bytes memory deferredValidationDatas;
+        {
+            (bytes32 structHash, bytes32 digest, bytes32 domainSeparator) = _getDeferredInstallStructAndHash(
                 account,
-                singleSignerValidationModule
-            )
-        );
+                deferredInstallNonce,
+                deferredInstallDeadline,
+                uoValidationFunction,
+                deferredValidationInstallCall
+            );
 
-        return _encodeDeferredInstallUOSignature(
-            _signerValidation,
-            GLOBAL_VALIDATION,
-            _packDeferredInstallData(
+            bytes32 replaySafeHash;
+            if (_isSMATest) {
+                replaySafeHash = _getSMAReplaySafeHash(
+                    address(account), domainSeparator, structHash, digest, _DEFERRED_ACTION_CONTENTS_TYPE
+                );
+            } else {
+                replaySafeHash = _getModuleReplaySafeHash(
+                    address(account),
+                    address(singleSignerValidationModule),
+                    domainSeparator,
+                    structHash,
+                    digest,
+                    _DEFERRED_ACTION_CONTENTS_TYPE
+                );
+            }
+
+            deferredValidationSig = _packFinal1271Signature(
+                _signRawHash(vm, signingKey, replaySafeHash),
+                domainSeparator,
+                structHash,
+                _DEFERRED_ACTION_CONTENTS_TYPE
+            );
+
+            deferredValidationDatas = _packDeferredInstallData(
                 deferredInstallNonce, deferredInstallDeadline, uoValidationFunction, deferredValidationInstallCall
-            ),
-            deferredValidationSig,
-            uoSig
-        );
-    }
-
-    function _signEcdsaAccountAgnostic(
-        bytes32 hash,
-        uint256 signingKey,
-        ModularAccount account,
-        SingleSignerValidationModule validationModule
-    ) internal view returns (bytes memory) {
-        bytes32 replaySafeHash;
-        if (_isSMATest) {
-            replaySafeHash = _getSMAReplaySafeHash(account, hash);
-        } else {
-            replaySafeHash = validationModule.replaySafeHash(address(account), hash);
+            );
         }
 
-        return _signRawHash(vm, signingKey, replaySafeHash);
+        return _encodeDeferredInstallUOSignature(
+            _signerValidation, GLOBAL_VALIDATION, deferredValidationDatas, deferredValidationSig, uoSig
+        );
     }
 
     // helper function to compress 2 gas values into a single bytes32

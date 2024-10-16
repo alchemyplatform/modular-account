@@ -10,8 +10,7 @@ import {ValidationConfig} from "@erc6900/reference-implementation/libraries/Vali
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
-import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
+import {ERC7739ReplaySafeWrapper} from "../../src/libraries/ERC7739ReplaySafeWrapper.sol";
 
 /// @dev Utilities for encoding signatures for modular account validation. Used for encoding user op, runtime, and
 /// 1271 signatures.
@@ -35,8 +34,8 @@ contract ModuleSignatureUtils {
     string internal constant _MOCK_APP_CONTENTS_TYPE = "Message(string message)"; // len 23
     bytes32 internal constant _MOCK_APP_DOMAIN = 0x71062c282d40422f744945d587dbf4ecfd4f9cfad1d35d62c944373009d96162;
 
-    string internal constant _DEFERRED_INSTALL_CONTENTS_TYPE =
-        "InstallValidation(uint256 nonce,uint48 deadline,bytes validationInstall)"; // len 36
+    string internal constant _DEFERRED_ACTION_CONTENTS_TYPE =
+        "DeferredAction(uint256 nonce,uint48 deadline,bytes25 validationFunction,bytes call)";
 
     function _getMockApp712Contents(bytes32 _digest)
         internal
@@ -113,6 +112,26 @@ contract ModuleSignatureUtils {
         return sig;
     }
 
+    // From
+    // github/Vectorized/solady/blob/4676345386dab5728e2da9a6540f6cd308a9f4d5/src/accounts/ERC1271.sol#L157-L158
+    // The signature will be `r ‖ s ‖ v ‖
+    // APP_DOMAIN_SEPARATOR ‖ contents ‖ contentsType ‖ uint16(contentsType.length)`,
+    function _packFinal1271Signature(
+        bytes memory sig,
+        bytes32 appDomain,
+        bytes32 appStructHash,
+        string memory contentsType
+    ) internal pure returns (bytes memory) {
+        return abi.encodePacked(
+            RESERVED_VALIDATION_DATA_INDEX,
+            sig,
+            appDomain,
+            appStructHash,
+            contentsType,
+            uint16(bytes(contentsType).length)
+        );
+    }
+
     // helper function to encode a signature, according to the per-hook and per-validation data format.
     function _encodeSignature(
         ModuleEntity validationFunction,
@@ -163,6 +182,20 @@ contract ModuleSignatureUtils {
         bytes memory sig = abi.encodePacked(validationFunction);
 
         sig = abi.encodePacked(sig, _packPreHookDatas(new PreValidationHookData[](0)));
+
+        sig = abi.encodePacked(sig, _packFinalSignature(validationData));
+
+        return sig;
+    }
+
+    function _encode1271Signature(
+        ModuleEntity validationFunction,
+        PreValidationHookData[] memory perHookDatas,
+        bytes memory validationData
+    ) internal pure returns (bytes memory) {
+        bytes memory sig = abi.encodePacked(validationFunction);
+
+        sig = abi.encodePacked(sig, _packPreHookDatas(perHookDatas));
 
         sig = abi.encodePacked(sig, _packFinalSignature(validationData));
 
@@ -233,14 +266,6 @@ contract ModuleSignatureUtils {
         return abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
     }
 
-    function _getECDSAReplaySafeHash(
-        ModularAccount account,
-        SingleSignerValidationModule validationModule,
-        bytes32 typedDataHash
-    ) internal view returns (bytes32) {
-        return validationModule.replaySafeHash(address(account), typedDataHash);
-    }
-
     function _getModuleReplaySafeHash(
         address account,
         address validationModule,
@@ -307,12 +332,12 @@ contract ModuleSignatureUtils {
         uint48 deadline,
         ValidationConfig validationFunction,
         bytes memory selfCall
-    ) internal view returns (bytes32) {
-        bytes32 domainSeparator = _computeDomainSeparator(account);
+    ) internal view returns (bytes32 structHash, bytes32 typedDataHash, bytes32 domainSeparator) {
+        domainSeparator = _computeDomainSeparator(address(account));
 
         bytes32 selfCallHash = keccak256(selfCall);
 
-        bytes32 structHash =
+        structHash =
             keccak256(abi.encode(_DEFERRED_ACTION_TYPEHASH, nonce, deadline, validationFunction, selfCallHash));
 
         typedDataHash = MessageHashUtils.toTypedDataHash(domainSeparator, structHash);
