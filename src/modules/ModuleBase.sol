@@ -26,8 +26,7 @@ import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol"
 /// @title Base contract for modules
 /// @author Alchemy
 /// @dev Implements ERC-165 to support IModule's interface, which is a requirement
-/// for module installation. This also ensures that module interactions cannot
-/// happen via the standard execution funtions `execute` and `executeBatch`.
+/// for module installation.
 abstract contract ModuleBase is ERC165, IModule {
     error NotImplemented();
     error UnexpectedDataPassed();
