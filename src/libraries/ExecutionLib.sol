@@ -9,9 +9,9 @@ import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookCon
 import {ModuleEntity} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
-// Type-aliasing a `bytes memory`, to protect the caller from doing anything unexpected with it.
-// We can't actually alias a `bytes memory` type, so we use a `bytes32` type instead, and cast it to `bytes memory`
-// within this library.
+// The following types alias a `bytes memory`, to protect the user from doing anything unexpected with it. We can't
+// actually alias a `bytes memory` type, so we use a `bytes32` type instead, and cast it to `bytes memory` within
+// this library.
 type UOCallBuffer is bytes32;
 
 type RTCallBuffer is bytes32;
@@ -24,6 +24,11 @@ type DensePostHookData is bytes32;
 
 using HookConfigLib for HookConfig;
 
+/// @notice A library for performing external calls. This library is used for the external calls of `execute` and
+/// `executeBatch`, for any account self-calls, and for any call to a module function.
+/// @dev This library uses "call buffers", or reusable memory buffers that hold the abi-encoded data to be sent to
+/// a module function. These buffers are used to avoid the overhead of encoding the same data multiple times.
+/// @author Alchemy
 // Functions are more readable in original order
 // solhint-disable ordering
 library ExecutionLib {
@@ -36,8 +41,11 @@ library ExecutionLib {
     error SignatureValidationFunctionReverted(ModuleEntity moduleFunction, bytes revertReason);
     error UserOpValidationFunctionReverted(ModuleEntity moduleFunction, bytes revertReason);
 
-    // Perform the following call, without capturing any return data.
-    // If the call reverts, the revert message will be directly bubbled up.
+    /// @notice Perform the following call, without capturing any return data.
+    /// If the call reverts, the revert message will be directly bubbled up.
+    /// @param target The address to call.
+    /// @param value The value to send with the call.
+    /// @param callData The data to send with the call.
     function callBubbleOnRevert(address target, uint256 value, bytes memory callData) internal {
         // Manually call, without collecting return data unless there's a revert.
         assembly ("memory-safe") {
@@ -69,7 +77,11 @@ library ExecutionLib {
         }
     }
 
-    // Transiently copy the call data to a memory, and perform a self-call.
+    /// @notice Transiently copy the call data to a memory, and perform a self-call.
+    /// If the call reverts, the revert message will be directly bubbled up.
+    /// @param target The address to call.
+    /// @param value The value to send with the call.
+    /// @param callData The data to send with the call.
     function callBubbleOnRevertTransient(address target, uint256 value, bytes calldata callData) internal {
         bytes memory encodedCall;
 
@@ -121,7 +133,9 @@ library ExecutionLib {
         // Memory is discarded afterwards
     }
 
-    // Manually collect and store the return data from the most recent external call into a `bytes memory`.
+    /// @notice Manually collect and store the return data from the most recent external call into a `bytes
+    /// memory`.
+    /// @return returnData The return data from the most recent external call.
     function collectReturnData() internal pure returns (bytes memory returnData) {
         assembly ("memory-safe") {
             // Allocate a buffer of that size, advancing the memory pointer to the nearest word
@@ -606,6 +620,7 @@ library ExecutionLib {
         }
     }
 
+    // Allocate a buffer to call a pre-execution hook.
     function allocatePreExecHookCallBuffer(bytes calldata data) internal view returns (PHCallBuffer) {
         bytes memory newBuffer =
             abi.encodeCall(IExecutionHookModule.preExecutionHook, (uint32(0), msg.sender, msg.value, data));
@@ -1032,6 +1047,10 @@ library ExecutionLib {
         }
     }
 
+    /// @notice Appends a post hook to run to the dense post hook data buffer.
+    /// @param workingMemPtr The current working memory pointer
+    /// @param hookConfig The hook configuration
+    /// @param returnedBytesSize The size of the returned bytes from the pre hook
     /// @return The new working memory pointer
     function _appendPostHookToRun(bytes32 workingMemPtr, HookConfig hookConfig, uint256 returnedBytesSize)
         private
