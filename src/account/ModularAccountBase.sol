@@ -27,6 +27,7 @@ import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
 import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
 
+import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 import {
     DensePostHookData,
     ExecutionLib,
@@ -43,7 +44,6 @@ import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
 import {TokenReceiver} from "./TokenReceiver.sol";
-import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 
 /// @title Modular Account Base
 /// @author Alchemy

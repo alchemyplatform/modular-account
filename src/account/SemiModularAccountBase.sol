@@ -197,8 +197,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     // overrides ModularAccountView
     function _isNativeFunction(uint32 selector) internal view override returns (bool) {
         return super._isNativeFunction(selector) || selector == uint32(this.updateFallbackSignerData.selector)
-            || selector == uint32(this.getFallbackSignerData.selector)
-            || selector == uint32(this.replaySafeHash.selector);
+            || selector == uint32(this.getFallbackSignerData.selector);
     }
 
     function _getSemiModularAccountStorage() internal pure returns (SemiModularAccountStorage storage) {
@@ -207,11 +206,6 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
             _storage.slot := _SEMI_MODULAR_ACCOUNT_STORAGE_SLOT
         }
         return _storage;
-    }
-
-    // Overrides ModuleManagerInternals
-    function _isNativeFunction(bytes4 selector) internal pure override returns (bool) {
-        return SemiModularKnownSelectorsLib.isNativeFunction(selector);
     }
 
     // Conditionally skip allocation of call buffers.

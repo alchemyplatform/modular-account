@@ -7,9 +7,9 @@ import {IValidationHookModule} from "@erc6900/reference-implementation/interface
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 
-import {BaseModule} from "../../../src/modules/BaseModule.sol";
+import {ModuleBase} from "../../../src/modules/ModuleBase.sol";
 
-contract MockCountModule is BaseModule, IExecutionHookModule, IValidationHookModule {
+contract MockCountModule is ModuleBase, IExecutionHookModule, IValidationHookModule {
     uint256 public preExecutionHookRunCount = 0;
     uint256 public postExecutionHookRunCount = 0;
     uint256 public runtimeValidationHookRunCount = 0;
@@ -51,7 +51,7 @@ contract MockCountModule is BaseModule, IExecutionHookModule, IValidationHookMod
         public
         view
         virtual
-        override(BaseModule, IERC165)
+        override(ModuleBase, IERC165)
         returns (bool)
     {
         return interfaceId == type(IExecutionHookModule).interfaceId
