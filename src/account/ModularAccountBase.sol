@@ -492,9 +492,6 @@ abstract contract ModularAccountBase is
 
         // We only coalesce validations if the validation data from deferred installation is nonzero.
         if (validationData != 0) {
-            // Parameter ordering is important here. We treat the validationData as pre-validation data because it
-            // may be empty, or it may contain only the deadline from deferred installation, so
-            // `_coalesceValidation()` must treat it as preValidationData.
             validationData = _coalesceValidation(validationData, userOpValidationRes);
         } else {
             validationData = userOpValidationRes;
