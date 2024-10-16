@@ -1,7 +1,4 @@
-// SPDX-License-Identifier: MIT
-//
-// See LICENSE-MIT file for more information
-
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
 type SetValue is bytes31;
