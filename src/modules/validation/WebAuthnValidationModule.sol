@@ -23,10 +23,9 @@ import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {WebAuthn} from "webauthn-sol/src/WebAuthn.sol";
 
+import {BaseModule} from "../BaseModule.sol";
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
-
-import {BaseModule} from "../BaseModule.sol";
 
 /// @title WebAuthn Validation Module
 /// @author Alchemy

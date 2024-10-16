@@ -460,7 +460,7 @@ contract ModularAccountTest is AccountTestBase {
 
     // Only need a test case for the negative case, as the positive case is covered by the isValidSignature test
     function test_signatureValidationFlag_enforce() public withSMATest {
-        // Install a new copy of ECDSAValidationModule with the signature validation flag set to false
+        // Install a new copy of SingleSignerValidationModule with the signature validation flag set to false
         uint32 newEntityId = 2;
         vm.prank(address(entryPoint));
         account1.installValidation(

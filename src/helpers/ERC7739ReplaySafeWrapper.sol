@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-// A contract mixin ERC7739-compliant nested EIP-712 wrappers over EIP-1271 digests.
+// A library for ERC7739-compliant nested EIP-712 wrappers over EIP-1271 digests.
 // This allows for efficient, readable ERC-1271 signature schemes for smart contract accounts.
 library ERC7739ReplaySafeWrapper {
     // Points to a location in memory with EIP-712 formatted `encodeType(TypedDataSign)`, excluding the first two
@@ -27,7 +27,7 @@ library ERC7739ReplaySafeWrapper {
     bytes32 internal constant _DOMAIN_SEPARATOR_TYPEHASH_ACCOUNT =
         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
 
-    // keccak256(abi.encode(""))
+    // keccak256("")
     bytes32 internal constant _HASH_EMPTY_BYTES =
         0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
 
@@ -68,7 +68,7 @@ library ERC7739ReplaySafeWrapper {
             m := mload(0x40) // Grab the free memory pointer.
             mstore(0x40, add(m, 0x120)) // Allocate the memory.
             // Skip 2 words for the `typedDataSignTypehash` and `contents` struct hash.
-            mstore(add(m, 0x40), shl(248, fields))
+            mstore(add(m, 0x40), fields)
             mstore(add(m, 0x60), _HASH_EMPTY_BYTES)
             mstore(add(m, 0x80), _HASH_EMPTY_BYTES)
             mstore(add(m, 0xa0), chainid())
@@ -152,7 +152,7 @@ library ERC7739ReplaySafeWrapper {
             m := mload(0x40) // Grab the free memory pointer.
             mstore(0x40, add(m, 0x120)) // Allocate the memory.
             // Skip 2 words for the `typedDataSignTypehash` and `contents` struct hash.
-            mstore(add(m, 0x40), shl(248, fields))
+            mstore(add(m, 0x40), fields)
             mstore(add(m, 0x60), _HASH_EMPTY_BYTES)
             mstore(add(m, 0x80), _HASH_EMPTY_BYTES)
             mstore(add(m, 0xa0), chainid())
