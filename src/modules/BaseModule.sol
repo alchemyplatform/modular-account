@@ -57,25 +57,32 @@ abstract contract BaseModule is ERC165, IModule {
 
     /// @dev help method that returns extracted selector and calldata. If selector is executeUserOp, return the
     /// selector and calldata of the inner call.
-    function _getSelectorAndCalldata(bytes calldata data) internal pure returns (bytes4, bytes memory) {
-        if (bytes4(data[:4]) == IAccountExecute.executeUserOp.selector) {
-            (PackedUserOperation memory uo,) = abi.decode(data[4:], (PackedUserOperation, bytes32));
-            bytes4 selector;
-            bytes memory callData = uo.callData;
+    function _getSelectorAndCalldata(bytes calldata data)
+        internal
+        pure
+        returns (bytes4 selector, bytes memory finalCalldata)
+    {
+        selector = bytes4(data[:4]);
+        finalCalldata = data[4:];
+        if (selector == IAccountExecute.executeUserOp.selector) {
+            (PackedUserOperation memory uo,) = abi.decode(finalCalldata, (PackedUserOperation, bytes32));
+            finalCalldata = uo.callData;
             // Bytes arr representation: [bytes32(len), bytes4(executeUserOp.selector), bytes4(actualSelector),
             // bytes(actualCallData)]
-            // 1. Copy actualSelector into a new var
-            // 2. Shorten bytes arry by 8 by: store length - 8 into the new pointer location
-            // 3. Move the callData pointer by 8
             assembly {
-                selector := mload(add(callData, 36))
+                // Copy actualSelector into a new var
+                selector := mload(add(finalCalldata, 36))
 
-                let len := mload(callData)
-                mstore(add(callData, 8), sub(len, 8))
-                callData := add(callData, 8)
+                let len := mload(finalCalldata)
+
+                // Move the finalCalldata pointer by 8
+                finalCalldata := add(finalCalldata, 8)
+
+                // Shorten bytes arry by 8 by: store length - 8 into the new pointer location
+                mstore(finalCalldata, sub(len, 8))
             }
-            return (selector, callData);
+            return (selector, finalCalldata);
         }
-        return (bytes4(data[:4]), data[4:]);
+        return (selector, finalCalldata);
     }
 }
