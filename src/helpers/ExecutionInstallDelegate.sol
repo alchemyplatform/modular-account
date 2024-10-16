@@ -172,7 +172,6 @@ contract ExecutionInstallDelegate {
     }
 
     function _removeExecHooks(LinkedListSet storage hooks, HookConfig hookConfig) internal {
-        // Todo: use predecessor
         hooks.tryRemove(toSetValue(hookConfig));
     }
 }

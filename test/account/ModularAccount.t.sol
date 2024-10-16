@@ -420,7 +420,6 @@ contract ModularAccountTest is AccountTestBase {
         vm.stopPrank();
     }
 
-    // TODO: Consider if this test belongs here or in the tests specific to the SingleSignerValidationModule
     function test_transferOwnership() public withSMATest {
         if (_isSMATest) {
             // Note: replaced "owner1" with address(0), this doesn't actually affect the account, but allows the
