@@ -25,7 +25,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
-import {_coalesceValidationRes} from "../helpers/ValidationResHelpers.sol";
+import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
 import {
     DensePostHookData,
     ExecutionLib,
@@ -492,7 +492,7 @@ abstract contract ModularAccountBase is
 
         // We only coalesce validations if the validation data from deferred installation is nonzero.
         if (validationData != 0) {
-            validationData = _coalesceValidationRes(validationData, userOpValidationRes);
+            validationData = _coalesceValidation(validationData, userOpValidationRes);
         } else {
             validationData = userOpValidationRes;
         }
@@ -583,7 +583,7 @@ abstract contract ModularAccountBase is
                 (address module, uint32 entityId) = preUserOpValidationHooks[i].moduleEntity().unpack();
                 revert UnexpectedAggregator(module, entityId, address(uint160(currentValidationRes)));
             }
-            validationRes = _coalesceValidationRes(validationRes, currentValidationRes);
+            validationRes = _coalescePreValidation(validationRes, currentValidationRes);
         }
 
         // Run the user op validation function
@@ -596,7 +596,7 @@ abstract contract ModularAccountBase is
 
             if (preUserOpValidationHooks.length != 0) {
                 // If we have other validation data we need to coalesce with
-                validationRes = _coalesceValidationRes(validationRes, currentValidationRes);
+                validationRes = _coalesceValidation(validationRes, currentValidationRes);
             } else {
                 validationRes = currentValidationRes;
             }
