@@ -186,6 +186,13 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         return _storage.fallbackSigner;
     }
 
+    // overrides ModularAccountView
+    function _isNativeFunction(uint32 selector) internal view override returns (bool) {
+        return super._isNativeFunction(selector) || selector == uint32(this.updateFallbackSignerData.selector)
+            || selector == uint32(this.getFallbackSignerData.selector)
+            || selector == uint32(this.replaySafeHash.selector);
+    }
+
     function _getSemiModularAccountStorage() internal pure returns (SemiModularAccountStorage storage) {
         SemiModularAccountStorage storage _storage;
         assembly ("memory-safe") {
@@ -202,12 +209,5 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     // Conditionally skip allocation of call buffers.
     function _validationIsNative(ModuleEntity validationFunction) internal pure virtual override returns (bool) {
         return validationFunction.eq(FALLBACK_VALIDATION);
-    }
-
-    // overrides ModularAccountView
-    function _isNativeFunction(uint32 selector) internal pure virtual override returns (bool) {
-        return super._isNativeFunction(selector) || selector == uint32(this.updateFallbackSignerData.selector)
-            || selector == uint32(this.getFallbackSignerData.selector)
-            || selector == uint32(this.replaySafeHash.selector);
     }
 }
