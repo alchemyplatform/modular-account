@@ -10,6 +10,8 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+
+import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
 import {BaseModule} from "../../src/modules/BaseModule.sol";
 import {AllowlistModule} from "../../src/modules/permissions/AllowlistModule.sol";
 
@@ -314,7 +316,11 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                 IEntryPoint.FailedOpWithRevert.selector,
                 0,
                 "AA23 reverted",
-                abi.encodeWithSelector(BaseModule.UnexpectedDataPassed.selector)
+                abi.encodeWithSelector(
+                    ExecutionLib.PreUserOpValidationHookReverted.selector,
+                    ModuleEntityLib.pack(address(allowlistModule), HOOK_ENTITY_ID),
+                    abi.encodeWithSelector(BaseModule.UnexpectedDataPassed.selector)
+                )
             )
         );
         entryPoint.handleOps(userOps, beneficiary);
@@ -411,7 +417,11 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                         IEntryPoint.FailedOpWithRevert.selector,
                         0,
                         "AA23 reverted",
-                        abi.encodeWithSelector(AllowlistModule.SelectorNotAllowed.selector)
+                        abi.encodeWithSelector(
+                            ExecutionLib.PreUserOpValidationHookReverted.selector,
+                            ModuleEntityLib.pack(address(allowlistModule), HOOK_ENTITY_ID),
+                            abi.encodeWithSelector(AllowlistModule.SelectorNotAllowed.selector)
+                        )
                     );
                 }
             } else {
@@ -419,7 +429,11 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                     IEntryPoint.FailedOpWithRevert.selector,
                     0,
                     "AA23 reverted",
-                    abi.encodeWithSelector(AllowlistModule.AddressNotAllowed.selector)
+                    abi.encodeWithSelector(
+                        ExecutionLib.PreUserOpValidationHookReverted.selector,
+                        ModuleEntityLib.pack(address(allowlistModule), HOOK_ENTITY_ID),
+                        abi.encodeWithSelector(AllowlistModule.AddressNotAllowed.selector)
+                    )
                 );
             }
         }
@@ -441,17 +455,15 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                         )
                 ) {
                     return abi.encodeWithSelector(
-                        ModularAccountBase.PreRuntimeValidationHookFailed.selector,
-                        address(allowlistModule),
-                        HOOK_ENTITY_ID,
+                        ExecutionLib.PreRuntimeValidationHookReverted.selector,
+                        ModuleEntityLib.pack(address(allowlistModule), HOOK_ENTITY_ID),
                         abi.encodeWithSelector(AllowlistModule.SelectorNotAllowed.selector)
                     );
                 }
             } else {
                 return abi.encodeWithSelector(
-                    ModularAccountBase.PreRuntimeValidationHookFailed.selector,
-                    address(allowlistModule),
-                    HOOK_ENTITY_ID,
+                    ExecutionLib.PreRuntimeValidationHookReverted.selector,
+                    ModuleEntityLib.pack(address(allowlistModule), HOOK_ENTITY_ID),
                     abi.encodeWithSelector(AllowlistModule.AddressNotAllowed.selector)
                 );
             }

@@ -11,6 +11,7 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
 
 import {Counter} from "../mocks/Counter.sol";
 import {MockAccessControlHookModule} from "../mocks/modules/MockAccessControlHookModule.sol";
@@ -84,7 +85,11 @@ contract PerHookDataTest is CustomValidationTestBase {
                 IEntryPoint.FailedOpWithRevert.selector,
                 0,
                 "AA23 reverted",
-                abi.encodeWithSignature("Error(string)", "Proof doesn't match target")
+                abi.encodeWithSelector(
+                    ExecutionLib.PreUserOpValidationHookReverted.selector,
+                    ModuleEntityLib.pack(address(_accessControlHookModule), _PRE_HOOK_ENTITY_ID_1),
+                    abi.encodeWithSignature("Error(string)", "Proof doesn't match target")
+                )
             )
         );
         entryPoint.handleOps(userOps, beneficiary);
@@ -104,7 +109,11 @@ contract PerHookDataTest is CustomValidationTestBase {
                 IEntryPoint.FailedOpWithRevert.selector,
                 0,
                 "AA23 reverted",
-                abi.encodeWithSignature("Error(string)", "Proof doesn't match target")
+                abi.encodeWithSelector(
+                    ExecutionLib.PreUserOpValidationHookReverted.selector,
+                    ModuleEntityLib.pack(address(_accessControlHookModule), _PRE_HOOK_ENTITY_ID_1),
+                    abi.encodeWithSignature("Error(string)", "Proof doesn't match target")
+                )
             )
         );
         entryPoint.handleOps(userOps, beneficiary);
@@ -223,7 +232,11 @@ contract PerHookDataTest is CustomValidationTestBase {
                 IEntryPoint.FailedOpWithRevert.selector,
                 0,
                 "AA23 reverted",
-                abi.encodeWithSignature("Error(string)", "Target not allowed")
+                abi.encodeWithSelector(
+                    ExecutionLib.PreUserOpValidationHookReverted.selector,
+                    ModuleEntityLib.pack(address(_accessControlHookModule), _PRE_HOOK_ENTITY_ID_1),
+                    abi.encodeWithSignature("Error(string)", "Target not allowed")
+                )
             )
         );
         entryPoint.handleOps(userOps, beneficiary);
@@ -281,9 +294,8 @@ contract PerHookDataTest is CustomValidationTestBase {
         vm.prank(owner1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccountBase.PreRuntimeValidationHookFailed.selector,
-                _accessControlHookModule,
-                _PRE_HOOK_ENTITY_ID_1,
+                ExecutionLib.PreRuntimeValidationHookReverted.selector,
+                ModuleEntityLib.pack(address(_accessControlHookModule), _PRE_HOOK_ENTITY_ID_1),
                 abi.encodeWithSignature("Error(string)", "Proof doesn't match target")
             )
         );
@@ -299,9 +311,8 @@ contract PerHookDataTest is CustomValidationTestBase {
         vm.prank(owner1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccountBase.PreRuntimeValidationHookFailed.selector,
-                _accessControlHookModule,
-                _PRE_HOOK_ENTITY_ID_1,
+                ExecutionLib.PreRuntimeValidationHookReverted.selector,
+                ModuleEntityLib.pack(address(_accessControlHookModule), _PRE_HOOK_ENTITY_ID_1),
                 abi.encodeWithSignature("Error(string)", "Proof doesn't match target")
             )
         );
@@ -374,9 +385,8 @@ contract PerHookDataTest is CustomValidationTestBase {
         vm.prank(owner1);
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccountBase.PreRuntimeValidationHookFailed.selector,
-                _accessControlHookModule,
-                _PRE_HOOK_ENTITY_ID_1,
+                ExecutionLib.PreRuntimeValidationHookReverted.selector,
+                ModuleEntityLib.pack(address(_accessControlHookModule), _PRE_HOOK_ENTITY_ID_1),
                 abi.encodeWithSignature("Error(string)", "Target not allowed")
             )
         );
@@ -449,7 +459,13 @@ contract PerHookDataTest is CustomValidationTestBase {
             validationData: abi.encodePacked(address(0x1234123412341234123412341234123412341234))
         });
 
-        vm.expectRevert("Preimage not provided");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExecutionLib.PreSignatureValidationHookReverted.selector,
+                ModuleEntityLib.pack(address(_accessControlHookModule), _PRE_HOOK_ENTITY_ID_1),
+                abi.encodeWithSignature("Error(string)", "Preimage not provided")
+            )
+        );
         account1.isValidSignature(
             messageHash,
             _encode1271Signature(
@@ -468,7 +484,13 @@ contract PerHookDataTest is CustomValidationTestBase {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, messageHash);
 
-        vm.expectRevert("Preimage not provided");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExecutionLib.PreSignatureValidationHookReverted.selector,
+                ModuleEntityLib.pack(address(_accessControlHookModule), _PRE_HOOK_ENTITY_ID_1),
+                abi.encodeWithSignature("Error(string)", "Preimage not provided")
+            )
+        );
         account1.isValidSignature(
             messageHash, _encode1271Signature(_signerValidation, abi.encodePacked(r, s, v), messageHash)
         );

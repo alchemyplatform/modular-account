@@ -12,6 +12,7 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
 import {BaseModule} from "../../src/modules/BaseModule.sol";
 import {TimeRangeModule} from "../../src/modules/permissions/TimeRangeModule.sol";
 
@@ -168,9 +169,8 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccountBase.PreRuntimeValidationHookFailed.selector,
-                timeRangeModule,
-                HOOK_ENTITY_ID,
+                ExecutionLib.PreRuntimeValidationHookReverted.selector,
+                ModuleEntityLib.pack(address(timeRangeModule), HOOK_ENTITY_ID),
                 abi.encodeWithSelector(TimeRangeModule.TimeRangeNotValid.selector)
             )
         );
@@ -209,9 +209,8 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
         vm.expectRevert(
             abi.encodeWithSelector(
-                ModularAccountBase.PreRuntimeValidationHookFailed.selector,
-                timeRangeModule,
-                HOOK_ENTITY_ID,
+                ExecutionLib.PreRuntimeValidationHookReverted.selector,
+                ModuleEntityLib.pack(address(timeRangeModule), HOOK_ENTITY_ID),
                 abi.encodeWithSelector(TimeRangeModule.TimeRangeNotValid.selector)
             )
         );
@@ -249,7 +248,13 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         userOp.signature = _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, "");
 
         vm.prank(address(entryPoint));
-        vm.expectRevert(abi.encodeWithSelector(BaseModule.UnexpectedDataPassed.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExecutionLib.PreUserOpValidationHookReverted.selector,
+                ModuleEntityLib.pack(address(timeRangeModule), HOOK_ENTITY_ID),
+                abi.encodeWithSelector(BaseModule.UnexpectedDataPassed.selector)
+            )
+        );
         account1.validateUserOp(userOp, userOpHash, 0);
     }
 
