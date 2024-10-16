@@ -57,21 +57,16 @@ abstract contract BaseModule is ERC165, IModule {
 
     /// @dev help method that returns extracted selector and calldata. If selector is executeUserOp, return the
     /// selector and calldata of the inner call.
-    function _getSelectorAndCalldata(bytes calldata data)
-        internal
-        pure
-        returns (bytes4 selector, bytes memory finalCalldata)
-    {
-        selector = bytes4(data[:4]);
-        finalCalldata = data[4:];
+    function _getSelectorAndCalldata(bytes calldata data) internal pure returns (bytes4, bytes memory) {
+        bytes4 selector = bytes4(data[:4]);
         if (selector == IAccountExecute.executeUserOp.selector) {
-            (PackedUserOperation memory uo,) = abi.decode(finalCalldata, (PackedUserOperation, bytes32));
-            finalCalldata = uo.callData;
+            (PackedUserOperation memory uo,) = abi.decode(data[4:], (PackedUserOperation, bytes32));
+            bytes memory finalCalldata = uo.callData;
             // Bytes arr representation: [bytes32(len), bytes4(executeUserOp.selector), bytes4(actualSelector),
             // bytes(actualCallData)]
-            assembly {
+            assembly ("memory-safe") {
                 // Copy actualSelector into a new var
-                selector := mload(add(finalCalldata, 36))
+                selector := shl(224, mload(add(finalCalldata, 8)))
 
                 let len := mload(finalCalldata)
 
@@ -83,6 +78,6 @@ abstract contract BaseModule is ERC165, IModule {
             }
             return (selector, finalCalldata);
         }
-        return (selector, finalCalldata);
+        return (selector, data[4:]);
     }
 }
