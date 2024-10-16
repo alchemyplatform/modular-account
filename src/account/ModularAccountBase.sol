@@ -93,7 +93,7 @@ abstract contract ModularAccountBase is
 
     address internal immutable _EXECUTION_INSTALL_DELEGATE;
 
-    event DeferredInstallNonceInvalidated(uint256 nonce);
+    event DeferredActionNonceInvalidated(uint256 nonce);
 
     error CreateFailed();
     error DeferredActionNonceInvalid();

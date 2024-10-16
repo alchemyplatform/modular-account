@@ -15,11 +15,11 @@ import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookCon
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 
-import {ExecutionInstallLib} from "../libraries/ExecutionInstallLib.sol";
 import {ExecutionLib} from "../libraries/ExecutionLib.sol";
 import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
+import {ModuleInstallCommons} from "../libraries/ModuleInstallCommons.sol";
 import {
     AccountStorage,
     ExecutionStorage,
@@ -94,6 +94,8 @@ abstract contract ModuleManagerInternals is IModularAccount {
                 ModuleInstallCommons.onInstall(
                     hookConfig.module(), hookData, type(IValidationHookModule).interfaceId
                 );
+            } else {
+                // Hook is an execution hook
 
                 // Safety:
                 //     validationHookCount is uint8, so math operations here should never overflow
@@ -105,14 +107,11 @@ abstract contract ModuleManagerInternals is IModularAccount {
                     ++_validationStorage.executionHookCount;
                 }
 
-                _addExecHooks(_validationStorage.executionHooks, hookConfig);
-                _onInstall(hookConfig.module(), hookData, type(IExecutionHookModule).interfaceId);
+                ModuleInstallCommons.addExecHooks(_validationStorage.executionHooks, hookConfig);
+                ModuleInstallCommons.onInstall(
+                    hookConfig.module(), hookData, type(IExecutionHookModule).interfaceId
+                );
             }
-            // Hook is an execution hook
-            _validationData.executionHookCount += 1;
-            ModuleInstallCommons.addExecHooks(_validationData.executionHooks, hookConfig);
-
-            ModuleInstallCommons.onInstall(hookConfig.module(), hookData, type(IExecutionHookModule).interfaceId);
         }
 
         length = selectors.length;

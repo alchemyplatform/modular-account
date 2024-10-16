@@ -10,7 +10,7 @@ import {HookConfig, IModularAccount} from "@erc6900/reference-implementation/int
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 
-import {AccountStorage, ExecutionData, getAccountStorage, toSetValue} from "../account/AccountStorage.sol";
+import {AccountStorage, ExecutionStorage, getAccountStorage, toSetValue} from "../account/AccountStorage.sol";
 import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {ModuleInstallCommons} from "../libraries/ModuleInstallCommons.sol";
@@ -70,14 +70,14 @@ contract ExecutionInstallDelegate {
         length = manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
-            ExecutionData storage executionData = _storage.executionData[mh.executionSelector];
+            ExecutionStorage storage executionStorage = _storage.executionStorage[mh.executionSelector];
             HookConfig hookConfig = HookConfigLib.packExecHook({
                 _module: module,
                 _entityId: mh.entityId,
                 _hasPre: mh.isPreHook,
                 _hasPost: mh.isPostHook
             });
-            ModuleInstallCommons.addExecHooks(executionData.executionHooks, hookConfig);
+            ModuleInstallCommons.addExecHooks(executionStorage.executionHooks, hookConfig);
         }
 
         length = manifest.interfaceIds.length;
@@ -101,7 +101,7 @@ contract ExecutionInstallDelegate {
         uint256 length = manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
-            ExecutionData storage execData = _storage.executionData[mh.executionSelector];
+            ExecutionStorage storage execData = _storage.executionStorage[mh.executionSelector];
             HookConfig hookConfig = HookConfigLib.packExecHook({
                 _module: module,
                 _entityId: mh.entityId,
@@ -136,7 +136,7 @@ contract ExecutionInstallDelegate {
         bool allowGlobalValidation,
         address module
     ) internal {
-        ExecutionData storage _executionData = getAccountStorage().executionData[selector];
+        ExecutionStorage storage _executionData = getAccountStorage().executionStorage[selector];
 
         if (_executionData.module != address(0)) {
             revert ExecutionFunctionAlreadySet(selector);
@@ -163,7 +163,7 @@ contract ExecutionInstallDelegate {
     }
 
     function _removeExecutionFunction(bytes4 selector) internal {
-        ExecutionData storage _executionData = getAccountStorage().executionData[selector];
+        ExecutionStorage storage _executionData = getAccountStorage().executionStorage[selector];
 
         _executionData.module = address(0);
         _executionData.skipRuntimeValidation = false;
