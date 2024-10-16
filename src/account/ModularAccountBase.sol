@@ -294,11 +294,11 @@ abstract contract ModularAccountBase is
         ExecutionManifest calldata manifest,
         bytes calldata moduleInstallData
     ) external override wrapNativeFunction {
-        (bool success,) = _EXECUTION_INSTALL_DELEGATE.delegatecall(
-            abi.encodeCall(this.installExecution, (module, manifest, moduleInstallData))
-        );
+        address delegate = _EXECUTION_INSTALL_DELEGATE;
+        bytes memory encodedCall = abi.encodeCall(this.installExecution, (module, manifest, moduleInstallData));
 
         assembly ("memory-safe") {
+            let success := delegatecall(gas(), delegate, add(encodedCall, 0x20), mload(encodedCall), 0, 0)
             if iszero(success) {
                 let fmp := mload(0x40)
                 returndatacopy(fmp, 0, returndatasize())
@@ -314,11 +314,11 @@ abstract contract ModularAccountBase is
         ExecutionManifest calldata manifest,
         bytes calldata moduleUninstallData
     ) external override wrapNativeFunction {
-        (bool success,) = _EXECUTION_INSTALL_DELEGATE.delegatecall(
-            abi.encodeCall(this.uninstallExecution, (module, manifest, moduleUninstallData))
-        );
+        address delegate = _EXECUTION_INSTALL_DELEGATE;
+        bytes memory encodedCall = abi.encodeCall(this.uninstallExecution, (module, manifest, moduleUninstallData));
 
         assembly ("memory-safe") {
+            let success := delegatecall(gas(), delegate, add(encodedCall, 0x20), mload(encodedCall), 0, 0)
             if iszero(success) {
                 let fmp := mload(0x40)
                 returndatacopy(fmp, 0, returndatasize())
