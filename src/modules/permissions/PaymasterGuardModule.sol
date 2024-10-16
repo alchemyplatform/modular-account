@@ -81,7 +81,7 @@ contract PaymasterGuardModule is ModuleBase, IValidationHookModule {
 
     /// @inheritdoc IModule
     function moduleId() external pure returns (string memory) {
-        return "alchemy.paymaster-guard-module.0.0.1";
+        return "alchemy.paymaster-guard-module.1.0.0";
     }
 
     /// @inheritdoc ModuleBase

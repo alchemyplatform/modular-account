@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
-import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -73,11 +73,6 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     /// @return The fallback signer address, either overriden in storage, or read from bytecode.
     function getFallbackSigner() external view returns (address) {
         return _retrieveFallbackSignerUnchecked(_getSemiModularAccountStorage());
-    }
-
-    /// @inheritdoc IModularAccount
-    function accountId() external pure override returns (string memory) {
-        return "alchemy.semi-modular-account.0.0.1";
     }
 
     function _execUserOpValidation(

@@ -383,9 +383,7 @@ abstract contract ModularAccountBase is
     }
 
     /// @inheritdoc IModularAccount
-    function accountId() external pure virtual returns (string memory) {
-        return "alchemy.modular-account.0.0.1";
-    }
+    function accountId() external pure virtual returns (string memory);
 
     /// @inheritdoc UUPSUpgradeable
     /// @notice May be validated by a global validation.

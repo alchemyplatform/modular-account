@@ -141,7 +141,7 @@ contract SingleSignerValidationModule is IValidationModule, ModuleBase {
 
     /// @inheritdoc IModule
     function moduleId() external pure returns (string memory) {
-        return "erc6900.ecdsa-validation-module.1.0.0";
+        return "alchemy.single-signer-validation-module.1.0.0";
     }
 
     function supportsInterface(bytes4 interfaceId)

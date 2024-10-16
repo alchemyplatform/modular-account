@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
 
@@ -15,6 +16,11 @@ import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 /// bytecode.
 contract SemiModularAccountBytecode is SemiModularAccountBase {
     constructor(IEntryPoint anEntryPoint) SemiModularAccountBase(anEntryPoint) {}
+
+    /// @inheritdoc IModularAccount
+    function accountId() external pure override returns (string memory) {
+        return "alchemy.sma-bytecode.1.0.0";
+    }
 
     /// @dev If the fallback signer is set in storage, we ignore the bytecode signer.
     function _retrieveFallbackSignerUnchecked(SemiModularAccountStorage storage _storage)

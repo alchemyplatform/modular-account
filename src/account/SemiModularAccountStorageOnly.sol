@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
@@ -24,5 +25,10 @@ contract SemiModularAccountStorageOnly is SemiModularAccountBase {
         // Note that it's technically possible for the fallback signer in storage to be nonzero before
         // initialization. However, reading it here would add costs in the vast majority of cases.
         emit FallbackSignerSet(address(0), initialSigner);
+    }
+
+    /// @inheritdoc IModularAccount
+    function accountId() external pure override returns (string memory) {
+        return "alchemy.sma-storage.1.0.0";
     }
 }
