@@ -30,7 +30,7 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 import {SignatureType} from "../../helpers/SignatureType.sol";
 import {BaseModule} from "../BaseModule.sol";
 
-/// @title ECSDA Validation
+/// @title Single Signer Validation Module
 /// @author Alchemy
 /// @notice This validation enables any ECDSA (secp256k1 curve) signature validation or Contract Owner signature
 /// validation. It handles installation by each entity (entityId).
