@@ -646,7 +646,7 @@ contract ModularAccountTest is AccountTestBase {
         // Assert that the invalid interface ID is not supported
         assertFalse(account1.supportsInterface(0xffffffff));
 
-        // Assert that the ERC165 interface ID is supported
+        // Assert that the ERC-165 interface ID is supported
         assertTrue(account1.supportsInterface(type(IERC165).interfaceId));
 
         // Assert that the interfaceId for a new interface starts out unsupported, but becomes supported after
