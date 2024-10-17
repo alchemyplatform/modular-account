@@ -30,14 +30,14 @@ import {IERC165, ModuleBase} from "../ModuleBase.sol";
 /// @title Native Token Limit Module
 /// @author Alchemy
 /// @notice This module supports a total native token spend limit across User Operation gas and native transfers.
-///     - None of the functions are installed on the account. Account states are to be retrieved from this global
-/// singleton directly.
-///     - This module only tracks native transfers for the 4 functions `execute`, `executeBatch`, `performCreate`,
-/// and `performCreate2.
-///     - By default, using a paymaster in a UO would cause the limit to not decrease. If an account uses a special
-/// paymaster that converts non-native tokens in the account to pay for gas, this paymaster should be added to the
-/// `specialPaymasters` list to enable the correct accounting of spend limits. When these paymasters are used to
-/// pay for a UO, spend limits would be decremented.
+/// - None of the functions are installed on the account. Account states are to be retrieved from this global
+///   singleton directly.
+/// - This module only tracks native transfers for the 4 functions `execute`, `executeBatch`, `performCreate`,
+///   and `performCreate2.
+/// - By default, using a paymaster in a UO would cause the limit to not decrease. If an account uses a special
+///   paymaster that converts non-native tokens in the account to pay for gas, this paymaster should be added to
+///   the `specialPaymasters` list to enable the correct accounting of spend limits. When these paymasters are used
+///   to pay for a UO, spend limits would be decremented.
 contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidationHookModule {
     using UserOperationLib for PackedUserOperation;
 

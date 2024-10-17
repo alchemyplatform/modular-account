@@ -15,12 +15,10 @@ import {ERC7739ReplaySafeWrapperLib} from "../libraries/ERC7739ReplaySafeWrapper
 import {RTCallBuffer, SigCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
 
-/// @title SemiModularAccountBase
+/// @title Semi-Modular Account Base
 /// @author Alchemy
-///
 /// @notice Abstract base contract for the Alchemy Semi-Modular Account variants. Includes fallback signer
 /// functionality.
-///
 /// @dev Inherits ModularAccountBase. Overrides certain functionality from ModularAccountBase, and exposes an
 /// internal virtual getter for the fallback signer.
 abstract contract SemiModularAccountBase is ModularAccountBase {

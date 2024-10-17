@@ -6,7 +6,7 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 
 /// @title Token Receiver
 /// @author Alchemy
-/// @notice Token receiver, supports tokens callbacks to allow account to receive supported tokens.
+/// @notice Token receiver, supports tokens callbacks to allow the account to receive supported tokens.
 abstract contract TokenReceiver is IERC721Receiver, IERC1155Receiver {
     /// @inheritdoc IERC721Receiver
     function onERC721Received(address, address, uint256, bytes calldata) external pure override returns (bytes4) {

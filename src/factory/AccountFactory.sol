@@ -11,6 +11,10 @@ import {LibClone} from "solady/utils/LibClone.sol";
 import {ModularAccount} from "../account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../account/SemiModularAccountBytecode.sol";
 
+/// @title Account Factory
+/// @author Alchemy
+/// @notice Factory contract to deploy modular accounts. Allows creation of both modular and semi-modular accounts
+/// (the bytecode variant).
 contract AccountFactory is Ownable {
     ModularAccount public immutable ACCOUNT_IMPL;
     SemiModularAccountBytecode public immutable SEMI_MODULAR_ACCOUNT_IMPL;

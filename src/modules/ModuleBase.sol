@@ -23,10 +23,9 @@ import {ERC165, IERC165} from "@openzeppelin/contracts/utils/introspection/ERC16
 
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 
-/// @title Base contract for modules
+/// @title Module Base
 /// @author Alchemy
-/// @dev Implements ERC-165 to support IModule's interface, which is a requirement
-/// for module installation.
+/// @dev Implements ERC-165 to support IModule's interface, which is a requirement for module installation.
 abstract contract ModuleBase is ERC165, IModule {
     error NotImplemented();
     error UnexpectedDataPassed();

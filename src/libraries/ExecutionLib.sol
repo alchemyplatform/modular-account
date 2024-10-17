@@ -24,14 +24,16 @@ type DensePostHookData is bytes32;
 
 using HookConfigLib for HookConfig;
 
+/// @title Execution Library
+/// @author Alchemy
 /// @notice A library for performing external calls. This library is used for the external calls of `execute` and
 /// `executeBatch`, for any account self-calls, and for any call to a module function.
 /// @dev This library uses "call buffers", or reusable memory buffers that hold the abi-encoded data to be sent to
 /// a module function. These buffers are used to avoid the overhead of encoding the same data multiple times.
-/// @author Alchemy
-// Functions are more readable in original order
-// solhint-disable ordering
 library ExecutionLib {
+    // solhint-disable ordering
+    // Functions are more readable in original order.
+
     error PostExecHookReverted(ModuleEntity moduleFunction, bytes revertReason);
     error PreExecHookReverted(ModuleEntity moduleFunction, bytes revertReason);
     error PreRuntimeValidationHookReverted(ModuleEntity moduleFunction, bytes revertReason);

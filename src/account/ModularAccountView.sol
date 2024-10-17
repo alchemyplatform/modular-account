@@ -12,7 +12,7 @@ import {NativeFunctionDelegate} from "../helpers/NativeFunctionDelegate.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {ExecutionStorage, ValidationStorage, getAccountStorage} from "./AccountStorage.sol";
 
-/// @title Modular Account Data Viewer
+/// @title Modular Account View
 /// @author Alchemy
 /// @notice This abstract contract implements the two view functions to get validation and execution data for an
 /// account.
