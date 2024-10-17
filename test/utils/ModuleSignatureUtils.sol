@@ -189,7 +189,7 @@ contract ModuleSignatureUtils {
     }
 
     // Helper function for webauthn plugin. This provides a 1271 sig for a ReplaySafeWrapper, instead of the
-    // ERC7739 sig
+    // ERC-7739 sig
     function _encode1271Signature(ModuleEntity validationFunction, bytes memory validationData)
         internal
         pure

@@ -345,7 +345,7 @@ abstract contract ModularAccountBase is
     }
 
     /// @inheritdoc IERC165
-    /// @notice ERC165 introspection
+    /// @notice ERC-165 introspection
     /// @dev returns true for `IERC165.interfaceId` and false for `0xFFFFFFFF`
     /// @param interfaceId interface id to check against
     /// @return bool support for specific interface

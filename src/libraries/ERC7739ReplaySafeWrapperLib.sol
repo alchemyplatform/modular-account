@@ -207,7 +207,7 @@ library ERC7739ReplaySafeWrapperLib {
         return MemoryLocation.unwrap(t) == bytes32(0);
     }
 
-    /// @notice Helper function to validate ERC7739 compatible nested EIP712 structs to guard against signature
+    /// @notice Helper function to validate ERC-7739 compatible nested EIP712 structs to guard against signature
     /// replay
     /// @dev Parses out the inner signature from the full signature and returns it
     /// Implementation is lifted from
