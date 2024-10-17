@@ -27,43 +27,42 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {ModuleBase} from "../../modules/ModuleBase.sol";
 
-/// @title Allowlist with ERC20 spend limit Module
+/// @title Allowlist with ERC-20 Spend Limit Module
 /// @author Alchemy
-/// @notice This module allows for the setting and enforcement of allowlists with ERC20 spend limit for an entity.
-///     - Uninstallation will NOT disable all installed hooks for an account. It only uninstalls hooks for the
-/// entity ID that is passed in. Account must remove access for each entity ID if want to disable all hooks.
-///     - None of the functions are installed on the account. Account states are to be retrieved from this global
-/// singleton directly.
-///     - To enable allowlisting, the account must have this module installed as a validation hook.
-///         - These allowlists can specify which addresses and or selectors can be called by the entity. It
-/// supports:
-///             - Specific addresss + specific selectors
-///             - Specific addresss + wildcard selectors
-///             - Wildcard addresss + specific selectors
-///         - These restrictions only apply to the `IModularAccount.execute` and `IModularAccount.executeBatch`
-/// functions.
-///         - The order of permission checks:
-///             - If wildcard address (any selector allowed), pass
-///             - If wildcard selector (any address allowed), pass
-///             - If specific address + specific selector, pass
-///             - Revert all other cases
-///     - To enable ERC20 spend limits, the account must also have this module installed as a validation associated
-/// execution hook. The following features and restrictions apply:
-///         - Only token contracts with a set limit will be checked, other allowed addresses will be allowed. To
-/// protect the account's balance of non-tracked tokens, users are recommended to also install the allowlist
-/// validation hook, to limit which addresses the validation may perform calls to.
-///         - Spending requests are only supported through the following native execution functions:
-/// IModularAccount.execute, IModularAccount.executeWithRuntimeValidation, IAccountExecute.executeUserOp,
-/// IModularAccount.executeBatch. All other spending request will revert.
-///         - This module is opinionated on what selectors can be called for token contracts: only `transfer` and
-/// `approve` are allowed. This guards against edge cases, where token contracts like DAI have other functions that
-/// result in ERC-20 transfers or allowance changes.
+/// @notice This module allows for the setting and enforcement of allowlists with ERC-20 spend limit for an entity.
+/// - Uninstallation will NOT disable all installed hooks for an account. It only uninstalls hooks for the
+///   entity ID that is passed in. Account must remove access for each entity ID if want to disable all hooks.
+/// - None of the functions are installed on the account. Account states are to be retrieved from this global
+///   singleton directly.
+/// - To enable allowlisting, the account must have this module installed as a validation hook.
+///     - These allowlists can specify which addresses and or selectors can be called by the entity. It supports:
+///         - Specific addresses + specific selectors
+///         - Specific addresses + wildcard selectors
+///         - Wildcard addresses + specific selectors
+///     - These restrictions only apply to the `IModularAccount.execute` and `IModularAccount.executeBatch`
+///       functions.
+///     - The order of permission checks:
+///         - If wildcard address (any selector allowed), pass
+///         - If wildcard selector (any address allowed), pass
+///         - If specific address + specific selector, pass
+///         - Revert all other cases
+/// - To enable ERC-20 spend limits, the account must also have this module installed as a validation associated
+///   execution hook. The following features and restrictions apply:
+///     - Only token contracts with a set limit will be checked, other allowed addresses will be allowed. To
+///       protect the account's balance of non-tracked tokens, users are recommended to also install the allowlist
+///       validation hook, to limit which addresses the validation may perform calls to.
+///     - Spending requests are only supported through the following native execution functions:
+///       IModularAccount.execute, IModularAccount.executeWithRuntimeValidation, IAccountExecute.executeUserOp,
+///       IModularAccount.executeBatch. All other spending request will revert.
+///     - This module is opinionated on what selectors can be called for token contracts: only `transfer` and
+///       `approve` are allowed. This guards against edge cases, where token contracts like DAI have other
+///       functions that result in ERC-20 transfers or allowance changes.
 contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleBase {
     struct AllowlistInput {
         address target;
         // if target is address(0), hasSelectorAllowlist is ignored.
         bool hasSelectorAllowlist;
-        // if true, indicates tartget is an ERC20 token, and there is a spend limit on the token
+        // if true, indicates tartget is an ERC-20 token, and there is a spend limit on the token
         bool hasERC20SpendLimit;
         uint256 erc20SpendLimit;
         bytes4[] selectors;
@@ -129,7 +128,7 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
         (bytes4 selector, bytes memory callData) = _getSelectorAndCalldata(data);
 
         if (selector == IModularAccount.execute.selector) {
-            // when calling execute or ERC20 functions directly
+            // when calling execute or ERC-20 functions directly
             (address token,, bytes memory innerCalldata) = abi.decode(callData, (address, uint256, bytes));
             _decrementLimitIfApplies(entityId, token, innerCalldata);
         } else if (selector == IModularAccount.executeBatch.selector) {

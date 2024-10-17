@@ -5,6 +5,8 @@ import {IAccount} from "@eth-infinitism/account-abstraction/interfaces/IAccount.
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
+/// @title Account Base
+/// @author Alchemy
 /// @dev An optimized implementation of a base account contract for ERC-4337.
 /// Provides a public view function for getting the EntryPoint address, but does not provide one for getting the
 /// nonce. The nonce may be retrieved from the EntryPoint contract.

@@ -7,12 +7,10 @@ import {LibClone} from "solady/utils/LibClone.sol";
 
 import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 
-/// @title SemiModularAccountBytecode
+/// @title Semi-Modular Account Bytecode
 /// @author Alchemy
-///
 /// @notice An implementation of a semi-modular account which reads the signer from proxy bytecode if it is not
 /// disabled and zero in storage.
-///
 /// @dev Inherits SemiModularAccountBase. This account requires that its proxy is compliant with Solady's LibClone
 /// ERC1967WithImmutableArgs bytecode with a bytecode-appended address to be used as the fallback signer.
 contract SemiModularAccountBytecode is SemiModularAccountBase {

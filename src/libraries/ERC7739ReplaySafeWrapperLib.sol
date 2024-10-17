@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-/// @notice A library for ERC7739-compliant nested EIP-712 wrappers over EIP-1271 digests.
+/// @title ERC-7739 Replay-Safe Wrapper Library
+/// @notice A library for ERC-7739-compliant nested EIP-712 wrappers over EIP-1271 digests.
 /// @dev This allows for efficient, readable ERC-1271 signature schemes for smart contract accounts.
-///  The difference between a module hash and an account hash is:
-///  Account domains include only chainId and verifyingContract of itself (not the implementation)
-///  Module domains include chainId, verifyingContract of the module, and uses the optional salt param, using
-///  the account address
+/// The difference between a module hash and an account hash is:
+/// - Account domains include only chainId and verifyingContract of itself (not the implementation).
+/// - Module domains include chainId, verifyingContract of the module, and uses the optional salt param, using
+///   the account address.
 library ERC7739ReplaySafeWrapperLib {
     // Points to a location in memory with EIP-712 formatted `encodeType(TypedDataSign)`, excluding the first two
     // words for typeHash(TypedDataSign)` and `typeHash(contents)`. Does not store the length, because this has a
@@ -53,7 +54,7 @@ library ERC7739ReplaySafeWrapperLib {
     /// which is based on
     /// github/Vectorized/solady/blob/351548a824d57c1c0fec688fdfe3a44a8e17efc3/src/accounts/ERC1271.sol#L253
     /// @param account The account address
-    /// @return m  The memory location of this struct
+    /// @return m The memory location of this struct
     function typedDataSignFieldsForAccount(address account) internal view returns (MemoryLocation m) {
         bytes1 fields = bytes1(hex"0C"); // 001100
         // !string memory name;

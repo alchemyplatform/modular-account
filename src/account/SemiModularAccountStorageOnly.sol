@@ -6,12 +6,10 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 
 import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 
-/// @title SemiModularAccountStorageOnly
+/// @title Semi-Modular Account Storage Only
 /// @author Alchemy
-///
 /// @notice An implementation of a semi-modular account which includes an initializer to set the fallback signer in
 /// storage upon initialization.
-///
 /// @dev Inherits SemiModularAccountBase. Note that the initializer has no access control and should be called via
 /// `upgradeToAndCall()`. Use the `SemiModularAccountBytecode` instead for new accounts, this implementation should
 /// only be used for account upgrades.

@@ -27,11 +27,11 @@ import {IERC165, ModuleBase} from "../ModuleBase.sol";
 /// @author Alchemy
 /// @notice This module supports permission checks where an validation is allowed only if a certain paymaster is
 /// used.
-///     - If this hook is installed, and no paymaster is setup, all requests will revert.
-///     - None of the functions are installed on the account. Account states are to be retrieved from this global
-/// singleton directly.
-///     - Uninstallation will NOT disable all installed hooks for an account. It only uninstalls hooks for the
-/// entity ID that is passed in. Account must remove access for each entity ID if want to disable all hooks.
+/// - If this hook is installed, and no paymaster is setup, all requests will revert.
+/// - None of the functions are installed on the account. Account states are to be retrieved from this global
+///   singleton directly.
+/// - Uninstallation will NOT disable all installed hooks for an account. It only uninstalls hooks for the
+///   entity ID that is passed in. Account must remove access for each entity ID if want to disable all hooks.
 contract PaymasterGuardModule is ModuleBase, IValidationHookModule {
     mapping(uint32 entityId => mapping(address account => address paymaster)) public paymasters;
 

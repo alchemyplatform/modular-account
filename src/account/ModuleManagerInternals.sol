@@ -17,10 +17,10 @@ import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/V
 
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
-import {ModuleInstallCommons} from "../libraries/ModuleInstallCommons.sol";
+import {ModuleInstallCommonsLib} from "../libraries/ModuleInstallCommonsLib.sol";
 import {ValidationStorage, getAccountStorage, toSetValue} from "./AccountStorage.sol";
 
-/// @title Modular Manager Internal Methods
+/// @title Module Manager Internals
 /// @author Alchemy
 /// @notice This abstract contract hosts the internal installation and uninstallation methods of execution and
 /// validation functions. Methods here update the account storage.
@@ -75,7 +75,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
                     revert PreValidationHookDuplicate();
                 }
 
-                ModuleInstallCommons.onInstall(
+                ModuleInstallCommonsLib.onInstall(
                     hookConfig.module(), hookData, type(IValidationHookModule).interfaceId
                 );
             } else {
@@ -91,8 +91,8 @@ abstract contract ModuleManagerInternals is IModularAccount {
                     ++_validationStorage.executionHookCount;
                 }
 
-                ModuleInstallCommons.addExecHooks(_validationStorage.executionHooks, hookConfig);
-                ModuleInstallCommons.onInstall(
+                ModuleInstallCommonsLib.addExecHooks(_validationStorage.executionHooks, hookConfig);
+                ModuleInstallCommonsLib.onInstall(
                     hookConfig.module(), hookData, type(IExecutionHookModule).interfaceId
                 );
             }
@@ -110,7 +110,9 @@ abstract contract ModuleManagerInternals is IModularAccount {
         _validationStorage.isSignatureValidation = validationConfig.isSignatureValidation();
         _validationStorage.isUserOpValidation = validationConfig.isUserOpValidation();
 
-        ModuleInstallCommons.onInstall(validationConfig.module(), installData, type(IValidationModule).interfaceId);
+        ModuleInstallCommonsLib.onInstall(
+            validationConfig.module(), installData, type(IValidationModule).interfaceId
+        );
         emit ValidationInstalled(validationConfig.module(), validationConfig.entityId());
     }
 
@@ -140,7 +142,8 @@ abstract contract ModuleManagerInternals is IModularAccount {
             for (uint256 i = 0; i < length; ++i) {
                 bytes calldata hookData = hookUninstallDatas[hookIndex];
                 (address hookModule,) = ModuleEntityLib.unpack(validationHooks[i].moduleEntity());
-                onUninstallSuccess = onUninstallSuccess && ModuleInstallCommons.onUninstall(hookModule, hookData);
+                onUninstallSuccess =
+                    onUninstallSuccess && ModuleInstallCommonsLib.onUninstall(hookModule, hookData);
                 hookIndex++;
             }
 
@@ -148,7 +151,8 @@ abstract contract ModuleManagerInternals is IModularAccount {
             for (uint256 i = 0; i < length; ++i) {
                 bytes calldata hookData = hookUninstallDatas[hookIndex];
                 address hookModule = execHooks[i].module();
-                onUninstallSuccess = onUninstallSuccess && ModuleInstallCommons.onUninstall(hookModule, hookData);
+                onUninstallSuccess =
+                    onUninstallSuccess && ModuleInstallCommonsLib.onUninstall(hookModule, hookData);
                 hookIndex++;
             }
         }
@@ -164,7 +168,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
         _validationStorage.selectors.clear();
 
         (address module, uint32 entityId) = ModuleEntityLib.unpack(validationFunction);
-        onUninstallSuccess = onUninstallSuccess && ModuleInstallCommons.onUninstall(module, uninstallData);
+        onUninstallSuccess = onUninstallSuccess && ModuleInstallCommonsLib.onUninstall(module, uninstallData);
 
         emit ValidationUninstalled(module, entityId, onUninstallSuccess);
     }

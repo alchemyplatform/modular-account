@@ -20,6 +20,7 @@ struct LinkedListSet {
 }
 
 /// @title Linked List Set Library
+/// @author Alchemy
 /// @notice This library provides a set of functions for managing enumerable sets of bytes31 values. It is a fork
 /// of the LinkedListSet library in modular-account-libs, with the following changes:
 /// - The flags feature has been removed, so the library no longer supports both the "has next" flag, and the

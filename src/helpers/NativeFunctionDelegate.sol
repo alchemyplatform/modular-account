@@ -9,9 +9,8 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 import {ModularAccountBase} from "../account/ModularAccountBase.sol";
 
-/// @title NativeFunctionDelegate
+/// @title Native Function Delegate
 /// @author Alchemy
-///
 /// @dev This is a simple contract meant to be delegatecalled to determine whether a ModularAccountBase function
 /// selector is native to the account implementation.
 contract NativeFunctionDelegate {

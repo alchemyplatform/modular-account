@@ -8,9 +8,10 @@ import {LinkedListSet, LinkedListSetLib, SENTINEL_VALUE, SetValue} from "./Linke
 
 type MemSnapshot is uint256;
 
+/// @title Memory Management Library
+/// @author Alchemy
 /// @notice A library for managing memory in ModularAccount. Handles loading data from storage into memory, and
 /// manipulating the free memory pointer.
-/// @author Alchemy
 library MemManagementLib {
     /// @notice Load execution hooks associated both with a validation function and an execution selector.
     /// @param execData The execution storage struct to load from.

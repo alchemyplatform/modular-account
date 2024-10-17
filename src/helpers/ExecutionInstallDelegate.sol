@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: UNLICENSED
-
 pragma solidity ^0.8.26;
 
 import {
@@ -13,12 +12,11 @@ import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookCon
 import {AccountStorage, ExecutionStorage, getAccountStorage, toSetValue} from "../account/AccountStorage.sol";
 import {KnownSelectorsLib} from "../libraries/KnownSelectorsLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
-import {ModuleInstallCommons} from "../libraries/ModuleInstallCommons.sol";
+import {ModuleInstallCommonsLib} from "../libraries/ModuleInstallCommonsLib.sol";
 
-/// @title ExecutionInstallDelegate
+/// @title Execution Install Delegate
 /// @author Alchemy
-///
-/// @notice This contract acts as an external library which is meant to handle Execution function installations and
+/// @notice This contract acts as an external library which is meant to handle execution function installations and
 /// uninstallations via delegatecall.
 contract ExecutionInstallDelegate {
     using LinkedListSetLib for LinkedListSet;
@@ -75,7 +73,7 @@ contract ExecutionInstallDelegate {
                 _hasPre: mh.isPreHook,
                 _hasPost: mh.isPostHook
             });
-            ModuleInstallCommons.addExecHooks(executionHooks, hookConfig);
+            ModuleInstallCommonsLib.addExecHooks(executionHooks, hookConfig);
         }
 
         length = manifest.interfaceIds.length;
@@ -83,7 +81,7 @@ contract ExecutionInstallDelegate {
             _storage.supportedIfaces[manifest.interfaceIds[i]] += 1;
         }
 
-        ModuleInstallCommons.onInstall(module, moduleInstallData, type(IModule).interfaceId);
+        ModuleInstallCommonsLib.onInstall(module, moduleInstallData, type(IModule).interfaceId);
 
         emit IModularAccount.ExecutionInstalled(module, manifest);
     }
@@ -121,7 +119,7 @@ contract ExecutionInstallDelegate {
         }
 
         // Clear the module storage for the account.
-        bool onUninstallSuccess = ModuleInstallCommons.onUninstall(module, uninstallData);
+        bool onUninstallSuccess = ModuleInstallCommonsLib.onUninstall(module, uninstallData);
 
         emit IModularAccount.ExecutionUninstalled(module, onUninstallSuccess, manifest);
     }

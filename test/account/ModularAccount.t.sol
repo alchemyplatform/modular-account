@@ -40,7 +40,7 @@ import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {ExecutionInstallDelegate} from "../../src/helpers/ExecutionInstallDelegate.sol";
-import {ModuleInstallCommons} from "../../src/libraries/ModuleInstallCommons.sol";
+import {ModuleInstallCommonsLib} from "../../src/libraries/ModuleInstallCommonsLib.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 import {Counter} from "../mocks/Counter.sol";
@@ -335,7 +335,7 @@ contract ModularAccountTest is AccountTestBase {
 
         address badModule = CODELESS_ADDRESS;
         vm.expectRevert(
-            abi.encodeWithSelector(ModuleInstallCommons.InterfaceNotSupported.selector, address(badModule))
+            abi.encodeWithSelector(ModuleInstallCommonsLib.InterfaceNotSupported.selector, address(badModule))
         );
 
         ExecutionManifest memory m;

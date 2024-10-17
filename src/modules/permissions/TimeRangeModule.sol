@@ -28,13 +28,13 @@ import {ModuleBase} from "../../modules/ModuleBase.sol";
 /// @title Time Range Module
 /// @author Alchemy
 /// @notice This module allows for the setting and enforcement of time ranges for an entity ID.
-///    - Enforcement relies on `block.timestamp`, either within this module for runtime validation, or by the
-/// EntryPoint for user op validation.
-///    - Time ranges are inclusive of both the beginning and ending timestamps.
-///    - None of the functions are installed on the account. Account states are to be retrieved from this global
-/// singleton directly.
-///     - Uninstallation will NOT disable all installed hooks for an account. It only uninstalls hooks for the
-/// entity ID that is passed in. Account must remove access for each entity ID if want to disable all hooks.
+/// - Enforcement relies on `block.timestamp`, either within this module for runtime validation, or by the
+///   EntryPoint for user op validation.
+/// - Time ranges are inclusive of both the beginning and ending timestamps.
+/// - None of the functions are installed on the account. Account states are to be retrieved from this global
+///   singleton directly.
+/// - Uninstallation will NOT disable all installed hooks for an account. It only uninstalls hooks for the entity
+///   ID that is passed in. Account must remove access for each entity ID if want to disable all hooks.
 contract TimeRangeModule is IValidationHookModule, ModuleBase {
     struct TimeRange {
         uint48 validUntil;

@@ -33,15 +33,15 @@ import {ModuleBase} from "../ModuleBase.sol";
 /// @author Alchemy
 /// @notice This validation enables any ECDSA (secp256k1 curve) signature validation or Contract Owner signature
 /// validation. It handles installation by each entity (entityId).
-/// Note:
-///     - The first byte of the to be checked Signature is the SignatureType, indicating EOA or Contract Owner.
-///     - Uninstallation will NOT disable all installed entity IDs of an account. It only uninstalls the
-/// entity ID that is passed in. Account must remove access for each entity ID if want to disable all.
-///     - None of the functions are installed on the account. Account states are to be retrieved from this global
-/// singleton directly.
-///     - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
-///     - This validation supports composition that other validation can relay on entities in this validation
-/// to validate partially or fully.
+/// NOTE:
+/// - The first byte of the to be checked Signature is the SignatureType, indicating EOA or Contract Owner.
+/// - Uninstallation will NOT disable all installed entity IDs of an account. It only uninstalls the
+///   entity ID that is passed in. Account must remove access for each entity ID if want to disable all.
+/// - None of the functions are installed on the account. Account states are to be retrieved from this global
+///   singleton directly.
+/// - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
+/// - This validation supports composition that other validation can relay on entities in this validation to
+///   validate partially or fully.
 contract SingleSignerValidationModule is IValidationModule, ModuleBase {
     using MessageHashUtils for bytes32;
     using ERC7739ReplaySafeWrapperLib for address;
