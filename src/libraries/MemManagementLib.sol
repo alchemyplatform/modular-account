@@ -8,7 +8,14 @@ import {LinkedListSet, LinkedListSetLib, SENTINEL_VALUE, SetValue} from "./Linke
 
 type MemSnapshot is uint256;
 
+/// @notice A library for managing memory in ModularAccount. Handles loading data from storage into memory, and
+/// manipulating the free memory pointer.
+/// @author Alchemy
 library MemManagementLib {
+    /// @notice Load execution hooks associated both with a validation function and an execution selector.
+    /// @param execData The execution storage struct to load from.
+    /// @param valData The validation storage struct to load from.
+    /// @return hooks An array of `HookConfig` items, representing the execution hooks.
     function loadExecHooks(ExecutionStorage storage execData, ValidationStorage storage valData)
         internal
         view
@@ -79,6 +86,9 @@ library MemManagementLib {
         return hooks;
     }
 
+    /// @notice Load execution hooks associated with an execution selector.
+    /// @param execData The execution storage struct to load from.
+    /// @return hooks An array of `HookConfig` items, representing the execution hooks.
     function loadExecHooks(ExecutionStorage storage execData) internal view returns (HookConfig[] memory) {
         HookConfig[] memory hooks;
 
@@ -93,18 +103,27 @@ library MemManagementLib {
         return hooks;
     }
 
+    /// @notice Load execution hooks associated with a validation function.
+    /// @param valData The validation storage struct to load from.
+    /// @return hooks An array of `HookConfig` items, representing the execution hooks.
     function loadExecHooks(ValidationStorage storage valData) internal view returns (HookConfig[] memory) {
         uint256 validationAssocHooksLength = valData.executionHookCount;
 
         return _loadValidationAssociatedHooks(validationAssocHooksLength, valData.executionHooks);
     }
 
+    /// @notice Load validation hooks associated with a validation function.
+    /// @param valData The validation storage struct to load from.
+    /// @return hooks An array of `HookConfig` items, representing the validation hooks.
     function loadValidationHooks(ValidationStorage storage valData) internal view returns (HookConfig[] memory) {
         uint256 validationHookCount = valData.validationHookCount;
 
         return _loadValidationAssociatedHooks(validationHookCount, valData.validationHooks);
     }
 
+    /// @notice Load all selectors that have been added to a validation function.
+    /// @param valData The validation storage struct to load from.
+    /// @return selectors An array of the selectors the validation function is allowed to validate.
     function loadSelectors(ValidationStorage storage valData) internal view returns (bytes4[] memory selectors) {
         SetValue[] memory selectorsSet = LinkedListSetLib.getAll(valData.selectors);
 
@@ -117,6 +136,7 @@ library MemManagementLib {
         return selectors;
     }
 
+    /// @notice Reverses an array of `HookConfig` items in place.
     function reverseArr(HookConfig[] memory hooks) internal pure {
         bytes32[] memory casted;
 
@@ -128,6 +148,7 @@ library MemManagementLib {
         _reverseArr(casted);
     }
 
+    /// @notice Reverses an array of `bytes4` items in place.
     function reverseArr(bytes4[] memory selectors) internal pure {
         bytes32[] memory casted;
 
@@ -139,7 +160,10 @@ library MemManagementLib {
         _reverseArr(casted);
     }
 
-    // If the callData is an encoded function call to IModularAccount.execute, retrieves the target of the call.
+    /// @notice If the callData is an encoded function call to IModularAccount.execute, retrieves the target of the
+    /// call.
+    /// @param callData The calldata to check.
+    /// @return target The target of the call.
     function getExecuteTarget(bytes calldata callData) internal pure returns (address) {
         address target;
 
@@ -150,6 +174,8 @@ library MemManagementLib {
         return target;
     }
 
+    /// @notice Captures a snapshot of the free memory pointer.
+    /// @return The snapshot of the free memory pointer.
     function freezeFMP() internal pure returns (MemSnapshot) {
         MemSnapshot snapshot;
 
@@ -160,14 +186,17 @@ library MemManagementLib {
         return snapshot;
     }
 
+    /// @notice Restores the free memory pointer to a previous snapshot.
+    /// @dev This invalidates any memory allocated since the snapshot was taken.
+    /// @param snapshot The snapshot to restore to.
     function restoreFMP(MemSnapshot snapshot) internal pure {
         assembly ("memory-safe") {
             mstore(0x40, snapshot)
         }
     }
 
-    // Used to load both pre-validation hooks and pre-execution hooks, associated with a validation function.
-    // The caller must first get the length of the hooks from the ValidationStorage struct.
+    /// @notice Used to load both pre validation hooks and pre execution hooks, associated with a validation
+    /// function. The caller must first get the length of the hooks from the ValidationStorage struct.
     function _loadValidationAssociatedHooks(uint256 hookCount, LinkedListSet storage hooks)
         private
         view
