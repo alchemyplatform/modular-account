@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import {AccountStorage, getAccountStorage} from "./AccountStorage.sol";
 
-/// @title AccountStorageInitializable
+/// @title Account Storage Initializable
 /// @author Alchemy
 /// @notice A contract mixin that provides the functionality of OpenZeppelin's Initializable contract, using the
 /// custom storage layout defined by the AccountStorage struct.
