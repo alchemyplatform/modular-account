@@ -10,13 +10,13 @@ importers:
     dependencies:
       '@erc6900/reference-implementation':
         specifier: github:erc6900/reference-implementation#v0.8.0-rc.5
-        version: https://codeload.github.com/erc6900/reference-implementation/tar.gz/e5f55ab1c3ac2f78efa14967e90e95c3e4ace38c
+        version: git+https://git@github.com:erc6900/reference-implementation.git#e5f55ab1c3ac2f78efa14967e90e95c3e4ace38c
       account-abstraction:
         specifier: github:eth-infinitism/account-abstraction#v0.7.0
-        version: accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/d99245ddb2d7bde4d2132757c4394818f1d11da0(ethers@5.7.2)(hardhat@2.22.10(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
+        version: accountabstraction@git+https://git@github.com:eth-infinitism/account-abstraction.git#d99245ddb2d7bde4d2132757c4394818f1d11da0(ethers@5.7.2)(hardhat@2.22.10(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
       solady:
         specifier: github:Vectorized/solady#v0.0.237
-        version: https://codeload.github.com/Vectorized/solady/tar.gz/eb227ea1c5eaa56296e7dd713eb165d5d75891dd
+        version: git+https://git@github.com:Vectorized/solady.git#eb227ea1c5eaa56296e7dd713eb165d5d75891dd
     devDependencies:
       pnpm:
         specifier: ^8.7.5
@@ -39,8 +39,8 @@ packages:
     resolution: {integrity: sha512-EStJpq4OuY8xYfhGVXngigBJRWxftKX9ksiGDnmlY3o7B/V7KIAc9X4oiK87uPJSc/vs5L869bem5fhZa8caZw==}
     engines: {node: '>=6.9.0'}
 
-  '@erc6900/reference-implementation@https://codeload.github.com/erc6900/reference-implementation/tar.gz/e5f55ab1c3ac2f78efa14967e90e95c3e4ace38c':
-    resolution: {tarball: https://codeload.github.com/erc6900/reference-implementation/tar.gz/e5f55ab1c3ac2f78efa14967e90e95c3e4ace38c}
+  '@erc6900/reference-implementation@git+https://git@github.com:erc6900/reference-implementation.git#e5f55ab1c3ac2f78efa14967e90e95c3e4ace38c':
+    resolution: {commit: e5f55ab1c3ac2f78efa14967e90e95c3e4ace38c, repo: git@github.com:erc6900/reference-implementation.git, type: git}
     version: 0.8.0-rc.5
 
   '@ethereumjs/rlp@4.0.1':
@@ -382,8 +382,8 @@ packages:
   abbrev@1.0.9:
     resolution: {integrity: sha512-LEyx4aLEC3x6T0UguF6YILf+ntvmOaWsVfENmIW0E9H09vKlLDGelMjjSm0jkDHALj8A8quZ/HapKNigzwge+Q==}
 
-  accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/d99245ddb2d7bde4d2132757c4394818f1d11da0:
-    resolution: {tarball: https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/d99245ddb2d7bde4d2132757c4394818f1d11da0}
+  accountabstraction@git+https://git@github.com:eth-infinitism/account-abstraction.git#d99245ddb2d7bde4d2132757c4394818f1d11da0:
+    resolution: {commit: d99245ddb2d7bde4d2132757c4394818f1d11da0, repo: git@github.com:eth-infinitism/account-abstraction.git, type: git}
     version: 0.7.0
 
   adm-zip@0.4.16:
@@ -847,6 +847,7 @@ packages:
   follow-redirects@1.15.8:
     resolution: {integrity: sha512-xgrmBhBToVKay1q2Tao5LI26B83UhrB/vM1avwVSDzt8rx3rO6AizBAaF46EgksTVr+rFTQaqZZ9MVBfUe4nig==}
     engines: {node: '>=4.0'}
+    deprecated: Browser detection issues fixed in v1.15.9
     peerDependencies:
       debug: '*'
     peerDependenciesMeta:
@@ -1247,6 +1248,9 @@ packages:
   node-addon-api@2.0.2:
     resolution: {integrity: sha512-Ntyt4AIXyaLIuMHF6IOoTakB3K+RWxwtsHNRxllEoA6vPwP9o4866g6YWDLUdnucilZhmkxiHwHr11gAENw+QA==}
 
+  node-addon-api@5.1.0:
+    resolution: {integrity: sha512-eh0GgfEkpnoWDq+VY8OyvYhFEzBk6jIYbRKdIlyTiAXIVJ8PyBaKb0rp7oDtoddbdoHWhq8wwr+XZ81F1rpNdA==}
+
   node-emoji@1.11.0:
     resolution: {integrity: sha512-wo2DpQkQp7Sjm2A0cq+sN7EHKO6Sl0ctXeBdFZrL9T9+UywORbufTcTZxom8YqpLQt/FqNMUkOpkZrJVYSKD3A==}
 
@@ -1464,9 +1468,9 @@ packages:
   scrypt-js@3.0.1:
     resolution: {integrity: sha512-cdwTTnqPu0Hyvf5in5asVdZocVDTNRmR7XEcJuIzMjJeSHybHl7vpB66AzwTaIg6CLSbtjcxc8fqcySfnTkccA==}
 
-  secp256k1@4.0.3:
-    resolution: {integrity: sha512-NLZVf+ROMxwtEj3Xa562qgv2BK5e2WNmXPiOdVIPLgs6lyTzMvBq0aWTYMI5XCP9jZMVKOcqZLw/Wc4vDkuxhA==}
-    engines: {node: '>=10.0.0'}
+  secp256k1@4.0.4:
+    resolution: {integrity: sha512-6JfvwvjUOn8F/jUoBY2Q1v5WY5XS+rj8qSe0v8Y4ezH4InLgTEeOOPQsRll9OV429Pvo6BCHGavIyJfr3TAhsw==}
+    engines: {node: '>=18.0.0'}
 
   semver@5.7.2:
     resolution: {integrity: sha512-cBznnQ9KjJqU67B52RMC65CMarK2600WFnbkcaiwWq3xy/5haFJlshgnpjovMVJ+Hff49d8GEn0b87C5pDQ10g==}
@@ -1515,8 +1519,8 @@ packages:
     resolution: {integrity: sha512-qMCMfhY040cVHT43K9BFygqYbUPFZKHOg7K73mtTWJRb8pyP3fzf4Ixd5SzdEJQ6MRUg/WBnOLxghZtKKurENQ==}
     engines: {node: '>=10'}
 
-  solady@https://codeload.github.com/Vectorized/solady/tar.gz/eb227ea1c5eaa56296e7dd713eb165d5d75891dd:
-    resolution: {tarball: https://codeload.github.com/Vectorized/solady/tar.gz/eb227ea1c5eaa56296e7dd713eb165d5d75891dd}
+  solady@git+https://git@github.com:Vectorized/solady.git#eb227ea1c5eaa56296e7dd713eb165d5d75891dd:
+    resolution: {commit: eb227ea1c5eaa56296e7dd713eb165d5d75891dd, repo: git@github.com:Vectorized/solady.git, type: git}
     version: 0.0.237
 
   solc@0.8.26:
@@ -1806,7 +1810,7 @@ snapshots:
       js-tokens: 4.0.0
       picocolors: 1.1.0
 
-  '@erc6900/reference-implementation@https://codeload.github.com/erc6900/reference-implementation/tar.gz/e5f55ab1c3ac2f78efa14967e90e95c3e4ace38c': {}
+  '@erc6900/reference-implementation@git+https://git@github.com:erc6900/reference-implementation.git#e5f55ab1c3ac2f78efa14967e90e95c3e4ace38c': {}
 
   '@ethereumjs/rlp@4.0.1': {}
 
@@ -2337,7 +2341,7 @@ snapshots:
 
   abbrev@1.0.9: {}
 
-  accountabstraction@https://codeload.github.com/eth-infinitism/account-abstraction/tar.gz/d99245ddb2d7bde4d2132757c4394818f1d11da0(ethers@5.7.2)(hardhat@2.22.10(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5)):
+  accountabstraction@git+https://git@github.com:eth-infinitism/account-abstraction.git#d99245ddb2d7bde4d2132757c4394818f1d11da0(ethers@5.7.2)(hardhat@2.22.10(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5)):
     dependencies:
       '@nomiclabs/hardhat-etherscan': 2.1.8(hardhat@2.22.10(typescript@4.9.5))
       '@openzeppelin/contracts': 5.0.2
@@ -2762,7 +2766,7 @@ snapshots:
       randombytes: 2.1.0
       safe-buffer: 5.2.1
       scrypt-js: 3.0.1
-      secp256k1: 4.0.3
+      secp256k1: 4.0.4
       setimmediate: 1.0.5
 
   ethereum-cryptography@1.2.0:
@@ -3402,6 +3406,8 @@ snapshots:
 
   node-addon-api@2.0.2: {}
 
+  node-addon-api@5.1.0: {}
+
   node-emoji@1.11.0:
     dependencies:
       lodash: 4.17.21
@@ -3602,10 +3608,10 @@ snapshots:
 
   scrypt-js@3.0.1: {}
 
-  secp256k1@4.0.3:
+  secp256k1@4.0.4:
     dependencies:
       elliptic: 6.5.7
-      node-addon-api: 2.0.2
+      node-addon-api: 5.1.0
       node-gyp-build: 4.8.2
 
   semver@5.7.2: {}
@@ -3657,7 +3663,7 @@ snapshots:
       astral-regex: 2.0.0
       is-fullwidth-code-point: 3.0.0
 
-  solady@https://codeload.github.com/Vectorized/solady/tar.gz/eb227ea1c5eaa56296e7dd713eb165d5d75891dd: {}
+  solady@git+https://git@github.com:Vectorized/solady.git#eb227ea1c5eaa56296e7dd713eb165d5d75891dd: {}
 
   solc@0.8.26(debug@4.3.6):
     dependencies:
