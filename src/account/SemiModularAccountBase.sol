@@ -11,7 +11,6 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 
 import {FALLBACK_VALIDATION} from "../helpers/Constants.sol";
 import {SignatureType} from "../helpers/SignatureType.sol";
-import {ERC7739ReplaySafeWrapperLib} from "../libraries/ERC7739ReplaySafeWrapperLib.sol";
 import {RTCallBuffer, SigCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
 
@@ -24,12 +23,15 @@ import {ModularAccountBase} from "./ModularAccountBase.sol";
 abstract contract SemiModularAccountBase is ModularAccountBase {
     using MessageHashUtils for bytes32;
     using ModuleEntityLib for ModuleEntity;
-    using ERC7739ReplaySafeWrapperLib for address;
 
     struct SemiModularAccountStorage {
         address fallbackSigner;
         bool fallbackSignerDisabled;
     }
+
+    // keccak256("ReplaySafeHash(bytes32 hash)")
+    bytes32 private constant _REPLAY_SAFE_HASH_TYPEHASH =
+        0x294a8735843d4afb4f017c76faf3b7731def145ed0025fc9b1d5ce30adf113ff;
 
     // keccak256("ERC6900.SemiModularAccount.Storage")
     uint256 internal constant _SEMI_MODULAR_ACCOUNT_STORAGE_SLOT =
@@ -110,9 +112,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         if (sigValidation.eq(FALLBACK_VALIDATION)) {
             address fallbackSigner = _getFallbackSigner();
 
-            (bytes32 digest, bytes calldata innerSignature) =
-                address(this).validateERC7739SigFormatForAccount(hash, signature);
-            if (_checkSignature(fallbackSigner, digest, innerSignature)) {
+            if (_checkSignature(fallbackSigner, _replaySafeHash(hash), signature)) {
                 return _1271_MAGIC_VALUE;
             }
             return _1271_INVALID;
@@ -198,6 +198,24 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
             || selector == uint32(this.getFallbackSignerData.selector);
     }
 
+    /// @notice Returns the replay-safe hash generated from the passed typed data hash for 1271 validation.
+    /// @param hash The typed data hash to wrap in a replay-safe hash.
+    /// @return The replay-safe hash, to be used for 1271 signature generation.
+    ///
+    /// @dev Generates a replay-safe hash to wrap a standard typed data hash. This prevents replay attacks by
+    /// enforcing the domain separator, which includes this contract's address and the chainId. This is only
+    /// relevant for 1271 validation because UserOp validation relies on the UO hash and the Entrypoint has
+    /// safeguards.
+    ///
+    /// NOTE: Like in signature-based validation modules, the returned hash should be used to generate signatures,
+    /// but the original hash should be passed to the external-facing function for 1271 validation.
+    function _replaySafeHash(bytes32 hash) internal view returns (bytes32) {
+        return MessageHashUtils.toTypedDataHash({
+            domainSeparator: _domainSeparator(),
+            structHash: _hashStructReplaySafeHash(hash)
+        });
+    }
+
     function _getSemiModularAccountStorage() internal pure returns (SemiModularAccountStorage storage) {
         SemiModularAccountStorage storage _storage;
         assembly ("memory-safe") {
@@ -209,5 +227,18 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     // Conditionally skip allocation of call buffers.
     function _validationIsNative(ModuleEntity validationFunction) internal pure virtual override returns (bool) {
         return validationFunction.eq(FALLBACK_VALIDATION);
+    }
+
+    /// @notice Adds a EIP-712 replay safe hash wrapper to the digest
+    /// @param hash The hash to wrap in a replay-safe hash
+    /// @return The replay-safe hash
+    function _hashStructReplaySafeHash(bytes32 hash) internal pure virtual returns (bytes32) {
+        bytes32 res;
+        assembly ("memory-safe") {
+            mstore(0x00, _REPLAY_SAFE_HASH_TYPEHASH)
+            mstore(0x20, hash)
+            res := keccak256(0, 0x40)
+        }
+        return res;
     }
 }
