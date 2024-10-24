@@ -52,7 +52,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
     }
 
     function setUp() public override {
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
         _module = new DirectCallModule();
         assertFalse(_module.preHookRan());
         assertFalse(_module.postHookRan());

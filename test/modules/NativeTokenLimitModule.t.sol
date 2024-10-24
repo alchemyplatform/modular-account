@@ -48,7 +48,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
     uint32 public entityId = 0;
 
     function setUp() public override {
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
         // Set up a validator with hooks from the gas spend limit module attached
 
         ModuleEntity[] memory preValidationHooks = new ModuleEntity[](1);
@@ -321,11 +321,11 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         uos[0] = _getPackedUO(200_000, 200_000, 200_000, 1, _getExecuteWithValue(5 ether));
 
         // Assert that this would pass
-        uint256 stateSnapshot = vm.snapshot();
+        uint256 stateSnapshot = vm.snapshotState();
         vm.prank(beneficiary);
         entryPoint.handleOps(uos, beneficiary);
 
-        vm.revertTo(stateSnapshot);
+        vm.revertToState(stateSnapshot);
 
         // Now, assert it fails with >0 validation data.
 

@@ -29,7 +29,7 @@ contract PermittedCallPermissionsTest is AccountTestBase {
     PermittedCallerModule public permittedCallerModule;
 
     function setUp() public override {
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
         _transferOwnershipToTest();
         resultCreatorModule = new ResultCreatorModule();
 
