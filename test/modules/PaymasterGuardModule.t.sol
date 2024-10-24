@@ -43,7 +43,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
     uint32 public constant ENTITY_ID = TEST_DEFAULT_VALIDATION_ENTITY_ID;
 
     function setUp() public override {
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
         account = payable(makeAddr("account"));
         paymaster1 = payable(makeAddr("paymaster1"));
         paymaster2 = payable(makeAddr("paymaster2"));
@@ -111,13 +111,13 @@ contract PaymasterGuardModuleTest is AccountTestBase {
 
         // Assert that it would succeed
 
-        uint256 stateSnapshot = vm.snapshot();
+        uint256 stateSnapshot = vm.snapshotState();
 
         uint256 res = module.preUserOpValidationHook(ENTITY_ID, uo, bytes32(0));
 
         assertEq(res, 0);
 
-        vm.revertTo(stateSnapshot);
+        vm.revertToState(stateSnapshot);
 
         // Now, test with validation hook data, and expect failure
 

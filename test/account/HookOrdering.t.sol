@@ -52,7 +52,7 @@ contract HookOrderingTest is AccountTestBase {
     ModuleEntity public orderCheckerValidationEntity;
 
     function setUp() public override {
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
         hookOrderChecker = new HookOrderCheckerModule();
     }
 

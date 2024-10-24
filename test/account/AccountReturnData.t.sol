@@ -36,7 +36,7 @@ contract AccountReturnDataTest is AccountTestBase {
     ResultConsumerModule public resultConsumerModule;
 
     function setUp() public override {
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
         _transferOwnershipToTest();
 
         regularResultContract = new RegularResultContract();

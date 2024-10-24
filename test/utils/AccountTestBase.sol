@@ -80,7 +80,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     modifier withSMATest() {
         _;
 
-        vm.revertTo(_revertSnapshot);
+        vm.revertToState(_revertSnapshot);
 
         _switchToSMA();
 
@@ -122,7 +122,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         _signerValidation =
             ModuleEntityLib.pack(address(singleSignerValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
     }
 
     function _runExecUserOp(address target, bytes memory callData) internal {

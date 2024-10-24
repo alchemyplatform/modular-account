@@ -72,7 +72,7 @@ contract ModularAccountTest is AccountTestBase {
     event ReceivedCall(bytes msgData, uint256 msgValue);
 
     function setUp() public override {
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
         mockExecutionInstallationModule = new MockExecutionInstallationModule();
 
         (owner2, owner2Key) = makeAddrAndKey("owner2");

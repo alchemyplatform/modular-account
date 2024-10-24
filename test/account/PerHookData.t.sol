@@ -45,7 +45,7 @@ contract PerHookDataTest is CustomValidationTestBase {
     uint32 internal constant _PRE_HOOK_ENTITY_ID_2 = 1;
 
     function setUp() public override {
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
         _counter = new Counter();
 
         _accessControlHookModule = new MockAccessControlHookModule();

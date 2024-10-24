@@ -38,7 +38,7 @@ contract GlobalValidationTest is AccountTestBase {
     ModularAccount public account2;
 
     function setUp() public override {
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
         (owner2, owner2Key) = makeAddrAndKey("owner2");
 
         // Compute counterfactual address
