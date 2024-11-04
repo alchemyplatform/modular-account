@@ -50,7 +50,7 @@ contract UpgradeModuleTest is AccountTestBase {
     event ReceivedCall(bytes msgData, uint256 msgValue);
 
     function setUp() public override {
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
     }
 
     function test_upgradeModuleExecutionFunction() public withSMATest {

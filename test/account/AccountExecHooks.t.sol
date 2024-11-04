@@ -44,7 +44,7 @@ contract AccountExecHooksTest is AccountTestBase {
     event ReceivedCall(bytes msgData, uint256 msgValue);
 
     function setUp() public override {
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
         _allowTestDirectCalls();
 
         _m1.executionFunctions.push(

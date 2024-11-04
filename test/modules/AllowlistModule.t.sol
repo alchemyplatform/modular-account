@@ -301,14 +301,14 @@ contract AllowlistModuleTest is CustomValidationTestBase {
 
         // assert that the user op would succeed
 
-        uint256 stateSnapshot = vm.snapshot();
+        uint256 stateSnapshot = vm.snapshotState();
 
         vm.prank(beneficiary);
         entryPoint.handleOps(userOps, beneficiary);
 
         assertEq(counters[0].number(), 1);
 
-        vm.revertTo(stateSnapshot);
+        vm.revertToState(stateSnapshot);
 
         // Now, assert it fails with >0 validation data.
 

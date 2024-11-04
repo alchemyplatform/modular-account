@@ -3,13 +3,12 @@ pragma solidity ^0.8.26;
 
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
-import {console} from "forge-std/src/console.sol";
+import {console} from "forge-std/console.sol";
 
 import {MockERC20} from "../test/mocks/MockERC20.sol";
 import {OptimizedTest} from "../test/utils/OptimizedTest.sol";
 
-abstract contract BenchmarkBase is OptimizedTest, GasSnapshot {
+abstract contract BenchmarkBase is OptimizedTest {
     EntryPoint public entryPoint;
     address payable public beneficiary;
 
@@ -73,9 +72,9 @@ abstract contract BenchmarkBase is OptimizedTest, GasSnapshot {
         console.log(consoleLine);
         console.log("gasTotalUsed: %d", gasValue);
 
-        string memory snapName = string.concat(_accountImplName, "_", _benchmarkTypeToString(bType), "_", testCase);
+        string memory snapName = string.concat(_benchmarkTypeToString(bType), "_", testCase);
 
-        snap(snapName, gasValue);
+        vm.snapshotValue({group: _accountImplName, name: snapName, value: gasValue});
     }
 
     function _benchmarkTypeToString(BenchmarkType bType) internal pure returns (string memory) {

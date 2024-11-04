@@ -80,7 +80,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     modifier withSMATest() {
         _;
 
-        vm.revertTo(_revertSnapshot);
+        vm.revertToState(_revertSnapshot);
 
         _switchToSMA();
 
@@ -122,7 +122,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         _signerValidation =
             ModuleEntityLib.pack(address(singleSignerValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
     }
 
     function _runExecUserOp(address target, bytes memory callData) internal {
@@ -301,7 +301,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         bytes memory deferredValidationSig;
         bytes memory deferredValidationDatas;
         {
-            (bytes32 structHash, bytes32 digest, bytes32 domainSeparator) = _getDeferredInstallStructAndHash(
+            bytes32 digest = _getDeferredInstallStruct(
                 account,
                 deferredInstallNonce,
                 deferredInstallDeadline,
@@ -311,26 +311,13 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
 
             bytes32 replaySafeHash;
             if (_isSMATest) {
-                replaySafeHash = _getSMAReplaySafeHash(
-                    address(account), domainSeparator, structHash, digest, _DEFERRED_ACTION_CONTENTS_TYPE
-                );
+                replaySafeHash = _getSMAReplaySafeHash(address(account), digest);
             } else {
-                replaySafeHash = _getModuleReplaySafeHash(
-                    address(account),
-                    address(singleSignerValidationModule),
-                    domainSeparator,
-                    structHash,
-                    digest,
-                    _DEFERRED_ACTION_CONTENTS_TYPE
-                );
+                replaySafeHash =
+                    _getModuleReplaySafeHash(address(account), address(singleSignerValidationModule), digest);
             }
 
-            deferredValidationSig = _packFinal1271Signature(
-                _signRawHash(vm, signingKey, replaySafeHash),
-                domainSeparator,
-                structHash,
-                _DEFERRED_ACTION_CONTENTS_TYPE
-            );
+            deferredValidationSig = _packFinalSignature(_signRawHash(vm, signingKey, replaySafeHash));
 
             deferredValidationDatas = _packDeferredInstallData(
                 deferredInstallNonce, deferredInstallDeadline, uoValidationFunction, deferredValidationInstallCall

@@ -24,7 +24,7 @@
     "lint:gas": "solhint --max-warnings 0 -c ./config/solhint-gas.json './gas/**/*.sol'",
     "lint:script": "solhint --max-warnings 0 -c ./config/solhint-script.json './script/**/*.sol'",
     "prep": "pnpm fmt && forge b --deny-warnings && pnpm lint && pnpm test && pnpm gas",
-    "sizes": "FOUNDRY_PROFILE=optimized-build forge b --sizes | grep '^|' | grep -v -e '|       17 |' -e 'Lib'",
+    "sizes": "FOUNDRY_PROFILE=optimized-build forge b --sizes | grep '^|' | grep -v -e '|               17 |' -e 'Lib'",
     "test": "forge test"
   }
 }

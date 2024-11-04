@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.26;
 
-import {Test} from "forge-std/src/Test.sol";
+import {Test} from "forge-std/Test.sol";
 
 import {
     ValidationData,

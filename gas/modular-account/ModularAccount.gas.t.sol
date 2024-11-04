@@ -10,7 +10,7 @@ import {
 } from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import {Vm} from "forge-std/src/Vm.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
@@ -275,26 +275,16 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
-        (bytes32 structHash, bytes32 digest, bytes32 domainSeparator) = _getDeferredInstallStructAndHash(
+        bytes32 digest = _getDeferredInstallStruct(
             account1, deferredInstallNonce, deferredInstallDeadline, newUOValidation, deferredValidationInstallCall
         );
 
-        bytes memory deferredValidationSig = _packFinal1271Signature(
+        bytes memory deferredValidationSig = _packFinalSignature(
             _signRawHash(
                 vm,
                 owner1Key,
-                _getModuleReplaySafeHash(
-                    address(account1),
-                    address(singleSignerValidationModule),
-                    domainSeparator,
-                    structHash,
-                    digest,
-                    _DEFERRED_ACTION_CONTENTS_TYPE
-                )
-            ),
-            domainSeparator,
-            structHash,
-            _DEFERRED_ACTION_CONTENTS_TYPE
+                _getModuleReplaySafeHash(address(account1), address(singleSignerValidationModule), digest)
+            )
         );
 
         userOp.signature = _encodeDeferredInstallUOSignature(

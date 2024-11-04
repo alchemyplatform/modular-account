@@ -49,7 +49,7 @@ contract AllowlistERC20TokenLimitTest is AccountTestBase {
     uint32 public constant ENTITY_ID = 1;
 
     function setUp() public override {
-        _revertSnapshot = vm.snapshot();
+        _revertSnapshot = vm.snapshotState();
         // Set up a validator with hooks from the erc20 spend limit module attached
 
         erc20 = new MockERC20();
