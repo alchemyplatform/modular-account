@@ -34,6 +34,10 @@ contract SimpleAccountGasTest is GasSnapshot {
         console.log("Runtime: account creation: ");
         console.log("gasTotalUsed: %d", gas.gasTotalUsed);
 
-        snap("SimpleAccount_Runtime_AccountCreation", gas.gasTotalUsed);
+        vm.snapshotValue({
+            group: "SimpleAccount",
+            name: "Runtime_AccountCreation",
+            value: gas.gasTotalUsed
+        });
     }
 }

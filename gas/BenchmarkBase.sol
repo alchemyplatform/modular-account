@@ -73,9 +73,13 @@ abstract contract BenchmarkBase is OptimizedTest, GasSnapshot {
         console.log(consoleLine);
         console.log("gasTotalUsed: %d", gasValue);
 
-        string memory snapName = string.concat(_accountImplName, "_", _benchmarkTypeToString(bType), "_", testCase);
+        string memory snapName = string.concat(_benchmarkTypeToString(bType), "_", testCase);
 
-        snap(snapName, gasValue);
+        vm.snapshotValue({
+            group: _accountImplName,
+            name: snapName,
+            value: gasValue
+        });
     }
 
     function _benchmarkTypeToString(BenchmarkType bType) internal pure returns (string memory) {
