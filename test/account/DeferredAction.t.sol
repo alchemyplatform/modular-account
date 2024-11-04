@@ -21,7 +21,7 @@ import {
     ExecutionManifest,
     ManifestExecutionFunction
 } from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
-import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
@@ -125,7 +125,7 @@ contract DeferredActionTest is AccountTestBase {
 
     // Install a new execution function that the validation does not have the privilege to call.
     // Assert that user op validation reverts if the deferred action tries to call it.
-    function test_deferredAction_noPrivilegeEscalation() public {
+    function test_deferredAction_validationApplicabilityCheck() public {
         bytes4 newFunctionSelector = bytes4(0xabcdabcd);
 
         ExecutionManifest memory m;
@@ -182,6 +182,119 @@ contract DeferredActionTest is AccountTestBase {
                 0,
                 "AA23 reverted",
                 abi.encodeWithSelector(ModularAccountBase.ValidationFunctionMissing.selector, bytes4(0xabcdabcd))
+            )
+        );
+        entryPoint.handleOps(userOps, beneficiary);
+    }
+
+    function test_deferredAction_privilegeEscalationPrevented_executeSingle() public {
+        // Should not be allowed to call `execute` on the account itself
+        // Attempt to call it via a deferred action in a user op
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: abi.encodeCall(IModularAccount.execute, (address(0), 0 wei, "")),
+            accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
+            preVerificationGas: 0,
+            gasFees: _encodeGas(1, 1),
+            paymasterAndData: "",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+
+        uint256 deferredInstallNonce = 0;
+        uint48 deferredInstallDeadline = 0;
+
+        bytes memory deferredAction = abi.encodeCall(
+            IModularAccount.execute, (address(account1), 0 wei, abi.encodeCall(account1.accountId, ()))
+        );
+
+        userOp.signature = _buildFullDeferredInstallSig(
+            deferredInstallNonce,
+            deferredInstallDeadline,
+            deferredAction,
+            // Use the same validation for the deferred action and the user op
+            ValidationConfigLib.pack(_signerValidation, true, false, false),
+            account1,
+            owner1Key,
+            uoSig
+        );
+
+        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
+        userOps[0] = userOp;
+
+        vm.prank(beneficiary);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IEntryPoint.FailedOpWithRevert.selector,
+                0,
+                "AA23 reverted",
+                abi.encodeWithSelector(ModularAccountBase.SelfCallRecursionDepthExceeded.selector)
+            )
+        );
+        entryPoint.handleOps(userOps, beneficiary);
+    }
+
+    function test_deferredAction_privilegeEscalationPrevented_executeBatch() public {
+        // Should not be allowed to call `executeBatch` with an internal call to `execute`/`executeBatch`.
+        // Attempt to call it via a deferred action in a user op
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: abi.encodeCall(IModularAccount.execute, (address(0), 0 wei, "")),
+            accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
+            preVerificationGas: 0,
+            gasFees: _encodeGas(1, 1),
+            paymasterAndData: "",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+
+        uint256 deferredInstallNonce = 0;
+        uint48 deferredInstallDeadline = 0;
+
+        Call[] memory innerCalls = new Call[](1);
+        innerCalls[0] =
+            Call({target: address(account1), value: 0, data: abi.encodeCall(IModularAccount.accountId, ())});
+
+        Call[] memory outerCalls = new Call[](1);
+        outerCalls[0] = Call({
+            target: address(account1),
+            value: 0,
+            data: abi.encodeCall(IModularAccount.executeBatch, (innerCalls))
+        });
+
+        bytes memory deferredAction = abi.encodeCall(IModularAccount.executeBatch, (outerCalls));
+
+        userOp.signature = _buildFullDeferredInstallSig(
+            deferredInstallNonce,
+            deferredInstallDeadline,
+            deferredAction,
+            // Use the same validation for the deferred action and the user op
+            ValidationConfigLib.pack(_signerValidation, true, false, false),
+            account1,
+            owner1Key,
+            uoSig
+        );
+
+        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
+        userOps[0] = userOp;
+
+        vm.prank(beneficiary);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IEntryPoint.FailedOpWithRevert.selector,
+                0,
+                "AA23 reverted",
+                abi.encodeWithSelector(ModularAccountBase.SelfCallRecursionDepthExceeded.selector)
             )
         );
         entryPoint.handleOps(userOps, beneficiary);

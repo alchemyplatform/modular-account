@@ -491,8 +491,8 @@ abstract contract ModularAccountBase is
         ValidationConfig uoValidation = ValidationConfig.wrap(bytes25(encodedData[38:63]));
 
         // Check if the outer validation applies to the function call
-        _checkIfValidationAppliesSelector(
-            bytes4(encodedData[63:67]),
+        _checkIfValidationAppliesCallData(
+            encodedData[63:],
             sigValidation,
             isGlobalValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
