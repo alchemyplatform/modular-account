@@ -36,7 +36,7 @@ jobs:
         run: |
          {
          echo 'NEWSIZES<<EOF'
-         FOUNDRY_PROFILE=optimized-build forge b --sizes | grep '^|' | grep -v -e '|       17 |' -e 'Lib'
+         FOUNDRY_PROFILE=optimized-build forge b --sizes | grep '^|' | grep -v -e '|               17 |' -e 'Lib'
          echo EOF
          } >> "$GITHUB_OUTPUT"
 
@@ -60,7 +60,7 @@ jobs:
         run: |
          {
          echo 'OLDSIZES<<EOF'
-         FOUNDRY_PROFILE=optimized-build forge b --sizes | grep '^|' | grep -v -e '|       17 |' -e 'Lib'
+         FOUNDRY_PROFILE=optimized-build forge b --sizes | grep '^|' | grep -v -e '|               17 |' -e 'Lib'
          echo EOF
          } >> "$GITHUB_OUTPUT"
 
