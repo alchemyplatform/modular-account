@@ -10,7 +10,7 @@ import {
 } from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import {Vm} from "forge-std/src/Vm.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";

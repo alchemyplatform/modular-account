@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.26;
 
-import {Vm} from "forge-std/src/Vm.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 import {RESERVED_VALIDATION_DATA_INDEX} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";

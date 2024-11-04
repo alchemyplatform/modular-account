@@ -17,9 +17,9 @@
 
 pragma solidity ^0.8.26;
 
-import {CommonBase} from "forge-std/src/Base.sol";
-import {StdCheats} from "forge-std/src/StdCheats.sol";
-import {StdUtils} from "forge-std/src/StdUtils.sol";
+import {CommonBase} from "forge-std/Base.sol";
+import {StdCheats} from "forge-std/StdCheats.sol";
+import {StdUtils} from "forge-std/StdUtils.sol";
 
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";

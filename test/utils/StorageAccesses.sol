@@ -17,14 +17,14 @@
 
 pragma solidity ^0.8.26;
 
-import {Vm} from "forge-std/src/Vm.sol";
-import {console} from "forge-std/src/console.sol";
+import {Vm} from "forge-std/Vm.sol";
+// solhint-disable no-console
+import {console} from "forge-std/console.sol";
 
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {_ACCOUNT_STORAGE_SLOT} from "../../src/account/AccountStorage.sol";
 
-// solhint-disable no-console
 library StorageAccesses {
     // solhint-disable const-name-snakecase
     // solhint-disable-next-line private-vars-leading-underscore

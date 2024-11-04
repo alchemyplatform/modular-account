@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.26;
 
-import {Vm} from "forge-std/src/Vm.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {

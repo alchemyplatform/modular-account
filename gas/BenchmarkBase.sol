@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-import {console} from "forge-std/src/console.sol";
+import {console} from "forge-std/console.sol";
 
 import {MockERC20} from "../test/mocks/MockERC20.sol";
 import {OptimizedTest} from "../test/utils/OptimizedTest.sol";
@@ -74,11 +74,7 @@ abstract contract BenchmarkBase is OptimizedTest {
 
         string memory snapName = string.concat(_benchmarkTypeToString(bType), "_", testCase);
 
-        vm.snapshotValue({
-            group: _accountImplName,
-            name: snapName,
-            value: gasValue
-        });
+        vm.snapshotValue({group: _accountImplName, name: snapName, value: gasValue});
     }
 
     function _benchmarkTypeToString(BenchmarkType bType) internal pure returns (string memory) {

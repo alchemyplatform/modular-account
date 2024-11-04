@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import {Test} from "forge-std/Test.sol";
+import {VmSafe} from "forge-std/Vm.sol";
+import {console} from "forge-std/console.sol";
+
 import {ISimpleAccountFactory} from "./ISimpleAccountFactory.sol";
-import {VmSafe} from "forge-std/src/Vm.sol";
-import {console} from "forge-std/src/console.sol";
-import {Test} from "forge-std/src/Test.sol";
 
 contract SimpleAccountGasTest is Test {
     address internal constant _SIMPLE_ACCOUNT_FACTORY = 0x91E60e0613810449d098b0b5Ec8b51A0FE8c8985;
@@ -34,10 +35,6 @@ contract SimpleAccountGasTest is Test {
         console.log("Runtime: account creation: ");
         console.log("gasTotalUsed: %d", gas.gasTotalUsed);
 
-        vm.snapshotValue({
-            group: "SimpleAccount",
-            name: "Runtime_AccountCreation",
-            value: gas.gasTotalUsed
-        });
+        vm.snapshotValue({group: "SimpleAccount", name: "Runtime_AccountCreation", value: gas.gasTotalUsed});
     }
 }
