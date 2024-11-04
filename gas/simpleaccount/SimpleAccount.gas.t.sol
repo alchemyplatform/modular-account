@@ -2,11 +2,11 @@
 pragma solidity ^0.8.26;
 
 import {ISimpleAccountFactory} from "./ISimpleAccountFactory.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {VmSafe} from "forge-std/src/Vm.sol";
 import {console} from "forge-std/src/console.sol";
+import {Test} from "forge-std/src/Test.sol";
 
-contract SimpleAccountGasTest is GasSnapshot {
+contract SimpleAccountGasTest is Test {
     address internal constant _SIMPLE_ACCOUNT_FACTORY = 0x91E60e0613810449d098b0b5Ec8b51A0FE8c8985;
 
     bytes internal constant _SIMPLE_ACCOUNT_FACTORY_BYTECODE =

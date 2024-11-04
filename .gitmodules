@@ -7,9 +7,6 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
-[submodule "lib/forge-gas-snapshot"]
-	path = lib/forge-gas-snapshot
-	url = https://github.com/marktoda/forge-gas-snapshot
 [submodule "lib/webauthn-sol"]
 	path = lib/webauthn-sol
 	url = https://github.com/base-org/webauthn-sol

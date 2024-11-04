@@ -3,13 +3,12 @@ pragma solidity ^0.8.26;
 
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 import {console} from "forge-std/src/console.sol";
 
 import {MockERC20} from "../test/mocks/MockERC20.sol";
 import {OptimizedTest} from "../test/utils/OptimizedTest.sol";
 
-abstract contract BenchmarkBase is OptimizedTest, GasSnapshot {
+abstract contract BenchmarkBase is OptimizedTest {
     EntryPoint public entryPoint;
     address payable public beneficiary;
 
