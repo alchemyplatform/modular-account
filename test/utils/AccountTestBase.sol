@@ -46,6 +46,7 @@ import {TEST_DEFAULT_VALIDATION_ENTITY_ID as EXT_CONST_TEST_DEFAULT_VALIDATION_E
 abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     using ModuleEntityLib for ModuleEntity;
     using MessageHashUtils for bytes32;
+    using ValidationConfigLib for ValidationConfig;
 
     EntryPoint public entryPoint;
     address payable public beneficiary;
@@ -305,6 +306,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
                 account,
                 deferredInstallNonce,
                 deferredInstallDeadline,
+                // Use global validation for performing the deferred action.
                 uoValidationFunction,
                 deferredValidationInstallCall
             );
@@ -320,12 +322,19 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
             deferredValidationSig = _packFinalSignature(_signRawHash(vm, signingKey, replaySafeHash));
 
             deferredValidationDatas = _packDeferredInstallData(
-                deferredInstallNonce, deferredInstallDeadline, uoValidationFunction, deferredValidationInstallCall
+                deferredInstallNonce,
+                deferredInstallDeadline,
+                ValidationConfigLib.pack(_signerValidation, true, false, false),
+                deferredValidationInstallCall
             );
         }
 
         return _encodeDeferredInstallUOSignature(
-            _signerValidation, GLOBAL_VALIDATION, deferredValidationDatas, deferredValidationSig, uoSig
+            uoValidationFunction.moduleEntity(),
+            (uoValidationFunction.isGlobal()) ? GLOBAL_VALIDATION : SELECTOR_ASSOCIATED_VALIDATION,
+            deferredValidationDatas,
+            deferredValidationSig,
+            uoSig
         );
     }
 

@@ -17,12 +17,16 @@
 
 pragma solidity ^0.8.26;
 
+import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {
     ExecutionManifest,
     ManifestExecutionFunction
 } from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
+import {ModuleEntity, ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
+import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -297,6 +301,81 @@ contract DeferredActionTest is AccountTestBase {
                 abi.encodeWithSelector(ModularAccountBase.SelfCallRecursionDepthExceeded.selector)
             )
         );
+        entryPoint.handleOps(userOps, beneficiary);
+    }
+
+    function test_deferredAction_validationAssociatedExecHooks() public withSMATest {
+        // Assert that when using a validation function with associated exec hooks, the correct hooks run during
+        // execution (within `executeUserOp`).
+
+        // Install a new validation, with a validation-associated exec hook.
+
+        // To use `vm.expectCall` with both the SMA and non-SMA tests, we need a new module for the second run.
+        if (_isSMATest) {
+            ExecutionManifest memory m;
+            mockModule = new MockModule(m);
+        }
+
+        (address owner2, uint256 owner2Key) = makeAddrAndKey("owner2");
+        uint32 validation2EntityId = 1;
+
+        bytes[] memory hooks = new bytes[](1);
+        hooks[0] = abi.encodePacked(HookConfigLib.packExecHook(address(mockModule), uint32(0), true, false));
+
+        vm.prank(address(account1));
+        account1.installValidation(
+            ValidationConfigLib.pack(address(singleSignerValidationModule), validation2EntityId, true, true, true),
+            new bytes4[](0),
+            abi.encode(validation2EntityId, owner2),
+            hooks
+        );
+
+        ModuleEntity validation2 = ModuleEntityLib.pack(address(singleSignerValidationModule), validation2EntityId);
+
+        // Assert that the hooks run when using `validation2` as UO validation, after a deferred action.
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: abi.encodePacked(
+                IAccountExecute.executeUserOp.selector,
+                abi.encodeCall(IModularAccount.execute, (address(0), 0 wei, "01"))
+            ),
+            accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
+            preVerificationGas: 0,
+            gasFees: _encodeGas(1, 1),
+            paymasterAndData: "",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+
+        uint256 deferredInstallNonce = 0;
+        uint48 deferredInstallDeadline = 0;
+
+        bytes memory deferredAction = abi.encodeCall(IModularAccount.execute, (address(0), 0 wei, hex"02"));
+
+        userOp.signature = _buildFullDeferredInstallSig(
+            deferredInstallNonce,
+            deferredInstallDeadline,
+            deferredAction,
+            // Use the same validation for the deferred action and the user op
+            ValidationConfigLib.pack(validation2, true, false, false),
+            account1,
+            owner1Key,
+            uoSig
+        );
+
+        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
+        userOps[0] = userOp;
+
+        vm.expectCall(
+            address(mockModule), abi.encodeWithSelector(IExecutionHookModule.preExecutionHook.selector), 1
+        );
+        vm.prank(beneficiary);
         entryPoint.handleOps(userOps, beneficiary);
     }
 }

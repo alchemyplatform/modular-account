@@ -413,7 +413,8 @@ abstract contract ModularAccountBase is
         ///      [(33 + deferredActionSigLength + encodedDataLength):] : bytes, userOpSignature. This is the
         ///         signature passed to the inner validation.
         if (hasDeferredAction) {
-            // Use outer validation as a 1271 validation, then use the inner validation to validate the UO.
+            // Use outer validation to validate the UO, and the inner validation as 1271 validation for the
+            // deferred action.
 
             // Get the length of the deferred action data.
             uint256 encodedDataLength = uint32(bytes4(userOp.signature[25:29]));
@@ -434,18 +435,16 @@ abstract contract ModularAccountBase is
                 userOp.signature[33 + encodedDataLength:33 + encodedDataLength + deferredActionSigLength];
 
             //Validate the signature.
-            (uint48 deadline, ValidationConfig newValidationFunction) = _validateDeferredActionAndSetNonce(
-                validationFunction, isGlobalValidation, encodedData, deferredActionSig
-            );
+            // The struct must sign over the user op validation function, nonce, deadline, and the deferred action.
+            // Note that while the declared type of the UO validation is `ValidationConfig`, the flags are
+            // interpretted as validation selection flags, not validation installation flags.
+            ValidationConfig uoValidation = ValidationConfig.wrap(bytes25(userOp.signature[:25]));
+            uint48 deadline = _validateDeferredActionAndSetNonce(uoValidation, encodedData, deferredActionSig);
             // Update the validation data with the deadline.
             validationData = uint256(deadline) << 160;
 
-            // Call `installValidation` on the account.
+            // Perform the deferred action's self call on the account.
             ExecutionLib.callBubbleOnRevertTransient(address(this), 0, encodedData[63:]);
-
-            // Load in the inner validation.
-            validationFunction = newValidationFunction.moduleEntity();
-            isGlobalValidation = newValidationFunction.isGlobal();
         } else {
             userOpSignature = userOp.signature[25:];
         }
@@ -475,26 +474,26 @@ abstract contract ModularAccountBase is
         }
     }
 
-    /// @return The deadline of the deferred action and the validation function to use.
+    /// @return The deadline of the deferred action
     function _validateDeferredActionAndSetNonce(
-        ModuleEntity sigValidation,
-        bool isGlobalValidation,
+        ValidationConfig userOpValidationFunction,
         bytes calldata encodedData,
         bytes calldata sig
-    ) internal returns (uint48, ValidationConfig) {
+    ) internal returns (uint48) {
         // Decode stack vars for the deadline and nonce.
         // The deadline, nonce, inner validation, and deferred call selector are all at fixed positions in the
         // encodedData.
         uint256 nonce = uint256(bytes32(encodedData[:32]));
         uint48 deadline = uint48(bytes6(encodedData[32:38]));
 
-        ValidationConfig uoValidation = ValidationConfig.wrap(bytes25(encodedData[38:63]));
+        ValidationConfig defActionSigValidation = ValidationConfig.wrap(bytes25(encodedData[38:63]));
+        bool isGlobalSigValidation = defActionSigValidation.isGlobal();
 
         // Check if the outer validation applies to the function call
         _checkIfValidationAppliesCallData(
             encodedData[63:],
-            sigValidation,
-            isGlobalValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
+            defActionSigValidation.moduleEntity(),
+            isGlobalSigValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
         // Check that the passed nonce isn't already invalidated.
@@ -511,17 +510,17 @@ abstract contract ModularAccountBase is
             encodedData[63:], // The encoded call without the nonce, deadline, and validation function
             nonce,
             deadline,
-            uoValidation
+            userOpValidationFunction
         );
 
         // Clear the memory after performing signature validation
         MemSnapshot memSnapshot = MemManagementLib.freezeFMP();
-        if (_isValidSignature(sigValidation, typedDataHash, sig) != _1271_MAGIC_VALUE) {
+        if (_isValidSignature(defActionSigValidation.moduleEntity(), typedDataHash, sig) != _1271_MAGIC_VALUE) {
             revert DeferredActionSignatureInvalid();
         }
         MemManagementLib.restoreFMP(memSnapshot);
 
-        return (deadline, uoValidation);
+        return deadline;
     }
 
     // To support gas estimation, we don't fail early when the failure is caused by a signature failure

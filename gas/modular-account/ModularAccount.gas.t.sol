@@ -288,10 +288,13 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         );
 
         userOp.signature = _encodeDeferredInstallUOSignature(
-            signerValidation,
+            ValidationConfigLib.moduleEntity(newUOValidation),
             GLOBAL_VALIDATION,
             _packDeferredInstallData(
-                deferredInstallNonce, deferredInstallDeadline, newUOValidation, deferredValidationInstallCall
+                deferredInstallNonce,
+                deferredInstallDeadline,
+                ValidationConfigLib.pack(signerValidation, true, false, false),
+                deferredValidationInstallCall
             ),
             deferredValidationSig,
             uoValidationSig
