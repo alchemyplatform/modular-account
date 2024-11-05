@@ -45,8 +45,8 @@ contract ModuleSignatureUtils {
         "DeferredAction(uint256 nonce,uint48 deadline,bytes25 validationFunction,bytes call)";
     bytes32 private constant _DEFERRED_ACTION_TYPEHASH =
         keccak256(abi.encodePacked(_DEFERRED_ACTION_CONTENTS_TYPE));
-    bytes32 internal constant _REPLAY_SAFE_HASH_TYPEHASH =
-        0x294a8735843d4afb4f017c76faf3b7731def145ed0025fc9b1d5ce30adf113ff;
+
+    bytes32 internal constant _REPLAY_SAFE_HASH_TYPEHASH = keccak256("ReplaySafeHash(bytes32 hash)");
 
     bytes32 internal constant _ACCOUNT_DOMAIN_SEPARATOR =
         keccak256("EIP712Domain(uint256 chainId,address verifyingContract)");
@@ -245,12 +245,6 @@ contract ModuleSignatureUtils {
 
     // EIP-712 helpers for acount
     function _hashStruct(bytes32 hash) internal pure virtual returns (bytes32) {
-        bytes32 res;
-        assembly ("memory-safe") {
-            mstore(0x00, _REPLAY_SAFE_HASH_TYPEHASH)
-            mstore(0x20, hash)
-            res := keccak256(0x00, 0x40)
-        }
-        return res;
+        return keccak256(abi.encode(_REPLAY_SAFE_HASH_TYPEHASH, hash));
     }
 }

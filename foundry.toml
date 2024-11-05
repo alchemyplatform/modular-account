@@ -13,7 +13,6 @@ bytecode_hash = "none"
 auto_detect_remappings = false
 fs_permissions = [
   { access = "read", path = "./out-optimized" },
-  { access = "read-write", path = "./.forge-snapshots" },
   { access = "read", path = "./test/bin" },
 ]
 
