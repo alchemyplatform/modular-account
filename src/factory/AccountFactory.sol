@@ -20,9 +20,13 @@ contract AccountFactory is Ownable {
     SemiModularAccountBytecode public immutable SEMI_MODULAR_ACCOUNT_IMPL;
     IEntryPoint public immutable ENTRY_POINT;
     address public immutable SINGLE_SIGNER_VALIDATION_MODULE;
+    address public immutable WEBAUTHN_VALIDATION_MODULE;
 
     event ModularAccountDeployed(address indexed account, address indexed owner, uint256 salt);
     event SemiModularAccountDeployed(address indexed account, address indexed owner, uint256 salt);
+    event WebauthnModularAccountDeployed(
+        address indexed account, uint256 indexed ownerX, uint256 indexed ownerY, uint256 salt
+    );
 
     error TransferFailed();
 
@@ -31,12 +35,14 @@ contract AccountFactory is Ownable {
         ModularAccount _accountImpl,
         SemiModularAccountBytecode _semiModularImpl,
         address _singleSignerValidationModule,
+        address _webauthnValidationModule,
         address owner
     ) Ownable(owner) {
         ENTRY_POINT = _entryPoint;
         ACCOUNT_IMPL = _accountImpl;
         SEMI_MODULAR_ACCOUNT_IMPL = _semiModularImpl;
         SINGLE_SIGNER_VALIDATION_MODULE = _singleSignerValidationModule;
+        WEBAUTHN_VALIDATION_MODULE = _webauthnValidationModule;
     }
 
     /**
@@ -88,6 +94,39 @@ contract AccountFactory is Ownable {
         return SemiModularAccountBytecode(payable(instance));
     }
 
+    /**
+     * Create an account with the webauthn module installed and return its address.
+     * Returns the address even if the account is already deployed.
+     * Note that during user operation execution, this method is called only if the account is not deployed.
+     * This method returns an existing account address so that entryPoint.getSenderAddress() would work even after
+     * account creation
+     */
+    function createWebauthnAccount(uint256 ownerX, uint256 ownerY, uint256 salt, uint32 entityId)
+        external
+        returns (ModularAccount)
+    {
+        bytes32 combinedSalt = getWebauthnSalt(ownerX, ownerY, salt, entityId);
+
+        // LibClone short-circuits if it's already deployed.
+        (bool alreadyDeployed, address instance) =
+            LibClone.createDeterministicERC1967(address(ACCOUNT_IMPL), combinedSalt);
+
+        // short circuit if exists
+        if (!alreadyDeployed) {
+            bytes memory moduleInstallData = abi.encode(entityId, ownerX, ownerY);
+            // point proxy to actual implementation and init plugins
+            ModularAccount(payable(instance)).initializeWithValidation(
+                ValidationConfigLib.pack(WEBAUTHN_VALIDATION_MODULE, entityId, true, true, true),
+                new bytes4[](0),
+                moduleInstallData,
+                new bytes[](0)
+            );
+            emit WebauthnModularAccountDeployed(instance, ownerX, ownerY, salt);
+        }
+
+        return ModularAccount(payable(instance));
+    }
+
     function addStake(uint32 unstakeDelay) external payable onlyOwner {
         ENTRY_POINT.addStake{value: msg.value}(unstakeDelay);
     }
@@ -133,6 +172,14 @@ contract AccountFactory is Ownable {
 
     function getSalt(address owner, uint256 salt, uint32 entityId) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(owner, salt, entityId));
+    }
+
+    function getWebauthnSalt(uint256 ownerX, uint256 ownerY, uint256 salt, uint32 entityId)
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encodePacked(ownerX, ownerY, salt, entityId));
     }
 
     function _getAddressSemiModular(bytes memory immutables, bytes32 salt) internal view returns (address) {

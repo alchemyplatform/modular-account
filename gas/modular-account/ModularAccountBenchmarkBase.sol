@@ -21,6 +21,7 @@ import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
 import {AllowlistModule} from "../../src/modules/permissions/AllowlistModule.sol";
 import {TimeRangeModule} from "../../src/modules/permissions/TimeRangeModule.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
+import {WebAuthnValidationModule} from "../../src/modules/validation/WebAuthnValidationModule.sol";
 
 import {Counter} from "../../test/mocks/Counter.sol";
 import {ModuleSignatureUtils} from "../../test/utils/ModuleSignatureUtils.sol";
@@ -53,7 +54,12 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         singleSignerValidationModule = _deploySingleSignerValidationModule();
 
         factory = new AccountFactory(
-            entryPoint, accountImpl, semiModularImpl, address(singleSignerValidationModule), address(this)
+            entryPoint,
+            accountImpl,
+            semiModularImpl,
+            address(singleSignerValidationModule),
+            address(new WebAuthnValidationModule()),
+            address(this)
         );
 
         allowlistModule = new AllowlistModule();

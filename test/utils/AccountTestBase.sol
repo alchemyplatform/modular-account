@@ -35,6 +35,7 @@ import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBy
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
+import {WebAuthnValidationModule} from "../../src/modules/validation/WebAuthnValidationModule.sol";
 
 import {ModuleSignatureUtils} from "./ModuleSignatureUtils.sol";
 import {OptimizedTest} from "./OptimizedTest.sol";
@@ -108,11 +109,14 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         semiModularAccountImplementation =
             SemiModularAccountBytecode(payable(_deploySemiModularAccountBytecode(entryPoint)));
 
+        address webauthnModule = address(new WebAuthnValidationModule());
+
         factory = new AccountFactory(
             entryPoint,
             accountImplementation,
             semiModularAccountImplementation,
             address(singleSignerValidationModule),
+            webauthnModule,
             factoryOwner
         );
 
