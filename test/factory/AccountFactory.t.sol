@@ -35,9 +35,9 @@ contract AccountFactoryTest is AccountTestBase {
         assertEq(address(account.entryPoint()), address(entryPoint));
     }
 
-    function test_createWebauthnAccount() public {
+    function test_createWebAuthnAccount() public {
         ModularAccount account =
-            factory.createWebauthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
+            factory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         assertEq(address(account.entryPoint()), address(entryPoint));
     }
@@ -50,13 +50,13 @@ contract AccountFactoryTest is AccountTestBase {
         );
     }
 
-    function test_createWebauthnAccountAndGetAddress() public {
+    function test_createWebAuthnAccountAndGetAddress() public {
         ModularAccount account =
-            factory.createWebauthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
+            factory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         assertEq(
             address(account),
-            address(factory.createWebauthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID))
+            address(factory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID))
         );
     }
 
@@ -75,14 +75,14 @@ contract AccountFactoryTest is AccountTestBase {
         assertEq(address(account), address(account2));
     }
 
-    function test_multipleDeployWebauthn() public {
+    function test_multipleDeployWebAuthn() public {
         ModularAccount account =
-            factory.createWebauthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
+            factory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         uint256 startGas = gasleft();
 
         ModularAccount account2 =
-            factory.createWebauthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
+            factory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         // Assert that the 2nd deployment call cost less than 1 sstore
         // Implies that no deployment was done on the second calls

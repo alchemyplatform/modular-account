@@ -24,7 +24,7 @@ contract AccountFactory is Ownable {
 
     event ModularAccountDeployed(address indexed account, address indexed owner, uint256 salt);
     event SemiModularAccountDeployed(address indexed account, address indexed owner, uint256 salt);
-    event WebauthnModularAccountDeployed(
+    event WebAuthnModularAccountDeployed(
         address indexed account, uint256 indexed ownerX, uint256 indexed ownerY, uint256 salt
     );
 
@@ -35,22 +35,26 @@ contract AccountFactory is Ownable {
         ModularAccount _accountImpl,
         SemiModularAccountBytecode _semiModularImpl,
         address _singleSignerValidationModule,
-        address _webauthnValidationModule,
+        address _webAuthnValidationModule,
         address owner
     ) Ownable(owner) {
         ENTRY_POINT = _entryPoint;
         ACCOUNT_IMPL = _accountImpl;
         SEMI_MODULAR_ACCOUNT_IMPL = _semiModularImpl;
         SINGLE_SIGNER_VALIDATION_MODULE = _singleSignerValidationModule;
-        WEBAUTHN_VALIDATION_MODULE = _webauthnValidationModule;
+        WEBAUTHN_VALIDATION_MODULE = _webAuthnValidationModule;
     }
 
     /**
-     * Create an account, and return its address.
-     * Returns the address even if the account is already deployed.
+     * @notice Create an account with the single singer validation module installed, and return its address.
+     * @dev Returns the address even if the account is already deployed.
      * Note that during user operation execution, this method is called only if the account is not deployed.
      * This method returns an existing account address so that entryPoint.getSenderAddress() would work even after
      * account creation
+     * @param owner The owner of the account
+     * @param salt The salt to use for the account creation
+     * @param entityId The entity ID to use for the account creation
+     * @return The address of the created account
      */
     function createAccount(address owner, uint256 salt, uint32 entityId) external returns (ModularAccount) {
         bytes32 combinedSalt = getSalt(owner, salt, entityId);
@@ -75,8 +79,12 @@ contract AccountFactory is Ownable {
         return ModularAccount(payable(instance));
     }
 
+    /// @notice Create a semi modular account and return its address.
     /// @dev This only ever deploys semi-modular accounts with added bytecode, since this is much less
     /// expensive than the storage-only variant, which should only be used for upgrades.
+    /// @param owner The owner of the account
+    /// @param salt The salt to use for the account creation
+    /// @return The address of the created account
     function createSemiModularAccount(address owner, uint256 salt) external returns (SemiModularAccountBytecode) {
         // both module address and entityId for fallback validations are hardcoded at the maximum value.
         bytes32 fullSalt = getSalt(owner, salt, type(uint32).max);
@@ -95,17 +103,22 @@ contract AccountFactory is Ownable {
     }
 
     /**
-     * Create an account with the webauthn module installed and return its address.
-     * Returns the address even if the account is already deployed.
+     * @notice Create an account with the WebAuthn module installed, and return its address.
+     * @dev Returns the address even if the account is already deployed.
      * Note that during user operation execution, this method is called only if the account is not deployed.
      * This method returns an existing account address so that entryPoint.getSenderAddress() would work even after
      * account creation
+     * @param ownerX The x coordinate of the owner's public key
+     * @param ownerY The y coordinate of the owner's public key
+     * @param salt The salt to use for the account creation
+     * @param entityId The entity ID to use for the account creation
+     * @return The address of the created account
      */
-    function createWebauthnAccount(uint256 ownerX, uint256 ownerY, uint256 salt, uint32 entityId)
+    function createWebAuthnAccount(uint256 ownerX, uint256 ownerY, uint256 salt, uint32 entityId)
         external
         returns (ModularAccount)
     {
-        bytes32 combinedSalt = getWebauthnSalt(ownerX, ownerY, salt, entityId);
+        bytes32 combinedSalt = getWebAuthnSalt(ownerX, ownerY, salt, entityId);
 
         // LibClone short-circuits if it's already deployed.
         (bool alreadyDeployed, address instance) =
@@ -121,7 +134,7 @@ contract AccountFactory is Ownable {
                 moduleInstallData,
                 new bytes[](0)
             );
-            emit WebauthnModularAccountDeployed(instance, ownerX, ownerY, salt);
+            emit WebAuthnModularAccountDeployed(instance, ownerX, ownerY, salt);
         }
 
         return ModularAccount(payable(instance));
@@ -174,7 +187,7 @@ contract AccountFactory is Ownable {
         return keccak256(abi.encodePacked(owner, salt, entityId));
     }
 
-    function getWebauthnSalt(uint256 ownerX, uint256 ownerY, uint256 salt, uint32 entityId)
+    function getWebAuthnSalt(uint256 ownerX, uint256 ownerY, uint256 salt, uint32 entityId)
         public
         pure
         returns (bytes32)
