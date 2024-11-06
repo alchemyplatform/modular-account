@@ -258,6 +258,7 @@ library ExecutionLib {
 
             success :=
                 and(
+                    // Yul evaluates expressions from right to left, so `returndatasize` will evaluate after `call`.
                     gt(returndatasize(), 0x1f),
                     call(
                         // If gas is the leftmost item before the call, it *should* be placed immediately before the
@@ -1020,6 +1021,8 @@ library ExecutionLib {
             // Perform the call
             success :=
                 and(
+                    // Yul evaluates expressions from right to left, so `returndatasize` will evaluate after
+                    // `staticcall`.
                     gt(returndatasize(), 0x1f),
                     staticcall(
                         gas(),

@@ -21,7 +21,7 @@ import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IE
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 import {HookConfig, HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
-import {ModuleEntity} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {ModuleEntity, ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {
     ValidationConfig,
     ValidationConfigLib
@@ -29,6 +29,7 @@ import {
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
+import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
 
 import {MockModule} from "../mocks/modules/MockModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
@@ -135,6 +136,35 @@ contract SigCallBufferTest is AccountTestBase {
         account1.isValidSignature(
             hash, _encode1271Signature(_validationFunction, preValidationHookDatasToSend, signature)
         );
+    }
+
+    // Assert the call reverts if insufficient return data is provided for signature validation itself.
+    // This is only possible in non-SMA tests, as the signature validation function is done internally within SMA.
+    function test_sigCallBuffer_shortReturnData() public {
+        bytes32 hash = keccak256("test");
+
+        _setUp4ValidationHooks();
+
+        // Mock a call with <32 bytes of return data. This overrides an existing mock from the setup.
+        vm.mockCall(
+            address(validationModule),
+            abi.encodeWithSelector(IValidationModule.validateSignature.selector),
+            hex"abcdabcd"
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExecutionLib.SignatureValidationFunctionReverted.selector,
+                ModuleEntityLib.pack(address(validationModule), uint32(0)),
+                hex"abcdabcd"
+            )
+        );
+        vm.prank(beneficiary);
+        account1.isValidSignature(
+            hash, _encode1271Signature(_validationFunction, abi.encodePacked(EOA_TYPE_SIGNATURE))
+        );
+
+        vm.clearMockedCalls();
     }
 
     function _setUp4ValidationHooks() internal {

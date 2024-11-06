@@ -218,7 +218,7 @@ contract UOCallBufferTest is AccountTestBase {
         account1.validateUserOp(userOp, userOpHash, 1 wei);
     }
 
-    function test_uoCallBuffer_shortReturnData() public withSMATest {
+    function test_uoCallBuffer_shortReturnData_preValidationHook() public withSMATest {
         _setup5ValidationHooks();
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -253,6 +253,39 @@ contract UOCallBufferTest is AccountTestBase {
         account1.validateUserOp(userOp, userOpHash, 1 wei);
 
         vm.clearMockedCalls();
+    }
+
+    function test_uoCallBuffer_shortReturnData_validationFunction() public {
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: "",
+            callData: abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")),
+            accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
+            preVerificationGas: 0,
+            gasFees: _encodeGas(1, 2),
+            paymasterAndData: "",
+            signature: _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "abcdefghijklmnopqrstuvwxyz")
+        });
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+
+        // mock a call to return less than 32 bytes of return data. This should cause validation to revert.
+
+        vm.mockCall(
+            address(singleSignerValidationModule),
+            abi.encodeWithSelector(IValidationModule.validateUserOp.selector),
+            hex"abcdabcd"
+        );
+
+        vm.prank(address(entryPoint));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExecutionLib.UserOpValidationFunctionReverted.selector,
+                ModuleEntityLib.pack(address(singleSignerValidationModule), TEST_DEFAULT_VALIDATION_ENTITY_ID),
+                bytes(hex"abcdabcd")
+            )
+        );
+        account1.validateUserOp(userOp, userOpHash, 1 wei);
     }
 
     function _setup5ValidationHooks() internal {
