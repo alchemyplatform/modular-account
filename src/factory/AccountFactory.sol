@@ -45,17 +45,15 @@ contract AccountFactory is Ownable {
         WEBAUTHN_VALIDATION_MODULE = _webAuthnValidationModule;
     }
 
-    /**
-     * @notice Create an account with the single singer validation module installed, and return its address.
-     * @dev Returns the address even if the account is already deployed.
-     * Note that during user operation execution, this method is called only if the account is not deployed.
-     * This method returns an existing account address so that entryPoint.getSenderAddress() would work even after
-     * account creation
-     * @param owner The owner of the account
-     * @param salt The salt to use for the account creation
-     * @param entityId The entity ID to use for the account creation
-     * @return The address of the created account
-     */
+    /// @notice Create an account with the single singer validation module installed, and return its address.
+    /// @dev Returns the address even if the account is already deployed.
+    /// Note that during user operation execution, this method is called only if the account is not deployed.
+    /// This method returns an existing account address so that entryPoint.getSenderAddress() would work even after
+    /// account creation
+    /// @param owner The owner of the account
+    /// @param salt The salt to use for the account creation
+    /// @param entityId The entity ID to use for the account creation
+    /// @return The address of the created account
     function createAccount(address owner, uint256 salt, uint32 entityId) external returns (ModularAccount) {
         bytes32 combinedSalt = getSalt(owner, salt, entityId);
 
@@ -102,18 +100,16 @@ contract AccountFactory is Ownable {
         return SemiModularAccountBytecode(payable(instance));
     }
 
-    /**
-     * @notice Create an account with the WebAuthn module installed, and return its address.
-     * @dev Returns the address even if the account is already deployed.
-     * Note that during user operation execution, this method is called only if the account is not deployed.
-     * This method returns an existing account address so that entryPoint.getSenderAddress() would work even after
-     * account creation
-     * @param ownerX The x coordinate of the owner's public key
-     * @param ownerY The y coordinate of the owner's public key
-     * @param salt The salt to use for the account creation
-     * @param entityId The entity ID to use for the account creation
-     * @return The address of the created account
-     */
+    /// @notice Create an account with the WebAuthn module installed, and return its address.
+    /// @dev Returns the address even if the account is already deployed.
+    /// Note that during user operation execution, this method is called only if the account is not deployed.
+    /// This method returns an existing account address so that entryPoint.getSenderAddress() would work even after
+    /// account creation
+    /// @param ownerX The x coordinate of the owner's public key
+    /// @param ownerY The y coordinate of the owner's public key
+    /// @param salt The salt to use for the account creation
+    /// @param entityId The entity ID to use for the account creation
+    /// @return The address of the created account
     function createWebAuthnAccount(uint256 ownerX, uint256 ownerY, uint256 salt, uint32 entityId)
         external
         returns (ModularAccount)
@@ -168,25 +164,43 @@ contract AccountFactory is Ownable {
         }
     }
 
-    /**
-     * Calculate the counterfactual address of this account as it would be returned by createAccount()
-     */
+    /// @notice Calculate the counterfactual address of this account as it would be returned by createAccount()
+    /// @param owner The owner of the account
+    /// @param salt The salt to use for the account creation
+    /// @param entityId The entity ID to use for the account creation
+    /// @return The address of the account
     function getAddress(address owner, uint256 salt, uint32 entityId) external view returns (address) {
         return LibClone.predictDeterministicAddressERC1967(
             address(ACCOUNT_IMPL), getSalt(owner, salt, entityId), address(this)
         );
     }
 
+    /// @notice Gets the deployed address of a semi modular account given the owner and salt
+    /// @param owner The owner of the account
+    /// @param salt The salt to use for the account creation
+    /// @return The address of the account
     function getAddressSemiModular(address owner, uint256 salt) public view returns (address) {
         bytes32 fullSalt = getSalt(owner, salt, type(uint32).max);
         bytes memory immutables = _getImmutableArgs(owner);
         return _getAddressSemiModular(immutables, fullSalt);
     }
 
+    /// @notice Gets the deployed address of a modular account given the owner, salt and entityId
+    /// @param owner The owner of the account
+    /// @param salt The salt to use for the account creation
+    /// @param entityId The entity ID to use for the account creation
+    /// @return The address of the account
     function getSalt(address owner, uint256 salt, uint32 entityId) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(owner, salt, entityId));
     }
 
+    /// @notice Gets the deployed address of a modular account deployed with the webauthn module given the owner
+    /// and salt
+    /// @param ownerX The x coordinate of the owner's public key
+    /// @param ownerY The y coordinate of the owner's public key
+    /// @param salt The salt to use for the account creation
+    /// @param entityId The entity ID to use for the account creation
+    /// @return The address of the account
     function getWebAuthnSalt(uint256 ownerX, uint256 ownerY, uint256 salt, uint32 entityId)
         public
         pure
