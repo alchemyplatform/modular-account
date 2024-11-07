@@ -107,7 +107,7 @@ abstract contract ModularAccountBase is
 
     // Wraps execution of a native function with runtime validation and hooks
     // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution,
-    // performCreate, performCreate2
+    // performCreate
     modifier wrapNativeFunction() {
         DensePostHookData postHookData = _checkPermittedCallerAndAssociatedHooks();
 
