@@ -48,6 +48,10 @@ contract AccountFactoryTest is AccountTestBase {
         assertEq(
             address(account), address(factory.createAccount(address(this), 100, TEST_DEFAULT_VALIDATION_ENTITY_ID))
         );
+
+        assertEq(
+            address(account), address(factory.getAddress(address(this), 100, TEST_DEFAULT_VALIDATION_ENTITY_ID))
+        );
     }
 
     function test_createWebAuthnAccountAndGetAddress() public {
@@ -57,6 +61,11 @@ contract AccountFactoryTest is AccountTestBase {
         assertEq(
             address(account),
             address(factory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID))
+        );
+
+        assertEq(
+            address(account),
+            address(factory.getAddressWebAuthn(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID))
         );
     }
 

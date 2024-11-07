@@ -114,7 +114,7 @@ contract AccountFactory is Ownable {
         external
         returns (ModularAccount)
     {
-        bytes32 combinedSalt = getWebAuthnSalt(ownerX, ownerY, salt, entityId);
+        bytes32 combinedSalt = getSaltWebAuthn(ownerX, ownerY, salt, entityId);
 
         // LibClone short-circuits if it's already deployed.
         (bool alreadyDeployed, address instance) =
@@ -185,11 +185,27 @@ contract AccountFactory is Ownable {
         return _getAddressSemiModular(immutables, fullSalt);
     }
 
+    /// @notice Gets the deployed address of a modular account with the WebAuthn module given the owner and salt
+    /// @param ownerX The x coordinate of the owner's public key
+    /// @param ownerY The y coordinate of the owner's public key
+    /// @param salt The salt to use for the account creation
+    /// @param entityId The entity ID to use for the account creation
+    /// @return The address of the account
+    function getAddressWebAuthn(uint256 ownerX, uint256 ownerY, uint256 salt, uint32 entityId)
+        public
+        view
+        returns (address)
+    {
+        return LibClone.predictDeterministicAddressERC1967(
+            address(ACCOUNT_IMPL), getSaltWebAuthn(ownerX, ownerY, salt, entityId), address(this)
+        );
+    }
+
     /// @notice Gets the deployed address of a modular account given the owner, salt and entityId
     /// @param owner The owner of the account
     /// @param salt The salt to use for the account creation
     /// @param entityId The entity ID to use for the account creation
-    /// @return The address of the account
+    /// @return The create2 salt used to deploy
     function getSalt(address owner, uint256 salt, uint32 entityId) public pure returns (bytes32) {
         return keccak256(abi.encodePacked(owner, salt, entityId));
     }
@@ -200,8 +216,8 @@ contract AccountFactory is Ownable {
     /// @param ownerY The y coordinate of the owner's public key
     /// @param salt The salt to use for the account creation
     /// @param entityId The entity ID to use for the account creation
-    /// @return The address of the account
-    function getWebAuthnSalt(uint256 ownerX, uint256 ownerY, uint256 salt, uint32 entityId)
+    /// @return The create2 salt used to deploy
+    function getSaltWebAuthn(uint256 ownerX, uint256 ownerY, uint256 salt, uint32 entityId)
         public
         pure
         returns (bytes32)
