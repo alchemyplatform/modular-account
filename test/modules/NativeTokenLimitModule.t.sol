@@ -162,6 +162,26 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         vm.stopPrank();
     }
 
+    function test_userOp_invalidPaymaster() public withSMATest {
+        assertEq(module.limits(0, address(account1)), 10 ether);
+        PackedUserOperation[] memory uos = new PackedUserOperation[](1);
+        uos[0] = _getPackedUO(200_000, 200_000, 200_000, 1, _getExecuteWithValue(5 ether));
+        uos[0].paymasterAndData = new bytes(52);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IEntryPoint.FailedOpWithRevert.selector,
+                0,
+                "AA23 reverted",
+                abi.encodeWithSelector(
+                    ExecutionLib.PreUserOpValidationHookReverted.selector,
+                    ModuleEntityLib.pack(address(module), entityId),
+                    abi.encodeWithSelector(NativeTokenLimitModule.InvalidPaymaster.selector)
+                )
+            )
+        );
+        entryPoint.handleOps(uos, beneficiary);
+    }
+
     function test_userOp_executeBatchLimit() public withSMATest {
         Call[] memory calls = new Call[](3);
         calls[0] = Call({target: recipient, value: 1, data: ""});

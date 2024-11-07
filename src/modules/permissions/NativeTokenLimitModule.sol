@@ -46,6 +46,7 @@ contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidation
     mapping(address paymaster => mapping(address account => bool allowed)) public specialPaymasters;
 
     error ExceededNativeTokenLimit();
+    error InvalidPaymaster();
 
     /// @notice Update the native token limit for a specific entity
     /// @param entityId The entity id
@@ -68,27 +69,17 @@ contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidation
         returns (uint256)
     {
         // Decrease limit only if no paymaster is used, or if its a special paymaster
-        if (
-            userOp.paymasterAndData.length == 0
-                || specialPaymasters[address(bytes20(userOp.paymasterAndData[:20]))][msg.sender]
-        ) {
-            uint256 vgl = UserOperationLib.unpackVerificationGasLimit(userOp);
-            uint256 cgl = UserOperationLib.unpackCallGasLimit(userOp);
-            uint256 pvgl;
-            uint256 ppogl;
-            if (userOp.paymasterAndData.length > 0) {
-                // Can skip the EP length check here since it would have reverted there if it was invalid
-                (, pvgl, ppogl) = UserOperationLib.unpackPaymasterStaticFields(userOp.paymasterAndData);
+        if (userOp.paymasterAndData.length > 0) {
+            address paymaster = address(bytes20(userOp.paymasterAndData[:20]));
+            if (paymaster == address(0)) {
+                revert InvalidPaymaster();
+            } else if (specialPaymasters[paymaster][msg.sender]) {
+                _decreaseLimit(entityId, userOp);
             }
-            uint256 totalGas = userOp.preVerificationGas + vgl + cgl + pvgl + ppogl;
-            uint256 usage = totalGas * UserOperationLib.unpackMaxFeePerGas(userOp);
-
-            uint256 limit = limits[entityId][msg.sender];
-            if (usage > limit) {
-                revert ExceededNativeTokenLimit();
-            }
-            limits[entityId][msg.sender] = limit - usage;
+        } else {
+            _decreaseLimit(entityId, userOp);
         }
+
         return 0;
     }
 
@@ -162,5 +153,24 @@ contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidation
     /// @inheritdoc ModuleBase
     function supportsInterface(bytes4 interfaceId) public view override(ModuleBase, IERC165) returns (bool) {
         return interfaceId == type(IExecutionHookModule).interfaceId || super.supportsInterface(interfaceId);
+    }
+
+    function _decreaseLimit(uint32 entityId, PackedUserOperation calldata userOp) internal {
+        uint256 vgl = UserOperationLib.unpackVerificationGasLimit(userOp);
+        uint256 cgl = UserOperationLib.unpackCallGasLimit(userOp);
+        uint256 pvgl;
+        uint256 ppogl;
+        if (userOp.paymasterAndData.length > 0) {
+            // Can skip the EP length check here since it would have reverted there if it was invalid
+            (, pvgl, ppogl) = UserOperationLib.unpackPaymasterStaticFields(userOp.paymasterAndData);
+        }
+        uint256 totalGas = userOp.preVerificationGas + vgl + cgl + pvgl + ppogl;
+        uint256 usage = totalGas * UserOperationLib.unpackMaxFeePerGas(userOp);
+
+        uint256 limit = limits[entityId][msg.sender];
+        if (usage > limit) {
+            revert ExceededNativeTokenLimit();
+        }
+        limits[entityId][msg.sender] = limit - usage;
     }
 }
