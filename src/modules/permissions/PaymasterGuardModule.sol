@@ -36,12 +36,16 @@ contract PaymasterGuardModule is ModuleBase, IValidationHookModule {
     mapping(uint32 entityId => mapping(address account => address paymaster)) public paymasters;
 
     error BadPaymasterSpecified();
+    error InvalidPaymaster();
 
     /// @inheritdoc IModule
     /// @param data should be encoded with the entityId of the validation and the paymaster address that guards the
     /// validation
     function onInstall(bytes calldata data) external override {
         (uint32 entityId, address paymaster) = abi.decode(data, (uint32, address));
+        if (paymaster == address(0)) {
+            revert InvalidPaymaster();
+        }
         paymasters[entityId][msg.sender] = paymaster;
     }
 
