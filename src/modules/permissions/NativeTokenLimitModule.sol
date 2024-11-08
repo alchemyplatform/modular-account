@@ -73,10 +73,12 @@ contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidation
             if (paymaster == address(0)) {
                 revert InvalidPaymaster();
             } else if (specialPaymasters[paymaster][msg.sender]) {
-                _decreaseLimit(entityId, userOp);
+                // Special paymaster specified, decrease limit
+                _decreaseLimit(entityId, userOp, true);
             }
         } else {
-            _decreaseLimit(entityId, userOp);
+            // No paymaster specified, decrease limit
+            _decreaseLimit(entityId, userOp, false);
         }
 
         return 0;
@@ -154,12 +156,12 @@ contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidation
         return interfaceId == type(IExecutionHookModule).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    function _decreaseLimit(uint32 entityId, PackedUserOperation calldata userOp) internal {
+    function _decreaseLimit(uint32 entityId, PackedUserOperation calldata userOp, bool hasPaymaster) internal {
         uint256 vgl = UserOperationLib.unpackVerificationGasLimit(userOp);
         uint256 cgl = UserOperationLib.unpackCallGasLimit(userOp);
         uint256 pvgl;
         uint256 ppogl;
-        if (userOp.paymasterAndData.length > 0) {
+        if (hasPaymaster) {
             // Can skip the EP length check here since it would have reverted there if it was invalid
             (, pvgl, ppogl) = UserOperationLib.unpackPaymasterStaticFields(userOp.paymasterAndData);
         }
