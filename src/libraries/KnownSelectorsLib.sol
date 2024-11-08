@@ -38,6 +38,7 @@ library KnownSelectorsLib {
             || selector == uint32(IValidationModule.validateRuntime.selector)
             || selector == uint32(IValidationModule.validateSignature.selector)
             || selector == uint32(IValidationHookModule.preUserOpValidationHook.selector)
-            || selector == uint32(IValidationHookModule.preRuntimeValidationHook.selector);
+            || selector == uint32(IValidationHookModule.preRuntimeValidationHook.selector)
+            || selector == uint32(IValidationHookModule.preSignatureValidationHook.selector);
     }
 }
