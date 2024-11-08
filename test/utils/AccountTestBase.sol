@@ -317,7 +317,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
 
             bytes32 replaySafeHash;
             if (_isSMATest) {
-                replaySafeHash = _getSMAReplaySafeHash(address(account), digest);
+                replaySafeHash = digest;
             } else {
                 replaySafeHash =
                     _getModuleReplaySafeHash(address(account), address(singleSignerValidationModule), digest);

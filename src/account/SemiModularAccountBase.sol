@@ -112,7 +112,13 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         if (sigValidation.eq(FALLBACK_VALIDATION)) {
             address fallbackSigner = _getFallbackSigner();
 
-            if (_checkSignature(fallbackSigner, _replaySafeHash(hash), signature)) {
+            // If called during validateUserOp, this implies that we're doing a deferred validation installation.
+            // In this case, as the hash is already replay-safe, we don't need to wrap it.
+            if (msg.sig != this.validateUserOp.selector) {
+                hash = _replaySafeHash(hash);
+            }
+
+            if (_checkSignature(fallbackSigner, hash, signature)) {
                 return _1271_MAGIC_VALUE;
             }
             return _1271_INVALID;
