@@ -36,6 +36,7 @@ contract NativeFunctionDelegate {
         || selector == uint32(IModularAccountView.getExecutionData.selector)
             || selector == uint32(IModularAccountView.getValidationData.selector)
         // check against ModularAccount methods
-        || selector == uint32(ModularAccountBase.performCreate.selector);
+        || selector == uint32(ModularAccountBase.performCreate.selector)
+            || selector == uint32(ModularAccountBase.invalidateDeferredValidationInstallNonce.selector);
     }
 }
