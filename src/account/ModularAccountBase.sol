@@ -1061,7 +1061,7 @@ abstract contract ModularAccountBase is
             mstore(ptr, nonce)
             ptr := add(ptr, 0x20)
             // Clear the upper bits of the deadline, in case the caller didn't.
-            mstore(ptr, and(deadline, 0xffffffff))
+            mstore(ptr, and(deadline, 0xffffffffffff))
             ptr := add(ptr, 0x20)
             // Clear the lower bits of the validation function, in case the caller didn't.
             mstore(
