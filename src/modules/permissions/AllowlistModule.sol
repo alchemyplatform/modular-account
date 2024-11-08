@@ -203,7 +203,9 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
                     setSelectorAllowlist(entityId, address(0), input.selectors[j], true);
                 }
             } else {
-                setAddressAllowlist(entityId, input.target, true, input.hasSelectorAllowlist);
+                setAddressAllowlist(
+                    entityId, input.target, true, input.hasSelectorAllowlist, input.hasERC20SpendLimit
+                );
                 updateLimits(entityId, input.target, input.hasERC20SpendLimit, input.erc20SpendLimit);
 
                 if (input.hasSelectorAllowlist) {
@@ -228,7 +230,7 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
                     setSelectorAllowlist(entityId, input.target, input.selectors[j], false);
                 }
             } else {
-                setAddressAllowlist(entityId, input.target, false, false);
+                setAddressAllowlist(entityId, input.target, false, false, false);
                 updateLimits(entityId, input.target, false, 0);
 
                 if (input.hasSelectorAllowlist) {
@@ -246,11 +248,17 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
     /// @param target The target address.
     /// @param allowed The new allowlist status, indicating whether or not the target address can be called.
     /// @param hasSelectorAllowlist Whether or not the target address has a selector allowlist. If true, the
+    /// @param hasERC20SpendLimit Whether or not the target address has a ERC20 spend limit.
     /// allowlist checking will validate that the selector is on the selector allowlist.
-    function setAddressAllowlist(uint32 entityId, address target, bool allowed, bool hasSelectorAllowlist)
-        public
-    {
-        AddressAllowlistEntry memory entry = AddressAllowlistEntry(allowed, hasSelectorAllowlist, false);
+    function setAddressAllowlist(
+        uint32 entityId,
+        address target,
+        bool allowed,
+        bool hasSelectorAllowlist,
+        bool hasERC20SpendLimit
+    ) public {
+        AddressAllowlistEntry memory entry =
+            AddressAllowlistEntry(allowed, hasSelectorAllowlist, hasERC20SpendLimit);
         addressAllowlist[entityId][target][msg.sender] = entry;
         emit AddressAllowlistUpdated(entityId, msg.sender, target, entry);
     }
