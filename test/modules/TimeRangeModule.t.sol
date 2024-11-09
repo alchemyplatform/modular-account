@@ -105,9 +105,25 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         assertEq(retrievedValidAfter, 0);
     }
 
-    function testFuzz_timeRangeModule_userOp(uint48 _validUntil, uint48 _validAfter) public {
-        validUntil = _validUntil;
-        validAfter = _validAfter;
+    function test_timeRangeModule_setBadTime() public withSMATest {
+        validUntil = 1000;
+        validAfter = 100;
+
+        _customValidationSetup();
+
+        vm.startPrank(address(account1));
+        vm.expectRevert(TimeRangeModule.TimeRangeNotValid.selector);
+        timeRangeModule.setTimeRange(TEST_DEFAULT_VALIDATION_ENTITY_ID, validUntil, validUntil);
+
+        vm.expectRevert(TimeRangeModule.TimeRangeNotValid.selector);
+        timeRangeModule.setTimeRange(TEST_DEFAULT_VALIDATION_ENTITY_ID, validUntil, validUntil + 1);
+        vm.stopPrank();
+    }
+
+    function testFuzz_timeRangeModule_userOp(uint48 time1, uint48 time2) public {
+        vm.assume(time1 != time2);
+        validUntil = time1 > time2 ? time1 : time2;
+        validAfter = time1 < time2 ? time1 : time2;
 
         _customValidationSetup();
 
@@ -140,9 +156,10 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         );
     }
 
-    function testFuzz_timeRangeModule_userOp_fail(uint48 _validUntil, uint48 _validAfter) public {
-        validUntil = _validUntil;
-        validAfter = _validAfter;
+    function testFuzz_timeRangeModule_userOp_fail(uint48 time1, uint48 time2) public {
+        vm.assume(time1 != time2);
+        validUntil = time1 > time2 ? time1 : time2;
+        validAfter = time1 < time2 ? time1 : time2;
 
         _customValidationSetup();
 

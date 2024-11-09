@@ -112,6 +112,9 @@ contract TimeRangeModule is IValidationHookModule, ModuleBase {
     /// @param validUntil The timestamp until which the time range is valid, inclusive.
     /// @param validAfter The timestamp after which the time range is valid, inclusive.
     function setTimeRange(uint32 entityId, uint48 validUntil, uint48 validAfter) public {
+        if (validUntil <= validAfter) {
+            revert TimeRangeNotValid();
+        }
         timeRanges[entityId][msg.sender] = TimeRange(validUntil, validAfter);
     }
 
