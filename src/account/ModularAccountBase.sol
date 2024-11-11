@@ -104,6 +104,7 @@ abstract contract ModularAccountBase is
     error UnexpectedAggregator(ModuleEntity validationFunction, address aggregator);
     error UnrecognizedFunction(bytes4 selector);
     error ValidationFunctionMissing(bytes4 selector);
+    error OuterValidationHasValidationHooks();
 
     // Wraps execution of a native function with runtime validation and hooks
     // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution,
@@ -415,11 +416,18 @@ abstract contract ModularAccountBase is
         if (hasDeferredAction) {
             // Use outer validation to validate the UO, and the inner validation as 1271 validation for the
             // deferred action.
+            // Because this bypasses UO validation hooks, we require that the validation used does not include any
+            // validation hooks.
+            if (!getAccountStorage().validationStorage[validationFunction].validationHooks.isEmpty()) {
+                revert OuterValidationHasValidationHooks();
+            }
+
+            // Use outer validation as a 1271 validation, then use the inner validation to validate the UO.
 
             // Get the length of the deferred action data.
             uint256 encodedDataLength = uint32(bytes4(userOp.signature[25:29]));
 
-            // Load the pointer to the abi-encoded data.
+            // Load the pointer to the encoded data.
             bytes calldata encodedData = userOp.signature[29:29 + encodedDataLength];
 
             // Get the deferred action signature length.
@@ -443,8 +451,15 @@ abstract contract ModularAccountBase is
             // Update the validation data with the deadline.
             validationData = uint256(deadline) << 160;
 
+            // Run the validation associated execution hooks, this is extracted in a function for stack management.
+            DensePostHookData postHookData =
+                _runValidationAssociatedExecHooks(validationFunction, encodedData[63:]);
+
             // Perform the deferred action's self call on the account.
             ExecutionLib.callBubbleOnRevertTransient(address(this), 0, encodedData[63:]);
+
+            // Do the cached post hooks
+            ExecutionLib.doCachedPostHooks(postHookData);
         } else {
             userOpSignature = userOp.signature[25:];
         }
@@ -506,7 +521,7 @@ abstract contract ModularAccountBase is
         emit DeferredActionNonceInvalidated(nonce);
 
         // Compute the typed data hash to verify the signature over
-        bytes32 typedDataHash = _computeDeferredValidationInstallTypedDataHash(
+        bytes32 typedDataHash = _computeDeferredActionTypedDataHash(
             encodedData[63:], // The encoded call without the nonce, deadline, and validation function
             nonce,
             deadline,
@@ -709,6 +724,21 @@ abstract contract ModularAccountBase is
         ExecutionLib.convertToValidationBuffer(callBuffer);
 
         return ExecutionLib.invokeUserOpCallBuffer(callBuffer, userOpValidationFunction, signatureSegment);
+    }
+
+    function _runValidationAssociatedExecHooks(ModuleEntity validationFunction, bytes calldata callData)
+        internal
+        returns (DensePostHookData)
+    {
+        HookConfig[] memory validationAssocExecHooks =
+            MemManagementLib.loadExecHooks(getAccountStorage().validationStorage[validationFunction]);
+
+        PHCallBuffer callBuffer;
+        if (validationAssocExecHooks.length > 0) {
+            callBuffer = ExecutionLib.allocatePreExecHookCallBuffer(callData);
+        }
+
+        return ExecutionLib.doPreHooks(validationAssocExecHooks, callBuffer);
     }
 
     function _execRuntimeValidation(
@@ -1023,7 +1053,7 @@ abstract contract ModularAccountBase is
         return getAccountStorage().validationStorage[validationFunction].selectors.contains(toSetValue(selector));
     }
 
-    function _computeDeferredValidationInstallTypedDataHash(
+    function _computeDeferredActionTypedDataHash(
         bytes calldata selfCall,
         uint256 nonce,
         uint48 deadline,

@@ -22,6 +22,7 @@ import {
     ModuleEntity,
     ValidationConfig
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
@@ -284,6 +285,59 @@ contract DeferredValidationTest is AccountTestBase {
         bytes memory expectedRevertData =
             abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error");
 
+        _sendOp(userOp, expectedRevertData);
+    }
+
+    function test_fail_deferredValidation_withValidationHooks() external withSMATest {
+        // Install a validation hook to the outer validation.
+        bytes[] memory hooks = new bytes[](1);
+        hooks[0] = abi.encodePacked(
+            HookConfigLib.packValidationHook({_module: address(12), _entityId: 0}),
+            "" // onInstall data
+        );
+        vm.prank(address(entryPoint));
+        account1.installValidation(
+            ValidationConfigLib.pack(_signerValidation, true, true, true), new bytes4[](0), "", hooks
+        );
+
+        uint256 nonce = entryPoint.getNonce(address(account1), 0);
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: nonce,
+            initCode: hex"",
+            callData: _encodedCall,
+            accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
+            preVerificationGas: 0,
+            gasFees: _encodeGas(1, 1),
+            paymasterAndData: hex"",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) =
+            vm.sign(_newSignerKey, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+
+        uint256 deferredInstallNonce = 0;
+        uint48 deferredInstallDeadline = 0;
+
+        userOp.signature = _buildFullDeferredInstallSig(
+            deferredInstallNonce,
+            deferredInstallDeadline,
+            _deferredValidationInstallCall,
+            _newUOValidation,
+            account1,
+            owner1Key,
+            uoSig
+        );
+
+        bytes memory expectedRevertData = abi.encodeWithSelector(
+            IEntryPoint.FailedOpWithRevert.selector,
+            0,
+            "AA23 reverted",
+            abi.encodeWithSelector(ModularAccountBase.OuterValidationHasValidationHooks.selector)
+        );
         _sendOp(userOp, expectedRevertData);
     }
 
