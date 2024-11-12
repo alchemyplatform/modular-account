@@ -109,7 +109,7 @@ contract HookOrderingTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_V, 0),
             initCode: hex"",
             callData: abi.encodePacked(
                 account1.executeUserOp.selector, abi.encodeCall(HookOrderCheckerModule.foo, (17))
@@ -118,7 +118,7 @@ contract HookOrderingTest is AccountTestBase {
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
             paymasterAndData: hex"",
-            signature: _encodeSignature(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_VALIDATION, hex"")
+            signature: _encodeSignature(hex"")
         });
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -134,14 +134,14 @@ contract HookOrderingTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_V, 0),
             initCode: hex"",
             callData: abi.encodeCall(HookOrderCheckerModule.foo, (17)),
             accountGasLimits: _encodeGas(1_000_000, 1_000_000),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
             paymasterAndData: hex"",
-            signature: _encodeSignature(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_VALIDATION, hex"")
+            signature: _encodeSignature(hex"")
         });
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -157,7 +157,7 @@ contract HookOrderingTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_V, 0),
             initCode: hex"",
             callData: abi.encodePacked(
                 account1.executeUserOp.selector, abi.encodeCall(HookOrderCheckerModule.foo, (17))
@@ -166,7 +166,7 @@ contract HookOrderingTest is AccountTestBase {
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
             paymasterAndData: hex"",
-            signature: _encodeSignature(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_VALIDATION, hex"")
+            signature: _encodeSignature(hex"")
         });
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -222,7 +222,7 @@ contract HookOrderingTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_V, 0),
             initCode: hex"",
             callData: abi.encodePacked(
                 account1.executeUserOp.selector,
@@ -235,7 +235,7 @@ contract HookOrderingTest is AccountTestBase {
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
             paymasterAndData: hex"",
-            signature: _encodeSignature(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_VALIDATION, hex"")
+            signature: _encodeSignature(hex"")
         });
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -251,7 +251,7 @@ contract HookOrderingTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_V, 0),
             initCode: hex"",
             callData: abi.encodeCall(
                 account1.execute, (address(hookOrderChecker), 0 wei, abi.encodeCall(HookOrderCheckerModule.foo, (17)))
@@ -260,7 +260,7 @@ contract HookOrderingTest is AccountTestBase {
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
             paymasterAndData: hex"",
-            signature: _encodeSignature(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_VALIDATION, hex"")
+            signature: _encodeSignature(hex"")
         });
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -276,7 +276,7 @@ contract HookOrderingTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_V, 0),
             initCode: hex"",
             callData: abi.encodePacked(
                 account1.executeUserOp.selector,
@@ -289,7 +289,7 @@ contract HookOrderingTest is AccountTestBase {
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
             paymasterAndData: hex"",
-            signature: _encodeSignature(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_VALIDATION, hex"")
+            signature: _encodeSignature(hex"")
         });
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);

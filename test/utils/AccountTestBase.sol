@@ -166,11 +166,9 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         bytes memory callData,
         bytes memory expectedRevertData
     ) internal {
-        uint256 nonce = entryPoint.getNonce(address(account), 0);
-
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: account,
-            nonce: nonce,
+            nonce: _encodeNextNonce(account, _signerValidation, true),
             initCode: hex"",
             callData: callData,
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -183,8 +181,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerKey, userOpHash.toEthSignedMessageHash());
 
-        userOp.signature =
-            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
@@ -295,6 +292,25 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         _signerValidation = FALLBACK_VALIDATION;
     }
 
+    function _encodeNextNonce(
+        address account,
+        ModuleEntity validationFunction,
+        bool isGlobal,
+        bool hasDeferredAction
+    ) internal view returns (uint256) {
+        uint256 validationEncodedNonce = _encodeNonce(validationFunction, isGlobal, hasDeferredAction, uint64(0));
+
+        return entryPoint.getNonce(account, uint192(validationEncodedNonce >> 64));
+    }
+
+    function _encodeNextNonce(address account, ModuleEntity validationFunction, bool isGlobal)
+        internal
+        view
+        returns (uint256)
+    {
+        return _encodeNextNonce(account, validationFunction, isGlobal, false);
+    }
+
     // Uses state vars:
     // - _signerValidation
     // - ecdsaValidation, when not SMA
@@ -338,13 +354,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
             );
         }
 
-        return _encodeDeferredInstallUOSignature(
-            uoValidationFunction.moduleEntity(),
-            (uoValidationFunction.isGlobal()) ? GLOBAL_VALIDATION : SELECTOR_ASSOCIATED_VALIDATION,
-            deferredValidationDatas,
-            deferredValidationSig,
-            uoSig
-        );
+        return _encodeDeferredInstallUOSignature(deferredValidationDatas, deferredValidationSig, uoSig);
     }
 
     // helper function to compress 2 gas values into a single bytes32

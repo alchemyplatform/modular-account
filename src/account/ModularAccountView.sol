@@ -16,6 +16,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeab
 import {NativeFunctionDelegate} from "../helpers/NativeFunctionDelegate.sol";
 import {IModularAccountBase} from "../interfaces/IModularAccountBase.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
+import {ValidationLocatorLib} from "../libraries/ValidationLocatorLib.sol";
 import {ExecutionStorage, ValidationStorage, getAccountStorage} from "./AccountStorage.sol";
 
 /// @title Modular Account View
@@ -59,7 +60,8 @@ abstract contract ModularAccountView is IModularAccountView {
         override
         returns (ValidationDataView memory data)
     {
-        ValidationStorage storage validationStorage = getAccountStorage().validationStorage[validationFunction];
+        ValidationStorage storage validationStorage =
+            getAccountStorage().validationStorage[ValidationLocatorLib.moduleEntityToLookup(validationFunction)];
         data.isGlobal = validationStorage.isGlobal;
         data.isSignatureValidation = validationStorage.isSignatureValidation;
         data.isUserOpValidation = validationStorage.isUserOpValidation;

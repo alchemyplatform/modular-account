@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
-
 import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {ModuleEntity, ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {
     ValidationConfig,
     ValidationConfigLib
@@ -81,7 +80,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(signerValidation, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodeCall(ModularAccountBase.execute, (recipient, 0.1 ether, "")),
             // don't over-estimate by a lot here, otherwise a fee is assessed.
@@ -94,8 +93,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        userOp.signature =
-            _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint256 gasUsed = _userOpBenchmark(userOp);
 
@@ -138,7 +136,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(signerValidation, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodeCall(
                 ModularAccountBase.execute,
@@ -154,8 +152,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        userOp.signature =
-            _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint256 gasUsed = _userOpBenchmark(userOp);
 
@@ -214,7 +211,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(signerValidation, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodeCall(ModularAccountBase.executeBatch, (calls)),
             // don't over-estimate by a lot here, otherwise a fee is assessed.
@@ -227,8 +224,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        userOp.signature =
-            _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint256 gasUsed = _userOpBenchmark(userOp);
 
@@ -244,12 +240,14 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         vm.deal(address(account1), 1 ether);
 
         SingleSignerValidationModule newValidationModule = _deploySingleSignerValidationModule();
-        uint32 newEntityId = 0;
+        uint32 newEntityId = 1;
         (address owner2, uint256 owner2Key) = makeAddrAndKey("owner2");
+
+        ModuleEntity newUOValidationEntity = ModuleEntityLib.pack(address(newValidationModule), newEntityId);
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonceDefAction(newUOValidationEntity, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodeCall(ModularAccountBase.execute, (recipient, 0.1 ether, "")),
             // don't over-estimate by a lot here, otherwise a fee is assessed.
@@ -286,8 +284,6 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         );
 
         userOp.signature = _encodeDeferredInstallUOSignature(
-            ValidationConfigLib.moduleEntity(newUOValidation),
-            GLOBAL_VALIDATION,
             _packDeferredInstallData(
                 deferredInstallNonce,
                 deferredInstallDeadline,
@@ -329,7 +325,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(signerValidation, GLOBAL_V, 0),
             initCode: "",
             callData: _getInstallDataSessionKeyCase1(),
             // don't over-estimate by a lot here, otherwise a fee is assessed.
@@ -342,8 +338,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        userOp.signature =
-            _encodeSignature(signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint256 gasUsed = _userOpBenchmark(userOp);
 
@@ -392,7 +387,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(sessionKeyValidation, SELECTOR_ASSOCIATED_V, 0),
             initCode: "",
             callData: abi.encodePacked(
                 ModularAccountBase.executeUserOp.selector,
@@ -411,9 +406,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) =
             vm.sign(sessionSigner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        userOp.signature = _encodeSignature(
-            sessionKeyValidation, SELECTOR_ASSOCIATED_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
-        );
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint256 gasUsed = _userOpBenchmark(userOp);
 
@@ -466,7 +459,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(sessionKeyValidation, SELECTOR_ASSOCIATED_V, 0),
             initCode: "",
             callData: abi.encodePacked(
                 ModularAccountBase.executeUserOp.selector,
@@ -486,9 +479,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) =
             vm.sign(sessionSigner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        userOp.signature = _encodeSignature(
-            sessionKeyValidation, SELECTOR_ASSOCIATED_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
-        );
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint256 gasUsed = _userOpBenchmark(userOp);
 

@@ -32,7 +32,8 @@ contract RTCallBufferTest is AccountTestBase {
     // installed entity id is their index
     MockModule[] public validationHooks;
 
-    // installed with entity id 0
+    uint32 public constant NEW_VALIDATION_ENTITY_ID = 1;
+    // installed with entity id 1
     MockModule public validationModule;
 
     ModuleEntity internal _validationFunction;
@@ -66,7 +67,14 @@ contract RTCallBufferTest is AccountTestBase {
         emit ReceivedCall(
             abi.encodeCall(
                 IValidationModule.validateRuntime,
-                (address(account1), 0, address(entryPoint), 0 wei, callData, "abcdefghijklmnopqrstuvwxyz")
+                (
+                    address(account1),
+                    NEW_VALIDATION_ENTITY_ID,
+                    address(entryPoint),
+                    0 wei,
+                    callData,
+                    "abcdefghijklmnopqrstuvwxyz"
+                )
             ),
             0
         );
@@ -108,7 +116,7 @@ contract RTCallBufferTest is AccountTestBase {
         emit ReceivedCall(
             abi.encodeCall(
                 IValidationModule.validateRuntime,
-                (address(account1), uint32(0), address(entryPoint), 0 wei, callData, validationData)
+                (address(account1), NEW_VALIDATION_ENTITY_ID, address(entryPoint), 0 wei, callData, validationData)
             ),
             0
         );
@@ -147,7 +155,7 @@ contract RTCallBufferTest is AccountTestBase {
         account1.installValidation(
             ValidationConfigLib.pack({
                 _module: address(validationModule),
-                _entityId: 0,
+                _entityId: NEW_VALIDATION_ENTITY_ID,
                 _isGlobal: true,
                 _isSignatureValidation: true,
                 _isUserOpValidation: true
@@ -157,7 +165,7 @@ contract RTCallBufferTest is AccountTestBase {
             hooks
         );
 
-        _validationFunction = ModuleEntityLib.pack(address(validationModule), 0);
+        _validationFunction = ModuleEntityLib.pack(address(validationModule), NEW_VALIDATION_ENTITY_ID);
 
         bytes memory callData = abi.encodeCall(account1.execute, (beneficiary, 0 wei, ""));
 
@@ -187,7 +195,7 @@ contract RTCallBufferTest is AccountTestBase {
         emit ReceivedCall(
             abi.encodeCall(
                 IValidationModule.validateRuntime,
-                (address(account1), uint32(0), address(entryPoint), 0 wei, callData, validationData)
+                (address(account1), NEW_VALIDATION_ENTITY_ID, address(entryPoint), 0 wei, callData, validationData)
             ),
             0
         );
@@ -220,7 +228,7 @@ contract RTCallBufferTest is AccountTestBase {
         account1.installValidation(
             ValidationConfigLib.pack({
                 _module: address(validationModule),
-                _entityId: 0,
+                _entityId: NEW_VALIDATION_ENTITY_ID,
                 _isGlobal: true,
                 _isSignatureValidation: true,
                 _isUserOpValidation: true
@@ -230,6 +238,6 @@ contract RTCallBufferTest is AccountTestBase {
             hooks
         );
 
-        _validationFunction = ModuleEntityLib.pack(address(validationModule), 0);
+        _validationFunction = ModuleEntityLib.pack(address(validationModule), NEW_VALIDATION_ENTITY_ID);
     }
 }

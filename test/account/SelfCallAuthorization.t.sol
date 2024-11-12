@@ -333,10 +333,9 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         view
         returns (PackedUserOperation memory)
     {
-        uint256 nonce = entryPoint.getNonce(address(account1), 0);
         return PackedUserOperation({
             sender: address(account1),
-            nonce: nonce,
+            nonce: _encodeNextNonce(address(account1), comprehensiveModuleValidation, false),
             initCode: hex"",
             callData: callData,
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -344,8 +343,6 @@ contract SelfCallAuthorizationTest is AccountTestBase {
             gasFees: _encodeGas(1, 1),
             paymasterAndData: hex"",
             signature: _encodeSignature(
-                comprehensiveModuleValidation,
-                SELECTOR_ASSOCIATED_VALIDATION,
                 // Comprehensive module's validation function doesn't actually check anything, so we don't need to
                 // sign anything.
                 ""

@@ -44,7 +44,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
 
     modifier randomizedValidationType(bool selectorValidation) {
         if (selectorValidation) {
-            _installValidationSelector();
+            _installValidationToSelector();
         } else {
             _installValidationGlobal();
         }
@@ -81,7 +81,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
     }
 
     function test_fail_directCallModuleCallOtherSelector() external withSMATest {
-        _installValidationSelector();
+        _installValidationToSelector();
 
         Call[] memory calls = new Call[](0);
 
@@ -174,7 +174,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
     /*                                  Internals                                 */
     /* -------------------------------------------------------------------------- */
 
-    function _installValidationSelector() internal {
+    function _installValidationToSelector() internal {
         bytes4[] memory selectors = new bytes4[](1);
         selectors[0] = IModularAccount.execute.selector;
 

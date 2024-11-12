@@ -104,11 +104,9 @@ contract SMASpecificTest is AccountTestBase {
     }
 
     function _runUserOpWithFallbackValidation(bytes memory encodedCall) internal {
-        uint256 nonce = entryPoint.getNonce(address(account1), 0);
-
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: nonce,
+            nonce: _encodeNextNonce(address(account1), FALLBACK_VALIDATION, true),
             initCode: hex"",
             callData: encodedCall,
             accountGasLimits: _encodeGas(type(uint24).max, type(uint24).max),
@@ -121,8 +119,7 @@ contract SMASpecificTest is AccountTestBase {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
 
-        userOp.signature =
-            _encodeSignature(FALLBACK_VALIDATION, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;

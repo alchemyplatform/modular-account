@@ -123,6 +123,7 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
     function test_uoValidation() external withSMATest {
         PackedUserOperation memory uo;
         uo.sender = account;
+        uo.nonce = _encodeNextNonce(account, ModuleEntityLib.pack(address(module), entityId), true);
         uo.callData = abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, new bytes(0)));
         bytes32 uoHash = entryPoint.getUserOpHash(uo);
         uo.signature = _getUOSigForChallenge(uoHash.toEthSignedMessageHash(), 0, 0);
@@ -134,6 +135,7 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
     function testFuzz_uoValidation_shouldFail(uint256 sigR, uint256 sigS) external {
         PackedUserOperation memory uo;
         uo.sender = account;
+        uo.nonce = _encodeNextNonce(account, ModuleEntityLib.pack(address(module), entityId), true);
         uo.callData = abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, new bytes(0)));
         bytes32 uoHash = entryPoint.getUserOpHash(uo);
 
@@ -162,8 +164,6 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
         s = bytes32(Utils.normalizeS(uint256(s)));
 
         return _encodeSignature(
-            ModuleEntityLib.pack(address(module), entityId),
-            uint8(1),
             abi.encode(
                 WebAuthn.WebAuthnAuth({
                     authenticatorData: webAuthn.authenticatorData,

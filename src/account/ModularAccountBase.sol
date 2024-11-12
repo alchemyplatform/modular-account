@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {getEmptyCalldataSlice} from "@erc6900/reference-implementation/helpers/EmptyCalldataSlice.sol";
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {
@@ -39,8 +38,11 @@ import {
 } from "../libraries/ExecutionLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib, MemSnapshot} from "../libraries/MemManagementLib.sol";
+import {
+    ValidationLocator, ValidationLocatorLib, ValidationLookupKey
+} from "../libraries/ValidationLocatorLib.sol";
 import {AccountBase} from "./AccountBase.sol";
-import {AccountStorage, getAccountStorage, toSetValue} from "./AccountStorage.sol";
+import {AccountStorage, ValidationStorage, getAccountStorage, toSetValue} from "./AccountStorage.sol";
 import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
@@ -68,6 +70,8 @@ abstract contract ModularAccountBase is
     using ValidationConfigLib for ValidationConfig;
     using HookConfigLib for HookConfig;
     using SparseCalldataSegmentLib for bytes;
+    // temp, remove after updating validation selection
+    using ValidationLocatorLib for ModuleEntity;
 
     enum ValidationCheckingType {
         GLOBAL,
@@ -79,9 +83,9 @@ abstract contract ModularAccountBase is
     bytes32 internal constant _DOMAIN_SEPARATOR_TYPEHASH =
         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
 
-    // keccak256("DeferredAction(uint256 nonce,uint48 deadline,bytes25 validationFunction,bytes call)")
+    // keccak256("DeferredAction(uint256 nonce,uint48 deadline,uint168 validationLocator,bytes call)")
     bytes32 internal constant _DEFERRED_ACTION_TYPEHASH =
-        0xa17377cb6cfc0b2dd5d19181605c29f5d15050cfef9781c26049921c79e525d2;
+        0xa0a7682d80b18373e0ec8549850bc960f46562e16ae4ddee86ab9a3cc3d3a07c;
 
     // As per the EIP-165 spec, no interface should ever match 0xffffffff
     bytes4 internal constant _INTERFACE_ID_INVALID = 0xffffffff;
@@ -89,9 +93,6 @@ abstract contract ModularAccountBase is
     // bytes4(keccak256("isValidSignature(bytes32,bytes)"))
     bytes4 internal constant _1271_MAGIC_VALUE = 0x1626ba7e;
     bytes4 internal constant _1271_INVALID = 0xffffffff;
-
-    uint8 internal constant _IS_GLOBAL_VALIDATION_BIT = 1;
-    uint8 internal constant _HAS_DEFERRED_ACTION_BIT = 2;
 
     address internal immutable _EXECUTION_INSTALL_DELEGATE;
 
@@ -190,10 +191,10 @@ abstract contract ModularAccountBase is
     function executeUserOp(PackedUserOperation calldata userOp, bytes32) external override {
         _requireFromEntryPoint();
 
-        ModuleEntity userOpValidationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
+        ValidationLocator locator = ValidationLocatorLib.loadFromNonce(userOp.nonce);
 
         HookConfig[] memory validationAssocExecHooks =
-            MemManagementLib.loadExecHooks(getAccountStorage().validationStorage[userOpValidationFunction]);
+            MemManagementLib.loadExecHooks(getAccountStorage().validationStorage[locator.lookupKey()]);
 
         PHCallBuffer callBuffer;
         if (validationAssocExecHooks.length > 0) {
@@ -259,22 +260,23 @@ abstract contract ModularAccountBase is
         payable
         returns (bytes memory)
     {
-        // Revert if the provided `authorization` is less than 24 bytes long, rather than right-padding.
-        ModuleEntity runtimeValidationFunction = ModuleEntity.wrap(bytes24(authorization[:24]));
+        (ValidationLocator locator, bytes calldata authorizationData) =
+            ValidationLocatorLib.loadFromSignature(authorization);
+
+        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[locator.lookupKey()];
 
         // Check if the runtime validation function is allowed to be called
         _checkIfValidationAppliesCallData(
             data,
-            runtimeValidationFunction,
+            locator.lookupKey(),
             // Unfortunately, have to avoid declaring a `bool isGlobalValidation` to avoid stack too deep issues.
-            uint8(authorization[24]) == 1 ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
+            locator.isGlobal() ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
-        RTCallBuffer rtCallBuffer = _doRuntimeValidation(runtimeValidationFunction, data, authorization[25:]);
+        RTCallBuffer rtCallBuffer = _doRuntimeValidation(locator, data, authorizationData);
 
         // If runtime validation passes, run exec hooks associated with the validator
-        HookConfig[] memory validationAssocExecHooks =
-            MemManagementLib.loadExecHooks(getAccountStorage().validationStorage[runtimeValidationFunction]);
+        HookConfig[] memory validationAssocExecHooks = MemManagementLib.loadExecHooks(_validationStorage);
 
         PHCallBuffer phCallBuffer;
         if (validationAssocExecHooks.length > 0) {
@@ -350,9 +352,10 @@ abstract contract ModularAccountBase is
 
     /// @inheritdoc IERC1271
     function isValidSignature(bytes32 hash, bytes calldata signature) external view override returns (bytes4) {
-        ModuleEntity sigValidation = ModuleEntity.wrap(bytes24(signature));
-        signature = signature[24:];
-        return _isValidSignature(sigValidation, hash, signature);
+        (ValidationLocator locator, bytes calldata signatureRemainder) =
+            ValidationLocatorLib.loadFromSignature(signature);
+
+        return _isValidSignature(locator, hash, signatureRemainder);
     }
 
     /// @inheritdoc IERC165
@@ -398,85 +401,73 @@ abstract contract ModularAccountBase is
         override
         returns (uint256 validationData)
     {
-        // Revert if the provided `authorization` less than 24 bytes long, rather than right-padding.
-        ModuleEntity validationFunction = ModuleEntity.wrap(bytes24(userOp.signature[:24]));
+        ValidationLocator locator = ValidationLocatorLib.loadFromNonce(userOp.nonce);
 
-        // Decode the 25th byte into an 8-bit bitmap (6 bits of which remain unused).
-        uint8 validationFlags = uint8(userOp.signature[24]);
-        bool isGlobalValidation = validationFlags & _IS_GLOBAL_VALIDATION_BIT != 0;
-        bool hasDeferredAction = validationFlags & _HAS_DEFERRED_ACTION_BIT != 0;
-
-        // Assigned depending on whether the UO includes a deferred action or not.
-        bytes calldata userOpSignature;
+        bytes calldata userOpSignature = userOp.signature;
 
         /// The calldata layout is unique for deferred validation installation.
-        /// Byte indices are [inclusive, exclusive]
-        ///      [25:29] : uint32, encodedDatalength.
-        ///      [29:(29 + encodedDatalength)] : bytes, abi-encoded deferred action data.
-        ///      [(29 + encodedDataLength):(33 + encodedDataLength)] : uint32, deferredActionSigLength.
-        ///      [(33 + encodedDataLength):(33 + deferredActionSigLength + encodedDataLength)] : bytes,
+        /// Byte indices are [inclusive, exclusive] and relative to the start of the signature after the locator is
+        /// decoded and removed.
+        ///      [0:4] : uint32, encodedDatalength.
+        ///      [4:(4 + encodedDatalength)] : bytes, abi-encoded deferred action data.
+        ///      [(4 + encodedDataLength):(8 + encodedDataLength)] : uint32, deferredActionSigLength.
+        ///      [(8 + encodedDataLength):(8 + deferredActionSigLength + encodedDataLength)] : bytes,
         ///         deferred action sig. This is the signature passed to the outer validation decoded earlier.
-        ///      [(33 + deferredActionSigLength + encodedDataLength):] : bytes, userOpSignature. This is the
+        ///      [(8 + deferredActionSigLength + encodedDataLength):] : bytes, userOpSignature. This is the
         ///         signature passed to the inner validation.
-        if (hasDeferredAction) {
+        if (locator.hasDeferredAction()) {
             // Use inner validation as a 1271 validation for the deferred action, then use the outer
             // validation to validate the UO.
 
             // Get the length of the deferred action data.
-            uint256 encodedDataLength = uint32(bytes4(userOp.signature[25:29]));
+            uint256 encodedDataLength = uint32(bytes4(userOpSignature[:4]));
 
             // Load the pointer to the encoded data.
-            bytes calldata encodedData = userOp.signature[29:29 + encodedDataLength];
+            bytes calldata encodedData = userOpSignature[4:4 + encodedDataLength];
 
             // Get the deferred action signature length.
             uint256 deferredActionSigLength =
-                uint32(bytes4(userOp.signature[29 + encodedDataLength:33 + encodedDataLength]));
-
-            // Update the UserOp signature to the remaining bytes.
-            userOpSignature = userOp.signature[33 + encodedDataLength + deferredActionSigLength:];
+                uint32(bytes4(userOpSignature[4 + encodedDataLength:8 + encodedDataLength]));
 
             // Get the deferred installation signature, which is passed to the outer validation to handle the
             // deferred action.
             bytes calldata deferredActionSig =
-                userOp.signature[33 + encodedDataLength:33 + encodedDataLength + deferredActionSigLength];
+                userOpSignature[8 + encodedDataLength:8 + encodedDataLength + deferredActionSigLength];
 
             //Validate the signature.
-            // The struct must sign over the user op validation function, nonce, deadline, and the deferred action.
-            // Note that while the declared type of the UO validation is `ValidationConfig`, the flags are
-            // interpretted as validation selection flags, not validation installation flags.
-            bytes25 uoValidation = bytes25(userOp.signature[:25]);
 
             // Freeze the free-memory pointer, since we won't need to use anything from the deferred action
             // validation memory.
             MemSnapshot memSnapshot = MemManagementLib.freezeFMP();
 
-            uint48 deadline = _handleDeferredAction(uoValidation, encodedData, deferredActionSig);
+            uint48 deadline = _handleDeferredAction(locator, encodedData, deferredActionSig);
 
             // Restore the free memory pointer.
             MemManagementLib.restoreFMP(memSnapshot);
 
             // Update the validation data with the deadline.
             validationData = uint256(deadline) << 160;
-        } else {
-            userOpSignature = userOp.signature[25:];
+
+            // Update the UserOp signature to the remaining bytes.
+            userOpSignature = userOpSignature[8 + encodedDataLength + deferredActionSigLength:];
         }
 
         _checkIfValidationAppliesCallData(
             userOp.callData,
-            validationFunction,
-            isGlobalValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
+            locator.lookupKey(),
+            locator.isGlobal() ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
         // Check if there are execution hooks associated with the validator, and revert if the call isn't to
         // `executeUserOp`. This check must be here because if context isn't passed, we can't tell in execution
         // which hooks should have ran.
         if (
-            getAccountStorage().validationStorage[validationFunction].executionHookCount > 0
+            getAccountStorage().validationStorage[locator.lookupKey()].executionHookCount > 0
                 && bytes4(userOp.callData[:4]) != this.executeUserOp.selector
         ) {
             revert RequireUserOperationContext();
         }
-        uint256 userOpValidationRes = _doUserOpValidation(userOp, userOpHash, validationFunction, userOpSignature);
+        uint256 userOpValidationRes = _doUserOpValidation(userOp, userOpHash, locator, userOpSignature);
 
         // We only coalesce validations if the validation data from deferred installation is nonzero.
         if (validationData != 0) {
@@ -487,14 +478,14 @@ abstract contract ModularAccountBase is
     }
 
     /// @return The deadline of the deferred action
-    function _handleDeferredAction(
-        bytes25 userOpValidationFunction,
-        bytes calldata encodedData,
-        bytes calldata sig
-    ) internal returns (uint48) {
+    function _handleDeferredAction(ValidationLocator locator, bytes calldata encodedData, bytes calldata sig)
+        internal
+        returns (uint48)
+    {
         // The deadline, nonce, inner validation, and deferred call selector are all at fixed positions in the
         // encodedData.
 
+        // todo: this will need to get encoded differently
         ValidationConfig defActionSigValidation = ValidationConfig.wrap(bytes25(encodedData[38:63]));
         bool isGlobalSigValidation = defActionSigValidation.isGlobal();
 
@@ -502,25 +493,28 @@ abstract contract ModularAccountBase is
 
         // Because this bypasses UO validation hooks, we require that the validation used does not include any
         // validation hooks.
-        if (getAccountStorage().validationStorage[defActionValidationModuleEntity].validationHookCount != 0) {
+        if (
+            getAccountStorage().validationStorage[defActionValidationModuleEntity.moduleEntityToLookup()]
+                .validationHookCount != 0
+        ) {
             revert DeferredValidationHasValidationHooks();
         }
 
         // Check if the outer validation applies to the function call
         _checkIfValidationAppliesCallData(
             encodedData[63:],
-            defActionValidationModuleEntity,
+            defActionValidationModuleEntity.moduleEntityToLookup(),
             isGlobalSigValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
         // Handle the signature validation
-        uint48 deadline = _validateDeferredActionSignature(
-            encodedData, sig, userOpValidationFunction, defActionValidationModuleEntity
-        );
+        uint48 deadline =
+            _validateDeferredActionSignature(encodedData, sig, locator, defActionValidationModuleEntity);
 
         // Run the validation associated execution hooks, allocating a call buffer as needed.
-        HookConfig[] memory validationAssocExecHooks =
-            MemManagementLib.loadExecHooks(getAccountStorage().validationStorage[defActionValidationModuleEntity]);
+        HookConfig[] memory validationAssocExecHooks = MemManagementLib.loadExecHooks(
+            getAccountStorage().validationStorage[defActionValidationModuleEntity.moduleEntityToLookup()]
+        );
 
         PHCallBuffer callBuffer;
         if (validationAssocExecHooks.length > 0) {
@@ -542,15 +536,18 @@ abstract contract ModularAccountBase is
     function _doUserOpValidation(
         PackedUserOperation calldata userOp,
         bytes32 userOpHash,
-        ModuleEntity userOpValidationFunction,
+        ValidationLocator validationLocator,
         bytes calldata signature
     ) internal returns (uint256) {
-        uint256 validationRes;
+        ValidationStorage storage _validationStorage =
+            getAccountStorage().validationStorage[validationLocator.lookupKey()];
 
         // Do preUserOpValidation hooks
-        HookConfig[] memory preUserOpValidationHooks =
-            MemManagementLib.loadValidationHooks(getAccountStorage().validationStorage[userOpValidationFunction]);
+        HookConfig[] memory preUserOpValidationHooks = MemManagementLib.loadValidationHooks(_validationStorage);
 
+        ModuleEntity userOpValidationFunction = validationLocator.moduleEntity(_validationStorage);
+
+        uint256 validationRes;
         UOCallBuffer userOpCallBuffer;
         if (!_validationIsNative(userOpValidationFunction) || preUserOpValidationHooks.length > 0) {
             userOpCallBuffer = ExecutionLib.allocateUserOpValidationCallBuffer(userOp, userOpHash);
@@ -597,13 +594,17 @@ abstract contract ModularAccountBase is
     }
 
     function _doRuntimeValidation(
-        ModuleEntity runtimeValidationFunction,
+        ValidationLocator validationLocator,
         bytes calldata callData,
         bytes calldata authorizationData
     ) internal returns (RTCallBuffer) {
+        ValidationStorage storage _validationData =
+            getAccountStorage().validationStorage[validationLocator.lookupKey()];
+
         // run all preRuntimeValidation hooks
-        HookConfig[] memory preRuntimeValidationHooks =
-            MemManagementLib.loadValidationHooks(getAccountStorage().validationStorage[runtimeValidationFunction]);
+        HookConfig[] memory preRuntimeValidationHooks = MemManagementLib.loadValidationHooks(_validationData);
+
+        ModuleEntity runtimeValidationFunction = validationLocator.moduleEntity(_validationData);
 
         RTCallBuffer callBuffer;
         if (!_validationIsNative(runtimeValidationFunction) || preRuntimeValidationHooks.length > 0) {
@@ -661,8 +662,7 @@ abstract contract ModularAccountBase is
             msg.sender != address(_ENTRY_POINT) && msg.sender != address(this)
                 && !_storage.executionStorage[msg.sig].skipRuntimeValidation
         ) {
-            ModuleEntity directCallValidationKey =
-                ModuleEntityLib.pack(msg.sender, DIRECT_CALL_VALIDATION_ENTITYID);
+            ValidationLookupKey directCallValidationKey = ValidationLocatorLib.directCallLookup(msg.sender);
 
             _checkIfValidationAppliesCallData(msg.data, directCallValidationKey, ValidationCheckingType.EITHER);
 
@@ -717,7 +717,7 @@ abstract contract ModularAccountBase is
     ) internal virtual returns (uint256) {
         AccountStorage storage _storage = getAccountStorage();
 
-        if (!_storage.validationStorage[userOpValidationFunction].isUserOpValidation) {
+        if (!_storage.validationStorage[userOpValidationFunction.moduleEntityToLookup()].isUserOpValidation) {
             revert UserOpValidationInvalid(userOpValidationFunction);
         }
 
@@ -737,7 +737,7 @@ abstract contract ModularAccountBase is
     function _validateDeferredActionSignature(
         bytes calldata encodedData,
         bytes calldata signature,
-        bytes25 userOpValidationFunction,
+        ValidationLocator locator,
         ModuleEntity deferredSigValidationModuleEntity
     ) internal returns (uint48) {
         uint256 nonce = uint256(bytes32(encodedData[:32]));
@@ -789,14 +789,8 @@ abstract contract ModularAccountBase is
                 // Clear the upper bits of the deadline, in case the caller didn't.
                 mstore(ptr, and(deadline, 0xffffffffffff))
                 ptr := add(ptr, 0x20)
-                // Clear the lower bits of the validation function, in case the caller didn't.
-                mstore(
-                    ptr,
-                    and(
-                        userOpValidationFunction,
-                        0xffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000
-                    )
-                )
+                // Clear the upper bits of the validation locator, in case the caller didn't.
+                mstore(ptr, and(locator, 0xffffffffffffffffffffffffffffffffffffffffff))
                 ptr := add(ptr, 0x20)
                 mstore(ptr, selfCallHash)
 
@@ -823,13 +817,17 @@ abstract contract ModularAccountBase is
         return deadline;
     }
 
-    function _isValidSignature(ModuleEntity sigValidation, bytes32 hash, bytes calldata signature)
+    function _isValidSignature(ValidationLocator validationLocator, bytes32 hash, bytes calldata signature)
         internal
         view
         returns (bytes4)
     {
-        HookConfig[] memory preSignatureValidationHooks =
-            MemManagementLib.loadValidationHooks(getAccountStorage().validationStorage[sigValidation]);
+        ValidationStorage storage _validationStorage =
+            getAccountStorage().validationStorage[validationLocator.lookupKey()];
+
+        HookConfig[] memory preSignatureValidationHooks = MemManagementLib.loadValidationHooks(_validationStorage);
+
+        ModuleEntity sigValidation = validationLocator.moduleEntity(_validationStorage);
 
         SigCallBuffer sigCallBuffer;
         if (!_validationIsNative(sigValidation) || preSignatureValidationHooks.length > 0) {
@@ -864,7 +862,7 @@ abstract contract ModularAccountBase is
         (hash); // unused in ModularAccountBase, but used in SemiModularAccountBase
         AccountStorage storage _storage = getAccountStorage();
 
-        if (!_storage.validationStorage[sigValidation].isSignatureValidation) {
+        if (!_storage.validationStorage[sigValidation.moduleEntityToLookup()].isSignatureValidation) {
             revert SignatureValidationInvalid(sigValidation);
         }
 
@@ -874,15 +872,17 @@ abstract contract ModularAccountBase is
         return _1271_INVALID;
     }
 
-    function _isValidationGlobal(ModuleEntity validationFunction) internal view virtual returns (bool) {
+    function _isValidationGlobal(ValidationLookupKey validationFunction) internal view virtual returns (bool) {
         return getAccountStorage().validationStorage[validationFunction].isGlobal;
     }
 
     function _checkIfValidationAppliesCallData(
         bytes calldata callData,
-        ModuleEntity validationFunction,
+        ValidationLookupKey validationFunction,
         ValidationCheckingType checkingType
     ) internal view {
+        // address(4).staticcall(abi.encodePacked(validationFunction));
+
         if (callData.length < 4) {
             revert UnrecognizedFunction(bytes4(callData));
         }
@@ -919,7 +919,7 @@ abstract contract ModularAccountBase is
     /// @param checkingType The type of validation checking to perform.
     function _checkExecuteBatchValidationApplicability(
         bytes calldata callData,
-        ModuleEntity validationFunction,
+        ValidationLookupKey validationFunction,
         ValidationCheckingType checkingType
     ) internal view {
         // Equivalent to the following code, but without using memory.
@@ -1073,7 +1073,7 @@ abstract contract ModularAccountBase is
 
     function _checkIfValidationAppliesSelector(
         bytes4 selector,
-        ModuleEntity validationFunction,
+        ValidationLookupKey validationFunction,
         ValidationCheckingType checkingType
     ) internal view {
         // Check that the provided validation function is applicable to the selector
@@ -1096,7 +1096,7 @@ abstract contract ModularAccountBase is
         }
     }
 
-    function _globalValidationApplies(bytes4 selector, ModuleEntity validationFunction)
+    function _globalValidationApplies(bytes4 selector, ValidationLookupKey validationFunction)
         internal
         view
         returns (bool)
@@ -1109,7 +1109,7 @@ abstract contract ModularAccountBase is
             || getAccountStorage().executionStorage[selector].allowGlobalValidation;
     }
 
-    function _selectorValidationApplies(bytes4 selector, ModuleEntity validationFunction)
+    function _selectorValidationApplies(bytes4 selector, ValidationLookupKey validationFunction)
         internal
         view
         returns (bool)

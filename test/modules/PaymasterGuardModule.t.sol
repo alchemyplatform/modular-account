@@ -152,7 +152,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
     {
         return PackedUserOperation({
             sender: accountAddr,
-            nonce: 0,
+            nonce: _encodeNonce(ModuleEntityLib.pack(address(singleSignerValidationModule), ENTITY_ID), GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodePacked(
                 ModularAccountBase.executeUserOp.selector, abi.encodeCall(account1.execute, (owner1, 0, hex""))
@@ -177,11 +177,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         PackedUserOperation memory userOp = _packUO(address(account1), abi.encodePacked(paymaster1, ""));
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
-        userOp.signature = _encodeSignature(
-            ModuleEntityLib.pack(address(singleSignerValidationModule), ENTITY_ID),
-            GLOBAL_VALIDATION,
-            abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
-        );
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
         vm.prank(address(entryPoint));
         account1.validateUserOp(userOp, userOpHash, 0);
     }
@@ -190,11 +186,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
         PackedUserOperation memory userOp = _packUO(address(account1), abi.encodePacked(paymaster2, ""));
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
-        userOp.signature = _encodeSignature(
-            ModuleEntityLib.pack(address(singleSignerValidationModule), ENTITY_ID),
-            GLOBAL_VALIDATION,
-            abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
-        );
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         vm.expectRevert(
             abi.encodeWithSelector(

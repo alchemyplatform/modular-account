@@ -18,6 +18,7 @@ import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/V
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {ModuleInstallCommonsLib} from "../libraries/ModuleInstallCommonsLib.sol";
+import {ValidationLocatorLib} from "../libraries/ValidationLocatorLib.sol";
 import {ValidationStorage, getAccountStorage, toSetValue} from "./AccountStorage.sol";
 
 /// @title Module Manager Internals
@@ -32,15 +33,49 @@ abstract contract ModuleManagerInternals is IModularAccount {
 
     error ArrayLengthMismatch();
     error PreValidationHookDuplicate();
+    error ValidationEntityIdInUse();
     error ValidationAlreadySet(bytes4 selector, ModuleEntity validationFunction);
     error ValidationAssocHookLimitExceeded();
 
-    function _removeValidationFunction(ModuleEntity validationFunction) internal {
-        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[validationFunction];
+    function _setValidationFunction(
+        ValidationStorage storage validationStorage,
+        ValidationConfig validationConfig,
+        bytes4[] calldata selectors
+    ) internal {
+        // To allow for flag updates and appending hooks and selectors, two cases should be considered:
+        // - stored module address is zero - store the new validation module address
+        // - stored module address already holds the address of the validation module being installed - update
+        // flags and selectors.
+        // If the stored module address does not match, revert, as the validation entity ID must be unique over the
+        // account.
 
-        _validationStorage.isGlobal = false;
-        _validationStorage.isSignatureValidation = false;
-        _validationStorage.isUserOpValidation = false;
+        address storedAddress = validationStorage.module;
+        if (storedAddress == address(0)) {
+            validationStorage.module = validationConfig.module();
+        } else if (storedAddress != validationConfig.module()) {
+            revert ValidationEntityIdInUse();
+        }
+
+        validationStorage.isGlobal = validationConfig.isGlobal();
+        validationStorage.isSignatureValidation = validationConfig.isSignatureValidation();
+        validationStorage.isUserOpValidation = validationConfig.isUserOpValidation();
+
+        uint256 length = selectors.length;
+        for (uint256 i = 0; i < length; ++i) {
+            bytes4 selector = selectors[i];
+            if (!validationStorage.selectors.tryAdd(toSetValue(selector))) {
+                revert ValidationAlreadySet(selector, validationConfig.moduleEntity());
+            }
+        }
+    }
+
+    function _removeValidationFunction(ValidationStorage storage validationStorage) internal {
+        validationStorage.module = address(0);
+        validationStorage.isGlobal = false;
+        validationStorage.isSignatureValidation = false;
+        validationStorage.isUserOpValidation = false;
+        validationStorage.validationHookCount = 0;
+        validationStorage.executionHookCount = 0;
     }
 
     function _installValidation(
@@ -49,9 +84,10 @@ abstract contract ModuleManagerInternals is IModularAccount {
         bytes calldata installData,
         bytes[] calldata hooks
     ) internal {
-        ModuleEntity moduleEntity = validationConfig.moduleEntity();
+        ValidationStorage storage _validationStorage =
+            getAccountStorage().validationStorage[ValidationLocatorLib.configToLookup(validationConfig)];
 
-        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[moduleEntity];
+        _setValidationFunction(_validationStorage, validationConfig, selectors);
 
         uint256 length = hooks.length;
         for (uint256 i = 0; i < length; ++i) {
@@ -98,18 +134,6 @@ abstract contract ModuleManagerInternals is IModularAccount {
             }
         }
 
-        length = selectors.length;
-        for (uint256 i = 0; i < length; ++i) {
-            bytes4 selector = selectors[i];
-            if (!_validationStorage.selectors.tryAdd(toSetValue(selector))) {
-                revert ValidationAlreadySet(selector, moduleEntity);
-            }
-        }
-
-        _validationStorage.isGlobal = validationConfig.isGlobal();
-        _validationStorage.isSignatureValidation = validationConfig.isSignatureValidation();
-        _validationStorage.isUserOpValidation = validationConfig.isUserOpValidation();
-
         ModuleInstallCommonsLib.onInstall(
             validationConfig.module(), installData, type(IValidationModule).interfaceId
         );
@@ -121,10 +145,9 @@ abstract contract ModuleManagerInternals is IModularAccount {
         bytes calldata uninstallData,
         bytes[] calldata hookUninstallDatas
     ) internal {
-        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[validationFunction];
+        ValidationStorage storage _validationStorage =
+            getAccountStorage().validationStorage[ValidationLocatorLib.moduleEntityToLookup(validationFunction)];
         bool onUninstallSuccess = true;
-
-        _removeValidationFunction(validationFunction);
 
         // Send `onUninstall` to hooks
         if (hookUninstallDatas.length > 0) {
@@ -157,15 +180,16 @@ abstract contract ModuleManagerInternals is IModularAccount {
             }
         }
 
-        // Clear all stored hooks
-        _validationStorage.validationHookCount = 0;
+        // Clear all stored hooks. The lengths of the hooks are cleared in `_removeValidationFunction`.
         _validationStorage.validationHooks.clear();
-
-        _validationStorage.executionHookCount = 0;
         _validationStorage.executionHooks.clear();
 
         // Clear selectors
         _validationStorage.selectors.clear();
+
+        // Clear validation function data.
+        // Must be done at the end, because the hook lengths are accessed in the loop above.
+        _removeValidationFunction(_validationStorage);
 
         (address module, uint32 entityId) = ModuleEntityLib.unpack(validationFunction);
         onUninstallSuccess = onUninstallSuccess && ModuleInstallCommonsLib.onUninstall(module, uninstallData);

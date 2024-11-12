@@ -33,7 +33,8 @@ contract UOCallBufferTest is AccountTestBase {
     // installed entity id is their index
     MockModule[] public validationHooks;
 
-    // installed with entity id 0
+    uint32 public constant NEW_VALIDATION_ENTITY_ID = 1;
+    // installed with entity id 1
     MockModule public validationModule;
 
     ModuleEntity internal _validationFunction;
@@ -49,7 +50,7 @@ contract UOCallBufferTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(_validationFunction, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -73,10 +74,12 @@ contract UOCallBufferTest is AccountTestBase {
         userOp.signature = "abcdefghijklmnopqrstuvwxyz";
 
         vm.expectEmit(address(validationModule));
-        emit ReceivedCall(abi.encodeCall(IValidationModule.validateUserOp, (uint32(0), userOp, userOpHash)), 0);
+        emit ReceivedCall(
+            abi.encodeCall(IValidationModule.validateUserOp, (NEW_VALIDATION_ENTITY_ID, userOp, userOpHash)), 0
+        );
 
         // Now, fill in the signature
-        userOp.signature = _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "abcdefghijklmnopqrstuvwxyz");
+        userOp.signature = _encodeSignature("abcdefghijklmnopqrstuvwxyz");
 
         vm.prank(address(entryPoint));
         account1.validateUserOp(userOp, userOpHash, 1 wei);
@@ -90,7 +93,7 @@ contract UOCallBufferTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(_validationFunction, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -122,11 +125,12 @@ contract UOCallBufferTest is AccountTestBase {
 
         userOp.signature = validationData;
         vm.expectEmit(address(validationModule));
-        emit ReceivedCall(abi.encodeCall(IValidationModule.validateUserOp, (uint32(0), userOp, userOpHash)), 0);
+        emit ReceivedCall(
+            abi.encodeCall(IValidationModule.validateUserOp, (NEW_VALIDATION_ENTITY_ID, userOp, userOpHash)), 0
+        );
 
         // Now, fill in the signature
-        userOp.signature =
-            _encodeSignature(_validationFunction, GLOBAL_VALIDATION, preValidationHookDatasToSend, validationData);
+        userOp.signature = _encodeSignature(preValidationHookDatasToSend, validationData);
 
         vm.prank(address(entryPoint));
         account1.validateUserOp(userOp, userOpHash, 1 wei);
@@ -159,7 +163,7 @@ contract UOCallBufferTest is AccountTestBase {
         account1.installValidation(
             ValidationConfigLib.pack({
                 _module: address(validationModule),
-                _entityId: 0,
+                _entityId: NEW_VALIDATION_ENTITY_ID,
                 _isGlobal: true,
                 _isSignatureValidation: true,
                 _isUserOpValidation: true
@@ -169,12 +173,12 @@ contract UOCallBufferTest is AccountTestBase {
             hooks
         );
 
-        _validationFunction = ModuleEntityLib.pack(address(validationModule), 0);
+        _validationFunction = ModuleEntityLib.pack(address(validationModule), NEW_VALIDATION_ENTITY_ID);
 
         // Set up the user op
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(_validationFunction, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -208,11 +212,12 @@ contract UOCallBufferTest is AccountTestBase {
 
         userOp.signature = validationData;
         vm.expectEmit(address(validationModule));
-        emit ReceivedCall(abi.encodeCall(IValidationModule.validateUserOp, (uint32(0), userOp, userOpHash)), 0);
+        emit ReceivedCall(
+            abi.encodeCall(IValidationModule.validateUserOp, (NEW_VALIDATION_ENTITY_ID, userOp, userOpHash)), 0
+        );
 
         // Now, fill in the signature
-        userOp.signature =
-            _encodeSignature(_validationFunction, GLOBAL_VALIDATION, preValidationHookDatasToSend, validationData);
+        userOp.signature = _encodeSignature(preValidationHookDatasToSend, validationData);
 
         vm.prank(address(entryPoint));
         account1.validateUserOp(userOp, userOpHash, 1 wei);
@@ -223,14 +228,14 @@ contract UOCallBufferTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(_validationFunction, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 2),
             paymasterAndData: "",
-            signature: _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "abcdefghijklmnopqrstuvwxyz")
+            signature: _encodeSignature("abcdefghijklmnopqrstuvwxyz")
         });
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
@@ -258,14 +263,14 @@ contract UOCallBufferTest is AccountTestBase {
     function test_uoCallBuffer_shortReturnData_validationFunction() public {
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(_signerValidation, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 2),
             paymasterAndData: "",
-            signature: _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "abcdefghijklmnopqrstuvwxyz")
+            signature: _encodeSignature("abcdefghijklmnopqrstuvwxyz")
         });
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
@@ -309,7 +314,7 @@ contract UOCallBufferTest is AccountTestBase {
         account1.installValidation(
             ValidationConfigLib.pack({
                 _module: address(validationModule),
-                _entityId: 0,
+                _entityId: NEW_VALIDATION_ENTITY_ID,
                 _isGlobal: true,
                 _isSignatureValidation: true,
                 _isUserOpValidation: true
@@ -319,6 +324,6 @@ contract UOCallBufferTest is AccountTestBase {
             hooks
         );
 
-        _validationFunction = ModuleEntityLib.pack(address(validationModule), 0);
+        _validationFunction = ModuleEntityLib.pack(address(validationModule), NEW_VALIDATION_ENTITY_ID);
     }
 }

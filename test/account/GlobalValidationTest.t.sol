@@ -55,7 +55,7 @@ contract GlobalValidationTest is AccountTestBase {
     function test_globalValidation_userOp_simple() public withSMATest {
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account2),
-            nonce: 0,
+            nonce: _encodeNonce(_signerValidation, GLOBAL_V, 0),
             initCode: abi.encodePacked(
                 address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
             ),
@@ -70,8 +70,7 @@ contract GlobalValidationTest is AccountTestBase {
         // Generate signature
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, userOpHash.toEthSignedMessageHash());
-        userOp.signature =
-            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
@@ -97,7 +96,7 @@ contract GlobalValidationTest is AccountTestBase {
     function test_globalValidation_failsOnSelectorApplicability() public withSMATest {
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account2),
-            nonce: 0,
+            nonce: _encodeNonce(_signerValidation, SELECTOR_ASSOCIATED_V, 0),
             initCode: abi.encodePacked(
                 address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
             ),
@@ -112,9 +111,7 @@ contract GlobalValidationTest is AccountTestBase {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, userOpHash.toEthSignedMessageHash());
         // Use the wrong checking mode - SELECTOR_ASSOCIATED_VALIDATION
-        userOp.signature = _encodeSignature(
-            _signerValidation, SELECTOR_ASSOCIATED_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
-        );
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
@@ -9,10 +8,11 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
-import {FALLBACK_VALIDATION} from "../helpers/Constants.sol";
+import {FALLBACK_VALIDATION, FALLBACK_VALIDATION_LOOKUP} from "../helpers/Constants.sol";
 import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 import {SignatureType} from "../helpers/SignatureType.sol";
 import {RTCallBuffer, SigCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
+import {ValidationLocatorLib, ValidationLookupKey} from "../libraries/ValidationLocatorLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
 
 /// @title Semi-Modular Account Base
@@ -150,8 +150,8 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         return selector == this.updateFallbackSignerData.selector || super._globalValidationAllowed(selector);
     }
 
-    function _isValidationGlobal(ModuleEntity validationFunction) internal view override returns (bool) {
-        if (validationFunction.eq(FALLBACK_VALIDATION) || super._isValidationGlobal(validationFunction)) {
+    function _isValidationGlobal(ValidationLookupKey validationFunction) internal view override returns (bool) {
+        if (validationFunction.eq(FALLBACK_VALIDATION_LOOKUP) || super._isValidationGlobal(validationFunction)) {
             return true;
         }
 
@@ -167,8 +167,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         address fallbackSigner = _retrieveFallbackSignerUnchecked(smaStorage);
 
         // Compute the direct call validation key.
-        ModuleEntity fallbackDirectCallValidation =
-            ModuleEntityLib.pack(fallbackSigner, DIRECT_CALL_VALIDATION_ENTITYID);
+        ValidationLookupKey fallbackDirectCallValidation = ValidationLocatorLib.directCallLookup(fallbackSigner);
 
         // Return true if the validation function passed is the fallback direct call validation key, and the sender
         // is the fallback signer. This enforces that context is a

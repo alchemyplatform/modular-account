@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {HookConfig, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {HookConfig} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
+import {ValidationLookupKey} from "../../src/libraries/ValidationLocatorLib.sol";
 import {LinkedListSet, SetValue} from "../libraries/LinkedListSetLib.sol";
 
 // ERC-7201 derived storage slot.
@@ -27,6 +28,8 @@ struct ExecutionStorage {
 
 /// @notice Represents data associated with a specific validation function.
 struct ValidationStorage {
+    // The address of the validation module.
+    address module;
     // Whether or not this validation can be used as a global validation function.
     bool isGlobal;
     // Whether or not this validation is allowed to validate ERC-1271 signatures.
@@ -55,7 +58,7 @@ struct AccountStorage {
     // Execution functions and their associated functions.
     mapping(bytes4 selector => ExecutionStorage) executionStorage;
     // Validation functions and their associated functions.
-    mapping(ModuleEntity validationFunction => ValidationStorage) validationStorage;
+    mapping(ValidationLookupKey lookupKey => ValidationStorage) validationStorage;
     // Module-defined ERC-165 interfaces installed on the account.
     mapping(bytes4 => uint256) supportedIfaces;
     // Nonce usage state for deferred actions.

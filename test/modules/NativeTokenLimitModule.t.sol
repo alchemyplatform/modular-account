@@ -45,7 +45,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
 
     NativeTokenLimitModule public module = new NativeTokenLimitModule();
     uint256 public spendLimit = 10 ether;
-    uint32 public entityId = 0;
+    uint32 public entityId = 1;
 
     function setUp() public override {
         _revertSnapshot = vm.snapshotState();
@@ -103,14 +103,14 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
     {
         uo = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(ModuleEntityLib.pack(address(validationModule), entityId), GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodePacked(ModularAccountBase.executeUserOp.selector, callData),
             accountGasLimits: bytes32(bytes16(uint128(gas1))) | bytes32(uint256(gas2)),
             preVerificationGas: gas3,
             gasFees: bytes32(uint256(uint128(gasPrice))),
             paymasterAndData: "",
-            signature: _encodeSignature(ModuleEntityLib.pack(address(validationModule), 0), GLOBAL_VALIDATION, "")
+            signature: _encodeSignature("")
         });
     }
 
@@ -118,11 +118,11 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         vm.startPrank(address(entryPoint));
 
         // uses 10e - 200000 of gas
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         uint256 result = account1.validateUserOp(
             _getPackedUO(100_000, 100_000, 10 ether - 400_000, 1, _getExecuteWithValue(0)), bytes32(0), 0
         );
-        assertEq(module.limits(0, address(account1)), 200_000);
+        assertEq(module.limits(entityId, address(account1)), 200_000);
 
         uint256 expected = uint256(type(uint48).max) << 160;
         assertEq(result, expected);
@@ -145,15 +145,15 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         vm.startPrank(address(entryPoint));
 
         // uses 5e of native tokens
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         account1.executeUserOp(_getPackedUO(0, 0, 0, 0, _getExecuteWithValue(5 ether)), bytes32(0));
-        assertEq(module.limits(0, address(account1)), 5 ether);
+        assertEq(module.limits(entityId, address(account1)), 5 ether);
 
         // uses 5e + 1wei of native tokens
         vm.expectRevert(
             abi.encodeWithSelector(
                 ExecutionLib.PreExecHookReverted.selector,
-                ModuleEntityLib.pack(address(module), uint32(0)),
+                ModuleEntityLib.pack(address(module), entityId),
                 abi.encodePacked(NativeTokenLimitModule.ExceededNativeTokenLimit.selector)
             )
         );
@@ -163,7 +163,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
     }
 
     function test_userOp_invalidPaymaster() public withSMATest {
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         PackedUserOperation[] memory uos = new PackedUserOperation[](1);
         uos[0] = _getPackedUO(200_000, 200_000, 200_000, 1, _getExecuteWithValue(5 ether));
         uos[0].paymasterAndData = new bytes(52);
@@ -189,11 +189,11 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         calls[2] = Call({target: recipient, value: 5 ether + 100_000, data: ""});
 
         vm.startPrank(address(entryPoint));
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         account1.executeUserOp(
             _getPackedUO(0, 0, 0, 0, abi.encodeCall(IModularAccount.executeBatch, (calls))), bytes32(0)
         );
-        assertEq(module.limits(0, address(account1)), 10 ether - 6 ether - 100_001);
+        assertEq(module.limits(entityId, address(account1)), 10 ether - 6 ether - 100_001);
         assertEq(recipient.balance, 6 ether + 100_001);
 
         vm.stopPrank();
@@ -203,9 +203,9 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         vm.startPrank(address(entryPoint));
 
         // uses 5e of native tokens
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         account1.executeUserOp(_getPackedUO(0, 0, 0, 0, _getPerformCreateCalldata(5 ether)), bytes32(0));
-        assertEq(module.limits(0, address(account1)), 5 ether);
+        assertEq(module.limits(entityId, address(account1)), 5 ether);
 
         vm.stopPrank();
     }
@@ -214,20 +214,20 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         vm.startPrank(address(entryPoint));
 
         // uses 5e of native tokens
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         account1.executeUserOp(_getPackedUO(0, 0, 0, 0, _getPerformCreate2Calldata(5 ether, 0)), bytes32(0));
-        assertEq(module.limits(0, address(account1)), 5 ether);
+        assertEq(module.limits(entityId, address(account1)), 5 ether);
 
         vm.stopPrank();
     }
 
     function test_userOp_combinedExecLimit_success() public withSMATest {
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         PackedUserOperation[] memory uos = new PackedUserOperation[](1);
         uos[0] = _getPackedUO(200_000, 200_000, 200_000, 1, _getExecuteWithValue(5 ether));
         entryPoint.handleOps(uos, beneficiary);
 
-        assertEq(module.limits(0, address(account1)), 5 ether - 600_000);
+        assertEq(module.limits(entityId, address(account1)), 5 ether - 600_000);
         assertEq(recipient.balance, 5 ether);
     }
 
@@ -238,38 +238,38 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         calls[2] = Call({target: recipient, value: 5 ether + 100_000, data: ""});
 
         vm.startPrank(address(entryPoint));
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         PackedUserOperation[] memory uos = new PackedUserOperation[](1);
         uos[0] = _getPackedUO(200_000, 200_000, 200_000, 1, abi.encodeCall(IModularAccount.executeBatch, (calls)));
         entryPoint.handleOps(uos, beneficiary);
 
-        assertEq(module.limits(0, address(account1)), 10 ether - 6 ether - 700_001);
+        assertEq(module.limits(entityId, address(account1)), 10 ether - 6 ether - 700_001);
         assertEq(recipient.balance, 6 ether + 100_001);
 
         vm.stopPrank();
     }
 
     function test_userOp_combinedExecLimit_failExec() public withSMATest {
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         PackedUserOperation[] memory uos = new PackedUserOperation[](1);
         uos[0] = _getPackedUO(200_000, 200_000, 200_000, 1, _getExecuteWithValue(10 ether));
         entryPoint.handleOps(uos, beneficiary);
 
-        assertEq(module.limits(0, address(account1)), 10 ether - 600_000);
+        assertEq(module.limits(entityId, address(account1)), 10 ether - 600_000);
         assertEq(recipient.balance, 0);
     }
 
     function test_userOp_paymaster() public withSMATest {
         vm.startPrank(address(entryPoint));
 
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         PackedUserOperation memory uo = _getPackedUO(200_000, 200_000, 200_000, 1, _getExecuteWithValue(10 ether));
         uo.paymasterAndData =
             abi.encodePacked(address(account1), uint128(uint256(1_000_000)), uint128(uint256(1_000_000)));
         uint256 validationData = account1.validateUserOp(uo, bytes32(0), 0);
 
         assertEq(validationData & 0x1, 0); // check for success
-        assertEq(module.limits(0, address(account1)), 10 ether); // limit should not decrease
+        assertEq(module.limits(entityId, address(account1)), 10 ether); // limit should not decrease
         assertEq(recipient.balance, 0);
         vm.stopPrank();
     }
@@ -280,24 +280,24 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
 
         vm.startPrank(address(entryPoint));
 
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         PackedUserOperation memory uo = _getPackedUO(200_000, 200_000, 200_000, 1, _getExecuteWithValue(5 ether));
         uo.paymasterAndData =
             abi.encodePacked(address(account1), uint128(uint256(200_000)), uint128(uint256(200_000)));
         uint256 validationData = account1.validateUserOp(uo, bytes32(0), 0);
 
         assertEq(validationData & 0x1, 0); // check for success
-        assertEq(module.limits(0, address(account1)), 10 ether - 200_000 * 5); // limit should not decrease
+        assertEq(module.limits(entityId, address(account1)), 10 ether - 200_000 * 5); // limit should not decrease
         assertEq(recipient.balance, 0);
         vm.stopPrank();
     }
 
     function test_runtime_executeLimit() public withSMATest {
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         account1.executeWithRuntimeValidation(
             _getExecuteWithValue(5 ether), _encodeSignature(validationFunction, 1, "")
         );
-        assertEq(module.limits(0, address(account1)), 5 ether);
+        assertEq(module.limits(entityId, address(account1)), 5 ether);
     }
 
     function test_runtime_executeBatchLimit() public withSMATest {
@@ -306,31 +306,31 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         calls[1] = Call({target: recipient, value: 1 ether, data: ""});
         calls[2] = Call({target: recipient, value: 5 ether + 100_000, data: ""});
 
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         account1.executeWithRuntimeValidation(
             abi.encodeCall(IModularAccount.executeBatch, (calls)), _encodeSignature(validationFunction, 1, "")
         );
-        assertEq(module.limits(0, address(account1)), 4 ether - 100_001);
+        assertEq(module.limits(entityId, address(account1)), 4 ether - 100_001);
     }
 
     function test_runtime_performCreateLimit() public withSMATest {
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         bytes memory b = account1.executeWithRuntimeValidation(
             _getPerformCreateCalldata(5 ether), _encodeSignature(validationFunction, 1, "")
         );
-        assertEq(module.limits(0, address(account1)), 5 ether);
+        assertEq(module.limits(entityId, address(account1)), 5 ether);
 
         address deployed = abi.decode(b, (address));
         assertEq(deployed.balance, 5 ether);
     }
 
     function test_runtime_performCreate2Limit() public withSMATest {
-        assertEq(module.limits(0, address(account1)), 10 ether);
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
         bytes memory b = account1.executeWithRuntimeValidation(
             _getPerformCreate2Calldata({value: 5 ether, salt: bytes32(0)}),
             _encodeSignature(validationFunction, 1, "")
         );
-        assertEq(module.limits(0, address(account1)), 5 ether);
+        assertEq(module.limits(entityId, address(account1)), 5 ether);
 
         address deployed = abi.decode(b, (address));
         assertEq(deployed.balance, 5 ether);
@@ -353,9 +353,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({index: uint8(0), validationData: "abcd"});
 
-        uos[0].signature = _encodeSignature(
-            ModuleEntityLib.pack(address(validationModule), 0), GLOBAL_VALIDATION, preValidationHookData, ""
-        );
+        uos[0].signature = _encodeSignature(preValidationHookData, "");
 
         vm.prank(beneficiary);
         vm.expectRevert(
@@ -374,7 +372,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
     }
 
     function test_deleteSingleSessionKey() public withSMATest {
-        uint32 newEntityId = 1;
+        uint32 newEntityId = 2;
 
         // Add new entity, delete latest entity, old limit should still work
         ModuleEntity[] memory preValidationHooks = new ModuleEntity[](1);

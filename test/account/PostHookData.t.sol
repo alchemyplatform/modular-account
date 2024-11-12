@@ -38,7 +38,8 @@ contract PostHookDataTest is AccountTestBase {
     // installed entity id is their index
     MockModule[] public execHooks;
 
-    // installed with entity id 0
+    uint32 public constant NEW_VALIDATION_ENTITY_ID = 1;
+    // installed with entity id 1
     MockModule public validationModule;
 
     ModuleEntity internal _validationFunction;
@@ -56,7 +57,7 @@ contract PostHookDataTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(_validationFunction, GLOBAL_V, 0),
             initCode: hex"",
             callData: abi.encodePacked(
                 IAccountExecute.executeUserOp.selector, abi.encodeCall(account1.execute, (beneficiary, 0, hex""))
@@ -65,7 +66,7 @@ contract PostHookDataTest is AccountTestBase {
             preVerificationGas: 0,
             gasFees: _encodeGas(0, 1),
             paymasterAndData: hex"",
-            signature: _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "")
+            signature: _encodeSignature("")
         });
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
@@ -207,7 +208,7 @@ contract PostHookDataTest is AccountTestBase {
         account1.installValidation(
             ValidationConfigLib.pack({
                 _module: address(validationModule),
-                _entityId: 0,
+                _entityId: NEW_VALIDATION_ENTITY_ID,
                 _isGlobal: true,
                 _isSignatureValidation: true,
                 _isUserOpValidation: true
@@ -217,6 +218,6 @@ contract PostHookDataTest is AccountTestBase {
             hookInstalls
         );
 
-        _validationFunction = ModuleEntityLib.pack(address(validationModule), 0);
+        _validationFunction = ModuleEntityLib.pack(address(validationModule), NEW_VALIDATION_ENTITY_ID);
     }
 }

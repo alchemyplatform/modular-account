@@ -94,14 +94,14 @@ contract AllowlistERC20TokenLimitTest is AccountTestBase {
     function _getPackedUO(bytes memory callData) internal view returns (PackedUserOperation memory uo) {
         uo = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(validationFunction, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodePacked(ModularAccountBase.executeUserOp.selector, callData),
             accountGasLimits: bytes32(bytes16(uint128(200_000))) | bytes32(uint256(200_000)),
             preVerificationGas: 200_000,
             gasFees: bytes32(uint256(uint128(0))),
             paymasterAndData: "",
-            signature: _encodeSignature(validationFunction, GLOBAL_VALIDATION, "")
+            signature: _encodeSignature("")
         });
     }
 

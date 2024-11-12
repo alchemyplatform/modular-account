@@ -274,11 +274,9 @@ contract AllowlistModuleTest is CustomValidationTestBase {
 
         _customValidationSetup();
 
-        uint256 nonce = entryPoint.getNonce(address(account1), 0);
-
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: nonce,
+            nonce: _encodeNextNonce(address(account1), _signerValidation, true),
             initCode: hex"",
             callData: abi.encodeCall(
                 account1.execute, (address(counters[0]), 0, abi.encodeCall(Counter.increment, ()))
@@ -293,8 +291,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
 
-        userOp.signature =
-            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
@@ -316,12 +313,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({index: uint8(0), validationData: "abcd"});
 
-        userOp.signature = _encodeSignature(
-            _signerValidation,
-            GLOBAL_VALIDATION,
-            preValidationHookData,
-            abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
-        );
+        userOp.signature = _encodeSignature(preValidationHookData, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         userOps[0] = userOp;
 

@@ -51,7 +51,8 @@ contract PHCallBufferTest is AccountTestBase {
     // installed entity id is their index
     MockModule[] public execHooks;
 
-    // installed with entity id 0
+    uint32 public constant NEW_VALIDATION_ENTITY_ID = 1;
+    // installed with entity id 1
     MockModule public validationModule;
 
     // installed with entity id 1
@@ -71,7 +72,7 @@ contract PHCallBufferTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(_validationFunction, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodePacked(
                 IAccountExecute.executeUserOp.selector, abi.encodeCall(account1.execute, (beneficiary, 0 wei, ""))
@@ -242,7 +243,7 @@ contract PHCallBufferTest is AccountTestBase {
             emit ReceivedCall(
                 abi.encodeCall(
                     IValidationModule.validateRuntime,
-                    (address(account1), uint32(0), address(owner1), 0 wei, callData, "")
+                    (address(account1), NEW_VALIDATION_ENTITY_ID, address(owner1), 0 wei, callData, "")
                 ),
                 0
             );
@@ -276,7 +277,7 @@ contract PHCallBufferTest is AccountTestBase {
             emit ReceivedCall(
                 abi.encodeCall(
                     IValidationModule.validateRuntime,
-                    (address(account1), uint32(0), address(owner1), 0 wei, callData, "")
+                    (address(account1), NEW_VALIDATION_ENTITY_ID, address(owner1), 0 wei, callData, "")
                 ),
                 0
             );
@@ -319,7 +320,7 @@ contract PHCallBufferTest is AccountTestBase {
             emit ReceivedCall(
                 abi.encodeCall(
                     IValidationModule.validateRuntime,
-                    (address(account1), uint32(0), address(owner1), 0 wei, callData, "")
+                    (address(account1), NEW_VALIDATION_ENTITY_ID, address(owner1), 0 wei, callData, "")
                 ),
                 0
             );
@@ -363,7 +364,7 @@ contract PHCallBufferTest is AccountTestBase {
             emit ReceivedCall(
                 abi.encodeCall(
                     IValidationModule.validateRuntime,
-                    (address(account1), uint32(0), address(owner1), 0 wei, callData, "")
+                    (address(account1), NEW_VALIDATION_ENTITY_ID, address(owner1), 0 wei, callData, "")
                 ),
                 0
             );
@@ -471,14 +472,14 @@ contract PHCallBufferTest is AccountTestBase {
                 vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
             bytes memory smaSig = abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
 
-            return _encodeSignature(_validationFunction, GLOBAL_VALIDATION, smaSig);
+            return _encodeSignature(smaSig);
         } else {
-            return _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "");
+            return _encodeSignature("");
         }
     }
 
     function _install3ValAssocExecHooks() internal {
-        _install3ValAssocExecHooks(0, false);
+        _install3ValAssocExecHooks(NEW_VALIDATION_ENTITY_ID, false);
     }
 
     function _install3ValAssocExecHooks(uint32 validationEntityId, bool forceInstall) internal {

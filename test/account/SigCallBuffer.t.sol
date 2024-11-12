@@ -40,7 +40,8 @@ contract SigCallBufferTest is AccountTestBase {
 
     MockModule[] public validationHooks;
 
-    // installed with entity id 0
+    uint32 public constant NEW_VALIDATION_ENTITY_ID = 1;
+    // installed with entity id 1
     MockModule public validationModule;
 
     ModuleEntity internal _validationFunction;
@@ -74,7 +75,13 @@ contract SigCallBufferTest is AccountTestBase {
                 address(validationModule),
                 abi.encodeCall(
                     IValidationModule.validateSignature,
-                    (address(account1), uint32(0), beneficiary, hash, abi.encodePacked(EOA_TYPE_SIGNATURE))
+                    (
+                        address(account1),
+                        NEW_VALIDATION_ENTITY_ID,
+                        beneficiary,
+                        hash,
+                        abi.encodePacked(EOA_TYPE_SIGNATURE)
+                    )
                 )
             );
         }
@@ -155,7 +162,7 @@ contract SigCallBufferTest is AccountTestBase {
         vm.expectRevert(
             abi.encodeWithSelector(
                 ExecutionLib.SignatureValidationFunctionReverted.selector,
-                ModuleEntityLib.pack(address(validationModule), uint32(0)),
+                ModuleEntityLib.pack(address(validationModule), NEW_VALIDATION_ENTITY_ID),
                 hex"abcdabcd"
             )
         );
@@ -210,7 +217,7 @@ contract SigCallBufferTest is AccountTestBase {
         } else {
             validationConfig = ValidationConfigLib.pack({
                 _module: address(validationModule),
-                _entityId: 0,
+                _entityId: NEW_VALIDATION_ENTITY_ID,
                 _isGlobal: true,
                 _isSignatureValidation: true,
                 _isUserOpValidation: false
@@ -240,7 +247,7 @@ contract SigCallBufferTest is AccountTestBase {
                 address(validationModule),
                 abi.encodeCall(
                     IValidationModule.validateSignature,
-                    (address(account1), uint32(0), beneficiary, hash, fuzzConfig.signature)
+                    (address(account1), NEW_VALIDATION_ENTITY_ID, beneficiary, hash, fuzzConfig.signature)
                 )
             );
         }

@@ -83,7 +83,7 @@ contract DeferredActionTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account2),
-            nonce: 0,
+            nonce: _encodeNonceDefAction(_signerValidation, GLOBAL_V, 0),
             initCode: initCode,
             callData: abi.encodeCall(IModularAccount.execute, (address(0), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -146,7 +146,7 @@ contract DeferredActionTest is AccountTestBase {
         // Attempt to call it via a deferred action in a user op
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonceDefAction(_signerValidation, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodeCall(IModularAccount.execute, (address(0), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -196,7 +196,7 @@ contract DeferredActionTest is AccountTestBase {
         // Attempt to call it via a deferred action in a user op
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonceDefAction(_signerValidation, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodeCall(IModularAccount.execute, (address(0), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -248,7 +248,7 @@ contract DeferredActionTest is AccountTestBase {
         // Attempt to call it via a deferred action in a user op
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonceDefAction(_signerValidation, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodeCall(IModularAccount.execute, (address(0), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -336,7 +336,7 @@ contract DeferredActionTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonceDefAction(validation2, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodePacked(
                 IAccountExecute.executeUserOp.selector,

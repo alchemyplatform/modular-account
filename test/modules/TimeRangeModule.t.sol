@@ -152,7 +152,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(_signerValidation, GLOBAL_V, 0),
             initCode: hex"",
             callData: abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -165,8 +165,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
 
-        userOp.signature =
-            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         vm.prank(address(entryPoint));
         uint256 validationData = account1.validateUserOp(userOp, userOpHash, 0);
@@ -179,7 +178,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         );
     }
 
-    function testFuzz_timeRangeModule_userOp(uint48 time1, uint48 time2) public {
+    function testFuzz_timeRangeModule_userOp_success(uint48 time1, uint48 time2) public {
         vm.assume(time1 != time2);
         validUntil = time1 > time2 ? time1 : time2;
         validAfter = time1 < time2 ? time1 : time2;
@@ -188,7 +187,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(_signerValidation, GLOBAL_V, 0),
             initCode: hex"",
             callData: abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -201,8 +200,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
 
-        userOp.signature =
-            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         vm.prank(address(entryPoint));
         uint256 validationData = account1.validateUserOp(userOp, userOpHash, 0);
@@ -224,7 +222,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(_signerValidation, GLOBAL_V, 0),
             initCode: hex"",
             callData: abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -236,8 +234,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
         // Generate a bad signature
-        userOp.signature =
-            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, "abcd"));
+        userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, "abcd"));
 
         vm.prank(address(entryPoint));
         uint256 validationData = account1.validateUserOp(userOp, userOpHash, 0);
@@ -338,7 +335,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: 0,
+            nonce: _encodeNonce(_signerValidation, GLOBAL_V, 0),
             initCode: hex"",
             callData: abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -354,7 +351,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({index: uint8(0), validationData: "abcd"});
 
-        userOp.signature = _encodeSignature(_signerValidation, GLOBAL_VALIDATION, preValidationHookData, "");
+        userOp.signature = _encodeSignature(preValidationHookData, "");
 
         vm.prank(address(entryPoint));
         vm.expectRevert(
