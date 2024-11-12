@@ -31,6 +31,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+import {MockCountModule} from "../mocks/modules/MockCountModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
 contract DeferredValidationTest is AccountTestBase {
@@ -377,6 +378,59 @@ contract DeferredValidationTest is AccountTestBase {
         );
 
         _sendOp(userOp, "");
+    }
+
+    function test_deferredValidation_deployedWithValAssocExecHooks() external withSMATest {
+        MockCountModule hookModule = new MockCountModule();
+
+        // Install a validation-associated execution hook to the outer validation.
+        bytes[] memory hooks = new bytes[](1);
+        hooks[0] = abi.encodePacked(
+            HookConfigLib.packExecHook({_module: address(hookModule), _entityId: 0, _hasPre: true, _hasPost: true}),
+            "" // onInstall data
+        );
+        vm.prank(address(entryPoint));
+        account1.installValidation(
+            ValidationConfigLib.pack(_signerValidation, true, true, true), new bytes4[](0), "", hooks
+        );
+
+        uint256 nonce = entryPoint.getNonce(address(account1), 0);
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: nonce,
+            initCode: hex"",
+            callData: _encodedCall,
+            accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
+            preVerificationGas: 0,
+            gasFees: _encodeGas(1, 1),
+            paymasterAndData: hex"",
+            signature: ""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) =
+            vm.sign(_newSignerKey, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+
+        uint256 deferredInstallNonce = 0;
+        uint48 deferredInstallDeadline = 0;
+
+        userOp.signature = _buildFullDeferredInstallSig(
+            deferredInstallNonce,
+            deferredInstallDeadline,
+            _deferredValidationInstallCall,
+            _newUOValidation,
+            account1,
+            owner1Key,
+            uoSig
+        );
+
+        _sendOp(userOp, "");
+
+        // Ensure the pre and post-exec hook ran successfully.
+        assertEq(hookModule.preExecutionHookRunCount(), 1);
+        assertEq(hookModule.postExecutionHookRunCount(), 1);
     }
 
     function test_deferredValidation_initCode() external withSMATest {

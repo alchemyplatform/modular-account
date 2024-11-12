@@ -38,7 +38,7 @@ contract MockCountModule is ModuleBase, IExecutionHookModule, IValidationHookMod
     function postExecutionHook(uint32, bytes calldata preExecHookData) external override {
         require(
             abi.decode(preExecHookData, (bytes32)) == keccak256(hex"04546b"),
-            "mock direct call post execution hook failed"
+            "mockCountModule post execution hook failed"
         );
         postExecutionHookRunCount++;
     }
