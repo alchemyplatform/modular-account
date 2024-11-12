@@ -337,7 +337,7 @@ contract DeferredValidationTest is AccountTestBase {
             IEntryPoint.FailedOpWithRevert.selector,
             0,
             "AA23 reverted",
-            abi.encodeWithSelector(ModularAccountBase.OuterValidationHasValidationHooks.selector)
+            abi.encodeWithSelector(ModularAccountBase.DeferredValidationHasValidationHooks.selector)
         );
         _sendOp(userOp, expectedRevertData);
     }

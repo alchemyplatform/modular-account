@@ -104,7 +104,7 @@ abstract contract ModularAccountBase is
     error UnexpectedAggregator(ModuleEntity validationFunction, address aggregator);
     error UnrecognizedFunction(bytes4 selector);
     error ValidationFunctionMissing(bytes4 selector);
-    error OuterValidationHasValidationHooks();
+    error DeferredValidationHasValidationHooks();
 
     // Wraps execution of a native function with runtime validation and hooks
     // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution,
@@ -414,14 +414,6 @@ abstract contract ModularAccountBase is
         ///      [(33 + deferredActionSigLength + encodedDataLength):] : bytes, userOpSignature. This is the
         ///         signature passed to the inner validation.
         if (hasDeferredAction) {
-            // Use outer validation to validate the UO, and the inner validation as 1271 validation for the
-            // deferred action.
-            // Because this bypasses UO validation hooks, we require that the validation used does not include any
-            // validation hooks.
-            if (!getAccountStorage().validationStorage[validationFunction].validationHooks.isEmpty()) {
-                revert OuterValidationHasValidationHooks();
-            }
-
             // Use outer validation as a 1271 validation, then use the inner validation to validate the UO.
 
             // Get the length of the deferred action data.
@@ -447,13 +439,10 @@ abstract contract ModularAccountBase is
             // Note that while the declared type of the UO validation is `ValidationConfig`, the flags are
             // interpretted as validation selection flags, not validation installation flags.
             bytes25 uoValidation = bytes25(userOp.signature[:25]);
-            uint48 deadline = _validateDeferredActionAndSetNonce(uoValidation, encodedData, deferredActionSig);
+            (uint48 deadline, DensePostHookData postHookData) =
+                _validateDeferredActionAndSetNonce(uoValidation, encodedData, deferredActionSig);
             // Update the validation data with the deadline.
             validationData = uint256(deadline) << 160;
-
-            // Run the validation associated execution hooks, this is extracted in a function for stack management.
-            DensePostHookData postHookData =
-                _runValidationAssociatedExecHooks(validationFunction, encodedData[63:]);
 
             // Perform the deferred action's self call on the account.
             ExecutionLib.callBubbleOnRevertTransient(address(this), 0, encodedData[63:]);
@@ -494,7 +483,7 @@ abstract contract ModularAccountBase is
         bytes25 userOpValidationFunction,
         bytes calldata encodedData,
         bytes calldata sig
-    ) internal returns (uint48) {
+    ) internal returns (uint48, DensePostHookData) {
         // Decode stack vars for the deadline and nonce.
         // The deadline, nonce, inner validation, and deferred call selector are all at fixed positions in the
         // encodedData.
@@ -504,10 +493,18 @@ abstract contract ModularAccountBase is
         ValidationConfig defActionSigValidation = ValidationConfig.wrap(bytes25(encodedData[38:63]));
         bool isGlobalSigValidation = defActionSigValidation.isGlobal();
 
+        ModuleEntity defActionValidationModuleEntity = defActionSigValidation.moduleEntity();
+
+        // Because this bypasses UO validation hooks, we require that the validation used does not include any
+        // validation hooks.
+        if (!getAccountStorage().validationStorage[defActionValidationModuleEntity].validationHooks.isEmpty()) {
+            revert DeferredValidationHasValidationHooks();
+        }
+
         // Check if the outer validation applies to the function call
         _checkIfValidationAppliesCallData(
             encodedData[63:],
-            defActionSigValidation.moduleEntity(),
+            defActionValidationModuleEntity,
             isGlobalSigValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
@@ -530,12 +527,16 @@ abstract contract ModularAccountBase is
 
         // Clear the memory after performing signature validation
         MemSnapshot memSnapshot = MemManagementLib.freezeFMP();
-        if (_isValidSignature(defActionSigValidation.moduleEntity(), typedDataHash, sig) != _1271_MAGIC_VALUE) {
+        if (_isValidSignature(defActionValidationModuleEntity, typedDataHash, sig) != _1271_MAGIC_VALUE) {
             revert DeferredActionSignatureInvalid();
         }
         MemManagementLib.restoreFMP(memSnapshot);
 
-        return deadline;
+        // Run the validation associated execution hooks, this is extracted in a function for stack management.
+        DensePostHookData postHookData =
+            _runValidationAssociatedExecHooks(defActionValidationModuleEntity, encodedData[63:]);
+
+        return (deadline, postHookData);
     }
 
     // To support gas estimation, we don't fail early when the failure is caused by a signature failure
