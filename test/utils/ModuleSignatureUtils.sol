@@ -192,9 +192,9 @@ contract ModuleSignatureUtils {
     function _packValidationLocator(ModuleEntity validationFunction, uint8 validationSettings)
         internal
         pure
-        returns (ValidationConfig)
+        returns (bytes25)
     {
-        return ValidationConfig.wrap(bytes25(abi.encodePacked(validationFunction, validationSettings)));
+        return bytes25(abi.encodePacked(validationFunction, validationSettings));
     }
 
     // Deferred validation helpers
@@ -239,7 +239,7 @@ contract ModuleSignatureUtils {
         ValidationConfig validationFunction,
         bytes memory selfCall
     ) internal view returns (bytes32) {
-        ValidationConfig maskedValidationFunction = _packValidationLocator(
+        bytes25 maskedValidationFunction = _packValidationLocator(
             ValidationConfigLib.moduleEntity(validationFunction), GLOBAL_VALIDATION | HAS_DEFERRED_ACTION_BIT
         );
 

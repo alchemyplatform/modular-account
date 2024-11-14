@@ -438,7 +438,7 @@ abstract contract ModularAccountBase is
             // The struct must sign over the user op validation function, nonce, deadline, and the deferred action.
             // Note that while the declared type of the UO validation is `ValidationConfig`, the flags are
             // interpretted as validation selection flags, not validation installation flags.
-            ValidationConfig uoValidation = ValidationConfig.wrap(bytes25(userOp.signature[:25]));
+            bytes25 uoValidation = bytes25(userOp.signature[:25]);
             uint48 deadline = _validateDeferredActionAndSetNonce(uoValidation, encodedData, deferredActionSig);
             // Update the validation data with the deadline.
             validationData = uint256(deadline) << 160;
@@ -476,7 +476,7 @@ abstract contract ModularAccountBase is
 
     /// @return The deadline of the deferred action
     function _validateDeferredActionAndSetNonce(
-        ValidationConfig userOpValidationFunction,
+        bytes25 userOpValidationFunction,
         bytes calldata encodedData,
         bytes calldata sig
     ) internal returns (uint48) {
@@ -1027,7 +1027,7 @@ abstract contract ModularAccountBase is
         bytes calldata selfCall,
         uint256 nonce,
         uint48 deadline,
-        ValidationConfig validationFunction
+        bytes25 validationFunction
     ) internal view returns (bytes32) {
         // bytes32 result;
 
