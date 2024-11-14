@@ -371,6 +371,7 @@ abstract contract ModularAccountBase is
     function upgradeToAndCall(address newImplementation, bytes calldata data)
         public
         payable
+        virtual
         override
         onlyProxy
         wrapNativeFunction
