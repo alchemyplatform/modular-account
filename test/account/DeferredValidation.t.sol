@@ -380,7 +380,7 @@ contract DeferredValidationTest is AccountTestBase {
         _sendOp(userOp, "");
     }
 
-    function test_deferredValidation_deployedWithValAssocExecHooks() external withSMATest {
+    function test_deferredValidation_deployedWithValidationAssociatedExecHooks() external withSMATest {
         MockCountModule hookModule = new MockCountModule();
 
         // Install a validation-associated execution hook to the outer validation.
