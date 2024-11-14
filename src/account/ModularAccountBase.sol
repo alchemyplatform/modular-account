@@ -487,8 +487,6 @@ abstract contract ModularAccountBase is
         // Decode stack vars for the deadline and nonce.
         // The deadline, nonce, inner validation, and deferred call selector are all at fixed positions in the
         // encodedData.
-        uint256 nonce = uint256(bytes32(encodedData[:32]));
-        uint48 deadline = uint48(bytes6(encodedData[32:38]));
 
         ValidationConfig defActionSigValidation = ValidationConfig.wrap(bytes25(encodedData[38:63]));
         bool isGlobalSigValidation = defActionSigValidation.isGlobal();
@@ -508,22 +506,8 @@ abstract contract ModularAccountBase is
             isGlobalSigValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
-        // Check that the passed nonce isn't already invalidated.
-        if (getAccountStorage().deferredActionNonceUsed[nonce]) {
-            revert DeferredActionNonceInvalid();
-        }
-
-        // Invalidate the nonce.
-        getAccountStorage().deferredActionNonceUsed[nonce] = true;
-        emit DeferredActionNonceInvalidated(nonce);
-
-        // Compute the typed data hash to verify the signature over
-        bytes32 typedDataHash = _computeDeferredActionTypedDataHash(
-            encodedData[63:], // The encoded call without the nonce, deadline, and validation function
-            nonce,
-            deadline,
-            userOpValidationFunction
-        );
+        // Compute the typed data hash to verify the signature over, and fetch the deadline
+        (bytes32 typedDataHash, uint48 deadline) = _checkAndCompute712Data(encodedData, userOpValidationFunction);
 
         // Clear the memory after performing signature validation
         MemSnapshot memSnapshot = MemManagementLib.freezeFMP();
@@ -748,6 +732,74 @@ abstract contract ModularAccountBase is
         bytes calldata authorization
     ) internal virtual {
         ExecutionLib.invokeRuntimeCallBufferValidation(callBuffer, runtimeValidationFunction, authorization);
+    }
+
+    function _checkAndCompute712Data(
+        bytes calldata encodedData,
+        // bytes calldata selfCall,
+        // uint256 nonce,
+        // uint48 deadline,
+        bytes25 validationFunction
+    ) internal returns (bytes32, uint48) {
+        uint256 nonce = uint256(bytes32(encodedData[:32]));
+        uint48 deadline = uint48(bytes6(encodedData[32:38]));
+
+        // Check that the passed nonce isn't already invalidated.
+        if (getAccountStorage().deferredActionNonceUsed[nonce]) {
+            revert DeferredActionNonceInvalid();
+        }
+
+        // Invalidate the nonce.
+        getAccountStorage().deferredActionNonceUsed[nonce] = true;
+        emit DeferredActionNonceInvalidated(nonce);
+
+        // bytes32 result;
+
+        // Compute the hash without permanently allocating memory for each step.
+        // The following is equivalent to:
+        // keccak256(
+        //     abi.encode(
+        //         _INSTALL_VALIDATION_TYPEHASH,
+        //         nonce,
+        //         deadline,
+        //         validationFunction,
+        //         keccak256(selfCall)
+        //     )
+        // )
+
+        // Note that a zero deadline translates to "no deadline"
+        bytes calldata selfCall = encodedData[63:];
+        bytes32 structHash;
+
+        assembly ("memory-safe") {
+            // Get the hash of the dynamic-length encoded install call
+            let fmp := mload(0x40)
+            calldatacopy(fmp, selfCall.offset, selfCall.length)
+            let selfCallHash := keccak256(fmp, selfCall.length)
+
+            // Compute the struct hash
+            let ptr := fmp
+            mstore(ptr, _DEFERRED_ACTION_TYPEHASH)
+            ptr := add(ptr, 0x20)
+            mstore(ptr, nonce)
+            ptr := add(ptr, 0x20)
+            // Clear the upper bits of the deadline, in case the caller didn't.
+            mstore(ptr, and(deadline, 0xffffffffffff))
+            ptr := add(ptr, 0x20)
+            // Clear the lower bits of the validation function, in case the caller didn't.
+            mstore(
+                ptr, and(validationFunction, 0xffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000)
+            )
+            ptr := add(ptr, 0x20)
+            mstore(ptr, selfCallHash)
+
+            // Compute the struct hash
+            structHash := keccak256(fmp, 0xa0)
+        }
+
+        bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(_domainSeparator(), structHash);
+
+        return (typedDataHash, deadline);
     }
 
     function _isValidSignature(ModuleEntity sigValidation, bytes32 hash, bytes calldata signature)
@@ -1052,61 +1104,6 @@ abstract contract ModularAccountBase is
         returns (bool)
     {
         return getAccountStorage().validationStorage[validationFunction].selectors.contains(toSetValue(selector));
-    }
-
-    function _computeDeferredActionTypedDataHash(
-        bytes calldata selfCall,
-        uint256 nonce,
-        uint48 deadline,
-        bytes25 validationFunction
-    ) internal view returns (bytes32) {
-        // bytes32 result;
-
-        // Compute the hash without permanently allocating memory for each step.
-        // The following is equivalent to:
-        // keccak256(
-        //     abi.encode(
-        //         _INSTALL_VALIDATION_TYPEHASH,
-        //         nonce,
-        //         deadline,
-        //         validationFunction,
-        //         keccak256(selfCall)
-        //     )
-        // )
-
-        // Note that a zero deadline translates to "no deadline"
-
-        bytes32 structHash;
-
-        assembly ("memory-safe") {
-            // Get the hash of the dynamic-length encoded install call
-            let fmp := mload(0x40)
-            calldatacopy(fmp, selfCall.offset, selfCall.length)
-            let selfCallHash := keccak256(fmp, selfCall.length)
-
-            // Compute the struct hash
-            let ptr := fmp
-            mstore(ptr, _DEFERRED_ACTION_TYPEHASH)
-            ptr := add(ptr, 0x20)
-            mstore(ptr, nonce)
-            ptr := add(ptr, 0x20)
-            // Clear the upper bits of the deadline, in case the caller didn't.
-            mstore(ptr, and(deadline, 0xffffffffffff))
-            ptr := add(ptr, 0x20)
-            // Clear the lower bits of the validation function, in case the caller didn't.
-            mstore(
-                ptr, and(validationFunction, 0xffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000)
-            )
-            ptr := add(ptr, 0x20)
-            mstore(ptr, selfCallHash)
-
-            // Compute the struct hash
-            structHash := keccak256(fmp, 0xa0)
-        }
-
-        bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(_domainSeparator(), structHash);
-
-        return typedDataHash;
     }
 
     function _domainSeparator() internal view returns (bytes32) {
