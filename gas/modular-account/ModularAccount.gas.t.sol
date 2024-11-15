@@ -279,12 +279,10 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("ModularAccount") 
             account1, deferredInstallNonce, deferredInstallDeadline, newUOValidation, deferredValidationInstallCall
         );
 
-        bytes memory deferredValidationSig = _packFinalSignature(
-            _signRawHash(
-                vm,
-                owner1Key,
-                _getModuleReplaySafeHash(address(account1), address(singleSignerValidationModule), digest)
-            )
+        bytes memory deferredValidationSig = _signRawHash(
+            vm,
+            owner1Key,
+            _getModuleReplaySafeHash(address(account1), address(singleSignerValidationModule), digest)
         );
 
         userOp.signature = _encodeDeferredInstallUOSignature(

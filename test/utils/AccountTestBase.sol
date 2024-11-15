@@ -323,7 +323,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
                     _getModuleReplaySafeHash(address(account), address(singleSignerValidationModule), digest);
             }
 
-            deferredValidationSig = _packFinalSignature(_signRawHash(vm, signingKey, replaySafeHash));
+            deferredValidationSig = _signRawHash(vm, signingKey, replaySafeHash);
 
             deferredValidationDatas = _packDeferredInstallData(
                 deferredInstallNonce,

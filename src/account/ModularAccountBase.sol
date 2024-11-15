@@ -445,7 +445,7 @@ abstract contract ModularAccountBase is
             // validation memory.
             MemSnapshot memSnapshot = MemManagementLib.freezeFMP();
 
-            uint48 deadline = _validateDeferredAction(uoValidation, encodedData, deferredActionSig);
+            uint48 deadline = _handleDeferredAction(uoValidation, encodedData, deferredActionSig);
 
             // Restore the free memory pointer.
             MemManagementLib.restoreFMP(memSnapshot);
@@ -482,7 +482,7 @@ abstract contract ModularAccountBase is
     }
 
     /// @return The deadline of the deferred action
-    function _validateDeferredAction(
+    function _handleDeferredAction(
         bytes25 userOpValidationFunction,
         bytes calldata encodedData,
         bytes calldata sig
@@ -508,13 +508,10 @@ abstract contract ModularAccountBase is
             isGlobalSigValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
-        // Compute the typed data hash to verify the signature over, and fetch the deadline
-        (bytes32 typedDataHash, uint48 deadline) =
-            _handleSelfCall712DataAndNonce(encodedData, userOpValidationFunction);
-
-        if (_isValidSignature(defActionValidationModuleEntity, typedDataHash, sig) != _1271_MAGIC_VALUE) {
-            revert DeferredActionSignatureInvalid();
-        }
+        // Handle the signature validation
+        uint48 deadline = _validateDeferredActionSignature(
+            encodedData, sig, userOpValidationFunction, defActionValidationModuleEntity
+        );
 
         // Run the validation associated execution hooks, allocating a call buffer as needed.
         HookConfig[] memory validationAssocExecHooks =
@@ -732,13 +729,12 @@ abstract contract ModularAccountBase is
         ExecutionLib.invokeRuntimeCallBufferValidation(callBuffer, runtimeValidationFunction, authorization);
     }
 
-    function _handleSelfCall712DataAndNonce(
+    function _validateDeferredActionSignature(
         bytes calldata encodedData,
-        // bytes calldata selfCall,
-        // uint256 nonce,
-        // uint48 deadline,
-        bytes25 validationFunction
-    ) internal returns (bytes32, uint48) {
+        bytes calldata signature,
+        bytes25 userOpValidationFunction,
+        ModuleEntity deferredSigValidationModuleEntity
+    ) internal returns (uint48) {
         uint256 nonce = uint256(bytes32(encodedData[:32]));
         uint48 deadline = uint48(bytes6(encodedData[32:38]));
 
@@ -755,7 +751,7 @@ abstract contract ModularAccountBase is
         // The following is equivalent to:
         // keccak256(
         //     abi.encode(
-        //         _INSTALL_VALIDATION_TYPEHASH,
+        //         _DEFERRED_ACTION_TYPEHASH,
         //         nonce,
         //         deadline,
         //         validationFunction,
@@ -768,38 +764,58 @@ abstract contract ModularAccountBase is
         // Fetch the self-call from the encoded data.
         bytes calldata selfCall = encodedData[63:];
 
-        // This will hold the EIP712 structHash.
-        bytes32 structHash;
+        // Compute the typed data hash.
+        bytes32 typedDataHash;
+        {
+            bytes32 structHash;
 
-        assembly ("memory-safe") {
-            // Get the hash of the dynamic-length encoded install call
-            let fmp := mload(0x40)
-            calldatacopy(fmp, selfCall.offset, selfCall.length)
-            let selfCallHash := keccak256(fmp, selfCall.length)
+            assembly ("memory-safe") {
+                // Get the hash of the dynamic-length encoded install call
+                let fmp := mload(0x40)
+                calldatacopy(fmp, selfCall.offset, selfCall.length)
+                let selfCallHash := keccak256(fmp, selfCall.length)
 
-            // Compute the struct hash
-            let ptr := fmp
-            mstore(ptr, _DEFERRED_ACTION_TYPEHASH)
-            ptr := add(ptr, 0x20)
-            mstore(ptr, nonce)
-            ptr := add(ptr, 0x20)
-            // Clear the upper bits of the deadline, in case the caller didn't.
-            mstore(ptr, and(deadline, 0xffffffffffff))
-            ptr := add(ptr, 0x20)
-            // Clear the lower bits of the validation function, in case the caller didn't.
-            mstore(
-                ptr, and(validationFunction, 0xffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000)
-            )
-            ptr := add(ptr, 0x20)
-            mstore(ptr, selfCallHash)
+                // Compute the struct hash
+                let ptr := fmp
+                mstore(ptr, _DEFERRED_ACTION_TYPEHASH)
+                ptr := add(ptr, 0x20)
+                mstore(ptr, nonce)
+                ptr := add(ptr, 0x20)
+                // Clear the upper bits of the deadline, in case the caller didn't.
+                mstore(ptr, and(deadline, 0xffffffffffff))
+                ptr := add(ptr, 0x20)
+                // Clear the lower bits of the validation function, in case the caller didn't.
+                mstore(
+                    ptr,
+                    and(
+                        userOpValidationFunction,
+                        0xffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000
+                    )
+                )
+                ptr := add(ptr, 0x20)
+                mstore(ptr, selfCallHash)
 
-            // Compute the struct hash
-            structHash := keccak256(fmp, 0xa0)
+                // Compute the struct hash
+                structHash := keccak256(fmp, 0xa0)
+            }
+
+            typedDataHash = MessageHashUtils.toTypedDataHash(_domainSeparator(), structHash);
         }
 
-        bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(_domainSeparator(), structHash);
+        // Validate the 1271 signature.
+        SigCallBuffer sigCallBuffer;
+        if (!_validationIsNative(deferredSigValidationModuleEntity)) {
+            sigCallBuffer = ExecutionLib.allocateSigCallBuffer(typedDataHash, signature);
+        }
 
-        return (typedDataHash, deadline);
+        if (
+            _exec1271Validation(sigCallBuffer, typedDataHash, deferredSigValidationModuleEntity, signature)
+                != _1271_MAGIC_VALUE
+        ) {
+            revert DeferredActionSignatureInvalid();
+        }
+
+        return deadline;
     }
 
     function _isValidSignature(ModuleEntity sigValidation, bytes32 hash, bytes calldata signature)
