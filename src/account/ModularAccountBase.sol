@@ -414,7 +414,7 @@ abstract contract ModularAccountBase is
         ///      [(33 + deferredActionSigLength + encodedDataLength):] : bytes, userOpSignature. This is the
         ///         signature passed to the inner validation.
         if (hasDeferredAction) {
-            // Use outer inner validation as a 1271 validation for the deferred action, then use the outer
+            // Use inner validation as a 1271 validation for the deferred action, then use the outer
             // validation to validate the UO.
 
             // Get the length of the deferred action data.
