@@ -69,9 +69,9 @@ function getAccountStorage() pure returns (AccountStorage storage _storage) {
 }
 
 function toSetValue(HookConfig hookConfig) pure returns (SetValue) {
-    return SetValue.wrap(bytes30(HookConfig.unwrap(hookConfig)));
+    return SetValue.wrap(bytes31(HookConfig.unwrap(hookConfig)));
 }
 
 function toSetValue(bytes4 selector) pure returns (SetValue) {
-    return SetValue.wrap(bytes30(selector));
+    return SetValue.wrap(bytes31(selector));
 }

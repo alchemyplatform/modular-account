@@ -44,21 +44,21 @@ contract LinkedListSetHandler is CommonBase, StdCheats, StdUtils {
 
     EnumerableSetType internal _libSet;
 
-    error FailedToAdd(bytes30 value);
-    error FailedToRemove(bytes30 value);
-    error ShouldNotRemove(bytes30 value);
-    error ContainsNotExpected(bytes30 value);
-    error DoesNotContain(bytes30 value);
+    error FailedToAdd(bytes31 value);
+    error FailedToRemove(bytes31 value);
+    error ShouldNotRemove(bytes31 value);
+    error ContainsNotExpected(bytes31 value);
+    error DoesNotContain(bytes31 value);
     error LengthMismatch(uint256 expected, uint256 actual);
-    error MetaDoesNotContain(bytes30 value);
+    error MetaDoesNotContain(bytes31 value);
 
     bytes32 internal constant _SENTINEL_VALUE = bytes32(uint256(1));
 
     constructor() {}
 
     /// @notice Adds to both copies of the list - the library one and the reference one
-    function add(bytes30 val) external {
-        if (_referenceSet.contains(bytes32(val)) || val == bytes30(0)) {
+    function add(bytes31 val) external {
+        if (_referenceSet.contains(bytes32(val)) || val == bytes31(0)) {
             return; // Silently do nothing
         }
 
@@ -79,7 +79,7 @@ contract LinkedListSetHandler is CommonBase, StdCheats, StdUtils {
 
         indexToRemove = bound(indexToRemove, 0, _referenceSet.length() - 1);
 
-        bytes30 value = bytes30(_referenceSet.at(indexToRemove));
+        bytes31 value = bytes31(_referenceSet.at(indexToRemove));
 
         // Assert the value was in the reference set and is now removed.
         if (!_referenceSet.remove(bytes32(value))) {
@@ -101,7 +101,7 @@ contract LinkedListSetHandler is CommonBase, StdCheats, StdUtils {
     /// @notice Removes a key from both sets.
     ///         Accepts an arbitrary value to attempt to remove that may or may not be in the list.
     ///         Uses the  O(n) iterating remove method.
-    function removeRandKeyIterate(bytes30 val) external {
+    function removeRandKeyIterate(bytes31 val) external {
         if (!_referenceSet.contains(bytes32(val))) {
             if (_libSet.contains(SetValue.wrap(val))) {
                 revert ContainsNotExpected(val);
@@ -140,7 +140,7 @@ contract LinkedListSetHandler is CommonBase, StdCheats, StdUtils {
 
         index = bound(index, 0, _referenceSet.length() - 1);
 
-        bytes30 value = bytes30(_referenceSet.at(index));
+        bytes31 value = bytes31(_referenceSet.at(index));
 
         _referenceSet.remove(bytes32(value));
 
@@ -155,7 +155,7 @@ contract LinkedListSetHandler is CommonBase, StdCheats, StdUtils {
 
         bytes32 prev;
         for (uint256 i = 0; i < values.length; i++) {
-            if (SetValue.unwrap(values[i]) == bytes30(value)) {
+            if (SetValue.unwrap(values[i]) == bytes31(value)) {
                 if (i == 0) {
                     prev = _SENTINEL_VALUE;
                 } else {
@@ -180,7 +180,7 @@ contract LinkedListSetHandler is CommonBase, StdCheats, StdUtils {
 
     /// @notice Removes a key using the O(1) remove method that has knowledge of the previous key.
     ///         Accepts an arbitrary value for the remove and for prev that may or may not be in the list.
-    function removeRandKnownPrevKey(bytes30 val, bytes32 prev) external {
+    function removeRandKnownPrevKey(bytes31 val, bytes32 prev) external {
         if (!_referenceSet.contains(bytes32(val))) {
             if (_libSet.contains(SetValue.wrap(val))) {
                 revert ContainsNotExpected(val);
@@ -201,7 +201,7 @@ contract LinkedListSetHandler is CommonBase, StdCheats, StdUtils {
         }
         bytes32 realPrev;
         for (uint256 i = 0; i < values.length; i++) {
-            if (SetValue.unwrap(values[i]) == bytes30(val)) {
+            if (SetValue.unwrap(values[i]) == bytes31(val)) {
                 if (i == 0) {
                     realPrev = _SENTINEL_VALUE;
                 } else {
@@ -237,7 +237,7 @@ contract LinkedListSetHandler is CommonBase, StdCheats, StdUtils {
     /// @notice Clears both copies of the list - the library one and the reference one.
     function clear() external {
         while (_referenceSet.length() > 0) {
-            bytes30 value = bytes30(_referenceSet.at(0));
+            bytes31 value = bytes31(_referenceSet.at(0));
             _referenceSet.remove(bytes32(value));
             _referenceMeta.remove(bytes32(value));
         }
@@ -246,12 +246,12 @@ contract LinkedListSetHandler is CommonBase, StdCheats, StdUtils {
     }
 
     /// @notice Checks if the library set contains a value
-    function libContains(bytes30 val) external view returns (bool) {
+    function libContains(bytes31 val) external view returns (bool) {
         return _libSet.contains(SetValue.wrap(val));
     }
 
     /// @notice Checks if the reference set contains a value
-    function referenceContains(bytes30 val) external view returns (bool) {
+    function referenceContains(bytes31 val) external view returns (bool) {
         return _referenceSet.contains(bytes32(val));
     }
 

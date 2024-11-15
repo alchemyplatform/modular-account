@@ -48,7 +48,7 @@ contract LinkedListSetLibInvariantsTest is Test {
             assertFalse(handler.referenceIsEmpty());
             assertFalse(handler.libIsEmpty());
             for (uint256 i = 0; i < vals.length; i++) {
-                bytes30 val = bytes30(vals[i]);
+                bytes31 val = bytes31(vals[i]);
                 assertTrue(handler.libContains(val));
                 assertTrue(handler.referenceContains(val));
             }
