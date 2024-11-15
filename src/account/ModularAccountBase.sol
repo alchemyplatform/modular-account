@@ -497,7 +497,7 @@ abstract contract ModularAccountBase is
 
         // Because this bypasses UO validation hooks, we require that the validation used does not include any
         // validation hooks.
-        if (!getAccountStorage().validationStorage[defActionValidationModuleEntity].validationHooks.isEmpty()) {
+        if (getAccountStorage().validationStorage[defActionValidationModuleEntity].validationHookCount != 0) {
             revert DeferredValidationHasValidationHooks();
         }
 
