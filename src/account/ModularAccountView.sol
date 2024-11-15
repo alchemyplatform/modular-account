@@ -8,7 +8,13 @@ import {
     ValidationDataView
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IModularAccountView} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
+import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+
 import {NativeFunctionDelegate} from "../helpers/NativeFunctionDelegate.sol";
+import {IModularAccountBase} from "../interfaces/IModularAccountBase.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {ExecutionStorage, ValidationStorage, getAccountStorage} from "./AccountStorage.sol";
 
@@ -28,9 +34,13 @@ abstract contract ModularAccountView is IModularAccountView {
         // return ModularAccountViewLib.getExecutionData(selector, _isNativeFunction(selector));
         ExecutionStorage storage executionStorage = getAccountStorage().executionStorage[selector];
 
-        if (_isNativeFunction(uint32(selector))) {
+        if (_isGlobalValidationAllowedNativeFunction(selector)) {
             data.module = address(this);
             data.allowGlobalValidation = true;
+        } else if (_isNativeFunction(uint32(selector))) {
+            // native view functions
+            data.module = address(this);
+            data.skipRuntimeValidation = true;
         } else {
             data.module = executionStorage.module;
             data.skipRuntimeValidation = executionStorage.skipRuntimeValidation;
@@ -67,5 +77,23 @@ abstract contract ModularAccountView is IModularAccountView {
 
     function _isNativeFunction(uint32 selector) internal view virtual returns (bool) {
         return _NATIVE_FUNCTION_DELEGATE.isNativeFunction(selector);
+    }
+
+    function _isGlobalValidationAllowedNativeFunction(bytes4 selector) internal view virtual returns (bool) {
+        if (
+            selector == IModularAccount.execute.selector || selector == IModularAccount.executeBatch.selector
+                || selector == IAccountExecute.executeUserOp.selector
+                || selector == IModularAccount.executeWithRuntimeValidation.selector
+                || selector == IModularAccount.installExecution.selector
+                || selector == IModularAccount.uninstallExecution.selector
+                || selector == IModularAccount.installValidation.selector
+                || selector == IModularAccount.uninstallValidation.selector
+                || selector == UUPSUpgradeable.upgradeToAndCall.selector
+                || selector == IModularAccountBase.invalidateDeferredValidationInstallNonce.selector
+                || selector == IModularAccountBase.performCreate.selector
+        ) {
+            return true;
+        }
+        return false;
     }
 }

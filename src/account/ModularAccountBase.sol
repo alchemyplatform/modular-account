@@ -27,6 +27,8 @@ import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
 import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
+
+import {IModularAccountBase} from "../interfaces/IModularAccountBase.sol";
 import {
     DensePostHookData,
     ExecutionLib,
@@ -50,6 +52,7 @@ import {TokenReceiver} from "./TokenReceiver.sol";
 /// deferred actions during validation.
 abstract contract ModularAccountBase is
     IModularAccount,
+    IModularAccountBase,
     ModularAccountView,
     AccountStorageInitializable,
     AccountBase,
@@ -148,14 +151,12 @@ abstract contract ModularAccountBase is
         return execReturnData;
     }
 
-    /// @notice Create a contract.
-    /// @param value The value to send to the new contract constructor
-    /// @param initCode The initCode to deploy.
-    /// @return createdAddr The created contract address.
+    /// @inheritdoc IModularAccountBase
     function performCreate(uint256 value, bytes calldata initCode, bool isCreate2, bytes32 salt)
         external
         payable
         virtual
+        override
         wrapNativeFunction
         returns (address createdAddr)
     {
@@ -339,8 +340,8 @@ abstract contract ModularAccountBase is
         _uninstallValidation(validationFunction, uninstallData, hookUninstallData);
     }
 
-    /// @notice May be validated by a global validation
-    function invalidateDeferredValidationInstallNonce(uint256 nonce) external wrapNativeFunction {
+    /// @inheritdoc IModularAccountBase
+    function invalidateDeferredValidationInstallNonce(uint256 nonce) external override wrapNativeFunction {
         getAccountStorage().deferredActionNonceUsed[nonce] = true;
         emit DeferredActionNonceInvalidated(nonce);
     }
@@ -380,7 +381,8 @@ abstract contract ModularAccountBase is
         super.upgradeToAndCall(newImplementation, data);
     }
 
-    function isValidSignature(bytes32 hash, bytes calldata signature) public view returns (bytes4) {
+    /// @inheritdoc IERC1271
+    function isValidSignature(bytes32 hash, bytes calldata signature) public view override returns (bytes4) {
         ModuleEntity sigValidation = ModuleEntity.wrap(bytes24(signature));
         signature = signature[24:];
         return _isValidSignature(sigValidation, hash, signature);
@@ -870,21 +872,6 @@ abstract contract ModularAccountBase is
         return _1271_INVALID;
     }
 
-    function _globalValidationAllowed(bytes4 selector) internal view virtual returns (bool) {
-        if (
-            selector == this.execute.selector || selector == this.executeBatch.selector
-                || selector == this.installExecution.selector || selector == this.uninstallExecution.selector
-                || selector == this.installValidation.selector || selector == this.uninstallValidation.selector
-                || selector == this.upgradeToAndCall.selector
-                || selector == this.invalidateDeferredValidationInstallNonce.selector
-                || selector == this.performCreate.selector
-        ) {
-            return true;
-        }
-
-        return getAccountStorage().executionStorage[selector].allowGlobalValidation;
-    }
-
     function _isValidationGlobal(ModuleEntity validationFunction) internal view virtual returns (bool) {
         return getAccountStorage().validationStorage[validationFunction].isGlobal;
     }
@@ -1113,6 +1100,11 @@ abstract contract ModularAccountBase is
         returns (bool)
     {
         return _globalValidationAllowed(selector) && _isValidationGlobal(validationFunction);
+    }
+
+    function _globalValidationAllowed(bytes4 selector) internal view virtual returns (bool) {
+        return _isGlobalValidationAllowedNativeFunction(selector)
+            || getAccountStorage().executionStorage[selector].allowGlobalValidation;
     }
 
     function _selectorValidationApplies(bytes4 selector, ModuleEntity validationFunction)
