@@ -32,7 +32,7 @@ import {IERC165, ModuleBase} from "../ModuleBase.sol";
 /// @notice This module supports a total native token spend limit across User Operation gas and native transfers.
 /// - None of the functions are installed on the account. Account states are to be retrieved from this global
 ///   singleton directly.
-/// - This module only tracks native transfers for the 4 functions `execute`, `executeBatch`, `performCreate`.
+/// - This module only tracks native transfers for the 3 functions `execute`, `executeBatch`, `performCreate`.
 /// - By default, using a paymaster in a UO would cause the limit to not decrease. If an account uses a special
 ///   paymaster that converts non-native tokens in the account to pay for gas, this paymaster should be added to
 ///   the `specialPaymasters` list to enable the correct accounting of spend limits. When these paymasters are used
@@ -153,7 +153,8 @@ contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidation
 
     /// @inheritdoc ModuleBase
     function supportsInterface(bytes4 interfaceId) public view override(ModuleBase, IERC165) returns (bool) {
-        return interfaceId == type(IExecutionHookModule).interfaceId || super.supportsInterface(interfaceId);
+        return interfaceId == type(IExecutionHookModule).interfaceId
+            || interfaceId == type(IValidationHookModule).interfaceId || super.supportsInterface(interfaceId);
     }
 
     function _decreaseLimit(uint32 entityId, PackedUserOperation calldata userOp, bool hasPaymaster) internal {
