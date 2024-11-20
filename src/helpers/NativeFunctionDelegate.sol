@@ -33,7 +33,6 @@ contract NativeFunctionDelegate {
             || selector == uint32(IModularAccount.accountId.selector)
             || selector == uint32(IAccountExecute.executeUserOp.selector)
             || selector == uint32(IModularAccountBase.performCreate.selector)
-            || selector == uint32(IModularAccountBase.invalidateDeferredValidationInstallNonce.selector)
             || selector == uint32(IERC1271.isValidSignature.selector)
         // check against IModularAccountView methods
         || selector == uint32(IModularAccountView.getExecutionData.selector)

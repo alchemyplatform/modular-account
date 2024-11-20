@@ -91,7 +91,6 @@ abstract contract ModularAccountView is IModularAccountView {
                 || selector == IModularAccount.installValidation.selector
                 || selector == IModularAccount.uninstallValidation.selector
                 || selector == UUPSUpgradeable.upgradeToAndCall.selector
-                || selector == IModularAccountBase.invalidateDeferredValidationInstallNonce.selector
                 || selector == IModularAccountBase.performCreate.selector
         ) {
             return true;

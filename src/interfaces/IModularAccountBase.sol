@@ -12,8 +12,4 @@ interface IModularAccountBase {
         external
         payable
         returns (address createdAddr);
-
-    /// @notice Invalidate a nonce for deferred actions
-    /// @param nonce the nonce to invalidate.
-    function invalidateDeferredValidationInstallNonce(uint256 nonce) external;
 }

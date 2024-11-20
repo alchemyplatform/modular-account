@@ -61,8 +61,6 @@ struct AccountStorage {
     mapping(ValidationLookupKey lookupKey => ValidationStorage) validationStorage;
     // Module-defined ERC-165 interfaces installed on the account.
     mapping(bytes4 => uint256) supportedIfaces;
-    // Nonce usage state for deferred actions.
-    mapping(uint256 => bool) deferredActionNonceUsed;
 }
 
 function getAccountStorage() pure returns (AccountStorage storage _storage) {

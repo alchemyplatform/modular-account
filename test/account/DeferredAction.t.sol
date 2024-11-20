@@ -99,7 +99,6 @@ contract DeferredActionTest is AccountTestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         bytes memory deferredAction = abi.encodeCall(
@@ -108,14 +107,7 @@ contract DeferredActionTest is AccountTestBase {
         );
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            deferredAction,
-            // Use the same validation for the deferred action and the user op
-            ValidationConfigLib.pack(_signerValidation, true, false, false),
-            account2,
-            owner1Key,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, deferredAction, account2, owner1Key, uoSig
         );
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -160,20 +152,12 @@ contract DeferredActionTest is AccountTestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         bytes memory deferredAction = abi.encodeWithSelector(newFunctionSelector);
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            deferredAction,
-            // Use the same validation for the deferred action and the user op
-            ValidationConfigLib.pack(_signerValidation, true, false, false),
-            account1,
-            owner1Key,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, deferredAction, account1, owner1Key, uoSig
         );
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -210,7 +194,6 @@ contract DeferredActionTest is AccountTestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         bytes memory deferredAction = abi.encodeCall(
@@ -218,14 +201,7 @@ contract DeferredActionTest is AccountTestBase {
         );
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            deferredAction,
-            // Use the same validation for the deferred action and the user op
-            ValidationConfigLib.pack(_signerValidation, true, false, false),
-            account1,
-            owner1Key,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, deferredAction, account1, owner1Key, uoSig
         );
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -262,7 +238,6 @@ contract DeferredActionTest is AccountTestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         Call[] memory innerCalls = new Call[](1);
@@ -279,14 +254,7 @@ contract DeferredActionTest is AccountTestBase {
         bytes memory deferredAction = abi.encodeCall(IModularAccount.executeBatch, (outerCalls));
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            deferredAction,
-            // Use the same validation for the deferred action and the user op
-            ValidationConfigLib.pack(_signerValidation, true, false, false),
-            account1,
-            owner1Key,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, deferredAction, account1, owner1Key, uoSig
         );
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -353,20 +321,12 @@ contract DeferredActionTest is AccountTestBase {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         bytes memory deferredAction = abi.encodeCall(IModularAccount.execute, (address(0), 0 wei, hex"02"));
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            deferredAction,
-            // Use the same validation for the deferred action and the user op
-            ValidationConfigLib.pack(validation2, true, false, false),
-            account1,
-            owner1Key,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, deferredAction, account1, owner1Key, uoSig
         );
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);

@@ -38,15 +38,15 @@ library ValidationLocatorLib {
     uint8 internal constant _HAS_DEFERRED_ACTION = 2;
     uint8 internal constant _IS_DIRECT_CALL_VALIDATION = 4;
 
-    function moduleEntity(ValidationLocator locator, ValidationStorage storage validationStorage)
+    function moduleEntity(ValidationLookupKey lookup, ValidationStorage storage validationStorage)
         internal
         view
         returns (ModuleEntity result)
     {
-        if (locator.isDirectCallValidation()) {
-            result = ModuleEntityLib.pack(locator.directCallAddress(), DIRECT_CALL_VALIDATION_ENTITYID);
+        if (lookup.isDirectCallValidation()) {
+            result = ModuleEntityLib.pack(lookup.directCallAddress(), DIRECT_CALL_VALIDATION_ENTITYID);
         } else {
-            result = ModuleEntityLib.pack(validationStorage.module, locator.entityId());
+            result = ModuleEntityLib.pack(validationStorage.module, lookup.entityId());
         }
     }
 
@@ -157,17 +157,17 @@ library ValidationLocatorLib {
         }
     }
 
-    // Only safe to call if the locator has been asserted to be a direct call validation.
-    function directCallAddress(ValidationLocator locator) internal pure returns (address result) {
+    // Only safe to call if the lookup has been asserted to be a direct call validation.
+    function directCallAddress(ValidationLookupKey lookup) internal pure returns (address result) {
         assembly ("memory-safe") {
-            result := and(shr(8, locator), 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
+            result := and(shr(8, lookup), 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
         }
     }
 
-    // Only safe to call if the locator has been asserted to be a non-direct call validation.
-    function entityId(ValidationLocator locator) internal pure returns (uint32 result) {
+    // Only safe to call if the lookup has been asserted to be a non-direct call validation.
+    function entityId(ValidationLookupKey lookup) internal pure returns (uint32 result) {
         assembly ("memory-safe") {
-            result := and(shr(8, locator), 0xFFFFFFFFFFFFFFFF)
+            result := and(shr(8, lookup), 0xFFFFFFFFFFFFFFFF)
         }
     }
 
@@ -179,8 +179,8 @@ library ValidationLocatorLib {
         return (ValidationLocator.unwrap(locator) & _HAS_DEFERRED_ACTION) != 0;
     }
 
-    function isDirectCallValidation(ValidationLocator locator) internal pure returns (bool) {
-        return (ValidationLocator.unwrap(locator) & _IS_DIRECT_CALL_VALIDATION) != 0;
+    function isDirectCallValidation(ValidationLookupKey lookup) internal pure returns (bool) {
+        return (ValidationLookupKey.unwrap(lookup) & _IS_DIRECT_CALL_VALIDATION) != 0;
     }
 
     function configToLookupKey(ValidationConfig validationConfig)
@@ -322,6 +322,32 @@ library ValidationLocatorLib {
         }
 
         return bytes.concat(abi.encodePacked(options, uint160(directCallValidation)), signature);
+    }
+
+    // Converts a module entity to a locator.
+    function packFromModuleEntity(ModuleEntity _moduleEntity, bool _isGlobal, bool _hasDeferredAction)
+        internal
+        pure
+        returns (ValidationLocator)
+    {
+        uint168 result;
+
+        (address module, uint32 _entityId) = ModuleEntityLib.unpack(_moduleEntity);
+        if (_entityId == DIRECT_CALL_VALIDATION_ENTITYID) {
+            result = uint168(uint160(module)) << 8 | _IS_DIRECT_CALL_VALIDATION;
+        } else {
+            result = uint168(_entityId) << 8;
+        }
+
+        if (_isGlobal) {
+            result |= _VALIDATION_TYPE_GLOBAL;
+        }
+
+        if (_hasDeferredAction) {
+            result |= _HAS_DEFERRED_ACTION;
+        }
+
+        return ValidationLocator.wrap(result);
     }
 
     // Operators

@@ -15,6 +15,7 @@ import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
+import {ValidationLocatorLib} from "../../src/libraries/ValidationLocatorLib.sol";
 import {ModularAccountBenchmarkBase} from "./ModularAccountBenchmarkBase.sol";
 
 contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccount") {
@@ -264,20 +265,18 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
             (newUOValidation, new bytes4[](0), abi.encode(newEntityId, owner2), new bytes[](0))
         );
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         bytes32 digest = _getDeferredInstallStruct(
-            account1, deferredInstallNonce, deferredInstallDeadline, newUOValidation, deferredValidationInstallCall
+            account1, userOp.nonce, deferredInstallDeadline, deferredValidationInstallCall
         );
 
         bytes memory deferredValidationSig = _signRawHash(vm, owner1Key, digest);
 
         userOp.signature = _encodeDeferredInstallUOSignature(
             _packDeferredInstallData(
-                deferredInstallNonce,
                 deferredInstallDeadline,
-                ValidationConfigLib.pack(signerValidation, true, false, false),
+                ValidationLocatorLib.packFromModuleEntity(signerValidation, true, false),
                 deferredValidationInstallCall
             ),
             deferredValidationSig,

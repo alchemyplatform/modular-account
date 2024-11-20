@@ -35,6 +35,7 @@ import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBy
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
 import {ExecutionInstallDelegate} from "../../src/helpers/ExecutionInstallDelegate.sol";
+import {ValidationLocator, ValidationLocatorLib} from "../../src/libraries/ValidationLocatorLib.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 import {WebAuthnValidationModule} from "../../src/modules/validation/WebAuthnValidationModule.sol";
 
@@ -316,24 +317,24 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     // - ecdsaValidation, when not SMA
     // for 1271 signing the deferred action of install
     function _buildFullDeferredInstallSig(
-        uint256 deferredInstallNonce,
+        uint256 userOpNonce,
         uint48 deferredInstallDeadline,
         bytes memory deferredValidationInstallCall,
-        ValidationConfig uoValidationFunction,
         ModularAccount account,
         uint256 signingKey,
         bytes memory uoSig
     ) internal view returns (bytes memory) {
+        ValidationLocator defActionValidation = ValidationLocatorLib.packFromModuleEntity({
+            _moduleEntity: _signerValidation,
+            _isGlobal: true,
+            _hasDeferredAction: false // The inner deferred action can't recursively have deferred actions.
+        });
+
         bytes memory deferredValidationSig;
         bytes memory deferredValidationDatas;
         {
             bytes32 digest = _getDeferredInstallStruct(
-                account,
-                deferredInstallNonce,
-                deferredInstallDeadline,
-                // Use global validation for performing the deferred action.
-                uoValidationFunction,
-                deferredValidationInstallCall
+                account, userOpNonce, deferredInstallDeadline, deferredValidationInstallCall
             );
 
             bytes32 replaySafeHash;
@@ -347,10 +348,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
             deferredValidationSig = _signRawHash(vm, signingKey, replaySafeHash);
 
             deferredValidationDatas = _packDeferredInstallData(
-                deferredInstallNonce,
-                deferredInstallDeadline,
-                ValidationConfigLib.pack(_signerValidation, true, false, false),
-                deferredValidationInstallCall
+                deferredInstallDeadline, defActionValidation, deferredValidationInstallCall
             );
         }
 

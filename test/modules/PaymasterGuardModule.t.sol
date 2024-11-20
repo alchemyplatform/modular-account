@@ -40,7 +40,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
     address public account;
     address public paymaster1;
     address public paymaster2;
-    uint32 public constant ENTITY_ID = TEST_DEFAULT_VALIDATION_ENTITY_ID;
+    uint32 public constant ENTITY_ID = 1;
 
     function setUp() public override {
         _revertSnapshot = vm.snapshotState();

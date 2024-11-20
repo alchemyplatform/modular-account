@@ -90,27 +90,16 @@ contract DeferredValidationTest is AccountTestBase {
             vm.sign(_newSignerKey, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            _deferredValidationInstallCall,
-            _newUOValidation,
-            account1,
-            owner1Key,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, _deferredValidationInstallCall, account1, owner1Key, uoSig
         );
 
         _sendOp(userOp, "");
 
-        bytes memory expectedRevertData = abi.encodeWithSelector(
-            IEntryPoint.FailedOpWithRevert.selector,
-            0,
-            "AA23 reverted",
-            abi.encodeWithSelector(ModularAccountBase.DeferredActionNonceInvalid.selector)
-        );
+        bytes memory expectedRevertData =
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA25 invalid account nonce");
 
         _sendOp(userOp, expectedRevertData);
     }
@@ -136,17 +125,10 @@ contract DeferredValidationTest is AccountTestBase {
             vm.sign(_newSignerKey, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 1;
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            _deferredValidationInstallCall,
-            _newUOValidation,
-            account1,
-            owner1Key,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, _deferredValidationInstallCall, account1, owner1Key, uoSig
         );
 
         bytes memory expectedRevertData =
@@ -173,19 +155,12 @@ contract DeferredValidationTest is AccountTestBase {
             vm.sign(_newSignerKey, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         (, uint256 badSigningKey) = makeAddrAndKey("bad");
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            _deferredValidationInstallCall,
-            _newUOValidation,
-            account1,
-            badSigningKey,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, _deferredValidationInstallCall, account1, badSigningKey, uoSig
         );
 
         bytes memory expectedRevertData = abi.encodeWithSelector(
@@ -199,9 +174,6 @@ contract DeferredValidationTest is AccountTestBase {
     }
 
     function test_fail_deferredValidation_nonceInvalidated() external withSMATest {
-        vm.prank(address(entryPoint));
-        account1.invalidateDeferredValidationInstallNonce(0);
-
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
             nonce: _encodeNextNonce(address(account1), _deferredValidation, true, true),
@@ -217,27 +189,20 @@ contract DeferredValidationTest is AccountTestBase {
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
         (uint8 v, bytes32 r, bytes32 s) =
             vm.sign(_newSignerKey, MessageHashUtils.toEthSignedMessageHash(userOpHash));
-        bytes memory uoSig = _packFinalSignature(abi.encodePacked(r, s, v));
+        bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            _deferredValidationInstallCall,
-            _newUOValidation,
-            account1,
-            owner1Key,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, _deferredValidationInstallCall, account1, owner1Key, uoSig
         );
 
-        bytes memory expectedRevertData = abi.encodeWithSelector(
-            IEntryPoint.FailedOpWithRevert.selector,
-            0,
-            "AA23 reverted",
-            abi.encodeWithSelector(ModularAccountBase.DeferredActionNonceInvalid.selector)
-        );
+        // Invalidate the user op nonce (also deferred action nonce)
+        vm.prank(address(account1));
+        entryPoint.incrementNonce(uint192(userOp.nonce >> 64));
+
+        bytes memory expectedRevertData =
+            abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA25 invalid account nonce");
 
         _sendOp(userOp, expectedRevertData);
     }
@@ -260,17 +225,10 @@ contract DeferredValidationTest is AccountTestBase {
         bytes32 r = keccak256("invalid");
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            _deferredValidationInstallCall,
-            _newUOValidation,
-            account1,
-            owner1Key,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, _deferredValidationInstallCall, account1, owner1Key, uoSig
         );
 
         bytes memory expectedRevertData =
@@ -308,17 +266,10 @@ contract DeferredValidationTest is AccountTestBase {
             vm.sign(_newSignerKey, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            _deferredValidationInstallCall,
-            _newUOValidation,
-            account1,
-            owner1Key,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, _deferredValidationInstallCall, account1, owner1Key, uoSig
         );
 
         bytes memory expectedRevertData = abi.encodeWithSelector(
@@ -350,17 +301,10 @@ contract DeferredValidationTest is AccountTestBase {
             vm.sign(_newSignerKey, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            _deferredValidationInstallCall,
-            _newUOValidation,
-            account1,
-            owner1Key,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, _deferredValidationInstallCall, account1, owner1Key, uoSig
         );
 
         _sendOp(userOp, "");
@@ -397,17 +341,10 @@ contract DeferredValidationTest is AccountTestBase {
             vm.sign(_newSignerKey, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            _deferredValidationInstallCall,
-            _newUOValidation,
-            account1,
-            owner1Key,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, _deferredValidationInstallCall, account1, owner1Key, uoSig
         );
 
         _sendOp(userOp, "");
@@ -453,17 +390,10 @@ contract DeferredValidationTest is AccountTestBase {
             vm.sign(_newSignerKey, MessageHashUtils.toEthSignedMessageHash(userOpHash));
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
-        uint256 deferredInstallNonce = 0;
         uint48 deferredInstallDeadline = 0;
 
         userOp.signature = _buildFullDeferredInstallSig(
-            deferredInstallNonce,
-            deferredInstallDeadline,
-            _deferredValidationInstallCall,
-            _newUOValidation,
-            account2,
-            owner1Key,
-            uoSig
+            userOp.nonce, deferredInstallDeadline, _deferredValidationInstallCall, account2, owner1Key, uoSig
         );
 
         _sendOp(userOp, "");

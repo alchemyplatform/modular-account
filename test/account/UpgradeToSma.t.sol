@@ -71,8 +71,9 @@ contract UpgradeToSmaTest is AccountTestBase {
             smaStorageImpl, abi.encodeCall(SemiModularAccountBase.updateFallbackSignerData, (owner2, false))
         );
 
-        // The previous owner1 validation is still installed, so this should not revert.
-        _userOpTransfer(address(account1), owner1Key, "", 0, false);
+        // This case is also unreachable, because the fallback validation aliases the original signer's validation.
+        // // The previous owner1 validation is still installed, so this should not revert.
+        // _userOpTransfer(address(account1), owner1Key, "", 0, false);
 
         vm.prank(owner2);
         account1.uninstallValidation(_signerValidation, "", new bytes[](0));
@@ -96,10 +97,10 @@ contract UpgradeToSmaTest is AccountTestBase {
         bytes memory expectedRevertdata =
             abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error");
         // Execute a UO with the original signer and the fallback validation, anticipating a revert.
-        _userOpTransfer(address(account1), owner1Key, expectedRevertdata, transferAmount, true);
+        _userOpTransfer(address(account1), owner1Key, expectedRevertdata, 0, true);
 
         // Execute a UO with the new signer, which is the fallback signer.
-        _userOpTransfer(address(account1), owner2Key, "", transferAmount, true);
+        _userOpTransfer(address(account1), owner2Key, "", 0, true);
     }
 
     function test_upgradeToAndCall_LaToSmaStorage() external {
