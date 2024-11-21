@@ -44,7 +44,6 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
 
     error FallbackSignerMismatch();
     error FallbackSignerDisabled();
-    error InitializerDisabled();
     error InvalidSignatureType();
 
     constructor(IEntryPoint anEntryPoint) ModularAccountBase(anEntryPoint) {}

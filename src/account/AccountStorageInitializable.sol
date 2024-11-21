@@ -19,11 +19,6 @@ abstract contract AccountStorageInitializable {
      */
     error InvalidInitialization();
 
-    /**
-     * @dev The contract is not initializing.
-     */
-    error NotInitializing();
-
     /// @notice Modifier to put on function intended to be called only once per implementation
     /// @dev Reverts if the contract has already been initialized
     modifier initializer() {
