@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
@@ -15,7 +16,7 @@ import {SemiModularAccountBytecode} from "../account/SemiModularAccountBytecode.
 /// @author Alchemy
 /// @notice Factory contract to deploy modular accounts. Allows creation of both modular and semi-modular accounts
 /// (the bytecode variant).
-contract AccountFactory is Ownable {
+contract AccountFactory is Ownable2Step {
     ModularAccount public immutable ACCOUNT_IMPL;
     SemiModularAccountBytecode public immutable SEMI_MODULAR_ACCOUNT_IMPL;
     IEntryPoint public immutable ENTRY_POINT;
