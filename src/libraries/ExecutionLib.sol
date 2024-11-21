@@ -751,7 +751,7 @@ library ExecutionLib {
 
     // N instances of:
     // - post hook address (will be squashed with the selector later, during invocation)
-    // - post hood entity Id
+    // - post hook entity Id
     // - fixed preExecHookData offset (always 0x40)
     // - preExecHookData length
     // - var-length data (right-padded with zeros to be word aligned)
@@ -786,7 +786,7 @@ library ExecutionLib {
             HookConfig hookConfig = hooks[i];
 
             if (hookConfig.hasPreHook()) {
-                uint256 returnedBytesSize = ExecutionLib.invokePreExecHook(callBuffer, hookConfig);
+                uint256 returnedBytesSize = invokePreExecHook(callBuffer, hookConfig);
 
                 // If there is an associated post exec hook, save the return data.
                 if (hookConfig.hasPostHook()) {
