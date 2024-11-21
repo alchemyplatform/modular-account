@@ -29,6 +29,7 @@ contract AccountFactory is Ownable2Step {
         address indexed account, uint256 indexed ownerX, uint256 indexed ownerY, uint256 salt
     );
 
+    error InvalidAction();
     error TransferFailed();
 
     constructor(
@@ -186,7 +187,7 @@ contract AccountFactory is Ownable2Step {
     /// @param owner The owner of the account.
     /// @param salt The salt to use for the account creation.
     /// @return The address of the account.
-    function getAddressSemiModular(address owner, uint256 salt) public view returns (address) {
+    function getAddressSemiModular(address owner, uint256 salt) external view returns (address) {
         bytes32 fullSalt = getSalt(owner, salt, type(uint32).max);
         bytes memory immutables = _getImmutableArgs(owner);
         return _getAddressSemiModular(immutables, fullSalt);
@@ -200,13 +201,18 @@ contract AccountFactory is Ownable2Step {
     /// @param entityId The entity ID to use for the account creation.
     /// @return The address of the account.
     function getAddressWebAuthn(uint256 ownerX, uint256 ownerY, uint256 salt, uint32 entityId)
-        public
+        external
         view
         returns (address)
     {
         return LibClone.predictDeterministicAddressERC1967(
             address(ACCOUNT_IMPL), getSaltWebAuthn(ownerX, ownerY, salt, entityId), address(this)
         );
+    }
+
+    /// @notice Disable renouncing ownership.
+    function renounceOwnership() public view override onlyOwner {
+        revert InvalidAction();
     }
 
     /// @notice Get the full salt used for account creation.
