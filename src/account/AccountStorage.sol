@@ -50,7 +50,7 @@ struct ValidationStorage {
 /// @custom:storage-location erc7201:Alchemy.ModularAccount.Storage_V2
 struct AccountStorage {
     // AccountStorageInitializable variables.
-    uint8 initialized;
+    uint64 initialized;
     bool initializing;
     // Execution functions and their associated functions.
     mapping(bytes4 selector => ExecutionStorage) executionStorage;

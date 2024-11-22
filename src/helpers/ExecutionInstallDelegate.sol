@@ -94,6 +94,10 @@ contract ExecutionInstallDelegate {
     {
         AccountStorage storage _storage = getAccountStorage();
 
+        if (module == address(0)) {
+            revert NullModule();
+        }
+
         uint256 length = manifest.executionHooks.length;
         for (uint256 i = 0; i < length; ++i) {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
@@ -132,7 +136,7 @@ contract ExecutionInstallDelegate {
         bool allowGlobalValidation,
         address module
     ) internal {
-        ExecutionStorage storage _executionStorage = getAccountStorage().executionStorage[bytes4(selector)];
+        ExecutionStorage storage _executionStorage = getAccountStorage().executionStorage[selector];
 
         if (_executionStorage.module != address(0)) {
             revert ExecutionFunctionAlreadySet();
