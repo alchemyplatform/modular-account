@@ -12,12 +12,16 @@ import {
     ValidationDataView
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
+import {IERC1155Receiver} from "@openzeppelin/contracts/interfaces/IERC1155Receiver.sol";
+import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-import {NativeFunctionDelegate} from "../helpers/NativeFunctionDelegate.sol";
 import {IModularAccountBase} from "../interfaces/IModularAccountBase.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {ValidationLocatorLib} from "../libraries/ValidationLocatorLib.sol";
+import {AccountBase} from "./AccountBase.sol";
 import {ExecutionStorage, ValidationStorage, getAccountStorage} from "./AccountStorage.sol";
 
 /// @title Modular Account View
@@ -25,12 +29,6 @@ import {ExecutionStorage, ValidationStorage, getAccountStorage} from "./AccountS
 /// @notice This abstract contract implements the two view functions to get validation and execution data for an
 /// account.
 abstract contract ModularAccountView is IModularAccountView {
-    NativeFunctionDelegate internal immutable _NATIVE_FUNCTION_DELEGATE;
-
-    constructor() {
-        _NATIVE_FUNCTION_DELEGATE = new NativeFunctionDelegate();
-    }
-
     /// @inheritdoc IModularAccountView
     function getExecutionData(bytes4 selector) external view override returns (ExecutionDataView memory data) {
         ExecutionStorage storage executionStorage = getAccountStorage().executionStorage[selector];
@@ -80,8 +78,29 @@ abstract contract ModularAccountView is IModularAccountView {
         data.selectors = selectors;
     }
 
-    function _isNativeFunction(uint32 selector) internal view virtual returns (bool) {
-        return _NATIVE_FUNCTION_DELEGATE.isNativeFunction(selector);
+    function _isNativeFunction(uint32 selector) internal pure virtual returns (bool) {
+        return (
+            _isGlobalValidationAllowedNativeFunction(selector)
+                || selector == uint32(AccountBase.entryPoint.selector)
+                || selector == uint32(AccountBase.validateUserOp.selector)
+                || selector == uint32(IERC1155Receiver.onERC1155BatchReceived.selector)
+                || selector == uint32(IERC1155Receiver.onERC1155Received.selector)
+                || selector == uint32(IERC1271.isValidSignature.selector)
+                || selector == uint32(IERC165.supportsInterface.selector)
+                || selector == uint32(IERC721Receiver.onERC721Received.selector)
+                || selector == uint32(IModularAccount.accountId.selector)
+                || selector == uint32(IModularAccountView.getExecutionData.selector)
+                || selector == uint32(IModularAccountView.getValidationData.selector)
+                || selector == uint32(UUPSUpgradeable.proxiableUUID.selector)
+        );
+    }
+
+    /// @dev Check whether a function is a native function that allows global validation.
+    function _isGlobalValidationAllowedNativeFunction(uint32 selector) internal pure virtual returns (bool) {
+        return (
+            _isWrappedNativeFunction(selector) || selector == uint32(IAccountExecute.executeUserOp.selector)
+                || selector == uint32(IModularAccount.executeWithRuntimeValidation.selector)
+        );
     }
 
     /// @dev Check whether a function is a native function that has the `wrapNativeFunction` modifier applied,
@@ -96,14 +115,6 @@ abstract contract ModularAccountView is IModularAccountView {
                 || selector == uint32(IModularAccount.uninstallValidation.selector)
                 || selector == uint32(IModularAccountBase.performCreate.selector)
                 || selector == uint32(UUPSUpgradeable.upgradeToAndCall.selector)
-        );
-    }
-
-    /// @dev Check whether a function is a native function that allows global validation.
-    function _isGlobalValidationAllowedNativeFunction(uint32 selector) internal pure virtual returns (bool) {
-        return (
-            _isWrappedNativeFunction(selector) || selector == uint32(IAccountExecute.executeUserOp.selector)
-                || selector == uint32(IModularAccount.executeWithRuntimeValidation.selector)
         );
     }
 }

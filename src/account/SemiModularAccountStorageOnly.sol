@@ -34,7 +34,7 @@ contract SemiModularAccountStorageOnly is SemiModularAccountBase {
     }
 
     /// @dev Overrides SemiModularAccountBase.
-    function _isNativeFunction(uint32 selector) internal view override returns (bool) {
+    function _isNativeFunction(uint32 selector) internal pure override returns (bool) {
         return super._isNativeFunction(selector) || selector == uint32(this.initialize.selector);
     }
 }

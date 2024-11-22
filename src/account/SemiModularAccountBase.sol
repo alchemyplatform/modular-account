@@ -217,12 +217,6 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         return _storage.fallbackSigner;
     }
 
-    /// @dev Overrides ModularAccountView.
-    function _isNativeFunction(uint32 selector) internal view virtual override returns (bool) {
-        return super._isNativeFunction(selector) || selector == uint32(this.updateFallbackSignerData.selector)
-            || selector == uint32(this.getFallbackSignerData.selector);
-    }
-
     /// @notice Returns the replay-safe hash generated from the passed typed data hash for 1271 validation.
     /// @param hash The typed data hash to wrap in a replay-safe hash.
     /// @return The replay-safe hash, to be used for 1271 signature generation.
@@ -271,6 +265,12 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
             res := keccak256(0, 0x40)
         }
         return res;
+    }
+
+    /// @dev Overrides ModularAccountView.
+    function _isNativeFunction(uint32 selector) internal pure virtual override returns (bool) {
+        return super._isNativeFunction(selector) || selector == uint32(this.updateFallbackSignerData.selector)
+            || selector == uint32(this.getFallbackSignerData.selector);
     }
 
     /// @dev Overrides ModularAccountView.
