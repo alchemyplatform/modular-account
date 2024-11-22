@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IModularAccountView} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
-import {IAccount} from "@eth-infinitism/account-abstraction/interfaces/IAccount.sol";
 import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
 import {IERC1155Receiver} from "@openzeppelin/contracts/interfaces/IERC1155Receiver.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
@@ -11,6 +10,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeab
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
+import {AccountBase} from "../account/AccountBase.sol";
 import {IModularAccountBase} from "../interfaces/IModularAccountBase.sol";
 
 /// @title Native Function Delegate
@@ -20,8 +20,9 @@ import {IModularAccountBase} from "../interfaces/IModularAccountBase.sol";
 contract NativeFunctionDelegate {
     function isNativeFunction(uint32 selector) external pure returns (bool) {
         return
-        // check against IAccount methods
-        selector == uint32(IAccount.validateUserOp.selector)
+        // check against AccountBase methods
+        selector == uint32(AccountBase.validateUserOp.selector)
+            || selector == uint32(AccountBase.entryPoint.selector)
         // check against ModularAccount methods
         || selector == uint32(IModularAccount.installExecution.selector)
             || selector == uint32(IModularAccount.uninstallExecution.selector)

@@ -32,4 +32,9 @@ contract SemiModularAccountStorageOnly is SemiModularAccountBase {
     function accountId() external pure override returns (string memory) {
         return "alchemy.sma-storage.1.0.0";
     }
+
+    /// @dev Overrides SemiModularAccountBase.
+    function _isNativeFunction(uint32 selector) internal view override returns (bool) {
+        return super._isNativeFunction(selector) || selector == uint32(this.initialize.selector);
+    }
 }

@@ -33,4 +33,9 @@ contract ModularAccount is ModularAccountBase {
     function accountId() external pure override returns (string memory) {
         return "alchemy.modular-account.2.0.0";
     }
+
+    /// @dev Overrides ModularAccountView.
+    function _isNativeFunction(uint32 selector) internal view override returns (bool) {
+        return super._isNativeFunction(selector) || selector == uint32(this.initializeWithValidation.selector);
+    }
 }

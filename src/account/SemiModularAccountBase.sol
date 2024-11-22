@@ -167,10 +167,6 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         revert InvalidSignatureType();
     }
 
-    function _globalValidationAllowed(bytes4 selector) internal view override returns (bool) {
-        return selector == this.updateFallbackSignerData.selector || super._globalValidationAllowed(selector);
-    }
-
     function _isValidationGlobal(ValidationLookupKey validationFunction) internal view override returns (bool) {
         if (validationFunction.eq(FALLBACK_VALIDATION_LOOKUP_KEY) || super._isValidationGlobal(validationFunction))
         {
@@ -221,8 +217,8 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         return _storage.fallbackSigner;
     }
 
-    // overrides ModularAccountView
-    function _isNativeFunction(uint32 selector) internal view override returns (bool) {
+    /// @dev Overrides ModularAccountView.
+    function _isNativeFunction(uint32 selector) internal view virtual override returns (bool) {
         return super._isNativeFunction(selector) || selector == uint32(this.updateFallbackSignerData.selector)
             || selector == uint32(this.getFallbackSignerData.selector);
     }
@@ -275,5 +271,11 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
             res := keccak256(0, 0x40)
         }
         return res;
+    }
+
+    /// @dev Overrides ModularAccountView.
+    function _isWrappedNativeFunction(uint32 selector) internal pure virtual override returns (bool) {
+        return
+            super._isWrappedNativeFunction(selector) || selector == uint32(this.updateFallbackSignerData.selector);
     }
 }

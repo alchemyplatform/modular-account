@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {HookConfig, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {
+    HookConfig,
+    IModularAccount,
+    ModuleEntity
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {
     ExecutionDataView,
     IModularAccountView,
     ValidationDataView
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
-
-import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
-import {IModularAccountView} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
@@ -32,16 +33,18 @@ abstract contract ModularAccountView is IModularAccountView {
 
     /// @inheritdoc IModularAccountView
     function getExecutionData(bytes4 selector) external view override returns (ExecutionDataView memory data) {
-        // return ModularAccountViewLib.getExecutionData(selector, _isNativeFunction(selector));
         ExecutionStorage storage executionStorage = getAccountStorage().executionStorage[selector];
 
-        if (_isGlobalValidationAllowedNativeFunction(selector)) {
+        if (_isNativeFunction(uint32(selector))) {
+            bool isGlobalValidationAllowed = _isGlobalValidationAllowedNativeFunction(uint32(selector));
             data.module = address(this);
-            data.allowGlobalValidation = true;
-        } else if (_isNativeFunction(uint32(selector))) {
-            // native view functions
-            data.module = address(this);
-            data.skipRuntimeValidation = true;
+            data.skipRuntimeValidation = !isGlobalValidationAllowed;
+            data.allowGlobalValidation = isGlobalValidationAllowed;
+            if (!_isWrappedNativeFunction(uint32(selector))) {
+                // The native function does not run execution hooks associated with its selector, so
+                // we can return early.
+                return data;
+            }
         } else {
             data.module = executionStorage.module;
             data.skipRuntimeValidation = executionStorage.skipRuntimeValidation;
@@ -81,20 +84,26 @@ abstract contract ModularAccountView is IModularAccountView {
         return _NATIVE_FUNCTION_DELEGATE.isNativeFunction(selector);
     }
 
-    function _isGlobalValidationAllowedNativeFunction(bytes4 selector) internal view virtual returns (bool) {
-        if (
-            selector == IModularAccount.execute.selector || selector == IModularAccount.executeBatch.selector
-                || selector == IAccountExecute.executeUserOp.selector
-                || selector == IModularAccount.executeWithRuntimeValidation.selector
-                || selector == IModularAccount.installExecution.selector
-                || selector == IModularAccount.uninstallExecution.selector
-                || selector == IModularAccount.installValidation.selector
-                || selector == IModularAccount.uninstallValidation.selector
-                || selector == UUPSUpgradeable.upgradeToAndCall.selector
-                || selector == IModularAccountBase.performCreate.selector
-        ) {
-            return true;
-        }
-        return false;
+    /// @dev Check whether a function is a native function that has the `wrapNativeFunction` modifier applied,
+    /// which means it runs execution hooks associated with its selector.
+    function _isWrappedNativeFunction(uint32 selector) internal pure virtual returns (bool) {
+        return (
+            selector == uint32(IModularAccount.execute.selector)
+                || selector == uint32(IModularAccount.executeBatch.selector)
+                || selector == uint32(IModularAccount.installExecution.selector)
+                || selector == uint32(IModularAccount.installValidation.selector)
+                || selector == uint32(IModularAccount.uninstallExecution.selector)
+                || selector == uint32(IModularAccount.uninstallValidation.selector)
+                || selector == uint32(IModularAccountBase.performCreate.selector)
+                || selector == uint32(UUPSUpgradeable.upgradeToAndCall.selector)
+        );
+    }
+
+    /// @dev Check whether a function is a native function that allows global validation.
+    function _isGlobalValidationAllowedNativeFunction(uint32 selector) internal pure virtual returns (bool) {
+        return (
+            _isWrappedNativeFunction(selector) || selector == uint32(IAccountExecute.executeUserOp.selector)
+                || selector == uint32(IModularAccount.executeWithRuntimeValidation.selector)
+        );
     }
 }

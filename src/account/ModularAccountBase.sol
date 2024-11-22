@@ -106,8 +106,8 @@ abstract contract ModularAccountBase is
     error DeferredValidationHasValidationHooks();
 
     // Wraps execution of a native function with runtime validation and hooks
-    // Used for upgradeTo, upgradeToAndCall, execute, executeBatch, installExecution, uninstallExecution,
-    // performCreate
+    // Used for performCreate, execute, executeBatch, installExecution, uninstallExecution, installValidation,
+    // uninstallValidation, upgradeToAndCall, updateFallbackSignerData.
     modifier wrapNativeFunction() {
         DensePostHookData postHookData = _checkPermittedCallerAndAssociatedHooks();
 
@@ -1075,8 +1075,8 @@ abstract contract ModularAccountBase is
         return _globalValidationAllowed(selector) && _isValidationGlobal(validationFunction);
     }
 
-    function _globalValidationAllowed(bytes4 selector) internal view virtual returns (bool) {
-        return _isGlobalValidationAllowedNativeFunction(selector)
+    function _globalValidationAllowed(bytes4 selector) internal view returns (bool) {
+        return _isGlobalValidationAllowedNativeFunction(uint32(selector))
             || getAccountStorage().executionStorage[selector].allowGlobalValidation;
     }
 
