@@ -234,19 +234,19 @@ abstract contract ModularAccountBase is
         wrapNativeFunction
         returns (bytes[] memory results)
     {
-        bool needReturnData = (msg.sender != address(_ENTRY_POINT));
-
         uint256 callsLength = calls.length;
 
-        if (needReturnData) {
+        if (msg.sender != address(_ENTRY_POINT)) {
             results = new bytes[](callsLength);
-        }
 
-        for (uint256 i = 0; i < callsLength; ++i) {
-            ExecutionLib.callBubbleOnRevertTransient(calls[i].target, calls[i].value, calls[i].data);
+            for (uint256 i = 0; i < callsLength; ++i) {
+                ExecutionLib.callBubbleOnRevertTransient(calls[i].target, calls[i].value, calls[i].data);
 
-            if (needReturnData) {
                 results[i] = ExecutionLib.collectReturnData();
+            }
+        } else {
+            for (uint256 i = 0; i < callsLength; ++i) {
+                ExecutionLib.callBubbleOnRevertTransient(calls[i].target, calls[i].value, calls[i].data);
             }
         }
     }
@@ -346,6 +346,13 @@ abstract contract ModularAccountBase is
         emit DeferredActionNonceInvalidated(nonce);
     }
 
+    /// @inheritdoc IERC1271
+    function isValidSignature(bytes32 hash, bytes calldata signature) external view override returns (bytes4) {
+        ModuleEntity sigValidation = ModuleEntity.wrap(bytes24(signature));
+        signature = signature[24:];
+        return _isValidSignature(sigValidation, hash, signature);
+    }
+
     /// @inheritdoc IERC165
     /// @notice ERC-165 introspection
     /// @dev returns true for `IERC165.interfaceId` and false for `0xFFFFFFFF`
@@ -379,13 +386,6 @@ abstract contract ModularAccountBase is
         wrapNativeFunction
     {
         super.upgradeToAndCall(newImplementation, data);
-    }
-
-    /// @inheritdoc IERC1271
-    function isValidSignature(bytes32 hash, bytes calldata signature) public view override returns (bytes4) {
-        ModuleEntity sigValidation = ModuleEntity.wrap(bytes24(signature));
-        signature = signature[24:];
-        return _isValidSignature(sigValidation, hash, signature);
     }
 
     // INTERNAL FUNCTIONS

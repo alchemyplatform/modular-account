@@ -133,7 +133,7 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
             _decrementLimitIfApplies(entityId, token, innerCalldata);
         } else if (selector == IModularAccount.executeBatch.selector) {
             Call[] memory calls = abi.decode(callData, (Call[]));
-            for (uint256 i = 0; i < calls.length; i++) {
+            for (uint256 i = 0; i < calls.length; ++i) {
                 _decrementLimitIfApplies(entityId, calls[i].target, calls[i].data);
             }
         } else {
@@ -195,11 +195,11 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
     /// @param entityId The entity ID to initialize the allowlist for.
     /// @param inputs The allowlist inputs data to update.
     function updateAllowlist(uint32 entityId, AllowlistInput[] memory inputs) public {
-        for (uint256 i = 0; i < inputs.length; i++) {
+        for (uint256 i = 0; i < inputs.length; ++i) {
             AllowlistInput memory input = inputs[i];
             if (input.target == address(0)) {
                 // wildcard case for selectors, any address can be called for the selector
-                for (uint256 j = 0; j < input.selectors.length; j++) {
+                for (uint256 j = 0; j < input.selectors.length; ++j) {
                     setSelectorAllowlist(entityId, address(0), input.selectors[j], true);
                 }
             } else {
@@ -209,7 +209,7 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
                 updateLimits(entityId, input.target, input.hasERC20SpendLimit, input.erc20SpendLimit);
 
                 if (input.hasSelectorAllowlist) {
-                    for (uint256 j = 0; j < input.selectors.length; j++) {
+                    for (uint256 j = 0; j < input.selectors.length; ++j) {
                         setSelectorAllowlist(entityId, input.target, input.selectors[j], true);
                     }
                 }
@@ -222,11 +222,11 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
     /// @param inputs The allowlist inputs data to update.
     /// Note flag will be set to false despite passed different values.
     function deleteAllowlist(uint32 entityId, AllowlistInput[] memory inputs) public {
-        for (uint256 i = 0; i < inputs.length; i++) {
+        for (uint256 i = 0; i < inputs.length; ++i) {
             AllowlistInput memory input = inputs[i];
             if (input.target == address(0)) {
                 // wildcard case for selectors, any address can be called for the selector
-                for (uint256 j = 0; j < input.selectors.length; j++) {
+                for (uint256 j = 0; j < input.selectors.length; ++j) {
                     setSelectorAllowlist(entityId, input.target, input.selectors[j], false);
                 }
             } else {
@@ -234,7 +234,7 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
                 updateLimits(entityId, input.target, false, 0);
 
                 if (input.hasSelectorAllowlist) {
-                    for (uint256 j = 0; j < input.selectors.length; j++) {
+                    for (uint256 j = 0; j < input.selectors.length; ++j) {
                         setSelectorAllowlist(entityId, input.target, input.selectors[j], false);
                     }
                 }
@@ -289,7 +289,7 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
         } else if (bytes4(callData[:4]) == IModularAccount.executeBatch.selector) {
             Call[] memory calls = abi.decode(callData[4:], (Call[]));
 
-            for (uint256 i = 0; i < calls.length; i++) {
+            for (uint256 i = 0; i < calls.length; ++i) {
                 _checkCallPermission(entityId, msg.sender, calls[i].target, calls[i].data);
             }
         }

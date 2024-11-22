@@ -49,9 +49,9 @@ abstract contract ModuleManagerInternals is IModularAccount {
         bytes calldata installData,
         bytes[] calldata hooks
     ) internal {
-        ValidationStorage storage _validationStorage =
-            getAccountStorage().validationStorage[validationConfig.moduleEntity()];
         ModuleEntity moduleEntity = validationConfig.moduleEntity();
+
+        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[moduleEntity];
 
         uint256 length = hooks.length;
         for (uint256 i = 0; i < length; ++i) {

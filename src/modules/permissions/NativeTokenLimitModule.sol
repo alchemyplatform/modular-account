@@ -98,7 +98,7 @@ contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidation
             (, value) = abi.decode(callData, (address, uint256));
         } else if (selector == IModularAccount.executeBatch.selector) {
             Call[] memory calls = abi.decode(callData, (Call[]));
-            for (uint256 i = 0; i < calls.length; i++) {
+            for (uint256 i = 0; i < calls.length; ++i) {
                 value += calls[i].value;
             }
         } else if (selector == ModularAccountBase.performCreate.selector) {
