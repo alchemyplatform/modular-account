@@ -23,11 +23,13 @@ contract ExecutionInstallDelegate {
 
     address internal immutable _THIS_ADDRESS;
 
-    error OnlyDelegateCall();
+    error Erc4337FunctionNotAllowed(bytes4 selector);
+    error ExecutionFunctionAlreadySet(bytes4 selector);
+    error ExecutionFunctionNotSet(bytes4 selector);
+    error ExecutionHookNotSet(HookConfig hookConfig);
+    error IModuleFunctionNotAllowed(bytes4 selector);
     error NullModule();
-    error ExecutionFunctionAlreadySet();
-    error IModuleFunctionNotAllowed();
-    error Erc4337FunctionNotAllowed();
+    error OnlyDelegateCall();
 
     modifier onlyDelegateCall() {
         if (address(this) == _THIS_ADDRESS) {
@@ -139,7 +141,7 @@ contract ExecutionInstallDelegate {
         ExecutionStorage storage _executionStorage = getAccountStorage().executionStorage[selector];
 
         if (_executionStorage.module != address(0)) {
-            revert ExecutionFunctionAlreadySet();
+            revert ExecutionFunctionAlreadySet(selector);
         }
 
         // Note that there is no check for native function selectors. Installing a function with a colliding
@@ -147,14 +149,14 @@ contract ExecutionInstallDelegate {
 
         // Make sure incoming execution function is not a function in IModule
         if (KnownSelectorsLib.isIModuleFunction(uint32(selector))) {
-            revert IModuleFunctionNotAllowed();
+            revert IModuleFunctionNotAllowed(selector);
         }
 
         // Also make sure it doesn't collide with functions defined by ERC-4337 and called by the entry point. This
         // prevents a malicious module from sneaking in a function with the same selector as e.g.
         // `validatePaymasterUserOp` and turning the account into their own personal paymaster.
         if (KnownSelectorsLib.isErc4337Function(uint32(selector))) {
-            revert Erc4337FunctionNotAllowed();
+            revert Erc4337FunctionNotAllowed(selector);
         }
 
         _executionStorage.module = module;
@@ -165,12 +167,18 @@ contract ExecutionInstallDelegate {
     function _removeExecutionFunction(bytes4 selector) internal {
         ExecutionStorage storage _executionStorage = getAccountStorage().executionStorage[selector];
 
+        if (_executionStorage.module == address(0)) {
+            revert ExecutionFunctionNotSet(selector);
+        }
+
         _executionStorage.module = address(0);
         _executionStorage.skipRuntimeValidation = false;
         _executionStorage.allowGlobalValidation = false;
     }
 
     function _removeExecHooks(LinkedListSet storage hooks, HookConfig hookConfig) internal {
-        hooks.tryRemove(toSetValue(hookConfig));
+        if (!hooks.tryRemove(toSetValue(hookConfig))) {
+            revert ExecutionHookNotSet(hookConfig);
+        }
     }
 }

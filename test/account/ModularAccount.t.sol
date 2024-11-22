@@ -355,7 +355,12 @@ contract ModularAccountTest is AccountTestBase {
         });
 
         vm.prank(address(entryPoint));
-        vm.expectRevert(ExecutionInstallDelegate.ExecutionFunctionAlreadySet.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExecutionInstallDelegate.ExecutionFunctionAlreadySet.selector,
+                m.executionFunctions[0].executionSelector
+            )
+        );
         account1.installExecution({
             module: address(mockExecutionInstallationModule),
             manifest: m,
