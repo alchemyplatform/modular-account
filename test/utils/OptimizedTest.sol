@@ -24,6 +24,8 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
+
+import {ExecutionInstallDelegate} from "../../src/helpers/ExecutionInstallDelegate.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 /// @dev This contract provides functions to deploy optimized (via IR) precompiled contracts. By compiling just
@@ -45,28 +47,36 @@ abstract contract OptimizedTest is Test {
         return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
     }
 
-    function _deployModularAccount(IEntryPoint entryPoint) internal returns (ModularAccount) {
+    function _deployModularAccount(IEntryPoint entryPoint, ExecutionInstallDelegate executionInstallDelegate)
+        internal
+        returns (ModularAccount)
+    {
         return _isOptimizedTest()
             ? ModularAccount(
-                payable(deployCode("out-optimized/ModularAccount.sol/ModularAccount.json", abi.encode(entryPoint)))
+                payable(
+                    deployCode(
+                        "out-optimized/ModularAccount.sol/ModularAccount.json",
+                        abi.encode(entryPoint, executionInstallDelegate)
+                    )
+                )
             )
-            : new ModularAccount(entryPoint);
+            : new ModularAccount(entryPoint, executionInstallDelegate);
     }
 
-    function _deploySemiModularAccountBytecode(IEntryPoint entryPoint)
-        internal
-        returns (SemiModularAccountBytecode)
-    {
+    function _deploySemiModularAccountBytecode(
+        IEntryPoint entryPoint,
+        ExecutionInstallDelegate executionInstallDelegate
+    ) internal returns (SemiModularAccountBytecode) {
         return _isOptimizedTest()
             ? SemiModularAccountBytecode(
                 payable(
                     deployCode(
                         "out-optimized/SemiModularAccountBytecode.sol/SemiModularAccountBytecode.json",
-                        abi.encode(entryPoint)
+                        abi.encode(entryPoint, executionInstallDelegate)
                     )
                 )
             )
-            : new SemiModularAccountBytecode(entryPoint);
+            : new SemiModularAccountBytecode(entryPoint, executionInstallDelegate);
     }
 
     function _deploySingleSignerValidationModule() internal returns (SingleSignerValidationModule) {
@@ -75,6 +85,14 @@ abstract contract OptimizedTest is Test {
                 deployCode("out-optimized/SingleSignerValidationModule.sol/SingleSignerValidationModule.json")
             )
             : new SingleSignerValidationModule();
+    }
+
+    function _deployExecutionInstallDelegate() internal returns (ExecutionInstallDelegate) {
+        return _isOptimizedTest()
+            ? ExecutionInstallDelegate(
+                deployCode("out-optimized/ExecutionInstallDelegate.sol/ExecutionInstallDelegate.json")
+            )
+            : new ExecutionInstallDelegate();
     }
 
     function _deployEntryPoint070() internal returns (EntryPoint) {

@@ -407,7 +407,7 @@ contract ModularAccountTest is AccountTestBase {
 
     function test_upgradeToAndCall() public withSMATest {
         vm.startPrank(address(entryPoint));
-        ModularAccount account3 = new ModularAccount(entryPoint);
+        ModularAccount account3 = new ModularAccount(entryPoint, executionInstallDelegate);
         bytes32 slot = account3.proxiableUUID();
 
         // account has impl from factory
@@ -564,12 +564,12 @@ contract ModularAccountTest is AccountTestBase {
         vm.stopPrank();
     }
 
-    function test_performCreate() public withSMATest {
+    function test_performCreate_create() public withSMATest {
         address expectedAddr = vm.computeCreateAddress(address(account1), vm.getNonce(address(account1)));
         vm.prank(address(entryPoint));
         address returnedAddr = account1.performCreate(
             0,
-            abi.encodePacked(type(ModularAccount).creationCode, abi.encode(address(entryPoint))),
+            abi.encodePacked(type(ModularAccount).creationCode, abi.encode(entryPoint, executionInstallDelegate)),
             false,
             bytes32(0)
         );
@@ -585,7 +585,7 @@ contract ModularAccountTest is AccountTestBase {
 
     function test_performCreate_create2() public withSMATest {
         bytes memory initCode =
-            abi.encodePacked(type(ModularAccount).creationCode, abi.encode(address(entryPoint)));
+            abi.encodePacked(type(ModularAccount).creationCode, abi.encode(entryPoint, executionInstallDelegate));
         bytes32 initCodeHash = keccak256(initCode);
         bytes32 salt = bytes32(hex"01234b");
 

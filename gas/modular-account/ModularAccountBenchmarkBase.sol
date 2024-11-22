@@ -18,6 +18,7 @@ import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
+import {ExecutionInstallDelegate} from "../../src/helpers/ExecutionInstallDelegate.sol";
 import {AllowlistModule} from "../../src/modules/permissions/AllowlistModule.sol";
 import {TimeRangeModule} from "../../src/modules/permissions/TimeRangeModule.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
@@ -34,6 +35,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
     ModularAccount public accountImpl;
     SemiModularAccountBytecode public semiModularImpl;
     SingleSignerValidationModule public singleSignerValidationModule;
+    ExecutionInstallDelegate public executionInstallDelegate;
 
     AllowlistModule public allowlistModule;
     TimeRangeModule public timeRangeModule;
@@ -49,8 +51,9 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
     constructor(string memory accountImplName) BenchmarkBase(accountImplName) {
         (sessionSigner1, sessionSigner1Key) = makeAddrAndKey("session1");
 
-        accountImpl = _deployModularAccount(IEntryPoint(entryPoint));
-        semiModularImpl = _deploySemiModularAccountBytecode(IEntryPoint(entryPoint));
+        executionInstallDelegate = new ExecutionInstallDelegate();
+        accountImpl = _deployModularAccount(IEntryPoint(entryPoint), executionInstallDelegate);
+        semiModularImpl = _deploySemiModularAccountBytecode(IEntryPoint(entryPoint), executionInstallDelegate);
         singleSignerValidationModule = _deploySingleSignerValidationModule();
 
         factory = new AccountFactory(

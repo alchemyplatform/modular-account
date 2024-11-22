@@ -10,6 +10,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 import {FALLBACK_VALIDATION} from "../helpers/Constants.sol";
+import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 import {SignatureType} from "../helpers/SignatureType.sol";
 import {RTCallBuffer, SigCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
@@ -46,7 +47,9 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     error FallbackSignerDisabled();
     error InvalidSignatureType();
 
-    constructor(IEntryPoint anEntryPoint) ModularAccountBase(anEntryPoint) {}
+    constructor(IEntryPoint entryPoint, ExecutionInstallDelegate executionInstallDelegate)
+        ModularAccountBase(entryPoint, executionInstallDelegate)
+    {}
 
     /// @notice Updates the fallback signer data in storage.
     /// @param fallbackSigner The new signer to set.

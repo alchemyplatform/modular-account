@@ -5,6 +5,7 @@ import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IMod
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
 
+import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 
 /// @title Semi-Modular Account Bytecode
@@ -15,7 +16,9 @@ import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 /// ERC1967WithImmutableArgs bytecode with a bytecode-appended address (should be encodePacked) to be used as the
 /// fallback signer.
 contract SemiModularAccountBytecode is SemiModularAccountBase {
-    constructor(IEntryPoint anEntryPoint) SemiModularAccountBase(anEntryPoint) {}
+    constructor(IEntryPoint entryPoint, ExecutionInstallDelegate executionInstallDelegate)
+        SemiModularAccountBase(entryPoint, executionInstallDelegate)
+    {}
 
     /// @inheritdoc IModularAccount
     function accountId() external pure override returns (string memory) {

@@ -6,6 +6,7 @@ import {
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
+import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 import {ModularAccountBase} from "./ModularAccountBase.sol";
 
 /// @title Modular Account
@@ -13,7 +14,9 @@ import {ModularAccountBase} from "./ModularAccountBase.sol";
 /// @notice This contract allows initializing with a validation config (of a validation module) to be installed on
 /// the account.
 contract ModularAccount is ModularAccountBase {
-    constructor(IEntryPoint anEntryPoint) ModularAccountBase(anEntryPoint) {}
+    constructor(IEntryPoint entryPoint, ExecutionInstallDelegate executionInstallDelegate)
+        ModularAccountBase(entryPoint, executionInstallDelegate)
+    {}
 
     /// @notice Initializes the account with a validation function.
     /// @dev This function is only callable once.

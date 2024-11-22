@@ -46,7 +46,7 @@ contract UpgradeToSmaTest is AccountTestBase {
 
     function setUp() public override {
         _revertSnapshot = vm.snapshotState();
-        smaStorageImpl = address(new SemiModularAccountStorageOnly(entryPoint));
+        smaStorageImpl = address(new SemiModularAccountStorageOnly(entryPoint, executionInstallDelegate));
         (owner2, owner2Key) = makeAddrAndKey("owner2");
         transferAmount = 0.1 ether;
     }

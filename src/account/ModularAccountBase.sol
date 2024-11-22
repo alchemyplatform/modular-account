@@ -120,10 +120,12 @@ abstract contract ModularAccountBase is
         ExecutionLib.doCachedPostHooks(postHookData);
     }
 
-    constructor(IEntryPoint anEntryPoint) AccountBase(anEntryPoint) {
+    constructor(IEntryPoint entryPoint, ExecutionInstallDelegate executionInstallDelegate)
+        AccountBase(entryPoint)
+    {
         _disableInitializers();
 
-        _EXECUTION_INSTALL_DELEGATE = address(new ExecutionInstallDelegate());
+        _EXECUTION_INSTALL_DELEGATE = address(executionInstallDelegate);
     }
 
     // EXTERNAL FUNCTIONS

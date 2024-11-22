@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
+import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 
 /// @title Semi-Modular Account Storage Only
@@ -14,7 +15,9 @@ import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 /// `upgradeToAndCall()`. Use the `SemiModularAccountBytecode` instead for new accounts, this implementation should
 /// only be used for account upgrades.
 contract SemiModularAccountStorageOnly is SemiModularAccountBase {
-    constructor(IEntryPoint anEntryPoint) SemiModularAccountBase(anEntryPoint) {}
+    constructor(IEntryPoint entryPoint, ExecutionInstallDelegate executionInstallDelegate)
+        SemiModularAccountBase(entryPoint, executionInstallDelegate)
+    {}
 
     function initialize(address initialSigner) external initializer {
         SemiModularAccountStorage storage smaStorage = _getSemiModularAccountStorage();

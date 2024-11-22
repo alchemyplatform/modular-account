@@ -17,8 +17,8 @@ abstract contract AccountBase is IAccount {
 
     error NotEntryPoint();
 
-    constructor(IEntryPoint anEntryPoint) {
-        _ENTRY_POINT = anEntryPoint;
+    constructor(IEntryPoint _entryPoint) {
+        _ENTRY_POINT = _entryPoint;
     }
 
     /// @inheritdoc IAccount

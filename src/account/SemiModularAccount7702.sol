@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
+import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 
 /// @title Semi-Modular Account for EIP-7702 EOAs
@@ -14,7 +15,9 @@ import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 contract SemiModularAccount7702 is SemiModularAccountBase {
     error UpgradeNotAllowed();
 
-    constructor(IEntryPoint anEntryPoint) SemiModularAccountBase(anEntryPoint) {}
+    constructor(IEntryPoint entryPoint, ExecutionInstallDelegate executionInstallDelegate)
+        SemiModularAccountBase(entryPoint, executionInstallDelegate)
+    {}
 
     /// @inheritdoc IModularAccount
     function accountId() external pure override returns (string memory) {

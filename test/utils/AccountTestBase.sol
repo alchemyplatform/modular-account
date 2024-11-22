@@ -34,6 +34,7 @@ import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
+import {ExecutionInstallDelegate} from "../../src/helpers/ExecutionInstallDelegate.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 import {WebAuthnValidationModule} from "../../src/modules/validation/WebAuthnValidationModule.sol";
 
@@ -55,6 +56,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     SingleSignerValidationModule public singleSignerValidationModule;
     ModularAccount public accountImplementation;
     SemiModularAccountBytecode public semiModularAccountImplementation;
+    ExecutionInstallDelegate public executionInstallDelegate;
     AccountFactory public factory;
 
     address public factoryOwner;
@@ -104,10 +106,13 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         singleSignerValidationModule = _deploySingleSignerValidationModule();
         // vm.etch(address(0), deployedSingleSignerValidationModule.code);
 
-        accountImplementation = _deployModularAccount(entryPoint);
+        executionInstallDelegate = _deployExecutionInstallDelegate();
 
-        semiModularAccountImplementation =
-            SemiModularAccountBytecode(payable(_deploySemiModularAccountBytecode(entryPoint)));
+        accountImplementation = _deployModularAccount(entryPoint, executionInstallDelegate);
+
+        semiModularAccountImplementation = SemiModularAccountBytecode(
+            payable(_deploySemiModularAccountBytecode(entryPoint, executionInstallDelegate))
+        );
 
         address webAuthnModule = address(new WebAuthnValidationModule());
 
