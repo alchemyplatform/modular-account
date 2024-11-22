@@ -922,7 +922,7 @@ abstract contract ModularAccountBase is
     ) internal view {
         // Equivalent to the following code, but without using memory.
 
-        // (Call[] memory calls) = abi.decode(callData[4:], (Call[]));
+        // (Call[] memory calls) = abi.decode(callData, (Call[]));
 
         // for (uint256 i = 0; i < calls.length; ++i) {
         //     if (calls[i].target == address(this)) {

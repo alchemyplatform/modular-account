@@ -95,7 +95,7 @@ library MemManagementLib {
 
         SetValue[] memory hooksSet = LinkedListSetLib.getAll(execData.executionHooks);
 
-        // SetValue is internally a bytes30, and HookConfig is a bytes25, which are both left-aligned. This cast is
+        // SetValue is internally a bytes31, and HookConfig is a bytes25, which are both left-aligned. This cast is
         // safe so long as only HookConfig entries are added to the set.
         assembly ("memory-safe") {
             hooks := hooksSet
@@ -128,7 +128,7 @@ library MemManagementLib {
     function loadSelectors(ValidationStorage storage valData) internal view returns (bytes4[] memory selectors) {
         SetValue[] memory selectorsSet = LinkedListSetLib.getAll(valData.selectors);
 
-        // SetValue is internally a bytes30, and both bytes4 and bytes30 are left-aligned. This cast is safe so
+        // SetValue is internally a bytes31, and both bytes4 and bytes31 are left-aligned. This cast is safe so
         // long as only bytes4 entries are added to the set.
         assembly ("memory-safe") {
             selectors := selectorsSet

@@ -15,7 +15,7 @@ import {IModularAccountBase} from "../interfaces/IModularAccountBase.sol";
 
 /// @title Native Function Delegate
 /// @author Alchemy
-/// @dev This is a simple contract meant to be delegatecalled to determine whether a ModularAccountBase function
+/// @dev This is a simple contract meant to be called to determine whether a ModularAccountBase function
 /// selector is native to the account implementation.
 contract NativeFunctionDelegate {
     function isNativeFunction(uint32 selector) external pure returns (bool) {

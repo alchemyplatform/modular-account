@@ -15,7 +15,7 @@ import {ModularAccountBase} from "./ModularAccountBase.sol";
 contract ModularAccount is ModularAccountBase {
     constructor(IEntryPoint anEntryPoint) ModularAccountBase(anEntryPoint) {}
 
-    /// @notice Initializes the account with a validation function added to the global pool.
+    /// @notice Initializes the account with a validation function.
     /// @dev This function is only callable once.
     function initializeWithValidation(
         ValidationConfig validationConfig,

@@ -583,7 +583,7 @@ contract ModularAccountTest is AccountTestBase {
         account1.performCreate(0, abi.encodePacked(type(MockRevertingConstructor).creationCode), false, 0);
     }
 
-    function test_performCreate2() public withSMATest {
+    function test_performCreate_create2() public withSMATest {
         bytes memory initCode =
             abi.encodePacked(type(ModularAccount).creationCode, abi.encode(address(entryPoint)));
         bytes32 initCodeHash = keccak256(initCode);
