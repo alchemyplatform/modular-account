@@ -117,7 +117,66 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
 
         vm.expectRevert(TimeRangeModule.TimeRangeNotValid.selector);
         timeRangeModule.setTimeRange(TEST_DEFAULT_VALIDATION_ENTITY_ID, validUntil, validUntil + 1);
+
+        vm.expectRevert(TimeRangeModule.TimeRangeNotValid.selector);
+        timeRangeModule.setTimeRange(TEST_DEFAULT_VALIDATION_ENTITY_ID, 0, 0);
         vm.stopPrank();
+    }
+
+    function test_timeRangeModule_setGoodTime() public withSMATest {
+        validUntil = 1000;
+        validAfter = 100;
+
+        _customValidationSetup();
+
+        vm.startPrank(address(account1));
+        timeRangeModule.setTimeRange(TEST_DEFAULT_VALIDATION_ENTITY_ID, 0, 1);
+        (uint48 retrievedValidUntil1, uint48 retrievedValidAfter1) =
+            timeRangeModule.timeRanges(HOOK_ENTITY_ID, address(account1));
+        assertEq(retrievedValidUntil1, 0);
+        assertEq(retrievedValidAfter1, 1);
+
+        timeRangeModule.setTimeRange(TEST_DEFAULT_VALIDATION_ENTITY_ID, 10, 1);
+        (uint48 retrievedValidUntil2, uint48 retrievedValidAfter2) =
+            timeRangeModule.timeRanges(HOOK_ENTITY_ID, address(account1));
+        assertEq(retrievedValidUntil2, 10);
+        assertEq(retrievedValidAfter2, 1);
+        vm.stopPrank();
+    }
+
+    function testFuzz_timeRangeModule_userOp_validUntil_0() public {
+        validUntil = 0;
+        validAfter = 100;
+
+        _customValidationSetup();
+
+        PackedUserOperation memory userOp = PackedUserOperation({
+            sender: address(account1),
+            nonce: 0,
+            initCode: hex"",
+            callData: abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
+            accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
+            preVerificationGas: 0,
+            gasFees: _encodeGas(1, 1),
+            paymasterAndData: hex"",
+            signature: hex""
+        });
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+
+        userOp.signature =
+            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+
+        vm.prank(address(entryPoint));
+        uint256 validationData = account1.validateUserOp(userOp, userOpHash, 0);
+
+        uint48 expectedValidUntil = validUntil == 0 ? type(uint48).max : validUntil;
+
+        assertEq(
+            validationData,
+            _packValidationData({sigFailed: false, validUntil: expectedValidUntil, validAfter: validAfter})
+        );
     }
 
     function testFuzz_timeRangeModule_userOp(uint48 time1, uint48 time2) public {
@@ -207,6 +266,23 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
                 abi.encodeWithSelector(TimeRangeModule.TimeRangeNotValid.selector)
             )
         );
+        vm.prank(owner1);
+        account1.executeWithRuntimeValidation(
+            abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
+            _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
+        );
+    }
+
+    function test_timeRangeModule_runtime_success_validUntil_0() public withSMATest {
+        validUntil = 0;
+        validAfter = 100;
+
+        _customValidationSetup();
+
+        // Attempt during the valid time range, expect success
+        vm.warp(101);
+
+        vm.expectCall({callee: makeAddr("recipient"), msgValue: 0 wei, data: ""});
         vm.prank(owner1);
         account1.executeWithRuntimeValidation(
             abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
