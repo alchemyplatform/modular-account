@@ -12,7 +12,8 @@ import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 /// @notice An implementation of a semi-modular account which reads the signer from proxy bytecode if it is not
 /// disabled and zero in storage.
 /// @dev Inherits SemiModularAccountBase. This account requires that its proxy is compliant with Solady's LibClone
-/// ERC1967WithImmutableArgs bytecode with a bytecode-appended address to be used as the fallback signer.
+/// ERC1967WithImmutableArgs bytecode with a bytecode-appended address (should be encodePacked) to be used as the
+/// fallback signer.
 contract SemiModularAccountBytecode is SemiModularAccountBase {
     constructor(IEntryPoint anEntryPoint) SemiModularAccountBase(anEntryPoint) {}
 
