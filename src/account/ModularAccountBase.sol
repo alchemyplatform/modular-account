@@ -524,17 +524,17 @@ abstract contract ModularAccountBase is
     function _doUserOpValidation(
         PackedUserOperation calldata userOp,
         bytes32 userOpHash,
-        ValidationLookupKey validationLookup,
+        ValidationLookupKey validationLookupKey,
         bytes calldata signature
     ) internal returns (uint256) {
-        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[validationLookup];
+        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[validationLookupKey];
 
         // Do preUserOpValidation hooks
         HookConfig[] memory preUserOpValidationHooks = MemManagementLib.loadValidationHooks(_validationStorage);
 
         uint256 validationRes;
         UOCallBuffer userOpCallBuffer;
-        if (!_validationIsNative(validationLookup) || preUserOpValidationHooks.length > 0) {
+        if (!_validationIsNative(validationLookupKey) || preUserOpValidationHooks.length > 0) {
             userOpCallBuffer = ExecutionLib.allocateUserOpValidationCallBuffer(userOp, userOpHash);
         }
         bytes calldata currentSignatureSlice;
@@ -564,7 +564,7 @@ abstract contract ModularAccountBase is
             currentSignatureSlice = signature.getFinalSegment();
 
             uint256 currentValidationRes =
-                _execUserOpValidation(validationLookup, userOpHash, currentSignatureSlice, userOpCallBuffer);
+                _execUserOpValidation(validationLookupKey, userOpHash, currentSignatureSlice, userOpCallBuffer);
 
             if (preUserOpValidationHooks.length != 0) {
                 // If we have other validation data we need to coalesce with
@@ -578,17 +578,17 @@ abstract contract ModularAccountBase is
     }
 
     function _doRuntimeValidation(
-        ValidationLookupKey validationLookup,
+        ValidationLookupKey validationLookupKey,
         bytes calldata callData,
         bytes calldata authorizationData
     ) internal returns (RTCallBuffer) {
-        ValidationStorage storage _validationData = getAccountStorage().validationStorage[validationLookup];
+        ValidationStorage storage _validationData = getAccountStorage().validationStorage[validationLookupKey];
 
         // run all preRuntimeValidation hooks
         HookConfig[] memory preRuntimeValidationHooks = MemManagementLib.loadValidationHooks(_validationData);
 
         RTCallBuffer callBuffer;
-        if (!_validationIsNative(validationLookup) || preRuntimeValidationHooks.length > 0) {
+        if (!_validationIsNative(validationLookupKey) || preRuntimeValidationHooks.length > 0) {
             callBuffer = ExecutionLib.allocateRuntimeValidationCallBuffer(callData, authorizationData);
         }
 
@@ -610,7 +610,7 @@ abstract contract ModularAccountBase is
 
         authorizationData = authorizationData.getFinalSegment();
 
-        _execRuntimeValidation(validationLookup, callBuffer, authorizationData);
+        _execRuntimeValidation(validationLookupKey, callBuffer, authorizationData);
 
         return callBuffer;
     }
@@ -691,16 +691,15 @@ abstract contract ModularAccountBase is
     }
 
     function _execUserOpValidation(
-        ValidationLookupKey userOpValidationLookup,
+        ValidationLookupKey validationLookupKey,
         bytes32 hash,
         bytes calldata signatureSegment,
         UOCallBuffer callBuffer
     ) internal virtual returns (uint256) {
         (hash); // unused in ModularAccountBase, but used in SemiModularAccountBase
-        ValidationStorage storage _validationStorage =
-            getAccountStorage().validationStorage[userOpValidationLookup];
+        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[validationLookupKey];
 
-        ModuleEntity userOpValidationFunction = userOpValidationLookup.moduleEntity(_validationStorage);
+        ModuleEntity userOpValidationFunction = validationLookupKey.moduleEntity(_validationStorage);
 
         if (!_validationStorage.isUserOpValidation) {
             revert UserOpValidationInvalid(userOpValidationFunction);
@@ -712,12 +711,12 @@ abstract contract ModularAccountBase is
     }
 
     function _execRuntimeValidation(
-        ValidationLookupKey runtimeValidationLookup,
+        ValidationLookupKey validationLookupKey,
         RTCallBuffer callBuffer,
         bytes calldata authorization
     ) internal virtual {
-        ValidationStorage storage _validationData = getAccountStorage().validationStorage[runtimeValidationLookup];
-        ModuleEntity runtimeValidationFunction = runtimeValidationLookup.moduleEntity(_validationData);
+        ValidationStorage storage _validationData = getAccountStorage().validationStorage[validationLookupKey];
+        ModuleEntity runtimeValidationFunction = validationLookupKey.moduleEntity(_validationData);
         ExecutionLib.invokeRuntimeCallBufferValidation(callBuffer, runtimeValidationFunction, authorization);
     }
 
@@ -776,33 +775,33 @@ abstract contract ModularAccountBase is
     function _validateDeferredActionSignature(
         bytes32 defActionTypedDataHash,
         bytes calldata signature,
-        ValidationLookupKey deferredSigValidationLookup
+        ValidationLookupKey deferredSigValidationLookupKey
     ) internal view {
         // Validate the 1271 signature.
         SigCallBuffer sigCallBuffer;
-        if (!_validationIsNative(deferredSigValidationLookup)) {
+        if (!_validationIsNative(deferredSigValidationLookupKey)) {
             sigCallBuffer = ExecutionLib.allocateSigCallBuffer(defActionTypedDataHash, signature);
         }
 
         if (
-            _exec1271Validation(sigCallBuffer, defActionTypedDataHash, deferredSigValidationLookup, signature)
+            _exec1271Validation(sigCallBuffer, defActionTypedDataHash, deferredSigValidationLookupKey, signature)
                 != _1271_MAGIC_VALUE
         ) {
             revert DeferredActionSignatureInvalid();
         }
     }
 
-    function _isValidSignature(ValidationLookupKey validationLookup, bytes32 hash, bytes calldata signature)
+    function _isValidSignature(ValidationLookupKey validationLookupKey, bytes32 hash, bytes calldata signature)
         internal
         view
         returns (bytes4)
     {
-        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[validationLookup];
+        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[validationLookupKey];
 
         HookConfig[] memory preSignatureValidationHooks = MemManagementLib.loadValidationHooks(_validationStorage);
 
         SigCallBuffer sigCallBuffer;
-        if (!_validationIsNative(validationLookup) || preSignatureValidationHooks.length > 0) {
+        if (!_validationIsNative(validationLookupKey) || preSignatureValidationHooks.length > 0) {
             sigCallBuffer = ExecutionLib.allocateSigCallBuffer(hash, signature);
         }
         for (uint256 i = preSignatureValidationHooks.length; i > 0;) {
@@ -822,19 +821,19 @@ abstract contract ModularAccountBase is
         }
         signature = signature.getFinalSegment();
 
-        return _exec1271Validation(sigCallBuffer, hash, validationLookup, signature);
+        return _exec1271Validation(sigCallBuffer, hash, validationLookupKey, signature);
     }
 
     function _exec1271Validation(
         SigCallBuffer buffer,
         bytes32 hash,
-        ValidationLookupKey sigValidationLookup,
+        ValidationLookupKey validationLookupKey,
         bytes calldata signatureSegment
     ) internal view virtual returns (bytes4) {
         (hash); // unused in ModularAccountBase, but used in SemiModularAccountBase
-        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[sigValidationLookup];
+        ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[validationLookupKey];
 
-        ModuleEntity sigValidation = sigValidationLookup.moduleEntity(_validationStorage);
+        ModuleEntity sigValidation = validationLookupKey.moduleEntity(_validationStorage);
 
         if (!_validationStorage.isSignatureValidation) {
             revert SignatureValidationInvalid(sigValidation);

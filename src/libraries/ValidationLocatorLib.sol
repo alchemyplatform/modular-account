@@ -38,15 +38,15 @@ library ValidationLocatorLib {
     uint8 internal constant _HAS_DEFERRED_ACTION = 2;
     uint8 internal constant _IS_DIRECT_CALL_VALIDATION = 4;
 
-    function moduleEntity(ValidationLookupKey lookup, ValidationStorage storage validationStorage)
+    function moduleEntity(ValidationLookupKey _lookupKey, ValidationStorage storage validationStorage)
         internal
         view
         returns (ModuleEntity result)
     {
-        if (lookup.isDirectCallValidation()) {
-            result = ModuleEntityLib.pack(lookup.directCallAddress(), DIRECT_CALL_VALIDATION_ENTITYID);
+        if (_lookupKey.isDirectCallValidation()) {
+            result = ModuleEntityLib.pack(_lookupKey.directCallAddress(), DIRECT_CALL_VALIDATION_ENTITYID);
         } else {
-            result = ModuleEntityLib.pack(validationStorage.module, lookup.entityId());
+            result = ModuleEntityLib.pack(validationStorage.module, _lookupKey.entityId());
         }
     }
 
@@ -158,16 +158,16 @@ library ValidationLocatorLib {
     }
 
     // Only safe to call if the lookup has been asserted to be a direct call validation.
-    function directCallAddress(ValidationLookupKey lookup) internal pure returns (address result) {
+    function directCallAddress(ValidationLookupKey _lookupKey) internal pure returns (address result) {
         assembly ("memory-safe") {
-            result := and(shr(8, lookup), 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
+            result := and(shr(8, _lookupKey), 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
         }
     }
 
     // Only safe to call if the lookup has been asserted to be a non-direct call validation.
-    function entityId(ValidationLookupKey lookup) internal pure returns (uint32 result) {
+    function entityId(ValidationLookupKey _lookupKey) internal pure returns (uint32 result) {
         assembly ("memory-safe") {
-            result := and(shr(8, lookup), 0xFFFFFFFFFFFFFFFF)
+            result := and(shr(8, _lookupKey), 0xFFFFFFFFFFFFFFFF)
         }
     }
 
@@ -179,8 +179,8 @@ library ValidationLocatorLib {
         return (ValidationLocator.unwrap(locator) & _HAS_DEFERRED_ACTION) != 0;
     }
 
-    function isDirectCallValidation(ValidationLookupKey lookup) internal pure returns (bool) {
-        return (ValidationLookupKey.unwrap(lookup) & _IS_DIRECT_CALL_VALIDATION) != 0;
+    function isDirectCallValidation(ValidationLookupKey _lookupKey) internal pure returns (bool) {
+        return (ValidationLookupKey.unwrap(_lookupKey) & _IS_DIRECT_CALL_VALIDATION) != 0;
     }
 
     function configToLookupKey(ValidationConfig validationConfig)

@@ -72,6 +72,12 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         bytes calldata installData,
         bytes[] calldata hooks
     ) external override wrapNativeFunction {
+        // Previously, it was possible to "alias" the fallback validation by installing a module at the reserved
+        // validation entity id 0. Not failing here could cause unexpected behavior, so this is checked to
+        // explicitly revert and warn the caller that this operation would not do what is requested.
+        //
+        // Note that this state can still be reached by upgrading from MA to SMA, but should be handled with
+        // initialization and de-init steps.
         if (validationConfig.entityId() == FALLBACK_VALIDATION_ID && validationConfig.module() != address(0)) {
             revert FallbackValidationInstallationNotAllowed();
         }
@@ -87,12 +93,12 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     }
 
     function _execUserOpValidation(
-        ValidationLookupKey userOpValidationLookup,
+        ValidationLookupKey validationLookupKey,
         bytes32 userOpHash,
         bytes calldata signatureSegment,
         UOCallBuffer callBuffer
     ) internal override returns (uint256) {
-        if (userOpValidationLookup.eq(FALLBACK_VALIDATION_LOOKUP_KEY)) {
+        if (validationLookupKey.eq(FALLBACK_VALIDATION_LOOKUP_KEY)) {
             address fallbackSigner = _getFallbackSigner();
 
             if (_checkSignature(fallbackSigner, userOpHash.toEthSignedMessageHash(), signatureSegment)) {
@@ -101,32 +107,32 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
             return _SIG_VALIDATION_FAILED;
         }
 
-        return super._execUserOpValidation(userOpValidationLookup, userOpHash, signatureSegment, callBuffer);
+        return super._execUserOpValidation(validationLookupKey, userOpHash, signatureSegment, callBuffer);
     }
 
     function _execRuntimeValidation(
-        ValidationLookupKey runtimeValidationLookup,
+        ValidationLookupKey validationLookupKey,
         RTCallBuffer callBuffer,
         bytes calldata authorization
     ) internal override {
-        if (runtimeValidationLookup.eq(FALLBACK_VALIDATION_LOOKUP_KEY)) {
+        if (validationLookupKey.eq(FALLBACK_VALIDATION_LOOKUP_KEY)) {
             address fallbackSigner = _getFallbackSigner();
 
             if (msg.sender != fallbackSigner) {
                 revert FallbackSignerMismatch();
             }
         } else {
-            super._execRuntimeValidation(runtimeValidationLookup, callBuffer, authorization);
+            super._execRuntimeValidation(validationLookupKey, callBuffer, authorization);
         }
     }
 
     function _exec1271Validation(
         SigCallBuffer buffer,
         bytes32 hash,
-        ValidationLookupKey sigValidationLookup,
+        ValidationLookupKey validationLookupKey,
         bytes calldata signature
     ) internal view override returns (bytes4) {
-        if (sigValidationLookup.eq(FALLBACK_VALIDATION_LOOKUP_KEY)) {
+        if (validationLookupKey.eq(FALLBACK_VALIDATION_LOOKUP_KEY)) {
             address fallbackSigner = _getFallbackSigner();
 
             // If called during validateUserOp, this implies that we're doing a deferred validation installation.
@@ -140,7 +146,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
             }
             return _1271_INVALID;
         }
-        return super._exec1271Validation(buffer, hash, sigValidationLookup, signature);
+        return super._exec1271Validation(buffer, hash, validationLookupKey, signature);
     }
 
     function _checkSignature(address owner, bytes32 digest, bytes calldata sig) internal view returns (bool) {
@@ -248,14 +254,14 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     }
 
     // Conditionally skip allocation of call buffers.
-    function _validationIsNative(ValidationLookupKey validationLookup)
+    function _validationIsNative(ValidationLookupKey validationLookupKey)
         internal
         pure
         virtual
         override
         returns (bool)
     {
-        return validationLookup.eq(FALLBACK_VALIDATION_LOOKUP_KEY);
+        return validationLookupKey.eq(FALLBACK_VALIDATION_LOOKUP_KEY);
     }
 
     /// @notice Adds a EIP-712 replay safe hash wrapper to the digest
