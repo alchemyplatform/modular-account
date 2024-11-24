@@ -56,8 +56,7 @@ contract ModuleSignatureUtils {
 
     string internal constant _DEFERRED_ACTION_CONTENTS_TYPE =
         "DeferredAction(uint256 nonce,uint48 deadline,bytes call)";
-    bytes32 private constant _DEFERRED_ACTION_TYPEHASH =
-        keccak256(abi.encodePacked(_DEFERRED_ACTION_CONTENTS_TYPE));
+    bytes32 private immutable _DEFERRED_ACTION_TYPEHASH;
 
     bytes32 internal constant _REPLAY_SAFE_HASH_TYPEHASH = keccak256("ReplaySafeHash(bytes32 hash)");
 
@@ -65,6 +64,10 @@ contract ModuleSignatureUtils {
         keccak256("EIP712Domain(uint256 chainId,address verifyingContract)");
     bytes32 internal constant _MODULE_DOMAIN_SEPARATOR =
         keccak256("EIP712Domain(uint256 chainId,address verifyingContract,bytes32 salt)");
+
+    constructor() {
+        _DEFERRED_ACTION_TYPEHASH = keccak256(abi.encodePacked(_DEFERRED_ACTION_CONTENTS_TYPE));
+    }
 
     function _encodeSignature(PreValidationHookData[] memory preValidationHookData, bytes memory validationData)
         internal
