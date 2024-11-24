@@ -13,7 +13,6 @@ import {Vm} from "forge-std/Vm.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
-
 import {ValidationLocatorLib} from "../../src/libraries/ValidationLocatorLib.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
