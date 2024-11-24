@@ -23,7 +23,7 @@ contract ExecutionInstallDelegate {
 
     address internal immutable _THIS_ADDRESS;
 
-    error Erc4337FunctionNotAllowed(bytes4 selector);
+    error ERC4337FunctionNotAllowed(bytes4 selector);
     error ExecutionFunctionAlreadySet(bytes4 selector);
     error ExecutionFunctionNotSet(bytes4 selector);
     error ExecutionHookNotSet(HookConfig hookConfig);
@@ -155,8 +155,8 @@ contract ExecutionInstallDelegate {
         // Also make sure it doesn't collide with functions defined by ERC-4337 and called by the entry point. This
         // prevents a malicious module from sneaking in a function with the same selector as e.g.
         // `validatePaymasterUserOp` and turning the account into their own personal paymaster.
-        if (KnownSelectorsLib.isErc4337Function(uint32(selector))) {
-            revert Erc4337FunctionNotAllowed(selector);
+        if (KnownSelectorsLib.isERC4337Function(uint32(selector))) {
+            revert ERC4337FunctionNotAllowed(selector);
         }
 
         _executionStorage.module = module;

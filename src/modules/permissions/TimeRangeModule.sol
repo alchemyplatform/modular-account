@@ -43,6 +43,8 @@ contract TimeRangeModule is IValidationHookModule, ModuleBase {
 
     mapping(uint32 entityId => mapping(address account => TimeRange)) public timeRanges;
 
+    event TimeRangeSet(uint32 indexed entityId, address indexed account, uint48 validUntil, uint48 validAfter);
+
     error TimeRangeNotValid();
 
     /// @inheritdoc IModule
@@ -120,8 +122,8 @@ contract TimeRangeModule is IValidationHookModule, ModuleBase {
         } else if (validUntil <= validAfter) {
             revert TimeRangeNotValid();
         }
-
         timeRanges[entityId][msg.sender] = TimeRange(validUntil, validAfter);
+        emit TimeRangeSet(entityId, msg.sender, validUntil, validAfter);
     }
 
     /// @inheritdoc IERC165

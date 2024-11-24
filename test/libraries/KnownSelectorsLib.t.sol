@@ -14,14 +14,14 @@ import {Test} from "forge-std/Test.sol";
 import {KnownSelectorsLib} from "../../src/libraries/KnownSelectorsLib.sol";
 
 contract KnownSelectorsLibTest is Test {
-    function test_isErc4337Function() public pure {
-        assertTrue(KnownSelectorsLib.isErc4337Function(uint32(IAggregator.validateSignatures.selector)));
-        assertTrue(KnownSelectorsLib.isErc4337Function(uint32(IAggregator.validateUserOpSignature.selector)));
-        assertTrue(KnownSelectorsLib.isErc4337Function(uint32(IAggregator.aggregateSignatures.selector)));
-        assertTrue(KnownSelectorsLib.isErc4337Function(uint32(IPaymaster.validatePaymasterUserOp.selector)));
-        assertTrue(KnownSelectorsLib.isErc4337Function(uint32(IPaymaster.postOp.selector)));
+    function test_isERC4337Function() public pure {
+        assertTrue(KnownSelectorsLib.isERC4337Function(uint32(IAggregator.validateSignatures.selector)));
+        assertTrue(KnownSelectorsLib.isERC4337Function(uint32(IAggregator.validateUserOpSignature.selector)));
+        assertTrue(KnownSelectorsLib.isERC4337Function(uint32(IAggregator.aggregateSignatures.selector)));
+        assertTrue(KnownSelectorsLib.isERC4337Function(uint32(IPaymaster.validatePaymasterUserOp.selector)));
+        assertTrue(KnownSelectorsLib.isERC4337Function(uint32(IPaymaster.postOp.selector)));
 
-        assertFalse(KnownSelectorsLib.isErc4337Function(uint32(IAccount.validateUserOp.selector)));
+        assertFalse(KnownSelectorsLib.isERC4337Function(uint32(IAccount.validateUserOp.selector)));
     }
 
     function test_isIModuleFunction() public pure {

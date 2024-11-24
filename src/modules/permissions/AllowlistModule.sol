@@ -91,17 +91,20 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
     event AddressAllowlistUpdated(
         uint32 indexed entityId, address indexed account, address indexed target, AddressAllowlistEntry entry
     );
+    event ERC20SpendLimitUpdated(
+        uint32 indexed entityId, address indexed account, address indexed token, uint256 newLimit
+    );
     event SelectorAllowlistUpdated(
         uint32 indexed entityId, address indexed account, bytes24 indexed targetAndSelector, bool allowed
     );
 
     error AddressNotAllowed();
-    error SelectorNotAllowed();
-    error NoSelectorSpecified();
-    error ExceededTokenLimit();
-    error SpendingRequestNotAllowed(bytes4);
     error ERC20NotAllowed(address);
+    error ExceededTokenLimit();
     error InvalidCalldataLength();
+    error NoSelectorSpecified();
+    error SelectorNotAllowed();
+    error SpendingRequestNotAllowed(bytes4);
 
     /// @inheritdoc IModule
     /// @dev The `data` parameter is expected to be encoded as `(uint32 entityId, AllowlistInput[] inputs)`.
@@ -185,9 +188,9 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
         if (token == address(0)) {
             revert ERC20NotAllowed(address(0));
         }
-
         addressAllowlist[entityId][token][msg.sender].hasERC20SpendLimit = hasERC20SpendLimit;
         erc20SpendLimits[entityId][token][msg.sender] = newLimit;
+        emit ERC20SpendLimitUpdated(entityId, msg.sender, token, newLimit);
     }
 
     /// @notice update the allowlists for a given entity ID. If the entry for an address or selector exist, it will

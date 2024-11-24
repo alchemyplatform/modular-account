@@ -17,7 +17,7 @@ library KnownSelectorsLib {
     /// @notice Check if a selector is an ERC-4337 function.
     /// @param selector The selector to check.
     /// @return True if the selector is an ERC-4337 function, false otherwise.
-    function isErc4337Function(uint32 selector) internal pure returns (bool) {
+    function isERC4337Function(uint32 selector) internal pure returns (bool) {
         return selector == uint32(IAggregator.validateSignatures.selector)
             || selector == uint32(IAggregator.validateUserOpSignature.selector)
             || selector == uint32(IAggregator.aggregateSignatures.selector)

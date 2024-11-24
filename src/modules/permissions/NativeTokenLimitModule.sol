@@ -44,6 +44,9 @@ contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidation
     // paymasters given permissions to pull funds from accounts should be added here
     mapping(address paymaster => mapping(address account => bool allowed)) public specialPaymasters;
 
+    event NativeTokenSpendLimitUpdated(uint32 indexed entityId, address indexed account, uint256 newLimit);
+    event SpecialPaymasterUpdated(address indexed account, address indexed paymaster, bool allowed);
+
     error ExceededNativeTokenLimit();
     error InvalidPaymaster();
 
@@ -52,6 +55,7 @@ contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidation
     /// @param newLimit The new limit
     function updateLimits(uint32 entityId, uint256 newLimit) external {
         limits[entityId][msg.sender] = newLimit;
+        emit NativeTokenSpendLimitUpdated(entityId, msg.sender, newLimit);
     }
 
     /// @notice Update special paymasters that should still decrease the limit of an account
@@ -59,6 +63,7 @@ contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidation
     /// @param allowed Whether the paymaster is allowed to pull funds from the account
     function updateSpecialPaymaster(address paymaster, bool allowed) external {
         specialPaymasters[paymaster][msg.sender] = allowed;
+        emit SpecialPaymasterUpdated(msg.sender, paymaster, allowed);
     }
 
     /// @inheritdoc IValidationHookModule
