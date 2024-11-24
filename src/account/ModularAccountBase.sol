@@ -83,7 +83,7 @@ abstract contract ModularAccountBase is
 
     // keccak256("DeferredAction(uint256 nonce,uint48 deadline,bytes call)")
     bytes32 internal constant _DEFERRED_ACTION_TYPEHASH =
-        0xa0a7682d80b18373e0ec8549850bc960f46562e16ae4ddee86ab9a3cc3d3a07c;
+        0x9b23e06584efc6b65fc854cee55011d89f86485487b6db36aed7d23884711ea3;
 
     // As per the EIP-165 spec, no interface should ever match 0xffffffff
     bytes4 internal constant _INTERFACE_ID_INVALID = 0xffffffff;

@@ -55,7 +55,7 @@ contract ModuleSignatureUtils {
     uint8 public constant EOA_TYPE_SIGNATURE = 0;
 
     string internal constant _DEFERRED_ACTION_CONTENTS_TYPE =
-        "DeferredAction(uint256 nonce,uint48 deadline,uint168 validationLocator,bytes call)";
+        "DeferredAction(uint256 nonce,uint48 deadline,bytes call)";
     bytes32 private constant _DEFERRED_ACTION_TYPEHASH =
         keccak256(abi.encodePacked(_DEFERRED_ACTION_CONTENTS_TYPE));
 

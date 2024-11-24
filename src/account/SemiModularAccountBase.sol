@@ -46,6 +46,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     event FallbackSignerUpdated(address indexed newFallbackSigner, bool isDisabled);
 
     error FallbackSignerMismatch();
+    error FallbackValidationInstallationNotAllowed();
     error FallbackSignerDisabled();
     error InvalidSignatureType();
 
@@ -72,7 +73,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         bytes[] calldata hooks
     ) external override wrapNativeFunction {
         if (validationConfig.entityId() == FALLBACK_VALIDATION_ID && validationConfig.module() != address(0)) {
-            revert FallbackSignerMismatch();
+            revert FallbackValidationInstallationNotAllowed();
         }
         _installValidation(validationConfig, selectors, installData, hooks);
     }
