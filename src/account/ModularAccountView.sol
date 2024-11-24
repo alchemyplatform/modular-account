@@ -61,7 +61,7 @@ abstract contract ModularAccountView is IModularAccountView {
         returns (ValidationDataView memory data)
     {
         ValidationStorage storage validationStorage =
-            getAccountStorage().validationStorage[ValidationLocatorLib.moduleEntityToLookup(validationFunction)];
+            getAccountStorage().validationStorage[ValidationLocatorLib.moduleEntityToLookupKey(validationFunction)];
         data.isGlobal = validationStorage.isGlobal;
         data.isSignatureValidation = validationStorage.isSignatureValidation;
         data.isUserOpValidation = validationStorage.isUserOpValidation;

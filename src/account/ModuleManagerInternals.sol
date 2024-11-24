@@ -85,7 +85,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
         bytes[] calldata hooks
     ) internal {
         ValidationStorage storage _validationStorage =
-            getAccountStorage().validationStorage[ValidationLocatorLib.configToLookup(validationConfig)];
+            getAccountStorage().validationStorage[ValidationLocatorLib.configToLookupKey(validationConfig)];
 
         _setValidationFunction(_validationStorage, validationConfig, selectors);
 
@@ -146,7 +146,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
         bytes[] calldata hookUninstallDatas
     ) internal {
         ValidationStorage storage _validationStorage =
-            getAccountStorage().validationStorage[ValidationLocatorLib.moduleEntityToLookup(validationFunction)];
+            getAccountStorage().validationStorage[ValidationLocatorLib.moduleEntityToLookupKey(validationFunction)];
         bool onUninstallSuccess = true;
 
         // Send `onUninstall` to hooks

@@ -74,7 +74,7 @@ library ValidationLocatorLib {
 
             switch validationType
             case 0 {
-                // If not using direct call validation, the validation locator contains a 32-byte entity ID
+                // If not using direct call validation, the validation locator contains a 4-byte entity ID
                 // Mask it to the lower 5 bytes
                 result := and(nonce, 0xFFFFFFFFFF)
             }
@@ -183,7 +183,7 @@ library ValidationLocatorLib {
         return (ValidationLocator.unwrap(locator) & _IS_DIRECT_CALL_VALIDATION) != 0;
     }
 
-    function configToLookup(ValidationConfig validationConfig)
+    function configToLookupKey(ValidationConfig validationConfig)
         internal
         pure
         returns (ValidationLookupKey result)
@@ -197,7 +197,11 @@ library ValidationLocatorLib {
         }
     }
 
-    function moduleEntityToLookup(ModuleEntity _moduleEntity) internal pure returns (ValidationLookupKey result) {
+    function moduleEntityToLookupKey(ModuleEntity _moduleEntity)
+        internal
+        pure
+        returns (ValidationLookupKey result)
+    {
         (address module, uint32 _entityId) = ModuleEntityLib.unpack(_moduleEntity);
         if (_entityId == DIRECT_CALL_VALIDATION_ENTITYID) {
             result = ValidationLookupKey.wrap(uint168(uint160(module)) << 8 | _IS_DIRECT_CALL_VALIDATION);
@@ -206,7 +210,11 @@ library ValidationLocatorLib {
         }
     }
 
-    function directCallLookup(address directCallValidation) internal pure returns (ValidationLookupKey result) {
+    function directCallLookupKey(address directCallValidation)
+        internal
+        pure
+        returns (ValidationLookupKey result)
+    {
         result = ValidationLookupKey.wrap(uint168(uint160(directCallValidation)) << 8 | _IS_DIRECT_CALL_VALIDATION);
     }
 

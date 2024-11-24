@@ -9,4 +9,4 @@ import {ValidationLookupKey} from "../libraries/ValidationLocatorLib.sol";
 ModuleEntity constant FALLBACK_VALIDATION = ModuleEntity.wrap(bytes24(0));
 
 // Magic value for the ValidationLookupKey of the fallback validation for SemiModularAccount.
-ValidationLookupKey constant FALLBACK_VALIDATION_LOOKUP = ValidationLookupKey.wrap(uint168(0));
+ValidationLookupKey constant FALLBACK_VALIDATION_LOOKUP_KEY = ValidationLookupKey.wrap(uint168(0));

@@ -494,7 +494,7 @@ abstract contract ModularAccountBase is
         // Because this bypasses UO validation hooks, we require that the validation used does not include any
         // validation hooks.
         if (
-            getAccountStorage().validationStorage[defActionValidationModuleEntity.moduleEntityToLookup()]
+            getAccountStorage().validationStorage[defActionValidationModuleEntity.moduleEntityToLookupKey()]
                 .validationHookCount != 0
         ) {
             revert DeferredValidationHasValidationHooks();
@@ -503,7 +503,7 @@ abstract contract ModularAccountBase is
         // Check if the outer validation applies to the function call
         _checkIfValidationAppliesCallData(
             encodedData[63:],
-            defActionValidationModuleEntity.moduleEntityToLookup(),
+            defActionValidationModuleEntity.moduleEntityToLookupKey(),
             isGlobalSigValidation ? ValidationCheckingType.GLOBAL : ValidationCheckingType.SELECTOR
         );
 
@@ -513,7 +513,7 @@ abstract contract ModularAccountBase is
 
         // Run the validation associated execution hooks, allocating a call buffer as needed.
         HookConfig[] memory validationAssocExecHooks = MemManagementLib.loadExecHooks(
-            getAccountStorage().validationStorage[defActionValidationModuleEntity.moduleEntityToLookup()]
+            getAccountStorage().validationStorage[defActionValidationModuleEntity.moduleEntityToLookupKey()]
         );
 
         PHCallBuffer callBuffer;
@@ -662,7 +662,7 @@ abstract contract ModularAccountBase is
             msg.sender != address(_ENTRY_POINT) && msg.sender != address(this)
                 && !_storage.executionStorage[msg.sig].skipRuntimeValidation
         ) {
-            ValidationLookupKey directCallValidationKey = ValidationLocatorLib.directCallLookup(msg.sender);
+            ValidationLookupKey directCallValidationKey = ValidationLocatorLib.directCallLookupKey(msg.sender);
 
             _checkIfValidationAppliesCallData(msg.data, directCallValidationKey, ValidationCheckingType.EITHER);
 
@@ -717,7 +717,7 @@ abstract contract ModularAccountBase is
     ) internal virtual returns (uint256) {
         AccountStorage storage _storage = getAccountStorage();
 
-        if (!_storage.validationStorage[userOpValidationFunction.moduleEntityToLookup()].isUserOpValidation) {
+        if (!_storage.validationStorage[userOpValidationFunction.moduleEntityToLookupKey()].isUserOpValidation) {
             revert UserOpValidationInvalid(userOpValidationFunction);
         }
 
@@ -862,7 +862,7 @@ abstract contract ModularAccountBase is
         (hash); // unused in ModularAccountBase, but used in SemiModularAccountBase
         AccountStorage storage _storage = getAccountStorage();
 
-        if (!_storage.validationStorage[sigValidation.moduleEntityToLookup()].isSignatureValidation) {
+        if (!_storage.validationStorage[sigValidation.moduleEntityToLookupKey()].isSignatureValidation) {
             revert SignatureValidationInvalid(sigValidation);
         }
 

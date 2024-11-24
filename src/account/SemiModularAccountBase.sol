@@ -8,7 +8,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
-import {FALLBACK_VALIDATION, FALLBACK_VALIDATION_LOOKUP} from "../helpers/Constants.sol";
+import {FALLBACK_VALIDATION, FALLBACK_VALIDATION_LOOKUP_KEY} from "../helpers/Constants.sol";
 import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 import {SignatureType} from "../helpers/SignatureType.sol";
 import {RTCallBuffer, SigCallBuffer, UOCallBuffer} from "../libraries/ExecutionLib.sol";
@@ -151,7 +151,8 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
     }
 
     function _isValidationGlobal(ValidationLookupKey validationFunction) internal view override returns (bool) {
-        if (validationFunction.eq(FALLBACK_VALIDATION_LOOKUP) || super._isValidationGlobal(validationFunction)) {
+        if (validationFunction.eq(FALLBACK_VALIDATION_LOOKUP_KEY) || super._isValidationGlobal(validationFunction))
+        {
             return true;
         }
 
@@ -167,7 +168,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         address fallbackSigner = _retrieveFallbackSignerUnchecked(smaStorage);
 
         // Compute the direct call validation key.
-        ValidationLookupKey fallbackDirectCallValidation = ValidationLocatorLib.directCallLookup(fallbackSigner);
+        ValidationLookupKey fallbackDirectCallValidation = ValidationLocatorLib.directCallLookupKey(fallbackSigner);
 
         // Return true if the validation function passed is the fallback direct call validation key, and the sender
         // is the fallback signer. This enforces that context is a

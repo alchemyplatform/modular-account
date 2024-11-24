@@ -3,8 +3,8 @@ pragma solidity ^0.8.26;
 
 import {HookConfig} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
-import {ValidationLookupKey} from "../../src/libraries/ValidationLocatorLib.sol";
 import {LinkedListSet, SetValue} from "../libraries/LinkedListSetLib.sol";
+import {ValidationLookupKey} from "../libraries/ValidationLocatorLib.sol";
 
 // ERC-7201 derived storage slot.
 // keccak256(abi.encode(uint256(keccak256("Alchemy.ModularAccount.Storage_V2")) - 1)) & ~bytes32(uint256(0xff))

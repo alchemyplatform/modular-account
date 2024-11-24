@@ -106,7 +106,7 @@ contract ValidationLocatorLibTest is Test {
         assertEq(ValidationLookupKey.unwrap(result), ValidationLookupKey.unwrap(expected));
     }
 
-    function testFuzz_configToLookup(
+    function testFuzz_configToLookupKey(
         ModuleEntity validationEntity,
         bool isGlobal,
         bool isSignatureValidation,
@@ -117,7 +117,7 @@ contract ValidationLocatorLibTest is Test {
         ValidationConfig input =
             ValidationConfigLib.pack(validationEntity, isGlobal, isSignatureValidation, isUserOpValidation);
 
-        ValidationLookupKey result = ValidationLocatorLib.configToLookup(input);
+        ValidationLookupKey result = ValidationLocatorLib.configToLookupKey(input);
 
         ValidationLookupKey expected;
 
@@ -130,10 +130,10 @@ contract ValidationLocatorLibTest is Test {
         assertEq(ValidationLookupKey.unwrap(result), ValidationLookupKey.unwrap(expected));
     }
 
-    function testFuzz_moduleEntityToLookup(ModuleEntity validationEntity) public pure {
+    function testFuzz_moduleEntityToLookupKey(ModuleEntity validationEntity) public pure {
         (address module, uint32 entityId) = ModuleEntityLib.unpack(validationEntity);
 
-        ValidationLookupKey result = ValidationLocatorLib.moduleEntityToLookup(validationEntity);
+        ValidationLookupKey result = ValidationLocatorLib.moduleEntityToLookupKey(validationEntity);
 
         ValidationLookupKey expected;
 
