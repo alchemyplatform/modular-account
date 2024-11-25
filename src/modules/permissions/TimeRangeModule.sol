@@ -91,8 +91,7 @@ contract TimeRangeModule is IValidationHookModule, ModuleBase {
         override
     {
         TimeRange memory timeRange = timeRanges[entityId][msg.sender];
-        uint48 validUntil = timeRange.validUntil == 0 ? type(uint48).max : timeRange.validUntil;
-        if (block.timestamp > validUntil || block.timestamp < timeRange.validAfter) {
+        if (block.timestamp > timeRange.validUntil || block.timestamp < timeRange.validAfter) {
             revert TimeRangeNotValid();
         }
     }
@@ -119,6 +118,7 @@ contract TimeRangeModule is IValidationHookModule, ModuleBase {
             if (validAfter == validUntil) {
                 revert TimeRangeNotValid();
             }
+            validUntil = type(uint48).max;
         } else if (validUntil <= validAfter) {
             revert TimeRangeNotValid();
         }

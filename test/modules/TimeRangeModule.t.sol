@@ -133,7 +133,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         timeRangeModule.setTimeRange(TEST_DEFAULT_VALIDATION_ENTITY_ID, 0, 1);
         (uint48 retrievedValidUntil1, uint48 retrievedValidAfter1) =
             timeRangeModule.timeRanges(HOOK_ENTITY_ID, address(account1));
-        assertEq(retrievedValidUntil1, 0);
+        assertEq(retrievedValidUntil1, type(uint48).max);
         assertEq(retrievedValidAfter1, 1);
 
         timeRangeModule.setTimeRange(TEST_DEFAULT_VALIDATION_ENTITY_ID, 10, 1);
