@@ -65,11 +65,13 @@ contract PaymasterGuardModule is ModuleBase, IValidationHookModule {
         returns (uint256)
     {
         address payingPaymaster = address(bytes20(userOp.paymasterAndData[:20]));
-        if (payingPaymaster == paymasters[entityId][msg.sender]) {
-            return 0;
-        } else {
+        if (payingPaymaster == address(0)) {
+            revert InvalidPaymaster();
+        }
+        if (payingPaymaster != paymasters[entityId][msg.sender]) {
             revert BadPaymasterSpecified();
         }
+        return 0;
     }
 
     /// @inheritdoc IValidationHookModule
