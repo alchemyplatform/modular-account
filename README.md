@@ -89,8 +89,6 @@ The contracts in this repository adhere to the ERC-6900 specification, and are h
 
 ## License
 
-The modules provided in this repository ([src/modules](src/modules)) are licensed under the GNU General Public License v3.0, included in our repository in [LICENSE-GPL](LICENSE-GPL).
-
-All other code for Modular Account is UNLICENSED.
+The contracts provided in this repository in [src](src) are licensed under the GNU General Public License v3.0, included in our repository in [LICENSE-GPL](LICENSE-GPL).
 
 Alchemy Insights, Inc., 548 Market St., PMB 49099, San Francisco, CA 94104; legal@alchemy.com
