@@ -24,6 +24,8 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+import {SemiModularAccountBase} from "../../src/account/SemiModularAccountBase.sol";
+import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
@@ -91,6 +93,26 @@ contract GlobalValidationTest is AccountTestBase {
         );
 
         assertEq(ethRecipient.balance, 2 wei);
+    }
+
+    function test_globalValidation_runtime_updateFallbackSignerData() public withSMATest {
+        if (_isSMATest) {
+            SemiModularAccountBytecode sma1 = SemiModularAccountBytecode(payable(address(account1)));
+            (address fallbackSigner, bool isDisabled) = sma1.getFallbackSignerData();
+            assertEq(fallbackSigner, owner1);
+            assertEq(isDisabled, false);
+
+            // Update the fallback signer
+            vm.prank(owner1);
+            account1.executeWithRuntimeValidation(
+                abi.encodeCall(SemiModularAccountBase.updateFallbackSignerData, (owner2, false)),
+                _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
+            );
+
+            (fallbackSigner, isDisabled) = sma1.getFallbackSignerData();
+            assertEq(fallbackSigner, owner2);
+            assertEq(isDisabled, false);
+        }
     }
 
     function test_globalValidation_failsOnSelectorApplicability() public withSMATest {
