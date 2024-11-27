@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.26;
 
-import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
+import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {
     ExecutionManifest,
@@ -434,7 +434,7 @@ contract PHCallBufferTest is AccountTestBase {
 
     // pre hooks in `_checkPermittedCallerAndAssociatedHooks` (direct call validation, with pre RT hooks)
     function test_preExecHooks_directCallValidation_withPRTHooks() public withSMATest {
-        _install3ValAssocExecHooks(DIRECT_CALL_VALIDATION_ENTITYID, true);
+        _install3ValAssocExecHooks(DIRECT_CALL_VALIDATION_ENTITY_ID, true);
         _addPreRuntimeValidationHook();
 
         bytes memory callData = abi.encodeCall(account1.execute, (beneficiary, 0 wei, ""));

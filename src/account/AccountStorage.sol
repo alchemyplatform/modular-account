@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.26;
 
-import {HookConfig} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {HookConfig, ValidationFlags} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 
 import {LinkedListSet, SetValue} from "../libraries/LinkedListSetLib.sol";
 import {ValidationLookupKey} from "../libraries/ValidationLocatorLib.sol";
@@ -46,12 +46,12 @@ struct ExecutionStorage {
 struct ValidationStorage {
     // The address of the validation module.
     address module;
-    // Whether or not this validation can be used as a global validation function.
-    bool isGlobal;
-    // Whether or not this validation is allowed to validate ERC-1271 signatures.
-    bool isSignatureValidation;
-    // Whether or not this validation is allowed to validate ERC-4337 user operations.
-    bool isUserOpValidation;
+    // ValidationFlags layout:
+    // 0b00000___ // unused
+    // 0b_____A__ // isGlobal
+    // 0b______B_ // isSignatureValidation
+    // 0b_______C // isUserOpValidation
+    ValidationFlags validationFlags;
     // Length of the validation hooks for this validation function. The length is stored here, in the same storage
     // slot as the flags, to save an `sload` when putting the hooks into memory.
     uint8 validationHookCount;

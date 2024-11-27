@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.26;
 
-import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
+import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {
     ExecutionManifest,
     ManifestExecutionHook
@@ -200,7 +200,7 @@ contract HookOrderingTest is AccountTestBase {
     }
 
     function test_hookOrder_directCall_moduleExecFunction() public withSMATest {
-        _installOrderCheckerModuleWithValidationAssocExec(DIRECT_CALL_VALIDATION_ENTITYID);
+        _installOrderCheckerModuleWithValidationAssocExec(DIRECT_CALL_VALIDATION_ENTITY_ID);
 
         vm.prank(address(hookOrderChecker));
         HookOrderCheckerModule(address(account1)).foo(17);
@@ -209,7 +209,7 @@ contract HookOrderingTest is AccountTestBase {
     }
 
     function test_hookOrder_directCall_moduleExecFunction_noAssoc() public withSMATest {
-        _installOrderCheckerModuleNoValidationAssocExec(DIRECT_CALL_VALIDATION_ENTITYID);
+        _installOrderCheckerModuleNoValidationAssocExec(DIRECT_CALL_VALIDATION_ENTITY_ID);
 
         vm.prank(address(hookOrderChecker));
         HookOrderCheckerModule(address(account1)).foo(17);
@@ -329,7 +329,7 @@ contract HookOrderingTest is AccountTestBase {
     }
 
     function test_hookOrder_directCall_accountNativeFunction_withAssoc() public withSMATest {
-        _installOrderCheckerModuleWithValidationAssocExec(DIRECT_CALL_VALIDATION_ENTITYID);
+        _installOrderCheckerModuleWithValidationAssocExec(DIRECT_CALL_VALIDATION_ENTITY_ID);
 
         vm.prank(address(hookOrderChecker));
         HookOrderCheckerModule(address(account1)).foo(17);
@@ -338,7 +338,7 @@ contract HookOrderingTest is AccountTestBase {
     }
 
     function test_hookOrder_directCall_accountNativeFunction_noAssoc() public withSMATest {
-        _installOrderCheckerModuleNoValidationAssocExec(DIRECT_CALL_VALIDATION_ENTITYID);
+        _installOrderCheckerModuleNoValidationAssocExec(DIRECT_CALL_VALIDATION_ENTITY_ID);
 
         vm.prank(address(hookOrderChecker));
         HookOrderCheckerModule(address(account1)).foo(17);

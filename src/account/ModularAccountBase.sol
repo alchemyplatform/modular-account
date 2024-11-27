@@ -24,7 +24,8 @@ import {
     HookConfig,
     IModularAccount,
     ModuleEntity,
-    ValidationConfig
+    ValidationConfig,
+    ValidationFlags
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {HookConfig, HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
@@ -42,7 +43,6 @@ import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
 import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
-
 import {IModularAccountBase} from "../interfaces/IModularAccountBase.sol";
 import {
     DensePostHookData,
@@ -83,7 +83,7 @@ abstract contract ModularAccountBase is
 {
     using LinkedListSetLib for LinkedListSet;
     using ModuleEntityLib for ModuleEntity;
-    using ValidationConfigLib for ValidationConfig;
+    using ValidationConfigLib for ValidationFlags;
     using HookConfigLib for HookConfig;
     using SparseCalldataSegmentLib for bytes;
 
@@ -717,7 +717,7 @@ abstract contract ModularAccountBase is
 
         ModuleEntity userOpValidationFunction = validationLookupKey.moduleEntity(_validationStorage);
 
-        if (!_validationStorage.isUserOpValidation) {
+        if (!_validationStorage.validationFlags.isUserOpValidation()) {
             revert UserOpValidationInvalid(userOpValidationFunction);
         }
 
@@ -851,7 +851,7 @@ abstract contract ModularAccountBase is
 
         ModuleEntity sigValidation = validationLookupKey.moduleEntity(_validationStorage);
 
-        if (!_validationStorage.isSignatureValidation) {
+        if (!_validationStorage.validationFlags.isSignatureValidation()) {
             revert SignatureValidationInvalid(sigValidation);
         }
 
@@ -862,7 +862,7 @@ abstract contract ModularAccountBase is
     }
 
     function _isValidationGlobal(ValidationLookupKey validationFunction) internal view virtual returns (bool) {
-        return getAccountStorage().validationStorage[validationFunction].isGlobal;
+        return getAccountStorage().validationStorage[validationFunction].validationFlags.isGlobal();
     }
 
     function _checkIfValidationAppliesCallData(

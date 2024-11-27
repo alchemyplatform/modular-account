@@ -25,7 +25,8 @@ import {
 import {
     HookConfig,
     IModularAccount,
-    ModuleEntity
+    ModuleEntity,
+    ValidationFlags
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {
     ExecutionDataView,
@@ -33,17 +34,21 @@ import {
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccountBase} from "../../src/account/SemiModularAccountBase.sol";
 import {IModularAccountBase} from "../../src/interfaces/IModularAccountBase.sol";
+
 import {ComprehensiveModule} from "../mocks/modules/ComprehensiveModule.sol";
 import {MockModule} from "../mocks/modules/MockModule.sol";
 import {CustomValidationTestBase} from "../utils/CustomValidationTestBase.sol";
 
 contract ModularAccountViewTest is CustomValidationTestBase {
+    using ValidationConfigLib for ValidationFlags;
+
     ComprehensiveModule public comprehensiveModule;
 
     event ReceivedCall(bytes msgData, uint256 msgValue);
@@ -283,9 +288,9 @@ contract ModularAccountViewTest is CustomValidationTestBase {
         ValidationDataView memory data = account1.getValidationData(comprehensiveModuleValidation);
         bytes4[] memory selectors = data.selectors;
 
-        assertTrue(data.isGlobal);
-        assertTrue(data.isSignatureValidation);
-        assertTrue(data.isUserOpValidation);
+        assertTrue(data.validationFlags.isGlobal());
+        assertTrue(data.validationFlags.isSignatureValidation());
+        assertTrue(data.validationFlags.isUserOpValidation());
         assertEq(data.validationHooks.length, 2);
         assertEq(
             HookConfig.unwrap(data.validationHooks[0]),

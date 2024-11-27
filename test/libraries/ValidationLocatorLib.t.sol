@@ -19,7 +19,7 @@ pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 
-import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
+import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {ModuleEntity, ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {
     ValidationConfig,
@@ -137,7 +137,7 @@ contract ValidationLocatorLibTest is Test {
 
         ValidationLookupKey expected;
 
-        if (entityId == DIRECT_CALL_VALIDATION_ENTITYID) {
+        if (entityId == DIRECT_CALL_VALIDATION_ENTITY_ID) {
             expected = ValidationLocatorLib.packDirectCall(module, false, false).lookupKey();
         } else {
             expected = ValidationLocatorLib.pack(entityId, false, false).lookupKey();
@@ -153,7 +153,7 @@ contract ValidationLocatorLibTest is Test {
 
         ValidationLookupKey expected;
 
-        if (entityId == DIRECT_CALL_VALIDATION_ENTITYID) {
+        if (entityId == DIRECT_CALL_VALIDATION_ENTITY_ID) {
             expected = ValidationLocatorLib.packDirectCall(module, false, false).lookupKey();
         } else {
             expected = ValidationLocatorLib.pack(entityId, false, false).lookupKey();

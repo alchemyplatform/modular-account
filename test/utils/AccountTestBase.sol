@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.26;
 
-import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
+import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {
     Call, IModularAccount, ModuleEntity
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
@@ -276,7 +276,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
             abi.encodeCall(
                 account1.installValidation,
                 (
-                    ValidationConfigLib.pack(address(this), DIRECT_CALL_VALIDATION_ENTITYID, true, false, false),
+                    ValidationConfigLib.pack(address(this), DIRECT_CALL_VALIDATION_ENTITY_ID, true, false, false),
                     new bytes4[](0),
                     "",
                     new bytes[](0)

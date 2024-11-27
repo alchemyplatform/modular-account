@@ -20,7 +20,7 @@ pragma solidity ^0.8.26;
 import {Vm} from "forge-std/Vm.sol";
 
 import {
-    DIRECT_CALL_VALIDATION_ENTITYID,
+    DIRECT_CALL_VALIDATION_ENTITY_ID,
     RESERVED_VALIDATION_DATA_INDEX
 } from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
@@ -98,7 +98,7 @@ contract ModuleSignatureUtils {
 
         (address module, uint32 entityId) = validationFunction.unpack();
 
-        if (entityId == DIRECT_CALL_VALIDATION_ENTITYID) {
+        if (entityId == DIRECT_CALL_VALIDATION_ENTITY_ID) {
             sig =
                 ValidationLocatorLib.packSignatureDirectCall(module, globalOrNot == GLOBAL_VALIDATION, false, sig);
         } else {
@@ -137,7 +137,7 @@ contract ModuleSignatureUtils {
 
         (address module, uint32 entityId) = validationFunction.unpack();
 
-        if (entityId == DIRECT_CALL_VALIDATION_ENTITYID) {
+        if (entityId == DIRECT_CALL_VALIDATION_ENTITY_ID) {
             sig = ValidationLocatorLib.packSignatureDirectCall(module, false, false, sig);
         } else {
             sig = ValidationLocatorLib.packSignature(entityId, false, false, sig);
@@ -237,7 +237,7 @@ contract ModuleSignatureUtils {
     ) internal pure returns (uint256) {
         (address module, uint32 entityId) = validationFunction.unpack();
 
-        if (entityId == DIRECT_CALL_VALIDATION_ENTITYID) {
+        if (entityId == DIRECT_CALL_VALIDATION_ENTITY_ID) {
             return ValidationLocatorLib.packNonceDirectCall(module, isGlobal, hasDeferredAction) | linearNonce;
         } else {
             return ValidationLocatorLib.packNonce(entityId, isGlobal, hasDeferredAction) | linearNonce;

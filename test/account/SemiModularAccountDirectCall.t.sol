@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.26;
 
-import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
+import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {ModuleEntity, ValidationConfig} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
@@ -39,9 +39,9 @@ contract SemiModularAccountDirectCallTest is AccountTestBase {
     function setUp() public override {
         _revertSnapshot = vm.snapshotState();
         _module = new MockSMADirectFallbackModule();
-        _directCallModuleEntity = ModuleEntityLib.pack(address(_module), DIRECT_CALL_VALIDATION_ENTITYID);
+        _directCallModuleEntity = ModuleEntityLib.pack(address(_module), DIRECT_CALL_VALIDATION_ENTITY_ID);
 
-        _fallbackDirectCallModuleEntity = ModuleEntityLib.pack(address(owner1), DIRECT_CALL_VALIDATION_ENTITYID);
+        _fallbackDirectCallModuleEntity = ModuleEntityLib.pack(address(owner1), DIRECT_CALL_VALIDATION_ENTITY_ID);
 
         // enforces that this test runs with an SMA.
         account1 = ModularAccount(payable(factory.createSemiModularAccount(owner1, 0)));

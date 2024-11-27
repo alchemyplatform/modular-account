@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.26;
 
-import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
+import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {
     Call,
     IModularAccount,
@@ -56,7 +56,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
         _module = new DirectCallModule();
         assertFalse(_module.preHookRan());
         assertFalse(_module.postHookRan());
-        _moduleEntity = ModuleEntityLib.pack(address(_module), DIRECT_CALL_VALIDATION_ENTITYID);
+        _moduleEntity = ModuleEntityLib.pack(address(_module), DIRECT_CALL_VALIDATION_ENTITY_ID);
     }
 
     /* -------------------------------------------------------------------------- */
@@ -160,7 +160,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
         vm.prank(address(entryPoint));
 
         account1.installValidation(
-            ValidationConfigLib.pack(extraOwner, DIRECT_CALL_VALIDATION_ENTITYID, false, false, false),
+            ValidationConfigLib.pack(extraOwner, DIRECT_CALL_VALIDATION_ENTITY_ID, false, false, false),
             selectors,
             "",
             new bytes[](0)

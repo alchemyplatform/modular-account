@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.26;
 
-import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
+import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {ModuleEntity, ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {
     ValidationConfig,
@@ -60,7 +60,7 @@ library ValidationLocatorLib {
         returns (ModuleEntity result)
     {
         if (_lookupKey.isDirectCallValidation()) {
-            result = ModuleEntityLib.pack(_lookupKey.directCallAddress(), DIRECT_CALL_VALIDATION_ENTITYID);
+            result = ModuleEntityLib.pack(_lookupKey.directCallAddress(), DIRECT_CALL_VALIDATION_ENTITY_ID);
         } else {
             result = ModuleEntityLib.pack(validationStorage.module, _lookupKey.entityId());
         }
@@ -204,7 +204,7 @@ library ValidationLocatorLib {
         pure
         returns (ValidationLookupKey result)
     {
-        if (validationConfig.entityId() == DIRECT_CALL_VALIDATION_ENTITYID) {
+        if (validationConfig.entityId() == DIRECT_CALL_VALIDATION_ENTITY_ID) {
             result = ValidationLookupKey.wrap(
                 uint168(uint160(validationConfig.module())) << 8 | _IS_DIRECT_CALL_VALIDATION
             );
@@ -219,7 +219,7 @@ library ValidationLocatorLib {
         returns (ValidationLookupKey result)
     {
         (address module, uint32 _entityId) = ModuleEntityLib.unpack(_moduleEntity);
-        if (_entityId == DIRECT_CALL_VALIDATION_ENTITYID) {
+        if (_entityId == DIRECT_CALL_VALIDATION_ENTITY_ID) {
             result = ValidationLookupKey.wrap(uint168(uint160(module)) << 8 | _IS_DIRECT_CALL_VALIDATION);
         } else {
             result = ValidationLookupKey.wrap(uint168(uint160(_entityId)) << 8);
@@ -349,7 +349,7 @@ library ValidationLocatorLib {
         uint168 result;
 
         (address module, uint32 _entityId) = ModuleEntityLib.unpack(_moduleEntity);
-        if (_entityId == DIRECT_CALL_VALIDATION_ENTITYID) {
+        if (_entityId == DIRECT_CALL_VALIDATION_ENTITY_ID) {
             result = uint168(uint160(module)) << 8 | _IS_DIRECT_CALL_VALIDATION;
         } else {
             result = uint168(_entityId) << 8;

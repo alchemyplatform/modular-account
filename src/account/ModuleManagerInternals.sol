@@ -23,7 +23,8 @@ import {
     HookConfig,
     IModularAccount,
     ModuleEntity,
-    ValidationConfig
+    ValidationConfig,
+    ValidationFlags
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
@@ -66,15 +67,15 @@ abstract contract ModuleManagerInternals is IModularAccount {
         // account.
 
         address storedAddress = validationStorage.module;
+        (address moduleAddress,, ValidationFlags validationFlags) = validationConfig.unpackUnderlying();
+
         if (storedAddress == address(0)) {
-            validationStorage.module = validationConfig.module();
-        } else if (storedAddress != validationConfig.module()) {
+            validationStorage.module = moduleAddress;
+        } else if (storedAddress != moduleAddress) {
             revert ValidationEntityIdInUse();
         }
 
-        validationStorage.isGlobal = validationConfig.isGlobal();
-        validationStorage.isSignatureValidation = validationConfig.isSignatureValidation();
-        validationStorage.isUserOpValidation = validationConfig.isUserOpValidation();
+        validationStorage.validationFlags = validationFlags;
 
         uint256 length = selectors.length;
         for (uint256 i = 0; i < length; ++i) {
@@ -87,9 +88,7 @@ abstract contract ModuleManagerInternals is IModularAccount {
 
     function _removeValidationFunction(ValidationStorage storage validationStorage) internal {
         validationStorage.module = address(0);
-        validationStorage.isGlobal = false;
-        validationStorage.isSignatureValidation = false;
-        validationStorage.isUserOpValidation = false;
+        validationStorage.validationFlags = ValidationFlags.wrap(0);
         validationStorage.validationHookCount = 0;
         validationStorage.executionHookCount = 0;
     }

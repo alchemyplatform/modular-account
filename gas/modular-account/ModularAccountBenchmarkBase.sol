@@ -4,7 +4,8 @@ pragma solidity ^0.8.26;
 import {
     HookConfig,
     ModuleEntity,
-    ValidationConfig
+    ValidationConfig,
+    ValidationFlags
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ValidationDataView} from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
@@ -29,7 +30,7 @@ import {ModuleSignatureUtils} from "../../test/utils/ModuleSignatureUtils.sol";
 import {BenchmarkBase} from "../BenchmarkBase.sol";
 
 abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureUtils {
-    using ValidationConfigLib for ValidationConfig;
+    using ValidationConfigLib for ValidationFlags;
 
     AccountFactory public factory;
     ModularAccount public accountImpl;
@@ -172,9 +173,9 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
             account1.getValidationData(ModuleEntityLib.pack(address(singleSignerValidationModule), 1));
 
         // Flags
-        assertFalse(validationData.isGlobal);
-        assertFalse(validationData.isSignatureValidation);
-        assertTrue(validationData.isUserOpValidation);
+        assertFalse(validationData.validationFlags.isGlobal());
+        assertFalse(validationData.validationFlags.isSignatureValidation());
+        assertTrue(validationData.validationFlags.isUserOpValidation());
 
         // Validation hooks
         assertEq(validationData.validationHooks.length, 2);

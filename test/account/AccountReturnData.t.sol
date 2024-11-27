@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.26;
 
-import {DIRECT_CALL_VALIDATION_ENTITYID} from "@erc6900/reference-implementation/helpers/Constants.sol";
+import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
@@ -61,7 +61,7 @@ contract AccountReturnDataTest is AccountTestBase {
         selectors[0] = IModularAccount.execute.selector;
         account1.installValidation(
             ValidationConfigLib.pack(
-                address(resultConsumerModule), DIRECT_CALL_VALIDATION_ENTITYID, false, false, true
+                address(resultConsumerModule), DIRECT_CALL_VALIDATION_ENTITY_ID, false, false, true
             ), // todo: does this need UO validation permission?
             selectors,
             "",
