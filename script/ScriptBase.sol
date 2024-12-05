@@ -1,12 +1,22 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {ScriptBase} from "forge-std/Base.sol";
+import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
-contract DeployScriptBase is ScriptBase {
+abstract contract ScriptBase is Script {
+    modifier onlyProfile(string memory expectedProfile) {
+        // Assert that the correct profile is being used.
+        string memory actualProfile = vm.envOr(string("FOUNDRY_PROFILE"), string(""));
+
+        if (keccak256(bytes(actualProfile)) != keccak256(bytes(expectedProfile))) {
+            revert(string.concat("This script should be run with the `", expectedProfile, "` profile."));
+        }
+        _;
+    }
+
     function _safeDeploy(
         string memory contractName,
         address expectedAddress,

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
@@ -10,6 +9,7 @@ import {ModularAccount} from "../src/account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../src/account/SemiModularAccountBytecode.sol";
 import {ExecutionInstallDelegate} from "../src/helpers/ExecutionInstallDelegate.sol";
 
+import {ScriptBase} from "./ScriptBase.sol";
 import {Artifacts} from "./Artifacts.sol";
 
 // Logs all initcode hashes from deployment artifacts.
@@ -31,14 +31,8 @@ import {Artifacts} from "./Artifacts.sol";
 // WebAuthnValidationModule, and owner address:
 // - AccountFactory
 
-contract GetInitcodeHashScript is Script, Artifacts {
-    function run() public view {
-        // Assert that the correct profile is being used.
-        string memory profile = vm.envOr(string("FOUNDRY_PROFILE"), string(""));
-
-        if (keccak256(bytes(profile)) != keccak256("optimized-build")) {
-            revert("This script should be run with the `optimized-build` profile.");
-        }
+contract GetInitcodeHashScript is ScriptBase, Artifacts {
+    function run() public view onlyProfile("optimized-build") {
 
         console.log("******** Calculating Initcode Hashes *********");
 
