@@ -59,9 +59,16 @@ abstract contract Artifacts {
         address singleSignerValidationModule,
         address webAuthnValidationModule,
         address owner
-    ) internal returns (AccountFactory) {
-        return new AccountFactory{salt: salt}(
-            entryPoint, accountImpl, semiModularImpl, singleSignerValidationModule, webAuthnValidationModule, owner
+    ) internal returns (address) {
+        return address(
+            new AccountFactory{salt: salt}(
+                entryPoint,
+                accountImpl,
+                semiModularImpl,
+                singleSignerValidationModule,
+                webAuthnValidationModule,
+                owner
+            )
         );
     }
 
@@ -69,16 +76,16 @@ abstract contract Artifacts {
         return type(AllowlistModule).creationCode;
     }
 
-    function _deployAllowlistModule(bytes32 salt) internal returns (AllowlistModule) {
-        return new AllowlistModule{salt: salt}();
+    function _deployAllowlistModule(bytes32 salt) internal returns (address) {
+        return address(new AllowlistModule{salt: salt}());
     }
 
     function _getExecutionInstallDelegateInitcode() internal pure returns (bytes memory) {
         return type(ExecutionInstallDelegate).creationCode;
     }
 
-    function _deployExecutionInstallDelegate(bytes32 salt) internal returns (ExecutionInstallDelegate) {
-        return new ExecutionInstallDelegate{salt: salt}();
+    function _deployExecutionInstallDelegate(bytes32 salt) internal returns (address) {
+        return address(new ExecutionInstallDelegate{salt: salt}());
     }
 
     function _getModularAccountInitcode(IEntryPoint entryPoint, ExecutionInstallDelegate executionInstallDelegate)
@@ -93,24 +100,24 @@ abstract contract Artifacts {
         bytes32 salt,
         IEntryPoint entryPoint,
         ExecutionInstallDelegate executionInstallDelegate
-    ) internal returns (ModularAccount) {
-        return new ModularAccount{salt: salt}(entryPoint, executionInstallDelegate);
+    ) internal returns (address) {
+        return address(new ModularAccount{salt: salt}(entryPoint, executionInstallDelegate));
     }
 
     function _getNativeTokenLimitModuleInitcode() internal pure returns (bytes memory) {
         return type(NativeTokenLimitModule).creationCode;
     }
 
-    function _deployNativeTokenLimitModule(bytes32 salt) internal returns (NativeTokenLimitModule) {
-        return new NativeTokenLimitModule{salt: salt}();
+    function _deployNativeTokenLimitModule(bytes32 salt) internal returns (address) {
+        return address(new NativeTokenLimitModule{salt: salt}());
     }
 
     function _getPaymasterGuardModuleInitcode() internal pure returns (bytes memory) {
         return type(PaymasterGuardModule).creationCode;
     }
 
-    function _deployPaymasterGuardModule(bytes32 salt) internal returns (PaymasterGuardModule) {
-        return new PaymasterGuardModule{salt: salt}();
+    function _deployPaymasterGuardModule(bytes32 salt) internal returns (address) {
+        return address(new PaymasterGuardModule{salt: salt}());
     }
 
     function _getSemiModularAccount7702Initcode(
@@ -126,8 +133,8 @@ abstract contract Artifacts {
         bytes32 salt,
         IEntryPoint entryPoint,
         ExecutionInstallDelegate executionInstallDelegate
-    ) internal returns (SemiModularAccount7702) {
-        return new SemiModularAccount7702{salt: salt}(entryPoint, executionInstallDelegate);
+    ) internal returns (address) {
+        return address(new SemiModularAccount7702{salt: salt}(entryPoint, executionInstallDelegate));
     }
 
     function _getSemiModularAccountBytecodeInitcode(
@@ -143,8 +150,8 @@ abstract contract Artifacts {
         bytes32 salt,
         IEntryPoint entryPoint,
         ExecutionInstallDelegate executionInstallDelegate
-    ) internal returns (SemiModularAccountBytecode) {
-        return new SemiModularAccountBytecode{salt: salt}(entryPoint, executionInstallDelegate);
+    ) internal returns (address) {
+        return address(new SemiModularAccountBytecode{salt: salt}(entryPoint, executionInstallDelegate));
     }
 
     function _getSemiModularAccountStorageOnlyInitcode(
@@ -160,27 +167,31 @@ abstract contract Artifacts {
         bytes32 salt,
         IEntryPoint entryPoint,
         ExecutionInstallDelegate executionInstallDelegate
-    ) internal returns (SemiModularAccountStorageOnly) {
-        return new SemiModularAccountStorageOnly{salt: salt}(entryPoint, executionInstallDelegate);
+    ) internal returns (address) {
+        return address(new SemiModularAccountStorageOnly{salt: salt}(entryPoint, executionInstallDelegate));
     }
 
     function _getSingleSignerValidationModuleInitcode() internal pure returns (bytes memory) {
         return type(SingleSignerValidationModule).creationCode;
     }
 
-    function _deploySingleSignerValidationModule(bytes32 salt) internal returns (SingleSignerValidationModule) {
-        return new SingleSignerValidationModule{salt: salt}();
+    function _deploySingleSignerValidationModule(bytes32 salt) internal returns (address) {
+        return address(new SingleSignerValidationModule{salt: salt}());
     }
 
     function _getTimeRangeModuleInitcode() internal pure returns (bytes memory) {
         return type(TimeRangeModule).creationCode;
     }
 
-    function _deployTimeRangeModule(bytes32 salt) internal returns (TimeRangeModule) {
-        return new TimeRangeModule{salt: salt}();
+    function _deployTimeRangeModule(bytes32 salt) internal returns (address) {
+        return address(new TimeRangeModule{salt: salt}());
     }
 
     function _getWebAuthnValidationModuleInitcode() internal pure returns (bytes memory) {
         return type(WebAuthnValidationModule).creationCode;
+    }
+
+    function _deployWebAuthnValidationModule(bytes32 salt) internal returns (address) {
+        return address(new WebAuthnValidationModule{salt: salt}());
     }
 }

@@ -17,6 +17,7 @@
     "fmt:check": "forge fmt --check && FOUNDRY_PROFILE=gas forge fmt --check",
     "gas": "FOUNDRY_PROFILE=gas forge test -vv",
     "gas:check": "FOUNDRY_PROFILE=gas FORGE_SNAPSHOT_CHECK=true forge test -vv",
+    "initcodehashes": "FOUNDRY_PROFILE=optimized-build forge script GetInitcodeHashScript",
     "lcov": "forge coverage --no-match-coverage '(test)' --nmt '(testFuzz|invariant)' --report lcov",
     "lint": "pnpm lint:src && pnpm lint:test && pnpm lint:gas && pnpm lint:script",
     "lint:src": "solhint --max-warnings 0 -c ./config/solhint-src.json './src/**/*.sol'",
