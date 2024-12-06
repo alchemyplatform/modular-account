@@ -176,14 +176,14 @@ library ValidationLocatorLib {
     // Only safe to call if the lookup has been asserted to be a direct call validation.
     function directCallAddress(ValidationLookupKey _lookupKey) internal pure returns (address result) {
         assembly ("memory-safe") {
-            result := and(shr(8, _lookupKey), 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
+            result := shr(8, _lookupKey)
         }
     }
 
     // Only safe to call if the lookup has been asserted to be a non-direct call validation.
     function entityId(ValidationLookupKey _lookupKey) internal pure returns (uint32 result) {
         assembly ("memory-safe") {
-            result := and(shr(8, _lookupKey), 0xFFFFFFFFFFFFFFFF)
+            result := shr(8, _lookupKey)
         }
     }
 
