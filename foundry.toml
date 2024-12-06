@@ -73,3 +73,6 @@ number_underscore = "thousands"
 int_types = "long"
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
+
+[doc]
+title = 'Modular Account v2 Docs'

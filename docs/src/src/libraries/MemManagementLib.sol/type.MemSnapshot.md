@@ -1,0 +1,8 @@
+# MemSnapshot
+[Git Source](https://github.com/ssh://alchemyplatform/modular-account/blob/2824291b17c11e6f41963e8c13505f2476b92ee6/src/libraries/MemManagementLib.sol)
+
+
+```solidity
+type MemSnapshot is uint256;
+```
+
