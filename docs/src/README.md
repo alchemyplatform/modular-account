@@ -1,0 +1,172 @@
+# Modular Account
+
+[![gh_ci_badge]][gh_ci_link]
+[![tg_badge]][tg_link]
+
+[gh_ci_badge]: https://github.com/alchemyplatform/modular-account/actions/workflows/test.yml/badge.svg
+[gh_ci_link]: https://github.com/alchemyplatform/modular-account/actions/workflows/test.yml
+[tg_badge]: https://img.shields.io/endpoint?color=neon&logo=telegram&label=chat&url=https://mogyo.ro/quart-apis/tgmembercount?chat_id=modular_account_standards
+[tg_link]: https://t.me/modular_account_standards
+
+![](./img/ma.png)
+
+Alchemy's Modular Account is a maximally modular, upgradeable smart contract account that is compatible with [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337) and [ERC-6900](https://eips.ethereum.org/EIPS/eip-6900).
+
+> [!WARNING]  
+> **This branch contains changes that are under development.** To use the latest audited version make sure to use the correct commit. The tagged versions can be found in the [releases](https://github.com/alchemyplatform/modular-account/releases).
+
+## Overview
+
+This repository contains:
+
+- ERC-6900 compatible account implementations: [src/account](src/account)
+- Account factory: [src/factory](src/factory)
+- Helper contracts and libraries: [src/helpers](src/helpers), [src/libraries](src/libraries)
+- ERC-6900 compatible modules: [src/modules](src/modules)
+  - Validation modules:
+    - [SingleSignerValidationModule](src/modules/validation/SingleSignerValidationModule.sol): Enables validation for a single signer (EOA or contract).
+    - [WebAuthnValidationModule](src/modules/validation/WebAuthnValidationModule.sol): Enables validation for passkey signers.
+  - Permission-enforcing hook modules:
+    - [AllowlistModule](src/modules/permissions/AllowlistModule.sol): Enforces ERC-20 spend limits and address/selector allowlists.
+    - [NativeTokenLimitModule](src/modules/permissions/NativeTokenLimitModule.sol): Enforces native token spend limits.
+    - [PaymasterGuardModule](src/modules/permissions/PaymasterGuardModule.sol): Enforces use of a specific paymaster.
+    - [TimeRangeModule](src/modules/permissions/TimeRangeModule.sol): Enforces time ranges for a given entity.
+
+The contracts conform to these ERC versions:
+
+- ERC-4337: [v0.7.0](https://github.com/eth-infinitism/account-abstraction/blob/releases/v0.7/erc/ERCS/erc-4337.md)
+- ERC-6900: [v0.8.0-rc.5](https://github.com/erc6900/reference-implementation/blob/v0.8.0-rc.5/standard/ERCs/erc-6900.md)
+
+## Development
+
+### Building and testing
+
+```bash
+# Install dependencies
+forge install
+pnpm install
+
+# Build
+forge build
+FOUNDRY_PROFILE=optimized-build forge build --sizes
+
+# Lint
+pnpm lint
+
+# Format
+pnpm fmt
+
+# Coverage
+pnpm lcov
+
+# Generate gas snapshots
+pnpm gas
+
+# Test
+pnpm test
+forge test -vvv
+```
+
+### Deployment
+
+A deployment script can be found in the `scripts/` folder
+
+```bash
+forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast
+```
+
+## Features Overview
+
+### Features
+Modular Account v2 can:
+1. Deploy contracts via `CREATE` or `CREATE2`.
+2. Receive `ERC721` and `ERC1155` tokens.
+3. Use applications that depend on `ERC1271` contract signatures.
+4. Use applications that use the `ERC165` introspection standard.
+5. Be upgradeable to or from most other smart contract account implementations.
+6. Be customized in many ways. All customization options can be found [here](./2-customizing-your-modular-account.md).
+
+#### ERC1271 Contract Signatures Support
+
+Certain applications such as Permit2 or Cowswap use the ERC1271 contract signatures standard to determine if a smart contract has approved a certain action. Modular Account v2 implements to allow smart accounts to use these applications.
+
+#### Upgradeability
+
+When modular accounts are created from the factory, an `ERC1967` proxy contract is deployed. Users can update the implementation their proxy points to to choose which smart account implementations to use. Modular Account v2 adheres to the `ERC7201` namespaced storage standard to prevent storage collisions when updating between different implementations.
+
+### Customizing your Modular Account
+
+The Modular Account v2 can be customized by:
+1. Installing executions to add custom execution logic to run, or uninstalling to remove them
+2. Installing validations to apply custom validation logic for one or all executions, or uninstalling to remove them
+3. Adding pre validation hooks that are attached to validations, or removing them
+4. Adding execution hooks that are attached to executions, or removing them
+5. Adding execution hooks that are attached to entities, or removing them
+
+### Lifecycle of a User Operation
+![./img/userop-flow.png]
+
+### Lifecycle of a Runtime Call
+![./img/runtime-flow.png]
+
+#### Pre-validation Hooks
+
+Pre validation hooks are run before validations. Pre-validation hooks are necessary to perform gas related checks for User Operations (session key gas limits, or gas metering taking into account paymaster usage). These checks must happen in the validation phase since a validation success would allow the entrypoint to charge gas for the user operation to the account.
+
+#### Validations
+
+Validations are usually signature validation functions (BLS, WebAuthn, etc). While it’s feasible to implement signature validation as a pre-validation hook, it’s more efficient and ergonomic to do these in validations since it allows us to apply permissions per entity using execution hooks. In ERC4337, accounts can return validation data that’s not 0 or 1 to signal the usage of a signature aggregator.
+
+#### Execution Hooks
+
+Execution hooks are useful for applying permissions on executions to limit the set of possible actions that can be taken. Post-execution hooks are useful for checking the final state after an execution. Pre and post-execution hook pairs are useful for measuring differences in state due to an execution. For example, you would use a pre and post execution hook pair to enforce that swap outputs from a DCA swap performed by a session key fall within a some tolerance price determined by a price oracle.
+
+Execution hooks can be associated either with an (validation module + entity ID) pair to apply permissions on that specific entity, or with an execution selector on the account to apply global restrictions on the account across all entities. A example of a useful global restriction would be to block NFT transfers for NFTs in cold storage, or to apply resource locks.
+
+#### Executions
+
+Execution hooks are applied across executions. Modular account comes with native executions such as `installValidation`, `installExecution`, or `upgradeToAndCall`. However, you could customize the account by installing additional executions. After a new execution is installed, when the account is called with that function selector, the account would forward the call to the module associated with that installed execution. An example for executions would be to implement callbacks to be able to take flash loans.
+
+## Security, Audits, and Bug Bounty
+
+Our audit reports can be found in [audits](/audits). The filenames for the reports have the format: `YYYY-MM-DD_VENDOR_FFFFFFF.pdf`, where `YYYY-MM-DD` refers to the date on which the final report was received, `VENDOR` refers to the conductor of the audit, and `FFFFFFF` refers to the short commit hash on which the audit was conducted.
+
+Details of our bug bounty program can be found at https://hackerone.com/alchemyplatform.
+
+### Other Security Considerations
+
+This section contains other security considerations that developers should be aware of when using a Modular Account besides informational issues highlighted in the security audits.
+
+#### Off-chain Safety Checks
+A client should perform the following off-chain checks when interacting with a modular account:
+1. When installing a validation, clients should check that the entity ID has not been used for that validator for that account yet, as certain validation modules implement `onInstall` as another way to do `rotateKey`.
+2. When upgrading to a Modular Account, clients should check if the proxy used to be a Modular Account by checking the value of the `initialized` variable at the Modular Account namespaced storage slot within the proxy. If so, any `initializer` functions called would not work, and the configuration of that past Modular Account might be different from the current ownership configuration.
+3. When upgrading to a Modular Account, clients should check that the account is an ERC-1967 proxy by checking the ERC-1822 `proxiableUUID` ****slot.
+4. When installing executions, clients should check that it does not collide with any native function selectors.
+5. Clients should ensure that deferred action nonces are unique without dependencies. One possible scheme is to use unix timestamps as part of the nonce.
+
+#### Proxy Pattern and Initializer Functions
+Initializer functions are not guarded by any access control modifier. If accounts are not used in a proxy pattern, during the account’s constructor, as per Openzeppelin’s implementation of `Initializable`, initializer functions are able to be reentered. This design choice can be used by an attacker to install additional validations to take over a user’s account.
+
+#### EIP-7702 Accounts and Initializer Functions
+When using EIP-7702, the delegate destinations should only be `SemiModularAccount7702` implementations, and not any of the other account variants. Otherwise, if the delegate destination is set to an account with an `initializer` function, since there isn’t any access control protection on EIP-7702 accounts, an attacker will be able to take over the account.
+
+### Semi Modular Account Considerations
+`SemiModularAccountBytecode` (`SMABytecode`) is the cheapest account to deploy. It can only be used for new account deployment, and **should NOT** be used for account upgrades due to requiring specific proxy bytecode.
+
+#### Deferred Actions
+1. In order for a deferred action to be run at validation, in addition to special encoding (which includes the validation to validate the deferred action itself), it must not break ERC-4337 validation-time rules. For instance, this means that any execution hooks on `installValidation` must comply with RIP-7562.
+2. Deferred actions should only be used to perform actions necessary for user op validation to pass. Otherwise, as deferred actions are not signed over, a malicious bundler could remove the deferred action from the user op and cause an unexpected outcome.
+
+#### Signature Validation Flag Enablement
+The `isSignatureValidation` flag meant to allow a validation function to validate ERC-1271 signatures. Developer should note that for Modular Account this is a very powerful capability to grant as it allows validation functions to approve deferred actions on the account.
+
+### Acknowledgements
+
+The contracts in this repository adhere to the ERC-6900 specification, and are heavily influenced by the design of the ERC-6900 reference implementation.
+
+## License
+
+The contracts provided in this repository in [src](src) are licensed under the GNU General Public License v3.0, included in our repository in [LICENSE-GPL](LICENSE-GPL).
+
+Alchemy Insights, Inc., 548 Market St., PMB 49099, San Francisco, CA 94104; legal@alchemy.com
