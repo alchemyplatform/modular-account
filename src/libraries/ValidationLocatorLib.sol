@@ -306,18 +306,14 @@ library ValidationLocatorLib {
         result <<= 64;
     }
 
-    function packSignature(
-        uint32 validationEntityId,
-        bool _isGlobal,
-        bool _hasDeferredAction,
-        bytes memory signature
-    ) internal pure returns (bytes memory result) {
+    function packSignature(uint32 validationEntityId, bool _isGlobal, bytes memory signature)
+        internal
+        pure
+        returns (bytes memory result)
+    {
         uint8 options = 0;
         if (_isGlobal) {
             options |= _VALIDATION_TYPE_GLOBAL;
-        }
-        if (_hasDeferredAction) {
-            options |= _HAS_DEFERRED_ACTION;
         }
 
         return bytes.concat(abi.encodePacked(options, uint32(validationEntityId)), signature);

@@ -57,18 +57,15 @@ contract ValidationLocatorLibTest is Test {
         assertEq(ValidationLocator.unwrap(result), ValidationLocator.unwrap(expected));
     }
 
-    function testFuzz_loadFromSignature_regular(
-        uint32 entityId,
-        bool isGlobal,
-        bool isDeferredAction,
-        bytes memory signature
-    ) public view {
-        bytes memory finalSignature =
-            ValidationLocatorLib.packSignature(entityId, isGlobal, isDeferredAction, signature);
+    function testFuzz_loadFromSignature_regular(uint32 entityId, bool isGlobal, bytes memory signature)
+        public
+        view
+    {
+        bytes memory finalSignature = ValidationLocatorLib.packSignature(entityId, isGlobal, signature);
 
         (ValidationLocator result, bytes memory remainder) = this.loadFromSignature(finalSignature);
 
-        ValidationLocator expected = ValidationLocatorLib.pack(entityId, isGlobal, isDeferredAction);
+        ValidationLocator expected = ValidationLocatorLib.pack(entityId, isGlobal, false);
 
         assertEq(ValidationLocator.unwrap(result), ValidationLocator.unwrap(expected));
         assertEq(remainder, signature);

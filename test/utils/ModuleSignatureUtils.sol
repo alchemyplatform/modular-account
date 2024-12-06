@@ -102,7 +102,7 @@ contract ModuleSignatureUtils {
             sig =
                 ValidationLocatorLib.packSignatureDirectCall(module, globalOrNot == GLOBAL_VALIDATION, false, sig);
         } else {
-            sig = ValidationLocatorLib.packSignature(entityId, globalOrNot == GLOBAL_VALIDATION, false, sig);
+            sig = ValidationLocatorLib.packSignature(entityId, globalOrNot == GLOBAL_VALIDATION, sig);
         }
 
         return sig;
@@ -140,7 +140,7 @@ contract ModuleSignatureUtils {
         if (entityId == DIRECT_CALL_VALIDATION_ENTITY_ID) {
             sig = ValidationLocatorLib.packSignatureDirectCall(module, false, false, sig);
         } else {
-            sig = ValidationLocatorLib.packSignature(entityId, false, false, sig);
+            sig = ValidationLocatorLib.packSignature(entityId, false, sig);
         }
 
         return sig;
