@@ -104,10 +104,10 @@ The Modular Account v2 can be customized by:
 5. Adding execution hooks that are attached to entities, or removing them
 
 ### Lifecycle of a User Operation
-![./img/userop-flow.png]
+![](./img/userop-flow.png)
 
 ### Lifecycle of a Runtime Call
-![./img/runtime-flow.png]
+![](./img/runtime-flow.png)
 
 #### Pre-validation Hooks
 
