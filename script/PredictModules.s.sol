@@ -14,7 +14,7 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 // - SingleSignerValidationModule
 // - TimeRangeModule
 // - WebAuthnValidationModule
-contract DeployModulesScript is ScriptBase, Artifacts {
+contract PredictModulesScript is ScriptBase, Artifacts {
     // State vars for salts.
 
     uint256 public allowlistModuleSalt;
