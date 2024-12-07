@@ -71,12 +71,10 @@ contract ValidationLocatorLibTest is Test {
         assertEq(remainder, signature);
     }
 
-    function testFuzz_packUnpackLookupKey(uint32 entityId) public pure {
-        ValidationLookupKey k = ValidationLookupKey.wrap(uint168(uint160(entityId)) << 8);
+    function testFuzz_packUnpackLookupKey(uint168 id) public pure {
+        ValidationLookupKey k = ValidationLookupKey.wrap(id << 8);
 
-        uint32 expected = ValidationLocatorLib.entityId(k);
-
-        assertEq(expected, entityId);
+        assertEq(uint32(id), ValidationLocatorLib.entityId(k));
     }
 
     function testFuzz_packUnpackDirectCallAddress(address directCallValidation) public pure {
