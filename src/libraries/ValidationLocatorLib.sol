@@ -47,6 +47,9 @@ type ValidationLocator is uint168;
 // direct call validation flag.
 type ValidationLookupKey is uint168;
 
+using ValidationLocatorLib for ValidationLocator global;
+using ValidationLocatorLib for ValidationLookupKey global;
+
 library ValidationLocatorLib {
     using ValidationConfigLib for ValidationConfig;
 
@@ -368,6 +371,3 @@ library ValidationLocatorLib {
         return ValidationLookupKey.unwrap(a) == ValidationLookupKey.unwrap(b);
     }
 }
-
-using ValidationLocatorLib for ValidationLocator global;
-using ValidationLocatorLib for ValidationLookupKey global;
