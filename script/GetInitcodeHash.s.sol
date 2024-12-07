@@ -47,16 +47,8 @@ contract GetInitcodeHashScript is ScriptBase, Artifacts {
         console.log("- WebAuthnValidationModule: %x", uint256(keccak256(_getWebAuthnValidationModuleInitcode())));
 
         console.log("Artifact initcode hashes with dependencies on EntryPoint and ExecutionInstallDelegate:");
-        IEntryPoint entryPoint = IEntryPoint(payable(vm.envOr("ENTRYPOINT", address(0))));
-        if (address(entryPoint) == address(0)) {
-            console.log(
-                "Env Variable 'ENTRYPOINT' not found or invalid, defaulting to v0.7 EntryPoint at "
-                "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
-            );
-            entryPoint = IEntryPoint(0x0000000071727De22E5E9d8BAf0edAc6f37da032);
-        } else {
-            console.log("Using user-defined EntryPoint at: %x", address(entryPoint));
-        }
+        IEntryPoint entryPoint = _getEntryPoint(); //IEntryPoint(payable(vm.envOr("ENTRYPOINT", address(0))));
+
         ExecutionInstallDelegate executionInstallDelegate =
             ExecutionInstallDelegate(vm.envOr("EXECUTION_INSTALL_DELEGATE", address(0)));
 
@@ -93,12 +85,11 @@ contract GetInitcodeHashScript is ScriptBase, Artifacts {
             "WebAuthnValidationModule, and owner address:"
         );
 
-        ModularAccount modularAccountImpl = ModularAccount(payable(vm.envOr("MODULAR_ACCOUNT_IMPL", address(0))));
-        SemiModularAccountBytecode semiModularImpl =
-            SemiModularAccountBytecode(payable(vm.envOr("SEMI_MODULAR_ACCOUNT_BYTECODE_IMPL", address(0))));
-        address singleSignerValidationModule = vm.envOr("SINGLE_SIGNER_VALIDATION_MODULE", address(0));
-        address webAuthnValidationModule = vm.envOr("WEBAUTHN_VALIDATION_MODULE", address(0));
-        address factoryOwner = vm.envOr("FACTORY_OWNER", address(0));
+        ModularAccount modularAccountImpl = _getModularAccountImpl();
+        SemiModularAccountBytecode semiModularImpl = _getSemiModularAccountBytecodeImpl();
+        address singleSignerValidationModule = _getSingleSignerValidationModule();
+        address webAuthnValidationModule = _getWebAuthnValidationModule();
+        address factoryOwner = _getFactoryOwner();
 
         if (address(modularAccountImpl) == address(0)) {
             console.log(
