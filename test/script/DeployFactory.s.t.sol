@@ -3,7 +3,6 @@ pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 
-import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 import {DeployFactoryScript} from "../../script/DeployFactory.s.sol";

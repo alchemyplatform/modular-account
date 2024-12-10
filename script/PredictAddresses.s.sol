@@ -55,7 +55,7 @@ contract PredictAddressScript is ScriptBase, Artifacts {
         executionInstallDelegateSalt = _getSaltOrZero("EXECUTION_INSTALL_DELEGATE");
         modularAccountImplSalt = _getSaltOrZero("MODULAR_ACCOUNT_IMPL");
         semiModularAccountBytecodeImplSalt = _getSaltOrZero("SEMI_MODULAR_ACCOUNT_BYTECODE_IMPL");
-        semiModularAccountStorageOnlyImplSalt = _getSaltOrZero("SEMI_MODULAR_ACCOUNT_STORAGE_ONLY_IMPL_SALT");
+        semiModularAccountStorageOnlyImplSalt = _getSaltOrZero("SEMI_MODULAR_ACCOUNT_STORAGE_ONLY_IMPL");
 
         // Load the env vars for the account implementations and the factory.
         entryPoint = _getEntryPoint();

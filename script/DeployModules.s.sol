@@ -38,22 +38,22 @@ contract DeployModulesScript is ScriptBase, Artifacts {
         // Load the expected addresses and salts from env vars.
 
         expectedAllowlistModuleAddr = vm.envOr("ALLOWLIST_MODULE", address(0));
-        allowlistModuleSalt = vm.envOr("ALLOWLIST_MODULE_SALT", uint256(0));
+        allowlistModuleSalt = _getSaltOrZero("ALLOWLIST_MODULE");
 
         expectedNativeTokenLimitModuleAddr = vm.envOr("NATIVE_TOKEN_LIMIT_MODULE", address(0));
-        nativeTokenLimitModuleSalt = vm.envOr("NATIVE_TOKEN_LIMIT_MODULE_SALT", uint256(0));
+        nativeTokenLimitModuleSalt = _getSaltOrZero("NATIVE_TOKEN_LIMIT_MODULE");
 
         expectedPaymasterGuardModuleAddr = vm.envOr("PAYMASTER_GUARD_MODULE", address(0));
-        paymasterGuardModuleSalt = vm.envOr("PAYMASTER_GUARD_MODULE_SALT", uint256(0));
+        paymasterGuardModuleSalt = _getSaltOrZero("PAYMASTER_GUARD_MODULE");
 
         expectedSingleSignerValidationModuleAddr = vm.envOr("SINGLE_SIGNER_VALIDATION_MODULE", address(0));
-        singleSignerValidationModuleSalt = vm.envOr("SINGLE_SIGNER_VALIDATION_MODULE_SALT", uint256(0));
+        singleSignerValidationModuleSalt = _getSaltOrZero("SINGLE_SIGNER_VALIDATION_MODULE");
 
         expectedTimeRangeModuleAddr = vm.envOr("TIME_RANGE_MODULE", address(0));
-        timeRangeModuleSalt = vm.envOr("TIME_RANGE_MODULE_SALT", uint256(0));
+        timeRangeModuleSalt = _getSaltOrZero("TIME_RANGE_MODULE");
 
         expectedWebAuthnValidationModuleAddr = vm.envOr("WEBAUTHN_VALIDATION_MODULE", address(0));
-        webAuthnValidationModuleSalt = vm.envOr("WEBAUTHN_VALIDATION_MODULE_SALT", uint256(0));
+        webAuthnValidationModuleSalt = _getSaltOrZero("WEBAUTHN_VALIDATION_MODULE");
     }
 
     function run() public onlyProfile("optimized-build") {
