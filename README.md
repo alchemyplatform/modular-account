@@ -155,8 +155,7 @@ When using EIP-7702, the delegate destination should only be the `SemiModularAcc
 `SemiModularAccountBytecode` (`SMABytecode`) is the cheapest account to deploy. It can only be used for new account deployment, and **should NOT** be used for account upgrades due to requiring specific proxy bytecode.
 
 #### Deferred actions
-1. In order for a deferred action to be run at validation, in addition to special encoding (which includes the validation to validate the deferred action itself), it must not break ERC-4337 validation-time rules. For instance, this means that any execution hooks on `installValidation` must comply with EIP-7562.
-2. Deferred actions should only be used to perform actions necessary for user op validation to pass. Otherwise, as deferred actions are not signed over, a malicious bundler could remove the deferred action from the user op and cause an unexpected outcome.
+In order for a deferred action to be run at validation, in addition to special encoding (which includes the validation to validate the deferred action itself), it must not break ERC-4337 validation-time rules. For instance, this means that any execution hooks on `installValidation` must comply with EIP-7562.
 
 #### Signature validation flag enablement
 The `isSignatureValidation` flag meant to allow a validation function to validate ERC-1271 signatures. Developer should note that for Modular Account this is a very powerful capability to grant as it allows validation functions to approve deferred actions on the account.
