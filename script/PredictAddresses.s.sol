@@ -3,14 +3,16 @@ pragma solidity ^0.8.26;
 
 import {console} from "forge-std/console.sol";
 
-import {ModularAccount} from "../src/account/ModularAccount.sol";
-import {SemiModularAccountBytecode} from "../src/account/SemiModularAccountBytecode.sol";
-import {Artifacts} from "./Artifacts.sol";
-import {ScriptBase} from "./ScriptBase.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
-// Predicts addresses for all standalone modules with salts taken from the environment.
+import {ModularAccount} from "../src/account/ModularAccount.sol";
+import {SemiModularAccountBytecode} from "../src/account/SemiModularAccountBytecode.sol";
+import {ExecutionInstallDelegate} from "../src/helpers/ExecutionInstallDelegate.sol";
+import {Artifacts} from "./Artifacts.sol";
+import {ScriptBase} from "./ScriptBase.sol";
+
+// Predicts addresses for all contracts with salts taken from the environment.
 // - AllowlistModule
 // - NativeTokenLimitModule
 // - PaymasterGuardModule
@@ -27,10 +29,15 @@ contract PredictAddressScript is ScriptBase, Artifacts {
     uint256 public timeRangeModuleSalt;
     uint256 public webAuthnValidationModuleSalt;
     uint256 public factorySalt;
+    uint256 public executionInstallDelegateSalt;
+    uint256 public modularAccountImplSalt;
+    uint256 public semiModularAccountBytecodeImplSalt;
+    uint256 public semiModularAccountStorageOnlyImplSalt;
 
     IEntryPoint public entryPoint;
-    ModularAccount public modularAccountImpl;
-    SemiModularAccountBytecode public semiModularAccountBytecodeImpl;
+    ExecutionInstallDelegate public executionInstallDelegate;
+    address public modularAccountImpl;
+    address public semiModularAccountBytecodeImpl;
     address public singleSignerValidationModule;
     address public webAuthnValidationModule;
     address public factoryOwner;
@@ -45,9 +52,14 @@ contract PredictAddressScript is ScriptBase, Artifacts {
         timeRangeModuleSalt = vm.envOr("TIME_RANGE_MODULE_SALT", uint256(0));
         webAuthnValidationModuleSalt = vm.envOr("WEBAUTHN_VALIDATION_MODULE_SALT", uint256(0));
         factorySalt = vm.envOr("ACCOUNT_FACTORY_SALT", uint256(0));
+        executionInstallDelegateSalt = _getSaltOrZero("EXECUTION_INSTALL_DELEGATE");
+        modularAccountImplSalt = _getSaltOrZero("MODULAR_ACCOUNT_IMPL");
+        semiModularAccountBytecodeImplSalt = _getSaltOrZero("SEMI_MODULAR_ACCOUNT_BYTECODE_IMPL");
+        semiModularAccountStorageOnlyImplSalt = _getSaltOrZero("SEMI_MODULAR_ACCOUNT_STORAGE_ONLY_IMPL_SALT");
 
-        // Load the env vars for the factory.
+        // Load the env vars for the account implementations and the factory.
         entryPoint = _getEntryPoint();
+        executionInstallDelegate = ExecutionInstallDelegate(_getExecutionInstallDelegate());
         modularAccountImpl = _getModularAccountImpl();
         semiModularAccountBytecodeImpl = _getSemiModularAccountBytecodeImpl();
         singleSignerValidationModule = _getSingleSignerValidationModule();
@@ -107,6 +119,45 @@ contract PredictAddressScript is ScriptBase, Artifacts {
         );
 
         console.log("");
+        console.log("******** Logging Expected Account Impl Addresses With Env Salt And Env Addresses *********");
+
+        console.log(
+            "EXECUTION_INSTALL_DELEGATE=",
+            Create2.computeAddress(
+                bytes32(executionInstallDelegateSalt),
+                keccak256(_getExecutionInstallDelegateInitcode()),
+                CREATE2_FACTORY
+            )
+        );
+
+        console.log(
+            "MODULAR_ACCOUNT_IMPL=",
+            Create2.computeAddress(
+                bytes32(modularAccountImplSalt),
+                keccak256(_getModularAccountInitcode(entryPoint, executionInstallDelegate)),
+                CREATE2_FACTORY
+            )
+        );
+
+        console.log(
+            "SEMI_MODULAR_ACCOUNT_BYTECODE_IMPL=",
+            Create2.computeAddress(
+                bytes32(semiModularAccountBytecodeImplSalt),
+                keccak256(_getSemiModularAccountBytecodeInitcode(entryPoint, executionInstallDelegate)),
+                CREATE2_FACTORY
+            )
+        );
+
+        console.log(
+            "SEMI_MODULAR_ACCOUNT_STORAGE_ONLY_IMPL=",
+            Create2.computeAddress(
+                bytes32(semiModularAccountStorageOnlyImplSalt),
+                keccak256(_getSemiModularAccountStorageOnlyInitcode(entryPoint, executionInstallDelegate)),
+                CREATE2_FACTORY
+            )
+        );
+
+        console.log("");
         console.log("******** Logging Expected Factory Address With Env Salt And Env Addresses *********");
         console.log(
             "ACCOUNT_FACTORY=",
@@ -115,8 +166,8 @@ contract PredictAddressScript is ScriptBase, Artifacts {
                 keccak256(
                     _getAccountFactoryInitcode(
                         entryPoint,
-                        modularAccountImpl,
-                        semiModularAccountBytecodeImpl,
+                        ModularAccount(payable(modularAccountImpl)),
+                        SemiModularAccountBytecode(payable(semiModularAccountBytecodeImpl)),
                         singleSignerValidationModule,
                         webAuthnValidationModule,
                         factoryOwner

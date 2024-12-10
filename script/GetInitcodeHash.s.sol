@@ -50,7 +50,7 @@ contract GetInitcodeHashScript is ScriptBase, Artifacts {
         IEntryPoint entryPoint = _getEntryPoint();
 
         ExecutionInstallDelegate executionInstallDelegate =
-            ExecutionInstallDelegate(vm.envOr("EXECUTION_INSTALL_DELEGATE", address(0)));
+            ExecutionInstallDelegate(_getExecutionInstallDelegate());
 
         if (address(executionInstallDelegate) == address(0)) {
             console.log(
@@ -85,8 +85,9 @@ contract GetInitcodeHashScript is ScriptBase, Artifacts {
             "WebAuthnValidationModule, and owner address:"
         );
 
-        ModularAccount modularAccountImpl = _getModularAccountImpl();
-        SemiModularAccountBytecode semiModularImpl = _getSemiModularAccountBytecodeImpl();
+        ModularAccount modularAccountImpl = ModularAccount(payable(_getModularAccountImpl()));
+        SemiModularAccountBytecode semiModularImpl =
+            SemiModularAccountBytecode(payable(_getSemiModularAccountBytecodeImpl()));
         address singleSignerValidationModule = _getSingleSignerValidationModule();
         address webAuthnValidationModule = _getWebAuthnValidationModule();
         address factoryOwner = _getFactoryOwner();

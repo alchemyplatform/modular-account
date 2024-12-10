@@ -4,8 +4,6 @@ pragma solidity ^0.8.26;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 
-import {ModularAccount} from "../src/account/ModularAccount.sol";
-import {SemiModularAccountBytecode} from "../src/account/SemiModularAccountBytecode.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
@@ -35,12 +33,20 @@ abstract contract ScriptBase is Script {
         return entryPoint;
     }
 
-    function _getModularAccountImpl() internal view returns (ModularAccount) {
-        return ModularAccount(payable(vm.envOr("MODULAR_ACCOUNT_IMPL", address(0))));
+    function _getModularAccountImpl() internal view returns (address) {
+        return vm.envOr("MODULAR_ACCOUNT_IMPL", address(0));
     }
 
-    function _getSemiModularAccountBytecodeImpl() internal view returns (SemiModularAccountBytecode) {
-        return SemiModularAccountBytecode(payable(vm.envOr("SEMI_MODULAR_ACCOUNT_BYTECODE_IMPL", address(0))));
+    function _getSemiModularAccountBytecodeImpl() internal view returns (address) {
+        return vm.envOr("SEMI_MODULAR_ACCOUNT_BYTECODE_IMPL", address(0));
+    }
+
+    function _getSemiModularAccountStorageOnlyImpl() internal view returns (address) {
+        return vm.envOr("SEMI_MODULAR_ACCOUNT_STORAGE_ONLY_IMPL", address(0));
+    }
+
+    function _getExecutionInstallDelegate() internal view returns (address) {
+        return vm.envOr("EXECUTION_INSTALL_DELEGATE", address(0));
     }
 
     function _getSingleSignerValidationModule() internal view returns (address) {
@@ -53,6 +59,10 @@ abstract contract ScriptBase is Script {
 
     function _getFactoryOwner() internal view returns (address) {
         return vm.envOr("ACCOUNT_FACTORY_OWNER", address(0));
+    }
+
+    function _getSaltOrZero(string memory name) internal view returns (uint256) {
+        return vm.envOr(string(bytes.concat(bytes(name), "_SALT")), uint256(0));
     }
 
     function _safeDeploy(

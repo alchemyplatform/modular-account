@@ -34,8 +34,8 @@ contract DeployFactoryScript is ScriptBase, Artifacts {
     function setUp() public {
         // Load the required addresses for the factory deployment from env vars.
         entryPoint = _getEntryPoint();
-        modularAccountImpl = _getModularAccountImpl();
-        semiModularAccountBytecodeImpl = _getSemiModularAccountBytecodeImpl();
+        modularAccountImpl = ModularAccount(payable(_getModularAccountImpl()));
+        semiModularAccountBytecodeImpl = SemiModularAccountBytecode(payable(_getSemiModularAccountBytecodeImpl()));
         singleSignerValidationModule = _getSingleSignerValidationModule();
         webAuthnValidationModule = _getWebAuthnValidationModule();
         factoryOwner = _getFactoryOwner();
@@ -62,7 +62,7 @@ contract DeployFactoryScript is ScriptBase, Artifacts {
                 webAuthnValidationModule,
                 factoryOwner
             ),
-            _deployFactory
+            _wrappedDeployAccountFactory
         );
 
         vm.stopBroadcast();
@@ -71,7 +71,7 @@ contract DeployFactoryScript is ScriptBase, Artifacts {
     }
 
     // Wrapper function to be called within _safeDeploy using the context in this contract.
-    function _deployFactory(bytes32 salt) internal returns (address) {
+    function _wrappedDeployAccountFactory(bytes32 salt) internal returns (address) {
         _ensureNonzeroFactoryArgs();
         return _deployAccountFactory(
             salt,
