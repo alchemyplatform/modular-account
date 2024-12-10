@@ -9,8 +9,8 @@ import {ModularAccount} from "../src/account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../src/account/SemiModularAccountBytecode.sol";
 import {ExecutionInstallDelegate} from "../src/helpers/ExecutionInstallDelegate.sol";
 
-import {ScriptBase} from "./ScriptBase.sol";
 import {Artifacts} from "./Artifacts.sol";
+import {ScriptBase} from "./ScriptBase.sol";
 
 // Logs all initcode hashes from deployment artifacts.
 // Generates in order of dependencies:
@@ -33,7 +33,6 @@ import {Artifacts} from "./Artifacts.sol";
 
 contract GetInitcodeHashScript is ScriptBase, Artifacts {
     function run() public view onlyProfile("optimized-build") {
-
         console.log("******** Calculating Initcode Hashes *********");
 
         console.log("Artifact initcode hashes with no dependencies:");

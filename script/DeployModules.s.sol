@@ -3,14 +3,6 @@ pragma solidity ^0.8.26;
 
 import {console} from "forge-std/console.sol";
 
-import {AllowlistModule} from "../src/modules/permissions/AllowlistModule.sol";
-import {NativeTokenLimitModule} from "../src/modules/permissions/NativeTokenLimitModule.sol";
-import {PaymasterGuardModule} from "../src/modules/permissions/PaymasterGuardModule.sol";
-
-import {TimeRangeModule} from "../src/modules/permissions/TimeRangeModule.sol";
-import {SingleSignerValidationModule} from "../src/modules/validation/SingleSignerValidationModule.sol";
-import {WebAuthnValidationModule} from "../src/modules/validation/WebAuthnValidationModule.sol";
-
 import {Artifacts} from "./Artifacts.sol";
 import {ScriptBase} from "./ScriptBase.sol";
 
@@ -64,7 +56,7 @@ contract DeployModulesScript is ScriptBase, Artifacts {
         webAuthnValidationModuleSalt = vm.envOr("WEBAUTHN_VALIDATION_MODULE_SALT", uint256(0));
     }
 
-    function run() public onlyProfile("optimized-build"){
+    function run() public onlyProfile("optimized-build") {
         console.log("******** Deploying Modules *********");
 
         vm.startBroadcast();
