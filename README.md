@@ -103,10 +103,10 @@ Modular Account can be customized by:
 4. Installing execution hooks that are attached to execution functions, or removing them
 5. Installing execution hooks that are attached to module entities, or removing them
 
-### Lifecycle of a user operation
+#### Lifecycle of a user operation
 ![](./img/userop-flow.png)
 
-### Lifecycle of a runtime call
+#### Lifecycle of a runtime call
 ![](./img/runtime-flow.png)
 
 #### Pre-validation hooks
