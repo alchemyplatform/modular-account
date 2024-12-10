@@ -115,7 +115,7 @@ Pre validation hooks are run before validations. Pre-validation hooks are necess
 
 #### Validations
 
-Validations are usually signature validation functions (BLS, WebAuthn, etc). While it’s feasible to implement signature validation as a pre-validation hook, it’s more efficient and ergonomic to do these in validations since it allows us to apply permissions per entity using execution hooks. In ERC4337, accounts can return validation data that’s not 0 or 1 to signal the usage of a signature aggregator.
+Validations are usually signature validation functions (secp256k1, BLS, WebAuthn, etc). While it’s feasible to implement signature validation as a pre-validation hook, it’s more efficient and ergonomic to do these in validations since it allows us to apply permissions per entity using execution hooks. In ERC-4337, accounts can return validation data that’s not 0 or 1 to signal the usage of a signature aggregator.
 
 #### Execution Hooks
 
