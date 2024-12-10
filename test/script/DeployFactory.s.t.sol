@@ -13,9 +13,9 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 contract DeployFactoryTest is Test {
     DeployFactoryScript internal _deployFactoryScript;
 
-    IEntryPoint public entryPoint;
-    ModularAccount public modularAccountImpl;
-    SemiModularAccountBytecode public semiModularAccountBytecodeImpl;
+    address public entryPoint;
+    address public modularAccountImpl;
+    address public semiModularAccountBytecodeImpl;
     address public singleSignerValidationModule;
     address public webAuthnValidationModule;
     address public factoryOwner;
@@ -27,19 +27,19 @@ contract DeployFactoryTest is Test {
 
         bytes32 zeroSalt = bytes32(0);
 
-        entryPoint = IEntryPoint(address(6));
-        modularAccountImpl = ModularAccount(payable(address(1)));
-        semiModularAccountBytecodeImpl = SemiModularAccountBytecode(payable(address(2)));
-        singleSignerValidationModule = address(3);
-        webAuthnValidationModule = address(4);
-        factoryOwner = address(5);
+        entryPoint = makeAddr("Entrypoint");
+        modularAccountImpl = makeAddr("Modular Account Impl");
+        semiModularAccountBytecodeImpl = makeAddr("Semi Modular Account Bytecode Impl");
+        singleSignerValidationModule = makeAddr("Single Signer Validation Module");
+        webAuthnValidationModule = makeAddr("Webauthn Validation Module");
+        factoryOwner = makeAddr("Factory Owner");
 
-        vm.setEnv("ENTRYPOINT", vm.toString(address(entryPoint)));
-        vm.setEnv("MODULAR_ACCOUNT_IMPL", vm.toString(address(modularAccountImpl)));
-        vm.setEnv("SEMI_MODULAR_ACCOUNT_BYTECODE_IMPL", vm.toString(address(semiModularAccountBytecodeImpl)));
+        vm.setEnv("ENTRYPOINT", vm.toString(entryPoint));
+        vm.setEnv("MODULAR_ACCOUNT_IMPL", vm.toString(modularAccountImpl));
+        vm.setEnv("SEMI_MODULAR_ACCOUNT_BYTECODE_IMPL", vm.toString(semiModularAccountBytecodeImpl));
         vm.setEnv("SINGLE_SIGNER_VALIDATION_MODULE", vm.toString(singleSignerValidationModule));
-        vm.setEnv("WEBAUTHN_VALIDATION_MODULE", vm.toString(address(webAuthnValidationModule)));
-        vm.setEnv("FACTORY_OWNER", vm.toString(address(factoryOwner)));
+        vm.setEnv("WEBAUTHN_VALIDATION_MODULE", vm.toString(webAuthnValidationModule));
+        vm.setEnv("ACCOUNT_FACTORY_OWNER", vm.toString(factoryOwner));
 
         factory = AccountFactory(
             Create2.computeAddress(
@@ -61,11 +61,11 @@ contract DeployFactoryTest is Test {
             )
         );
 
-        vm.setEnv("FACTORY", vm.toString(address(factory)));
+        vm.setEnv("ACCOUNT_FACTORY", vm.toString(address(factory)));
 
         string memory zeroSaltString = vm.toString(zeroSalt);
 
-        vm.setEnv("FACTORY_SALT", zeroSaltString);
+        vm.setEnv("ACCOUNT_FACTORY_SALT", zeroSaltString);
 
         // Spoof as though the profile is set to "optimized-build".
         vm.setEnv("FOUNDRY_PROFILE", "optimized-build");

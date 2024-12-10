@@ -41,8 +41,8 @@ contract DeployFactoryScript is ScriptBase, Artifacts {
         factoryOwner = _getFactoryOwner();
 
         // Load the expected address and salt from env vars.
-        expectedFactoryAddr = vm.envOr("FACTORY", address(0));
-        factorySalt = vm.envOr("FACTORY_SALT", uint256(0));
+        expectedFactoryAddr = vm.envOr("ACCOUNT_FACTORY", address(0));
+        factorySalt = vm.envOr("ACCOUNT_FACTORY_SALT", uint256(0));
     }
 
     function run() public onlyProfile("optimized-build") {

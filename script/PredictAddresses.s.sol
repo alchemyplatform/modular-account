@@ -44,7 +44,7 @@ contract PredictAddressScript is ScriptBase, Artifacts {
         singleSignerValidationModuleSalt = vm.envOr("SINGLE_SIGNER_VALIDATION_MODULE_SALT", uint256(0));
         timeRangeModuleSalt = vm.envOr("TIME_RANGE_MODULE_SALT", uint256(0));
         webAuthnValidationModuleSalt = vm.envOr("WEBAUTHN_VALIDATION_MODULE_SALT", uint256(0));
-        factorySalt = vm.envOr("FACTORY_SALT", uint256(0));
+        factorySalt = vm.envOr("ACCOUNT_FACTORY_SALT", uint256(0));
 
         // Load the env vars for the factory.
         entryPoint = _getEntryPoint();
@@ -109,7 +109,7 @@ contract PredictAddressScript is ScriptBase, Artifacts {
         console.log("");
         console.log("******** Logging Expected Factory Address With Env Salt And Env Addresses *********");
         console.log(
-            "FACTORY=",
+            "ACCOUNT_FACTORY=",
             Create2.computeAddress(
                 bytes32(factorySalt),
                 keccak256(

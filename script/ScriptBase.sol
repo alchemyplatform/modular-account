@@ -52,7 +52,7 @@ abstract contract ScriptBase is Script {
     }
 
     function _getFactoryOwner() internal view returns (address) {
-        return vm.envOr("FACTORY_OWNER", address(0));
+        return vm.envOr("ACCOUNT_FACTORY_OWNER", address(0));
     }
 
     function _safeDeploy(

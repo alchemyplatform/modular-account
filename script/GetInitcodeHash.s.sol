@@ -47,7 +47,7 @@ contract GetInitcodeHashScript is ScriptBase, Artifacts {
         console.log("- WebAuthnValidationModule: %x", uint256(keccak256(_getWebAuthnValidationModuleInitcode())));
 
         console.log("Artifact initcode hashes with dependencies on EntryPoint and ExecutionInstallDelegate:");
-        IEntryPoint entryPoint = _getEntryPoint(); //IEntryPoint(payable(vm.envOr("ENTRYPOINT", address(0))));
+        IEntryPoint entryPoint = _getEntryPoint();
 
         ExecutionInstallDelegate executionInstallDelegate =
             ExecutionInstallDelegate(vm.envOr("EXECUTION_INSTALL_DELEGATE", address(0)));
