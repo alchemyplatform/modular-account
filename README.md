@@ -88,7 +88,7 @@ Modular Account v2 can:
 
 #### ERC1271 Contract Signatures Support
 
-Certain applications such as Permit2 or Cowswap use the ERC1271 contract signatures standard to determine if a smart contract has approved a certain action. Modular Account v2 implements to allow smart accounts to use these applications.
+Certain applications such as Permit2 or Cowswap use the ERC1271 contract signatures standard to determine if a smart contract has approved a certain action. Modular Account implements to allow smart accounts to use these applications.
 
 #### Upgradeability
 
