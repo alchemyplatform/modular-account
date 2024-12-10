@@ -78,7 +78,7 @@ forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast
 ## Features overview
 
 ### Features
-Modular Account v2 can:
+Modular Account can:
 1. Deploy contracts via `CREATE` or `CREATE2`.
 2. Receive ERC-721 and ERC-1155 tokens.
 3. Use applications that depend on ERC-1271 contract signatures.
