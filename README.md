@@ -80,19 +80,19 @@ forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast
 ### Features
 Modular Account v2 can:
 1. Deploy contracts via `CREATE` or `CREATE2`.
-2. Receive `ERC721` and `ERC1155` tokens.
-3. Use applications that depend on `ERC1271` contract signatures.
-4. Use applications that use the `ERC165` introspection standard.
+2. Receive ERC-721 and ERC-1155 tokens.
+3. Use applications that depend on ERC-1271 contract signatures.
+4. Use applications that use the ERC-165 introspection standard.
 5. Be upgradeable to or from most other smart contract account implementations.
 6. Be customized in many ways. All customization options can be found [here](./2-customizing-your-modular-account.md).
 
-#### ERC1271 contract signatures support
+#### ERC-1271 contract signatures support
 
-Certain applications such as Permit2 or Cowswap use the ERC1271 contract signatures standard to determine if a smart contract has approved a certain action. Modular Account implements to allow smart accounts to use these applications.
+Certain applications such as Permit2 or Cowswap use the ERC-1271 contract signatures standard to determine if a smart contract has approved a certain action. Modular Account implements ERC-1271 to allow smart accounts to use these applications.
 
 #### Upgradeability
 
-When modular accounts are created from the factory, an `ERC1967` proxy contract is deployed. Users can update the implementation their proxy points to to choose which smart account implementations to use. Modular Account v2 adheres to the `ERC7201` namespaced storage standard to prevent storage collisions when updating between different implementations.
+When modular accounts are created from the factory, an ERC-1967 proxy contract is deployed. Users can update the implementation their proxy points to to choose which smart account implementations to use. Modular Account v2 adheres to the ERC-7201 namespaced storage standard to prevent storage collisions when updating between different implementations.
 
 ### Customizing your Modular Account
 
@@ -115,13 +115,13 @@ Pre validation hooks are run before validations. Pre-validation hooks are necess
 
 #### Validations
 
-Validations are usually signature validation functions (secp256k1, BLS, WebAuthn, etc). While it’s feasible to implement signature validation as a pre-validation hook, it’s more efficient and ergonomic to do these in validations since it allows us to apply permissions per entity using execution hooks. In ERC-4337, accounts can return validation data that’s not 0 or 1 to signal the usage of a signature aggregator.
+Validations are usually signature validation functions (secp256k1, BLS, WebAuthn, etc). While it’s feasible to implement signature validation as a pre-validation hook, it’s more efficient and ergonomic to do these in validations since it allows us to apply permissions per module entity using execution hooks. In ERC-4337, accounts can return validation data that’s not 0 or 1 to signal the usage of a signature aggregator.
 
 #### Execution hooks
 
 Execution hooks are useful for applying permissions on execution functions to limit the set of possible actions that can be taken. Post-execution hooks are useful for checking the final state after an execution. Pre and post-execution hook pairs are useful for measuring differences in state due to an execution. For example, you could use a pre and post execution hook pair to enforce that swap outputs from a DCA swap performed by a session key fall within a some tolerance price determined by a price oracle.
 
-Execution hooks can be associated either with an (validation module + entity ID) pair to apply permissions on that specific entity, or with an execution selector on the account to apply global restrictions on the account across all entities. A example of a useful global restriction would be to block NFT transfers for NFTs in cold storage, or to apply resource locks.
+Execution hooks can be associated either with a module entity to apply permissions on that specific entity, or with an execution selector on the account to apply global restrictions on the account across all entities. A example of a useful global restriction would be to block NFT transfers for NFTs in cold storage, or to apply resource locks.
 
 #### Execution functions
 
@@ -139,7 +139,7 @@ This section contains other security considerations that developers should be aw
 
 #### Off-chain safety checks
 A client should perform the following off-chain checks when interacting with a modular account:
-1. When installing a validation, clients should check that the entity ID has not been used for that validator for that account yet, as certain validation modules implement `onInstall` as another way to do `rotateKey`.
+1. When installing a validation, clients should ensure that the entity id has not been previously used in the account
 2. When upgrading to a Modular Account, clients should check if the proxy used to be a Modular Account by checking the value of the `initialized` variable at the Modular Account namespaced storage slot within the proxy. If so, any `initializer` functions called would not work, and the configuration of that past Modular Account might be different from the current ownership configuration.
 3. When upgrading to a Modular Account, clients should check that the account is an ERC-1967 proxy by checking the ERC-1822 `proxiableUUID` ****slot.
 4. When installing execution function, clients should check that it does not collide with any native function selectors.
@@ -155,7 +155,7 @@ When using EIP-7702, the delegate destination should only be the `SemiModularAcc
 `SemiModularAccountBytecode` (`SMABytecode`) is the cheapest account to deploy. It can only be used for new account deployment, and **should NOT** be used for account upgrades due to requiring specific proxy bytecode.
 
 #### Deferred actions
-1. In order for a deferred action to be run at validation, in addition to special encoding (which includes the validation to validate the deferred action itself), it must not break ERC-4337 validation-time rules. For instance, this means that any execution hooks on `installValidation` must comply with RIP-7562.
+1. In order for a deferred action to be run at validation, in addition to special encoding (which includes the validation to validate the deferred action itself), it must not break ERC-4337 validation-time rules. For instance, this means that any execution hooks on `installValidation` must comply with EIP-7562.
 2. Deferred actions should only be used to perform actions necessary for user op validation to pass. Otherwise, as deferred actions are not signed over, a malicious bundler could remove the deferred action from the user op and cause an unexpected outcome.
 
 #### Signature validation flag enablement
