@@ -3,8 +3,11 @@ pragma solidity ^0.8.26;
 
 import {console} from "forge-std/console.sol";
 
+import {ModularAccount} from "../src/account/ModularAccount.sol";
+import {SemiModularAccountBytecode} from "../src/account/SemiModularAccountBytecode.sol";
 import {Artifacts} from "./Artifacts.sol";
 import {ScriptBase} from "./ScriptBase.sol";
+import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 // Predicts addresses for all standalone modules with salts taken from the environment.
@@ -14,7 +17,7 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 // - SingleSignerValidationModule
 // - TimeRangeModule
 // - WebAuthnValidationModule
-contract PredictModulesScript is ScriptBase, Artifacts {
+contract PredictAddressScript is ScriptBase, Artifacts {
     // State vars for salts.
 
     uint256 public allowlistModuleSalt;
@@ -23,6 +26,14 @@ contract PredictModulesScript is ScriptBase, Artifacts {
     uint256 public singleSignerValidationModuleSalt;
     uint256 public timeRangeModuleSalt;
     uint256 public webAuthnValidationModuleSalt;
+    uint256 public factorySalt;
+
+    IEntryPoint public entryPoint;
+    ModularAccount public modularAccountImpl;
+    SemiModularAccountBytecode public semiModularAccountBytecodeImpl;
+    address public singleSignerValidationModule;
+    address public webAuthnValidationModule;
+    address public factoryOwner;
 
     function setUp() public {
         // Load the salts from env vars.
@@ -33,10 +44,19 @@ contract PredictModulesScript is ScriptBase, Artifacts {
         singleSignerValidationModuleSalt = vm.envOr("SINGLE_SIGNER_VALIDATION_MODULE_SALT", uint256(0));
         timeRangeModuleSalt = vm.envOr("TIME_RANGE_MODULE_SALT", uint256(0));
         webAuthnValidationModuleSalt = vm.envOr("WEBAUTHN_VALIDATION_MODULE_SALT", uint256(0));
+        factorySalt = vm.envOr("FACTORY_SALT", uint256(0));
+
+        // Load the env vars for the factory.
+        entryPoint = _getEntryPoint();
+        modularAccountImpl = _getModularAccountImpl();
+        semiModularAccountBytecodeImpl = _getSemiModularAccountBytecodeImpl();
+        singleSignerValidationModule = _getSingleSignerValidationModule();
+        webAuthnValidationModule = _getWebAuthnValidationModule();
+        factoryOwner = _getFactoryOwner();
     }
 
     function run() public view onlyProfile("optimized-build") {
-        console.log("******** Logging Expected Module Addresses With Env Salts *********");
+        console.log("******** Logging Expected Addresses With Env Salts *********");
 
         console.log(
             "ALLOWLIST_MODULE=",
@@ -82,6 +102,26 @@ contract PredictModulesScript is ScriptBase, Artifacts {
             Create2.computeAddress(
                 bytes32(webAuthnValidationModuleSalt),
                 keccak256(_getWebAuthnValidationModuleInitcode()),
+                CREATE2_FACTORY
+            )
+        );
+
+        console.log("");
+        console.log("******** Logging Expected Factory Address With Env Salt And Env Addresses *********");
+        console.log(
+            "FACTORY=",
+            Create2.computeAddress(
+                bytes32(factorySalt),
+                keccak256(
+                    _getAccountFactoryInitcode(
+                        entryPoint,
+                        modularAccountImpl,
+                        semiModularAccountBytecodeImpl,
+                        singleSignerValidationModule,
+                        webAuthnValidationModule,
+                        factoryOwner
+                    )
+                ),
                 CREATE2_FACTORY
             )
         );

@@ -46,7 +46,7 @@ contract DeployFactoryScript is ScriptBase, Artifacts {
     }
 
     function run() public onlyProfile("optimized-build") {
-        console.log("******** Deploying Modules *********");
+        console.log("******** Deploying Factory *********");
 
         vm.startBroadcast();
 
