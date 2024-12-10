@@ -7,8 +7,6 @@ import {DeployFactoryScript} from "../../script/DeployFactory.s.sol";
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {AccountFactory} from "../../src/factory/AccountFactory.sol";
-import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
-import {WebAuthnValidationModule} from "../../src/modules/validation/WebAuthnValidationModule.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
@@ -22,7 +20,7 @@ contract DeployFactoryTest is Test {
     address public webAuthnValidationModule;
     address public factoryOwner;
 
-    AccountFactory factory;
+    AccountFactory public factory;
 
     function setUp() public {
         _deployFactoryScript = new DeployFactoryScript();
@@ -74,7 +72,6 @@ contract DeployFactoryTest is Test {
     }
 
     function test_deployFactoryScript() public {
-        console.log(factoryOwner);
         assertEq(address(factory).code.length, 0);
 
         _deployFactoryScript.setUp();
@@ -87,5 +84,3 @@ contract DeployFactoryTest is Test {
         factory.createSemiModularAccount(address(this), 1);
     }
 }
-
-import "forge-std/console.sol";
