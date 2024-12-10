@@ -133,6 +133,8 @@ Execution hooks are applied across execution functions. Modular account comes wi
 
 Our audit reports can be found in [audits](/audits). The filenames for the reports have the format: `YYYY-MM-DD_VENDOR_FFFFFFF.pdf`, where `YYYY-MM-DD` refers to the date on which the final report was received, `VENDOR` refers to the conductor of the audit, and `FFFFFFF` refers to the short commit hash on which the audit was conducted.
 
+### Bug bounty program
+
 Details of our bug bounty program can be found at https://hackerone.com/alchemyplatform.
 
 ### Other security considerations
