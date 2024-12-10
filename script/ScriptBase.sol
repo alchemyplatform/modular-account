@@ -4,6 +4,9 @@ pragma solidity ^0.8.26;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 
+import {ModularAccount} from "../src/account/ModularAccount.sol";
+import {SemiModularAccountBytecode} from "../src/account/SemiModularAccountBytecode.sol";
+import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 abstract contract ScriptBase is Script {
@@ -15,6 +18,41 @@ abstract contract ScriptBase is Script {
             revert(string.concat("This script should be run with the `", expectedProfile, "` profile."));
         }
         _;
+    }
+
+    function _getEntryPoint() internal view returns (IEntryPoint) {
+        IEntryPoint entryPoint = IEntryPoint(payable(vm.envOr("ENTRYPOINT", address(0))));
+        if (address(entryPoint) == address(0)) {
+            console.log(
+                "Env Variable 'ENTRYPOINT' not found or invalid, defaulting to v0.7 EntryPoint at "
+                "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+            );
+            entryPoint = IEntryPoint(0x0000000071727De22E5E9d8BAf0edAc6f37da032);
+        } else {
+            console.log("Using user-defined EntryPoint at: %x", address(entryPoint));
+        }
+
+        return entryPoint;
+    }
+
+    function _getModularAccountImpl() internal view returns (ModularAccount) {
+        return ModularAccount(payable(vm.envOr("MODULAR_ACCOUNT_IMPL", address(0))));
+    }
+
+    function _getSemiModularAccountBytecodeImpl() internal view returns (SemiModularAccountBytecode) {
+        return SemiModularAccountBytecode(payable(vm.envOr("SEMI_MODULAR_ACCOUNT_BYTECODE_IMPL", address(0))));
+    }
+
+    function _getSingleSignerValidationModule() internal view returns (address) {
+        return vm.envOr("SINGLE_SIGNER_VALIDATION_MODULE", address(0));
+    }
+
+    function _getWebAuthnValidationModule() internal view returns (address) {
+        return vm.envOr("WEBAUTHN_VALIDATION_MODULE", address(0));
+    }
+
+    function _getFactoryOwner() internal view returns (address) {
+        return vm.envOr("ACCOUNT_FACTORY_OWNER", address(0));
     }
 
     function _safeDeploy(
