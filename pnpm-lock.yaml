@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@erc6900/reference-implementation':
         specifier: github:erc6900/reference-implementation#v0.8.0-rc.7
-        version: https://codeload.github.com/erc6900/reference-implementation/tar.gz/bfe5d75fcabd1e0c8571b65ccaf104c43bc6dfb8
+        version: git+https://git@github.com:erc6900/reference-implementation.git#bfe5d75fcabd1e0c8571b65ccaf104c43bc6dfb8
       account-abstraction:
         specifier: github:eth-infinitism/account-abstraction#v0.7.0
         version: accountabstraction@git+https://git@github.com:eth-infinitism/account-abstraction.git#d99245ddb2d7bde4d2132757c4394818f1d11da0(ethers@5.7.2)(hardhat@2.22.10(typescript@4.9.5))(lodash@4.17.21)(typechain@5.2.0(typescript@4.9.5))
@@ -19,8 +19,8 @@ importers:
         version: git+https://git@github.com:Vectorized/solady.git#eb227ea1c5eaa56296e7dd713eb165d5d75891dd
     devDependencies:
       pnpm:
-        specifier: ^8.7.5
-        version: 8.15.9
+        specifier: ^9.15.0
+        version: 9.15.0
       solhint:
         specifier: ^3.6.2
         version: 3.6.2(typescript@4.9.5)
@@ -39,8 +39,8 @@ packages:
     resolution: {integrity: sha512-EStJpq4OuY8xYfhGVXngigBJRWxftKX9ksiGDnmlY3o7B/V7KIAc9X4oiK87uPJSc/vs5L869bem5fhZa8caZw==}
     engines: {node: '>=6.9.0'}
 
-  '@erc6900/reference-implementation@https://codeload.github.com/erc6900/reference-implementation/tar.gz/bfe5d75fcabd1e0c8571b65ccaf104c43bc6dfb8':
-    resolution: {tarball: https://codeload.github.com/erc6900/reference-implementation/tar.gz/bfe5d75fcabd1e0c8571b65ccaf104c43bc6dfb8}
+  '@erc6900/reference-implementation@git+https://git@github.com:erc6900/reference-implementation.git#bfe5d75fcabd1e0c8571b65ccaf104c43bc6dfb8':
+    resolution: {commit: bfe5d75fcabd1e0c8571b65ccaf104c43bc6dfb8, repo: git@github.com:erc6900/reference-implementation.git, type: git}
     version: 0.8.0-rc.7
 
   '@ethereumjs/rlp@4.0.1':
@@ -785,6 +785,7 @@ packages:
 
   ethereumjs-wallet@1.0.2:
     resolution: {integrity: sha512-CCWV4RESJgRdHIvFciVQFnCHfqyhXWchTPlkfp28Qc53ufs+doi5I/cV2+xeK9+qEo25XCWfP9MiL+WEPAZfdA==}
+    deprecated: 'New package name format for new versions: @ethereumjs/wallet. Please update.'
 
   ethers@5.7.2:
     resolution: {integrity: sha512-wswUsmWo1aOK8rR7DIKiWSw9DbLWe6x98Jrn8wcTflTVvaXhAMaB5zGAXy0GYQEQp9iO1iSHWVyARQm11zUtyg==}
@@ -1372,9 +1373,9 @@ packages:
     resolution: {integrity: sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==}
     engines: {node: '>=4'}
 
-  pnpm@8.15.9:
-    resolution: {integrity: sha512-SZQ0ydj90aJ5Tr9FUrOyXApjOrzuW7Fee13pDzL0e1E6ypjNXP0AHDHw20VLw4BO3M1XhQHkyik6aBYWa72fgQ==}
-    engines: {node: '>=16.14'}
+  pnpm@9.15.0:
+    resolution: {integrity: sha512-duI3l2CkMo7EQVgVvNZije5yevN3mqpMkU45RBVsQpmSGon5djge4QfUHxLPpLZmgcqccY8GaPoIMe1MbYulbA==}
+    engines: {node: '>=18.12'}
     hasBin: true
 
   prelude-ls@1.1.2:
@@ -1811,7 +1812,7 @@ snapshots:
       js-tokens: 4.0.0
       picocolors: 1.1.0
 
-  '@erc6900/reference-implementation@https://codeload.github.com/erc6900/reference-implementation/tar.gz/bfe5d75fcabd1e0c8571b65ccaf104c43bc6dfb8': {}
+  '@erc6900/reference-implementation@git+https://git@github.com:erc6900/reference-implementation.git#bfe5d75fcabd1e0c8571b65ccaf104c43bc6dfb8': {}
 
   '@ethereumjs/rlp@4.0.1': {}
 
@@ -3510,7 +3511,7 @@ snapshots:
 
   pluralize@8.0.0: {}
 
-  pnpm@8.15.9: {}
+  pnpm@9.15.0: {}
 
   prelude-ls@1.1.2: {}
 
