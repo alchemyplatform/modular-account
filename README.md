@@ -96,7 +96,7 @@ When modular accounts are created from the factory, an ERC-1967 proxy contract i
 
 ### Customizing your Modular Account
 
-The Modular Account v2 can be customized by:
+Modular Account can be customized by:
 1. Installing execution functions to add custom execution logic to run, or uninstalling to remove them
 2. Installing validations to apply custom validation logic for one or all execution functions, or uninstalling to remove them
 3. Installing pre validation hooks that are attached to module entities, or removing them
