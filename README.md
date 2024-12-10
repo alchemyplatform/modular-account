@@ -149,7 +149,7 @@ A client should perform the following off-chain checks when interacting with a m
 Initializer functions are not guarded by any access control modifier. If accounts are not used in a proxy pattern, during the account’s constructor, as per Openzeppelin’s implementation of `Initializable`, initializer functions are able to be reentered. This design choice can be used by an attacker to install additional validations to take over a user’s account.
 
 #### EIP-7702 Accounts and Initializer Functions
-When using EIP-7702, the delegate destinations should only be `SemiModularAccount7702` implementations, and not any of the other account variants. Otherwise, if the delegate destination is set to an account with an `initializer` function, since there isn’t any access control protection on EIP-7702 accounts, an attacker will be able to take over the account.
+When using EIP-7702, the delegate destination should only be the `SemiModularAccount7702` implementation, and not any of the other account variants. Otherwise, if the delegate destination is set to an account with an unprotected initializer function, an attacker will be able to take over the account.
 
 ### Semi Modular Account Considerations
 `SemiModularAccountBytecode` (`SMABytecode`) is the cheapest account to deploy. It can only be used for new account deployment, and **should NOT** be used for account upgrades due to requiring specific proxy bytecode.
