@@ -5,15 +5,13 @@ import {Test} from "forge-std/Test.sol";
 
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
+import {DeployModulesScript} from "../../script/DeployModules.s.sol";
 import {AllowlistModule} from "../../src/modules/permissions/AllowlistModule.sol";
 import {NativeTokenLimitModule} from "../../src/modules/permissions/NativeTokenLimitModule.sol";
 import {PaymasterGuardModule} from "../../src/modules/permissions/PaymasterGuardModule.sol";
-
 import {TimeRangeModule} from "../../src/modules/permissions/TimeRangeModule.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 import {WebAuthnValidationModule} from "../../src/modules/validation/WebAuthnValidationModule.sol";
-
-import {DeployModulesScript} from "../../script/DeployModules.s.sol";
 
 contract DeployModulesTest is Test {
     DeployModulesScript internal _deployModulesScript;
