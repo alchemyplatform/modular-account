@@ -14,8 +14,6 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 contract DeployAccountsScript is ScriptBase, Artifacts {
     // State vars for expected addresses and salts.
 
-    // uint256
-
     IEntryPoint public entryPoint;
 
     address public expectedExecutionInstallDelegate;
@@ -67,9 +65,7 @@ contract DeployAccountsScript is ScriptBase, Artifacts {
             "Modular Account Impl",
             expectedModularAccountImpl,
             modularAccountImplSalt,
-            _getModularAccountInitcode(
-                IEntryPoint(entryPoint), ExecutionInstallDelegate(expectedExecutionInstallDelegate)
-            ),
+            _getModularAccountInitcode(entryPoint, ExecutionInstallDelegate(expectedExecutionInstallDelegate)),
             _wrappedDeployModularAccount
         );
 
@@ -78,7 +74,7 @@ contract DeployAccountsScript is ScriptBase, Artifacts {
             expectedSemiModularAccountBytecodeImpl,
             semiModularAccountBytecodeImplSalt,
             _getSemiModularAccountBytecodeInitcode(
-                IEntryPoint(entryPoint), ExecutionInstallDelegate(expectedExecutionInstallDelegate)
+                entryPoint, ExecutionInstallDelegate(expectedExecutionInstallDelegate)
             ),
             _wrappedDeploySemiModularAccountBytecode
         );
@@ -88,7 +84,7 @@ contract DeployAccountsScript is ScriptBase, Artifacts {
             expectedSemiModularAccountStorageOnlyImpl,
             semiModularAccountStorageOnlyImplSalt,
             _getSemiModularAccountStorageOnlyInitcode(
-                IEntryPoint(entryPoint), ExecutionInstallDelegate(expectedExecutionInstallDelegate)
+                entryPoint, ExecutionInstallDelegate(expectedExecutionInstallDelegate)
             ),
             _wrappedDeploySemiModularAccountStorageOnly
         );
@@ -102,20 +98,18 @@ contract DeployAccountsScript is ScriptBase, Artifacts {
     // without affecting the expected signature from _safeDeploy.
 
     function _wrappedDeployModularAccount(bytes32 salt) internal returns (address) {
-        return _deployModularAccount(
-            salt, IEntryPoint(entryPoint), ExecutionInstallDelegate(expectedExecutionInstallDelegate)
-        );
+        return _deployModularAccount(salt, entryPoint, ExecutionInstallDelegate(expectedExecutionInstallDelegate));
     }
 
     function _wrappedDeploySemiModularAccountBytecode(bytes32 salt) internal returns (address) {
         return _deploySemiModularAccountBytecode(
-            salt, IEntryPoint(entryPoint), ExecutionInstallDelegate(expectedExecutionInstallDelegate)
+            salt, entryPoint, ExecutionInstallDelegate(expectedExecutionInstallDelegate)
         );
     }
 
     function _wrappedDeploySemiModularAccountStorageOnly(bytes32 salt) internal returns (address) {
         return _deploySemiModularAccountStorageOnly(
-            salt, IEntryPoint(entryPoint), ExecutionInstallDelegate(expectedExecutionInstallDelegate)
+            salt, entryPoint, ExecutionInstallDelegate(expectedExecutionInstallDelegate)
         );
     }
 }
