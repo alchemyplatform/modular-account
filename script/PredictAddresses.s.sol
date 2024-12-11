@@ -45,13 +45,13 @@ contract PredictAddressScript is ScriptBase, Artifacts {
     function setUp() public {
         // Load the salts from env vars.
 
-        allowlistModuleSalt = vm.envOr("ALLOWLIST_MODULE_SALT", uint256(0));
-        nativeTokenLimitModuleSalt = vm.envOr("NATIVE_TOKEN_LIMIT_MODULE_SALT", uint256(0));
-        paymasterGuardModuleSalt = vm.envOr("PAYMASTER_GUARD_MODULE_SALT", uint256(0));
-        singleSignerValidationModuleSalt = vm.envOr("SINGLE_SIGNER_VALIDATION_MODULE_SALT", uint256(0));
-        timeRangeModuleSalt = vm.envOr("TIME_RANGE_MODULE_SALT", uint256(0));
-        webAuthnValidationModuleSalt = vm.envOr("WEBAUTHN_VALIDATION_MODULE_SALT", uint256(0));
-        factorySalt = vm.envOr("ACCOUNT_FACTORY_SALT", uint256(0));
+        allowlistModuleSalt = _getSaltOrZero("ALLOWLIST_MODULE");
+        nativeTokenLimitModuleSalt = _getSaltOrZero("NATIVE_TOKEN_LIMIT_MODULE");
+        paymasterGuardModuleSalt = _getSaltOrZero("PAYMASTER_GUARD_MODULE");
+        singleSignerValidationModuleSalt = _getSaltOrZero("SINGLE_SIGNER_VALIDATION_MODULE");
+        timeRangeModuleSalt = _getSaltOrZero("TIME_RANGE_MODULE");
+        webAuthnValidationModuleSalt = _getSaltOrZero("WEBAUTHN_VALIDATION_MODULE");
+        factorySalt = _getSaltOrZero("ACCOUNT_FACTORY");
         executionInstallDelegateSalt = _getSaltOrZero("EXECUTION_INSTALL_DELEGATE");
         modularAccountImplSalt = _getSaltOrZero("MODULAR_ACCOUNT_IMPL");
         semiModularAccountBytecodeImplSalt = _getSaltOrZero("SEMI_MODULAR_ACCOUNT_BYTECODE_IMPL");
