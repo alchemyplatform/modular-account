@@ -60,6 +60,7 @@ contract PredictAddressScript is ScriptBase, Artifacts {
         // Load the env vars for the account implementations and the factory.
         entryPoint = _getEntryPoint();
         executionInstallDelegate = ExecutionInstallDelegate(_getExecutionInstallDelegate());
+
         modularAccountImpl = _getModularAccountImpl();
         semiModularAccountBytecodeImpl = _getSemiModularAccountBytecodeImpl();
         singleSignerValidationModule = _getSingleSignerValidationModule();
@@ -68,7 +69,7 @@ contract PredictAddressScript is ScriptBase, Artifacts {
     }
 
     function run() public view onlyProfile("optimized-build") {
-        console.log("******** Logging Expected Addresses With Env Salts *********");
+        console.log("#******** Logging Expected Addresses With Env Salts *********");
 
         console.log(
             "ALLOWLIST_MODULE=",
@@ -93,14 +94,13 @@ contract PredictAddressScript is ScriptBase, Artifacts {
             )
         );
 
-        console.log(
-            "SINGLE_SIGNER_VALIDATION_MODULE=",
-            Create2.computeAddress(
-                bytes32(singleSignerValidationModuleSalt),
-                keccak256(_getSingleSignerValidationModuleInitcode()),
-                CREATE2_FACTORY
-            )
+        // Needed for factory.
+        address computedSingleSignerValidationModule = Create2.computeAddress(
+            bytes32(singleSignerValidationModuleSalt),
+            keccak256(_getSingleSignerValidationModuleInitcode()),
+            CREATE2_FACTORY
         );
+        console.log("SINGLE_SIGNER_VALIDATION_MODULE=", computedSingleSignerValidationModule);
 
         console.log(
             "TIME_RANGE_MODULE=",
@@ -109,56 +109,104 @@ contract PredictAddressScript is ScriptBase, Artifacts {
             )
         );
 
-        console.log(
-            "WEBAUTHN_VALIDATION_MODULE=",
-            Create2.computeAddress(
-                bytes32(webAuthnValidationModuleSalt),
-                keccak256(_getWebAuthnValidationModuleInitcode()),
-                CREATE2_FACTORY
-            )
+        address computedWebauthValidationModule = Create2.computeAddress(
+            bytes32(webAuthnValidationModuleSalt),
+            keccak256(_getWebAuthnValidationModuleInitcode()),
+            CREATE2_FACTORY
         );
+        console.log("WEBAUTHN_VALIDATION_MODULE=", computedWebauthValidationModule);
 
         console.log("");
-        console.log("******** Logging Expected Account Impl Addresses With Env Salt And Env Addresses *********");
+        console.log("#******** Logging Expected Account Impl Addresses With Env Salt And Env Addresses *********");
 
-        console.log(
-            "EXECUTION_INSTALL_DELEGATE=",
+        // Needed for accounts.
+        ExecutionInstallDelegate computedExecutionInstallDelegate = ExecutionInstallDelegate(
             Create2.computeAddress(
                 bytes32(executionInstallDelegateSalt),
                 keccak256(_getExecutionInstallDelegateInitcode()),
                 CREATE2_FACTORY
             )
         );
+        console.log("EXECUTION_INSTALL_DELEGATE=", address(computedExecutionInstallDelegate));
 
-        console.log(
-            "MODULAR_ACCOUNT_IMPL=",
-            Create2.computeAddress(
-                bytes32(modularAccountImplSalt),
-                keccak256(_getModularAccountInitcode(entryPoint, executionInstallDelegate)),
-                CREATE2_FACTORY
-            )
-        );
+        if (computedExecutionInstallDelegate != executionInstallDelegate) {
+            console.log(
+                "#    Create2 computed ExecutionInstallDelegate: %s differs from env: %s, proceeding with"
+                "computed value for account computations.",
+                address(computedExecutionInstallDelegate),
+                address(executionInstallDelegate)
+            );
+        }
 
-        console.log(
-            "SEMI_MODULAR_ACCOUNT_BYTECODE_IMPL=",
-            Create2.computeAddress(
-                bytes32(semiModularAccountBytecodeImplSalt),
-                keccak256(_getSemiModularAccountBytecodeInitcode(entryPoint, executionInstallDelegate)),
-                CREATE2_FACTORY
-            )
+        // Needed for factory.
+        address computedModularAccountImpl = Create2.computeAddress(
+            bytes32(modularAccountImplSalt),
+            keccak256(_getModularAccountInitcode(entryPoint, computedExecutionInstallDelegate)),
+            CREATE2_FACTORY
         );
+        console.log("MODULAR_ACCOUNT_IMPL=", computedModularAccountImpl);
+
+        // Needed for factory.
+        address computedSemiModularAccountBytecodeImpl = Create2.computeAddress(
+            bytes32(semiModularAccountBytecodeImplSalt),
+            keccak256(_getSemiModularAccountBytecodeInitcode(entryPoint, computedExecutionInstallDelegate)),
+            CREATE2_FACTORY
+        );
+        console.log("SEMI_MODULAR_ACCOUNT_BYTECODE_IMPL=", computedSemiModularAccountBytecodeImpl);
 
         console.log(
             "SEMI_MODULAR_ACCOUNT_STORAGE_ONLY_IMPL=",
             Create2.computeAddress(
                 bytes32(semiModularAccountStorageOnlyImplSalt),
-                keccak256(_getSemiModularAccountStorageOnlyInitcode(entryPoint, executionInstallDelegate)),
+                keccak256(_getSemiModularAccountStorageOnlyInitcode(entryPoint, computedExecutionInstallDelegate)),
                 CREATE2_FACTORY
             )
         );
 
+        // Now, we check all factory dependencies and log if they differ from the environment variables.
         console.log("");
-        console.log("******** Logging Expected Factory Address With Env Salt And Env Addresses *********");
+
+        if (computedModularAccountImpl != modularAccountImpl) {
+            console.log(
+                "#    Create2 computed ModularAccountImpl: %s differs from env: %s,"
+                "  proceeding with computed value for Factory computation.",
+                computedModularAccountImpl,
+                modularAccountImpl
+            );
+        }
+
+        if (computedSemiModularAccountBytecodeImpl != semiModularAccountBytecodeImpl) {
+            console.log(
+                "#    Create2 computed SemiModularAccountBytecodeImpl: %s differs from env: %s,"
+                " proceeding with computed value for Factory computation.",
+                computedSemiModularAccountBytecodeImpl,
+                semiModularAccountBytecodeImpl
+            );
+        }
+
+        if (computedSingleSignerValidationModule != singleSignerValidationModule) {
+            console.log(
+                "#    Create2 computed SingleSignerValidationModule: %s differs from env: %s,"
+                " proceeding with computed value for Factory computation.",
+                computedSingleSignerValidationModule,
+                singleSignerValidationModule
+            );
+        }
+
+        if (computedWebauthValidationModule != webAuthnValidationModule) {
+            console.log(
+                "#    Create2 computed WebAuthnValidationModule: %s differs from env: %s,"
+                " proceeding with computed value for Factory computation.",
+                computedWebauthValidationModule,
+                webAuthnValidationModule
+            );
+        }
+
+        if (factoryOwner == address(0)) {
+            console.log("#    WARNING: ACCOUNT_FACTORY_OWNER is set to zero, this factory will have no owner!");
+        }
+
+        console.log("#******** Logging Expected Factory Address With Env Salt And Env Addresses *********");
         console.log(
             "ACCOUNT_FACTORY=",
             Create2.computeAddress(
@@ -166,10 +214,10 @@ contract PredictAddressScript is ScriptBase, Artifacts {
                 keccak256(
                     _getAccountFactoryInitcode(
                         entryPoint,
-                        ModularAccount(payable(modularAccountImpl)),
-                        SemiModularAccountBytecode(payable(semiModularAccountBytecodeImpl)),
-                        singleSignerValidationModule,
-                        webAuthnValidationModule,
+                        ModularAccount(payable(computedModularAccountImpl)),
+                        SemiModularAccountBytecode(payable(computedSemiModularAccountBytecodeImpl)),
+                        computedSingleSignerValidationModule,
+                        computedWebauthValidationModule,
                         factoryOwner
                     )
                 ),
