@@ -35,7 +35,7 @@ This repository contains:
 The contracts conform to these ERC versions:
 
 - ERC-4337: [v0.7.0](https://github.com/eth-infinitism/account-abstraction/blob/releases/v0.7/erc/ERCS/erc-4337.md)
-- ERC-6900: [v0.8.0-rc.5](https://github.com/erc6900/reference-implementation/blob/v0.8.0-rc.5/standard/ERCs/erc-6900.md)
+- ERC-6900: [v0.8.0](https://github.com/ethereum/ERCs/blob/c081c445424505d549e0236650917a2aaf3c5743/ERCS/erc-6900.md)
 
 ## Development
 
@@ -78,7 +78,9 @@ forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast
 ## Features overview
 
 ### Features
+
 Modular Account can:
+
 1. Deploy contracts via `CREATE` or `CREATE2`.
 2. Receive ERC-721 and ERC-1155 tokens.
 3. Use applications that depend on ERC-1271 contract signatures.
@@ -97,6 +99,7 @@ When modular accounts are created from the factory, an ERC-1967 proxy contract i
 ### Customizing your Modular Account
 
 Modular Account can be customized by:
+
 1. Installing execution functions to add custom execution logic to run, or uninstalling to remove them
 2. Installing validations to apply custom validation logic for one or all execution functions, or uninstalling to remove them
 3. Installing pre validation hooks that are attached to module entities, or removing them
@@ -104,9 +107,11 @@ Modular Account can be customized by:
 5. Installing execution hooks that are attached to module entities, or removing them
 
 #### Lifecycle of a user operation
+
 ![](./img/userop-flow.png)
 
 #### Lifecycle of a runtime call
+
 ![](./img/runtime-flow.png)
 
 #### Pre-validation hooks
@@ -142,26 +147,33 @@ Details of our bug bounty program can be found at https://hackerone.com/alchemyp
 This section contains other security considerations that developers should be aware of when using a Modular Account besides informational issues highlighted in the security audits.
 
 #### Off-chain safety checks
+
 A client should perform the following off-chain checks when interacting with a modular account:
+
 1. When installing a validation, clients should ensure that the entity id has not been previously used in the account
 2. When upgrading to a Modular Account, clients should check if the proxy used to be a Modular Account by checking the value of the `initialized` variable at the Modular Account namespaced storage slot within the proxy. If so, any `initializer` functions called would not work, and the configuration of that past Modular Account might be different from the current ownership configuration.
-3. When upgrading to a Modular Account, clients should check that the account is an ERC-1967 proxy by checking the ERC-1822 `proxiableUUID` ****slot.
+3. When upgrading to a Modular Account, clients should check that the account is an ERC-1967 proxy by checking the ERC-1822 `proxiableUUID` slot.
 4. When installing execution function, clients should check that it does not collide with any native function selectors.
 5. Clients should ensure that deferred action nonces are unique without dependencies. One possible scheme is to use unix timestamps as part of the nonce.
 
 #### Proxy pattern and initializer functions
+
 Initializer functions are not guarded by any access control modifier. If accounts are not used in a proxy pattern, during the account’s constructor, as per Openzeppelin’s implementation of `Initializable`, initializer functions are able to be reentered. This design choice can be used by an attacker to install additional validations to take over a user’s account.
 
 #### Initializer functions with EIP-7702
+
 When using EIP-7702, the delegate destination should only be the `SemiModularAccount7702` implementation, and not any of the other account variants. Otherwise, if the delegate destination is set to an account with an unprotected initializer function, an attacker will be able to take over the account.
 
 ### Semi modular account considerations
+
 `SemiModularAccountBytecode` (`SMABytecode`) is the cheapest account to deploy. It can only be used for new account deployment, and **should NOT** be used for account upgrades due to requiring specific proxy bytecode.
 
 #### Deferred actions
+
 In order for a deferred action to be run at validation, in addition to special encoding (which includes the validation to validate the deferred action itself), it must not break ERC-4337 validation-time rules. For instance, this means that any execution hooks on `installValidation` must comply with EIP-7562.
 
 #### Signature validation flag enablement
+
 The `isSignatureValidation` flag meant to allow a validation function to validate ERC-1271 signatures. Developer should note that for Modular Account this is a very powerful capability to grant as it allows validation functions to approve deferred actions on the account.
 
 ## Acknowledgements
