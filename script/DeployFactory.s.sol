@@ -121,7 +121,7 @@ contract DeployFactoryScript is ScriptBase, Artifacts {
         }
 
         if (factoryOwner == address(0)) {
-            console.log("Env Variable 'FACTORY_OWNER' not found or invalid during factory deployment");
+            console.log("Env Variable 'ACCOUNT_FACTORY_OWNER' not found or invalid during factory deployment");
             shouldRevert = true;
         } else {
             console.log("Using user-defined factory owner at: %x", factoryOwner);
