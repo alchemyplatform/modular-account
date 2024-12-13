@@ -24,8 +24,8 @@ contract DeployAccountsScript is ScriptBase, Artifacts {
     address public expectedSemiModularAccountBytecodeImpl;
     uint256 public semiModularAccountBytecodeImplSalt;
 
-    address public expectedSemiModularAccountStorageOnlyImpl;
-    uint256 public semiModularAccountStorageOnlyImplSalt;
+    address public expectedSemiModularAccount7702Impl;
+    uint256 public semiModularAccount7702ImplSalt;
 
     function setUp() public {
         // Load the required addresses for the deployment from env vars.
@@ -39,8 +39,8 @@ contract DeployAccountsScript is ScriptBase, Artifacts {
         expectedSemiModularAccountBytecodeImpl = _getSemiModularAccountBytecodeImpl();
         semiModularAccountBytecodeImplSalt = _getSaltOrZero("SEMI_MODULAR_ACCOUNT_BYTECODE_IMPL");
 
-        expectedSemiModularAccountStorageOnlyImpl = _getSemiModularAccountStorageOnlyImpl();
-        semiModularAccountStorageOnlyImplSalt = _getSaltOrZero("SEMI_MODULAR_ACCOUNT_STORAGE_ONLY_IMPL");
+        expectedSemiModularAccount7702Impl = _getSemiModularAccount7702Impl();
+        semiModularAccount7702ImplSalt = _getSaltOrZero("SEMI_MODULAR_ACCOUNT_7702_IMPL");
     }
 
     function run() public onlyProfile("optimized-build") {
@@ -69,6 +69,14 @@ contract DeployAccountsScript is ScriptBase, Artifacts {
             _wrappedDeploySemiModularAccountBytecode
         );
 
+        _safeDeploy(
+            "Semi Modular Account 7702 Impl",
+            expectedSemiModularAccount7702Impl,
+            semiModularAccount7702ImplSalt,
+            _getSemiModularAccount7702Initcode(entryPoint, ExecutionInstallDelegate(executionInstallDelegate)),
+            _wrappedDeploySemiModularAccount7702
+        );
+
         vm.stopBroadcast();
 
         console.log("******** Account Implementations Deployed *********");
@@ -84,6 +92,10 @@ contract DeployAccountsScript is ScriptBase, Artifacts {
     function _wrappedDeploySemiModularAccountBytecode(bytes32 salt) internal returns (address) {
         return
             _deploySemiModularAccountBytecode(salt, entryPoint, ExecutionInstallDelegate(executionInstallDelegate));
+    }
+
+    function _wrappedDeploySemiModularAccount7702(bytes32 salt) internal returns (address) {
+        return _deploySemiModularAccount7702(salt, entryPoint, ExecutionInstallDelegate(executionInstallDelegate));
     }
 
     function _ensureNonzeroArgs() internal view {

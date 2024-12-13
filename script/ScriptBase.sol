@@ -45,6 +45,10 @@ abstract contract ScriptBase is Script {
         return vm.envOr("SEMI_MODULAR_ACCOUNT_STORAGE_ONLY_IMPL", address(0));
     }
 
+    function _getSemiModularAccount7702Impl() internal view returns (address) {
+        return vm.envOr("SEMI_MODULAR_ACCOUNT_7702_IMPL", address(0));
+    }
+
     function _getExecutionInstallDelegate() internal view returns (address) {
         return vm.envOr("EXECUTION_INSTALL_DELEGATE", address(0));
     }

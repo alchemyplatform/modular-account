@@ -1,8 +1,12 @@
 # Foundry build and cache directories
 out/
 out-optimized/
+out-optimized-standalone/
+out-optimized-sma-storage/
 cache/
 cache-optimized/
+cache-optimized-standalone/
+cache-optimized-sma-storage/
 node_modules/
 
 # Coverage
