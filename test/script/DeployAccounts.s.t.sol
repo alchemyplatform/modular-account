@@ -7,8 +7,9 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 import {DeployAccountsScript} from "../../script/DeployAccounts.s.sol";
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
+
 import {SemiModularAccount7702} from "../../src/account/SemiModularAccount7702.sol";
+import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 
 contract DeployAccountsTest is Test {
     DeployAccountsScript internal _deployAccountsScript;
@@ -50,8 +51,7 @@ contract DeployAccountsTest is Test {
             zeroSalt,
             keccak256(
                 bytes.concat(
-                    type(SemiModularAccount7702).creationCode,
-                    abi.encode(entryPoint, executionInstallDelegate)
+                    type(SemiModularAccount7702).creationCode, abi.encode(entryPoint, executionInstallDelegate)
                 )
             ),
             CREATE2_FACTORY
@@ -85,9 +85,6 @@ contract DeployAccountsTest is Test {
             "alchemy.sma-bytecode.1.0.0"
         );
 
-        assertEq(
-            SemiModularAccount7702(payable(semiModularAccount7702Impl)).accountId(),
-            "alchemy.sma-7702.1.0.0"
-        );
+        assertEq(SemiModularAccount7702(payable(semiModularAccount7702Impl)).accountId(), "alchemy.sma-7702.1.0.0");
     }
 }
