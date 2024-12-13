@@ -65,8 +65,8 @@ contract DeployFactoryTest is Test {
 
         vm.setEnv("ACCOUNT_FACTORY_SALT", zeroSaltString);
 
-        // Spoof as though the profile is set to "optimized-build".
-        vm.setEnv("FOUNDRY_PROFILE", "optimized-build");
+        // Spoof as though the profile is set to "optimized-build-standalone".
+        vm.setEnv("FOUNDRY_PROFILE", "optimized-build-standalone");
     }
 
     function test_deployFactoryScript() public {

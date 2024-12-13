@@ -45,7 +45,7 @@ contract DeployFactoryScript is ScriptBase, Artifacts {
         factorySalt = _getSaltOrZero("ACCOUNT_FACTORY");
     }
 
-    function run() public onlyProfile("optimized-build") {
+    function run() public onlyProfile("optimized-build-standalone") {
         console.log("******** Deploying Factory *********");
 
         vm.startBroadcast();

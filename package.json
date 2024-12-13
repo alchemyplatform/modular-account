@@ -11,7 +11,7 @@
     "solhint": "^3.6.2"
   },
   "scripts": {
-    "clean": "forge clean && FOUNDRY_PROFILE=optimized-build forge clean",
+    "clean": "forge clean && FOUNDRY_PROFILE=optimized-build forge clean && FOUNDRY_PROFILE=optimized-build-standalone forge clean",
     "coverage": "forge coverage --no-match-coverage '(test)' --nmt '(testFuzz|invariant)'",
     "fmt": "forge fmt && FOUNDRY_PROFILE=gas forge fmt",
     "fmt:check": "forge fmt --check && FOUNDRY_PROFILE=gas forge fmt --check",
@@ -25,7 +25,7 @@
     "lint:gas": "solhint --max-warnings 0 -c ./config/solhint-gas.json './gas/**/*.sol'",
     "lint:script": "solhint --max-warnings 0 -c ./config/solhint-script.json './script/**/*.sol'",
     "prep": "pnpm fmt && forge b --deny-warnings && pnpm lint && pnpm test && pnpm gas",
-    "sizes": "FOUNDRY_PROFILE=optimized-build forge b --sizes | grep '^|' | grep -v -e '|               17 |' -e 'Lib'",
+    "sizes": "FOUNDRY_PROFILE=optimized-build forge b --sizes | grep '^|' | grep -v -e '| 17               |' -e 'Lib'",
     "test": "forge test"
   }
 }

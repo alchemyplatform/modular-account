@@ -6,14 +6,17 @@ import {console} from "forge-std/console.sol";
 import {Artifacts} from "./Artifacts.sol";
 import {ScriptBase} from "./ScriptBase.sol";
 
-// Deploys all standalone modules.
+// Deploys all standalone contracts.
+// Modules:
 // - AllowlistModule
 // - NativeTokenLimitModule
 // - PaymasterGuardModule
 // - SingleSignerValidationModule
 // - TimeRangeModule
 // - WebAuthnValidationModule
-contract DeployModulesScript is ScriptBase, Artifacts {
+// Account-internal:
+// - ExecutionInstallDelegate
+contract DeployStandalonesScript is ScriptBase, Artifacts {
     // State vars for expected addresses and salts.
 
     address public expectedAllowlistModuleAddr;
@@ -33,6 +36,9 @@ contract DeployModulesScript is ScriptBase, Artifacts {
 
     address public expectedWebAuthnValidationModuleAddr;
     uint256 public webAuthnValidationModuleSalt;
+
+    address public expectedExecutionInstallDelegate;
+    uint256 public executionInstallDelegateSalt;
 
     function setUp() public {
         // Load the expected addresses and salts from env vars.
@@ -54,9 +60,12 @@ contract DeployModulesScript is ScriptBase, Artifacts {
 
         expectedWebAuthnValidationModuleAddr = vm.envOr("WEBAUTHN_VALIDATION_MODULE", address(0));
         webAuthnValidationModuleSalt = _getSaltOrZero("WEBAUTHN_VALIDATION_MODULE");
+
+        expectedExecutionInstallDelegate = _getExecutionInstallDelegate();
+        executionInstallDelegateSalt = _getSaltOrZero("EXECUTION_INSTALL_DELEGATE");
     }
 
-    function run() public onlyProfile("optimized-build") {
+    function run() public onlyProfile("optimized-build-standalone") {
         console.log("******** Deploying Modules *********");
 
         vm.startBroadcast();
@@ -109,8 +118,20 @@ contract DeployModulesScript is ScriptBase, Artifacts {
             _deployWebAuthnValidationModule
         );
 
-        vm.stopBroadcast();
-
         console.log("******** Modules Deployed *********");
+
+        console.log("******** Deploying Execution Install Delegate *********");
+
+        _safeDeploy(
+            "Execution Install Delegate",
+            expectedExecutionInstallDelegate,
+            executionInstallDelegateSalt,
+            _getExecutionInstallDelegateInitcode(),
+            _deployExecutionInstallDelegate
+        );
+
+        console.log("******** Execution Install Delegate Deployed *********");
+
+        vm.stopBroadcast();
     }
 }

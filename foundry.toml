@@ -28,9 +28,25 @@ depth = 10
 deny_warnings = true
 via_ir = true
 test = 'src'
-optimizer_runs = 15000
+optimizer_runs = 50000
 out = 'out-optimized'
 cache_path = 'cache-optimized'
+
+[profile.optimized-build-standalone]
+deny_warnings = true
+via_ir = true
+test = 'src'
+optimizer_runs = 10_000_000_000
+out = 'out-optimized-standalone'
+cache_path = 'cache-optimized-standalone'
+
+[profile.optimized-build-sma-storage]
+deny_warnings = true
+via_ir = true
+test = 'src'
+optimizer_runs = 15000
+out = 'out-optimized-sma-storage'
+cache_path = 'cache-optimized-sma-storage'
 
 [profile.optimized-test]
 deny_warnings = true
@@ -58,7 +74,7 @@ depth = 32
 via_ir = true
 deny_warnings = true
 test = 'gas'
-optimizer_runs = 15000
+optimizer_runs = 50000
 out = 'out-optimized'
 cache_path = 'cache-optimized'
 snapshots = 'gas-snapshots'
