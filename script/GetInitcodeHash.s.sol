@@ -32,52 +32,88 @@ import {ScriptBase} from "./ScriptBase.sol";
 // - AccountFactory
 
 contract GetInitcodeHashScript is ScriptBase, Artifacts {
-    function run() public view onlyProfile("optimized-build") {
+    function run() public view {
+        string memory actualProfile = vm.envOr(string("FOUNDRY_PROFILE"), string(""));
+        console.log(string.concat("Running script with the `", actualProfile, "` profile."));
+
         console.log("******** Calculating Initcode Hashes *********");
 
-        console.log("Artifact initcode hashes with no dependencies:");
-        console.log("- AllowlistModule: %x", uint256(keccak256(_getAllowlistModuleInitcode())));
-        console.log("- ExecutionInstallDelegate: %x", uint256(keccak256(_getExecutionInstallDelegateInitcode())));
-        console.log("- NativeTokenLimitModule: %x", uint256(keccak256(_getNativeTokenLimitModuleInitcode())));
-        console.log("- PaymasterGuardModule: %x", uint256(keccak256(_getPaymasterGuardModuleInitcode())));
-        console.log(
-            "- SingleSignerValidationModule: %x", uint256(keccak256(_getSingleSignerValidationModuleInitcode()))
-        );
-        console.log("- TimeRangeModule: %x", uint256(keccak256(_getTimeRangeModuleInitcode())));
-        console.log("- WebAuthnValidationModule: %x", uint256(keccak256(_getWebAuthnValidationModuleInitcode())));
+        if (keccak256(bytes(actualProfile)) == keccak256(bytes("optimized-build-standalone"))) {
+            console.log("Artifact initcode hashes with no dependencies:");
+            console.log("- AllowlistModule: %x", uint256(keccak256(_getAllowlistModuleInitcode())));
+            console.log(
+                "- ExecutionInstallDelegate: %x", uint256(keccak256(_getExecutionInstallDelegateInitcode()))
+            );
+            console.log("- NativeTokenLimitModule: %x", uint256(keccak256(_getNativeTokenLimitModuleInitcode())));
+            console.log("- PaymasterGuardModule: %x", uint256(keccak256(_getPaymasterGuardModuleInitcode())));
+            console.log(
+                "- SingleSignerValidationModule: %x",
+                uint256(keccak256(_getSingleSignerValidationModuleInitcode()))
+            );
+            console.log("- TimeRangeModule: %x", uint256(keccak256(_getTimeRangeModuleInitcode())));
+            console.log(
+                "- WebAuthnValidationModule: %x", uint256(keccak256(_getWebAuthnValidationModuleInitcode()))
+            );
 
-        console.log("Artifact initcode hashes with dependencies on EntryPoint and ExecutionInstallDelegate:");
-        IEntryPoint entryPoint = _getEntryPoint();
-
-        ExecutionInstallDelegate executionInstallDelegate =
-            ExecutionInstallDelegate(_getExecutionInstallDelegate());
-
-        if (address(executionInstallDelegate) == address(0)) {
-            console.log(
-                "Env Variable 'EXECUTION_INSTALL_DELEGATE' not found or invalid, skipping reporting "
-                "initcode hashes for ModularAccount, SemiModularAccount7702, SemiModularAccountBytecode, "
-                "and SemiModularAccountStorageOnly"
-            );
-        } else {
-            console.log("Using user-defined ExecutionInstallDelegate at: %x", address(executionInstallDelegate));
-
-            console.log(
-                "- ModularAccount: %x",
-                uint256(keccak256(_getModularAccountInitcode(entryPoint, executionInstallDelegate)))
-            );
-            console.log(
-                "- SemiModularAccount7702: %x",
-                uint256(keccak256(_getSemiModularAccount7702Initcode(entryPoint, executionInstallDelegate)))
-            );
-            console.log(
-                "- SemiModularAccountBytecode: %x",
-                uint256(keccak256(_getSemiModularAccountBytecodeInitcode(entryPoint, executionInstallDelegate)))
-            );
-            console.log(
-                "- SemiModularAccountStorageOnly: %x",
-                uint256(keccak256(_getSemiModularAccountStorageOnlyInitcode(entryPoint, executionInstallDelegate)))
-            );
+            _logFactoryInitcodeHash();
         }
+
+        if (
+            keccak256(bytes(actualProfile)) == keccak256(bytes("optimized-build"))
+                || keccak256(bytes(actualProfile)) == keccak256(bytes("optimized-build-sma-storage"))
+        ) {
+            console.log("Artifact initcode hashes with dependencies on EntryPoint and ExecutionInstallDelegate:");
+            IEntryPoint entryPoint = _getEntryPoint();
+
+            ExecutionInstallDelegate executionInstallDelegate =
+                ExecutionInstallDelegate(_getExecutionInstallDelegate());
+
+            if (address(executionInstallDelegate) == address(0)) {
+                console.log(
+                    "Env Variable 'EXECUTION_INSTALL_DELEGATE' not found or invalid, skipping reporting "
+                    "initcode hashes for ModularAccount, SemiModularAccount7702, SemiModularAccountBytecode, "
+                    "and SemiModularAccountStorageOnly"
+                );
+            } else {
+                console.log(
+                    "Using user-defined ExecutionInstallDelegate at: %x", address(executionInstallDelegate)
+                );
+
+                if (keccak256(bytes(actualProfile)) == keccak256(bytes("optimized-build-sma-storage"))) {
+                    console.log(
+                        "- SemiModularAccountStorageOnly: %x",
+                        uint256(
+                            keccak256(
+                                _getSemiModularAccountStorageOnlyInitcode(entryPoint, executionInstallDelegate)
+                            )
+                        )
+                    );
+                }
+
+                if (keccak256(bytes(actualProfile)) == keccak256(bytes("optimized-build"))) {
+                    console.log(
+                        "- ModularAccount: %x",
+                        uint256(keccak256(_getModularAccountInitcode(entryPoint, executionInstallDelegate)))
+                    );
+                    console.log(
+                        "- SemiModularAccount7702: %x",
+                        uint256(
+                            keccak256(_getSemiModularAccount7702Initcode(entryPoint, executionInstallDelegate))
+                        )
+                    );
+                    console.log(
+                        "- SemiModularAccountBytecode: %x",
+                        uint256(
+                            keccak256(_getSemiModularAccountBytecodeInitcode(entryPoint, executionInstallDelegate))
+                        )
+                    );
+                }
+            }
+        }
+    }
+
+    function _logFactoryInitcodeHash() internal view {
+        IEntryPoint entryPoint = _getEntryPoint();
 
         console.log(
             "Artifact initcode hashes with dependency on EntryPoint, ModularAccount impl, "
