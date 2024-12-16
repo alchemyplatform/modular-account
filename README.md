@@ -69,10 +69,12 @@ forge test -vvv
 
 ### Deployment
 
-A deployment script can be found in the `scripts/` folder
+Deployment scripts can be found in the `scripts/` folder, and depend on reading parameters from your local environment or from `.env`. A sample for the required fields can be found at `.env.example`. Note that some have specific foundry profiles needed for deployment.
+
+You will also need provide a wallet to use for deployment. Available options can be found [here](https://book.getfoundry.sh/reference/forge/forge-script#wallet-options---raw).
 
 ```bash
-forge script script/Deploy.s.sol --rpc-url $RPC_URL --broadcast
+FOUNDRY_PROFILE=<profile> forge script script/<deploy_script>.s.sol --rpc-url $RPC_URL --broadcast
 ```
 
 ## Features overview
@@ -94,7 +96,7 @@ Certain applications such as Permit2 or Cowswap use the ERC-1271 contract signat
 
 #### Upgradeability
 
-When modular accounts are created from the factory, an ERC-1967 proxy contract is deployed. Users can update the implementation their proxy points to to choose which smart account implementations to use. Modular Account v2 adheres to the ERC-7201 namespaced storage standard to prevent storage collisions when updating between different implementations.
+When modular accounts are created from the factory, an ERC-1967 proxy contract is deployed. Users can update the implementation their proxy points to to choose which smart account implementations to use. Modular Account adheres to the ERC-7201 namespaced storage standard to prevent storage collisions when updating between different implementations.
 
 ### Customizing your Modular Account
 
