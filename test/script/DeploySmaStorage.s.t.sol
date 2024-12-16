@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {Test} from "forge-std/Test.sol";
-
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
 import {DeploySmaStorageScript} from "../../script/DeploySmaStorage.s.sol";
 import {SemiModularAccountStorageOnly} from "../../src/account/SemiModularAccountStorageOnly.sol";
 
-contract DeploySmaStorageTest is Test {
+import {OptimizedTest} from "../utils/OptimizedTest.sol";
+
+contract DeploySmaStorageTest is OptimizedTest {
     DeploySmaStorageScript internal _deploySmaStorageScript;
 
     address public entryPoint;
@@ -20,7 +20,7 @@ contract DeploySmaStorageTest is Test {
 
         bytes32 zeroSalt = bytes32(0);
 
-        entryPoint = makeAddr("Entrypoint");
+        entryPoint = address(_deployEntryPoint070());
 
         executionInstallDelegate = makeAddr("ExecutionInstallDelegate");
 
