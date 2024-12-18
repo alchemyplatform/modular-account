@@ -36,7 +36,7 @@ cache_path = 'cache-optimized'
 deny_warnings = true
 via_ir = true
 test = 'src'
-optimizer_runs = 10_000_000_000
+optimizer_runs = 10000000
 out = 'out-optimized-standalone'
 cache_path = 'cache-optimized-standalone'
 
