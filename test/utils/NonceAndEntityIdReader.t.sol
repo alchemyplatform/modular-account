@@ -9,8 +9,6 @@ import {
     ValidationConfigLib
 } from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 
-import {console} from "forge-std/console.sol";
-
 contract NonceAndEntityIdReaderTest is AccountTestBase {
     function testRead(uint152 parallelNonce, uint8 validationOptions, uint8 endEntityId) public {
         vm.assume(endEntityId != 0);
