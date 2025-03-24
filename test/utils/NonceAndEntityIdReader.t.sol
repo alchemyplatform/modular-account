@@ -30,17 +30,14 @@ contract NonceAndEntityIdReaderTest is AccountTestBase {
             );
         }
 
-        address readerFromStart = address(
-            new NonceAndEntityIdReader(account1, 1, entryPoint, parallelNonce << 40 | 1 << 8 | validationOptions)
-        );
+        address readerFromStart =
+            address(new NonceAndEntityIdReader(account1, 1, entryPoint, parallelNonce << 40 | validationOptions));
         address readerFromEnd = address(
-            new NonceAndEntityIdReader(
-                account1, 1, entryPoint, parallelNonce << 40 | endEntityId << 8 | validationOptions
-            )
+            new NonceAndEntityIdReader(account1, endEntityId, entryPoint, parallelNonce << 40 | validationOptions)
         );
 
         uint256 actualNonce = entryPoint.getNonce(
-            address(account1), parallelNonce << 40 | uint152(endEntityId) << 8 | uint152(validationOptions)
+            address(account1), parallelNonce << 40 | uint152(endEntityId) << 8 | validationOptions
         );
 
         assertEq(readerFromStart.code.length, 32);
