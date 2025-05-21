@@ -212,7 +212,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         if (_wrapWithExecuteUserOp) {
             callData = abi.encodePacked(IAccountExecute.executeUserOp.selector, callData);
         }
-        
+
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: account,
             nonce: _encodeNextNonce(account, _signerValidation, true),
