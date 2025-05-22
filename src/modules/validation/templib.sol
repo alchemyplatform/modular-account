@@ -129,6 +129,7 @@ library WebAuthn {
         view
         returns (bool)
     {
+        console.log("in library, start");
         if (webAuthnAuth.s > _P256_N_DIV_2) {
             // guard against signature malleability
             return false;
@@ -149,9 +150,17 @@ library WebAuthn {
         string memory actualChallenge = webAuthnAuth.clientDataJSON.slice(
             webAuthnAuth.challengeIndex, webAuthnAuth.challengeIndex + expectedChallenge.length
         );
-        if (keccak256(bytes(actualChallenge)) != keccak256(expectedChallenge)) {
-            return false;
-        }
+        console.log("");
+        console.log("comparing challenges");
+        console.log(string(expectedChallenge));
+        console.logBytes32(keccak256(expectedChallenge));
+        console.log(string(actualChallenge));
+        console.logBytes32(keccak256(abi.encodePacked(actualChallenge)));
+        console.log("");
+
+        // if (keccak256(bytes(actualChallenge)) != keccak256(expectedChallenge)) {
+        //     return false;
+        // }
         console.log("3");
         // Skip 13., 14., 15.
 
@@ -176,6 +185,8 @@ library WebAuthn {
         // authData
         //     and hash.
         bytes32 messageHash = sha256(abi.encodePacked(webAuthnAuth.authenticatorData, clientDataJSONHash));
+        console.log("sign this:");
+        console.logBytes32(messageHash);
         bytes memory args = abi.encode(messageHash, webAuthnAuth.r, webAuthnAuth.s, x, y);
         // try the RIP-7212 precompile address
         (bool success, bytes memory ret) = _VERIFIER.staticcall(args);

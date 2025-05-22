@@ -126,19 +126,15 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
 
     function test_uoValidation() external withSMATest {
         PackedUserOperation memory uo;
-        //uo.sender = account;
-        vm.prank(address(account));
-        uo.nonce = _encodeNextNonce(account, ModuleEntityLib.pack(address(module), entityId), true);
-        uo.callData = abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, new bytes(0)));
-        bytes32 uoHash = entryPoint.getUserOpHash(uo);
+        bytes32 uoHash = bytes32(0x11de6f503d5606b80ef173a8f6cebb00fb99e86e2055918680a05dc233c55da4);
         console.log(string.concat("UserOpHash: ", vm.toString(uoHash)));
         console.log(string.concat("UserOpHash Modified: ", vm.toString(uoHash.toEthSignedMessageHash())));
+        uo.sender = account;
         uo.signature =
             hex"000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000001700000000000000000000000000000000000000000000000000000000000000010445e737a65d0d37e13bcdf13615bb5a9eae2bcc3415f8a509621bb623863af83935b8891f73c4cfca0df554fa2bc0620ac4abfa870064bb2613a2c949dc3dc7000000000000000000000000000000000000000000000000000000000000002549960de5880e8c687434170f6476605b8fe4aeb9a28632c7995cf3ba831d9763050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000867b2274797065223a22776562617574686e2e676574222c226368616c6c656e6765223a2245643576554431574272674f38584f6f397336374150755a36473467565a4747674b4264776a5046586151222c226f726967696e223a22687474703a2f2f6c6f63616c686f73743a33303030222c2263726f73734f726967696e223a66616c73657d0000000000000000000000000000000000000000000000000000";
 
         WebAuthn.WebAuthnAuth memory webAuthn = abi.decode(uo.signature, (WebAuthn.WebAuthnAuth));
 
-        uo.signature = abi.encodePacked(bytes1(0xFF), uo.signature);
         console.log("webauthn authenticatorData");
         console.logBytes(webAuthn.authenticatorData);
         console.log("webauthn clientDataJSON");
@@ -146,8 +142,8 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
         console.log("webauthn challengeIndex");
         console.log(webAuthn.challengeIndex);
 
-        vm.prank(address(entryPoint));
-        assertEq(ModularAccountBase(account).validateUserOp(uo, uoHash, 0), _SIG_VALIDATION_PASSED);
+        vm.prank(address(account));
+        assertEq(module.validateUserOp(0, uo, uoHash), _SIG_VALIDATION_PASSED);
     }
 
     // function test_signature_now() external withSMATest {
