@@ -187,6 +187,7 @@ library WebAuthn {
         bool valid = ret.length > 0;
         if (success && valid) return abi.decode(ret, (uint256)) == 1;
         console.log("7");
+        // yeah...I don't think the private key is correct for the public key we generated!!!!
         return FCL_ecdsa.ecdsa_verify(messageHash, webAuthnAuth.r, webAuthnAuth.s, x, y);
     }
 }
