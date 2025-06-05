@@ -312,12 +312,12 @@ contract ModuleSignatureUtils {
         });
     }
 
-    // EIP-712 helpers for acount
+    // EIP-712 helpers for account
     function _computeDomainSeparator(address account) internal view returns (bytes32) {
         return keccak256(abi.encode(_ACCOUNT_DOMAIN_SEPARATOR, block.chainid, account));
     }
 
-    // EIP-712 helpers for acount
+    // EIP-712 helpers for account
     function _hashStruct(bytes32 hash) internal pure virtual returns (bytes32) {
         return keccak256(abi.encode(_REPLAY_SAFE_HASH_TYPEHASH, hash));
     }
