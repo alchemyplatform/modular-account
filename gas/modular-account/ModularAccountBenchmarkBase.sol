@@ -61,7 +61,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         bool isGlobal;
     }
 
-    SessionKeyTestCase[] internal sessionKeyTestCases;
+    SessionKeyTestCase[] internal _sessionKeyTestCases;
 
     constructor(string memory accountImplName) BenchmarkBase(accountImplName) {
         (sessionSigner1, sessionSigner1Key) = makeAddrAndKey("session1");
@@ -88,7 +88,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         counter.increment();
 
         // Initialize session key test cases
-        sessionKeyTestCases.push(
+        _sessionKeyTestCases.push(
             SessionKeyTestCase({
                 getInstallData: _getInstallDataSessionKeyCase1,
                 installSessionKey: _installSessionKey_case1,
@@ -98,7 +98,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
                 isGlobal: false
             })
         );
-        sessionKeyTestCases.push(
+        _sessionKeyTestCases.push(
             SessionKeyTestCase({
                 getInstallData: _getInstallDataSessionKeyCase2,
                 installSessionKey: _installSessionKey_case2,

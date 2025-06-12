@@ -293,10 +293,10 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     function test_semiModularAccountGas_runtime_installSessionKeyCases() public {
         _deploySemiModularAccountBytecode1();
 
-        for (uint256 i = 0; i < sessionKeyTestCases.length; i++) {
+        for (uint256 i = 0; i < _sessionKeyTestCases.length; i++) {
             uint256 vmStateSnapshot = vm.snapshotState();
 
-            SessionKeyTestCase memory testCase = sessionKeyTestCases[i];
+            SessionKeyTestCase memory testCase = _sessionKeyTestCases[i];
 
             uint256 gasUsed = _runtimeBenchmark(
                 owner1,
@@ -318,12 +318,12 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     function test_semiModularAccountGas_userOp_installSessionKeyCases() public {
         _deploySemiModularAccountBytecode1();
 
-        for (uint256 i = 0; i < sessionKeyTestCases.length; i++) {
+        for (uint256 i = 0; i < _sessionKeyTestCases.length; i++) {
             uint256 vmStateSnapshot = vm.snapshotState();
 
             vm.deal(address(account1), 1 ether);
 
-            SessionKeyTestCase memory testCase = sessionKeyTestCases[i];
+            SessionKeyTestCase memory testCase = _sessionKeyTestCases[i];
 
             PackedUserOperation memory userOp = PackedUserOperation({
                 sender: address(account1),
@@ -356,10 +356,10 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     function test_semiModularAccountGas_runtime_useSessionKeyCases_counter() public {
         _deploySemiModularAccountBytecode1();
 
-        for (uint256 i = 0; i < sessionKeyTestCases.length; i++) {
+        for (uint256 i = 0; i < _sessionKeyTestCases.length; i++) {
             uint256 vmStateSnapshot = vm.snapshotState();
 
-            SessionKeyTestCase memory testCase = sessionKeyTestCases[i];
+            SessionKeyTestCase memory testCase = _sessionKeyTestCases[i];
             ModuleEntity sessionKeyValidation = testCase.installSessionKey();
 
             // Jump to within the valid timestamp range
@@ -395,12 +395,12 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     function test_semiModularAccountGas_userOp_useSessionKeyCases_counter() public {
         _deploySemiModularAccountBytecode1();
 
-        for (uint256 i = 0; i < sessionKeyTestCases.length; i++) {
+        for (uint256 i = 0; i < _sessionKeyTestCases.length; i++) {
             uint256 vmStateSnapshot = vm.snapshotState();
 
             vm.deal(address(account1), 1 ether);
 
-            SessionKeyTestCase memory testCase = sessionKeyTestCases[i];
+            SessionKeyTestCase memory testCase = _sessionKeyTestCases[i];
             ModuleEntity sessionKeyValidation = testCase.installSessionKey();
 
             // Jump to within the valid timestamp range
@@ -442,10 +442,10 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     function test_semiModularAccountGas_runtime_useSessionKeyCases_token() public {
         _deploySemiModularAccountBytecode1();
 
-        for (uint256 i = 0; i < sessionKeyTestCases.length; i++) {
+        for (uint256 i = 0; i < _sessionKeyTestCases.length; i++) {
             uint256 vmStateSnapshot = vm.snapshotState();
 
-            SessionKeyTestCase memory testCase = sessionKeyTestCases[i];
+            SessionKeyTestCase memory testCase = _sessionKeyTestCases[i];
             ModuleEntity sessionKeyValidation = testCase.installSessionKey();
 
             mockErc20.mint(address(account1), 100 ether);
@@ -483,12 +483,12 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
     function test_semiModularAccountGas_userOp_useSessionKeyCases_token() public {
         _deploySemiModularAccountBytecode1();
 
-        for (uint256 i = 0; i < sessionKeyTestCases.length; i++) {
+        for (uint256 i = 0; i < _sessionKeyTestCases.length; i++) {
             uint256 vmStateSnapshot = vm.snapshotState();
 
             vm.deal(address(account1), 1 ether);
 
-            SessionKeyTestCase memory testCase = sessionKeyTestCases[i];
+            SessionKeyTestCase memory testCase = _sessionKeyTestCases[i];
             ModuleEntity sessionKeyValidation = testCase.installSessionKey();
 
             mockErc20.mint(address(account1), 100 ether);
