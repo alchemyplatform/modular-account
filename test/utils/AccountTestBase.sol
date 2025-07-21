@@ -82,7 +82,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
 
     function setUp() public virtual {
         // Intentionally left blank
-        // This should be overriden when needed and will be called again by the `withSMATest` modifier.
+        // This should be overridden when needed and will be called again by the `withSMATest` modifier.
     }
 
     modifier withSMATestAndExecuteUserOpWrapping() {

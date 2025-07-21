@@ -126,7 +126,7 @@ contract DirectCallsFromModuleTest is AccountTestBase {
         external
         randomizedValidationType(validationType)
     {
-        // Install => Succeesfully call => uninstall => fail to call
+        // Install => Successfully call => uninstall => fail to call
 
         vm.prank(address(_module));
         account1.execute(CODELESS_ADDRESS, 0, "");

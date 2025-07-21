@@ -172,7 +172,7 @@ library ExecutionLib {
     // - PackedUserOperation userOp
     // - bytes32 userOpHash
     // The buffer starts with the selector for `preUserOpValidationHook`, and can be updated later to
-    // `validateUserOp`. When perfomring the actual function calls later, update the entityId field and selector,
+    // `validateUserOp`. When performing the actual function calls later, update the entityId field and selector,
     // as as needed.
     function allocateUserOpValidationCallBuffer(PackedUserOperation calldata userOp, bytes32 userOpHash)
         internal

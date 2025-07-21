@@ -31,7 +31,7 @@ import {
 } from "../../../src/libraries/LinkedListSetLib.sol";
 
 /// @notice A handler contract for differential invariant testing LinkedListSetLib
-///         This contract maps logic for adding, removeing, clearing, and inspecting a list
+///         This contract maps logic for adding, removing, clearing, and inspecting a list
 ///         to a reference implementation using EnumerableSet.Bytes32Set, which the invariant
 ///         fuzzer can then use to test the library.
 contract LinkedListSetHandler is CommonBase, StdCheats, StdUtils {
