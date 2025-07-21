@@ -7,6 +7,7 @@ import {
     ValidationConfig,
     ValidationConfigLib
 } from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
+import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Vm} from "forge-std/Vm.sol";
@@ -260,9 +261,18 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
         ValidationConfig newUOValidation =
             ValidationConfigLib.pack(address(newValidationModule), newEntityId, true, false, true);
 
+        bytes[] memory hooks = new bytes[](1);
+
+        // Time range hook
+        hooks[0] = abi.encodePacked(
+            HookConfigLib.packValidationHook({_module: address(timeRangeModule), _entityId: 1}),
+            abi.encode(uint32(1), 1000, 100)
+        );
+
+
         bytes memory deferredValidationInstallCall = abi.encodeCall(
             ModularAccountBase.installValidation,
-            (newUOValidation, new bytes4[](0), abi.encode(newEntityId, owner2), new bytes[](0))
+            (newUOValidation, new bytes4[](0), abi.encode(newEntityId, owner2), hooks)
         );
 
         uint48 deferredInstallDeadline = 0;
