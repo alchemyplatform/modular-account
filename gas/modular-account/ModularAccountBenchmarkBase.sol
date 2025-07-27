@@ -47,10 +47,25 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
     address public sessionSigner1;
     uint256 public sessionSigner1Key;
 
+    address public sessionSigner2;
+    uint256 public sessionSigner2Key;
+
     Counter public counter;
+
+    struct SessionKeyTestCase {
+        function() internal view returns (bytes memory) getInstallData;
+        function() internal returns (ModuleEntity) installSessionKey;
+        function() internal view verifyInstallState;
+        address sessionSigner;
+        uint256 sessionSignerKey;
+        bool isGlobal;
+    }
+
+    SessionKeyTestCase[] internal _sessionKeyTestCases;
 
     constructor(string memory accountImplName) BenchmarkBase(accountImplName) {
         (sessionSigner1, sessionSigner1Key) = makeAddrAndKey("session1");
+        (sessionSigner2, sessionSigner2Key) = makeAddrAndKey("session2");
 
         executionInstallDelegate = new ExecutionInstallDelegate();
         accountImpl = _deployModularAccount(IEntryPoint(entryPoint), executionInstallDelegate);
@@ -71,6 +86,28 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
 
         counter = new Counter();
         counter.increment();
+
+        // Initialize session key test cases
+        _sessionKeyTestCases.push(
+            SessionKeyTestCase({
+                getInstallData: _getInstallDataSessionKeyCase1,
+                installSessionKey: _installSessionKey_case1,
+                verifyInstallState: _verifySessionKeyCase1InstallState,
+                sessionSigner: sessionSigner1,
+                sessionSignerKey: sessionSigner1Key,
+                isGlobal: false
+            })
+        );
+        _sessionKeyTestCases.push(
+            SessionKeyTestCase({
+                getInstallData: _getInstallDataSessionKeyCase2,
+                installSessionKey: _installSessionKey_case2,
+                verifyInstallState: _verifySessionKeyCase2InstallState,
+                sessionSigner: sessionSigner2,
+                sessionSignerKey: sessionSigner2Key,
+                isGlobal: true
+            })
+        );
     }
 
     function _deployAccount1() internal {
@@ -233,5 +270,77 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         // ERC-20 spend limit
         uint256 limit = allowlistModule.erc20SpendLimits(0, address(mockErc20), address(account1));
         assertEq(limit, 100 ether);
+    }
+
+    // Session key case 2:
+    // - Uses SingleSignerValidation
+    // - Has global validation permission.
+    // - Has hooks for:
+    //   - Time range: only allows within a certain time range
+    function _getInstallDataSessionKeyCase2() internal view returns (bytes memory) {
+        uint32 sessionKeyEntityId = 1;
+
+        ValidationConfig validationConfig = ValidationConfigLib.pack({
+            _module: address(singleSignerValidationModule),
+            _entityId: sessionKeyEntityId,
+            _isGlobal: true,
+            _isSignatureValidation: false,
+            _isUserOpValidation: true
+        });
+
+        bytes4[] memory selectors = new bytes4[](0);
+
+        bytes memory installData = abi.encode(sessionKeyEntityId, sessionSigner2);
+
+        bytes[] memory hooks = new bytes[](1);
+
+        // Time range hook
+        hooks[0] = abi.encodePacked(
+            HookConfigLib.packValidationHook({_module: address(timeRangeModule), _entityId: 1}),
+            abi.encode(uint32(1), 1000, 100)
+        );
+
+        return
+            abi.encodeCall(ModularAccountBase.installValidation, (validationConfig, selectors, installData, hooks));
+    }
+
+    function _installSessionKey_case2() internal returns (ModuleEntity sessionKeyValidation) {
+        vm.prank(address(entryPoint));
+        (bool success,) = address(account1).call(_getInstallDataSessionKeyCase2());
+        require(success, "Install Session key 2 failed");
+
+        return ModuleEntityLib.pack(address(singleSignerValidationModule), 1);
+    }
+
+    function _verifySessionKeyCase2InstallState() internal view {
+        // Assert account state is correctly set up
+
+        ValidationDataView memory validationData =
+            account1.getValidationData(ModuleEntityLib.pack(address(singleSignerValidationModule), 1));
+
+        // Flags
+        assertTrue(validationData.validationFlags.isGlobal());
+        assertFalse(validationData.validationFlags.isSignatureValidation());
+        assertTrue(validationData.validationFlags.isUserOpValidation());
+
+        // Validation hooks
+        assertEq(validationData.validationHooks.length, 1);
+        assertEq(
+            HookConfig.unwrap(validationData.validationHooks[0]),
+            HookConfig.unwrap(HookConfigLib.packValidationHook(address(timeRangeModule), 1))
+        );
+
+        // Execution hooks
+        assertEq(validationData.executionHooks.length, 0);
+
+        // Selectors
+        assertEq(validationData.selectors.length, 0);
+
+        // Assert hooks state is correctly set up
+
+        // Time range
+        (uint48 validUntil, uint48 validAfter) = timeRangeModule.timeRanges(1, address(account1));
+        assertEq(validUntil, 1000);
+        assertEq(validAfter, 100);
     }
 }
