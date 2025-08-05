@@ -27,7 +27,7 @@ import {IPaymaster} from "@eth-infinitism/account-abstraction/interfaces/IPaymas
 
 /// @title Known Selectors Library
 /// @author Alchemy
-/// @notice Library to help to check if a selector is an ERC-6900 module function or a an ERC-4337 contract
+/// @notice Library to help to check if a selector is an ERC-6900 module function or an ERC-4337 contract
 /// function.
 library KnownSelectorsLib {
     /// @notice Check if a selector is an ERC-4337 function.
