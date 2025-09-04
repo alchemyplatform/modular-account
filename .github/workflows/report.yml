@@ -22,10 +22,11 @@ jobs:
 
       - name: Run forge coverage
         id: coverage
+        # TODO: include scripts in coverage report. Needs fix to not use vm.setEnv, which causes race conditions for test execution.
         run: |
           {
           echo 'COVERAGE<<EOF'
-          forge coverage --no-match-coverage "(test)" --nmt "(testFuzz|invariant)" | grep '^|'
+          forge coverage --no-match-coverage "(test|^script/)" --nmt "(testFuzz|invariant)" --nmp "test/script/*" --md 2>/dev/null | grep '^|'
           echo EOF
           } >> "$GITHUB_OUTPUT"
 
@@ -36,7 +37,7 @@ jobs:
         run: |
          {
          echo 'NEWSIZES<<EOF'
-         FOUNDRY_PROFILE=optimized-build forge b --sizes | grep '^|' | grep -v -e '| 17               |' -e 'Lib'
+         FOUNDRY_PROFILE=optimized-build forge b --sizes --md --skip "SemiModularAccountStorageOnly" 2>/dev/null | grep '^|' | grep -v -e '| 17               |' -e 'Lib'
          echo EOF
          } >> "$GITHUB_OUTPUT"
 
@@ -60,7 +61,7 @@ jobs:
         run: |
          {
          echo 'OLDSIZES<<EOF'
-         FOUNDRY_PROFILE=optimized-build forge b --sizes | grep '^|' | grep -v -e '| 17               |' -e 'Lib'
+         FOUNDRY_PROFILE=optimized-build forge b --sizes --md --skip "SemiModularAccountStorageOnly" 2>/dev/null | grep '^|' | grep -v -e '| 17               |' -e 'Lib'
          echo EOF
          } >> "$GITHUB_OUTPUT"
 
