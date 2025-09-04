@@ -31,7 +31,7 @@ contract AccountFactoryTest is AccountTestBase {
     uint256 internal _ownerX = 1;
     uint256 internal _ownerY = 2;
 
-    WebAuthnFactory webAuthnFactory;
+    WebAuthnFactory public webAuthnFactory;
 
     function setUp() public override {
         address webAuthnModule = address(new WebAuthnValidationModule());
