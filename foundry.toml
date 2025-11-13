@@ -16,6 +16,9 @@ fs_permissions = [
   { access = "read", path = "./test/bin" },
 ]
 
+[lint]
+exclude_lints = ["unsafe-typecast"]
+
 [fuzz]
 runs = 500
 
@@ -25,7 +28,7 @@ fail_on_revert = true
 depth = 10
 
 [profile.optimized-build]
-deny_warnings = true
+deny = 'warnings'
 via_ir = true
 test = 'src'
 optimizer_runs = 50000
@@ -33,7 +36,7 @@ out = 'out-optimized'
 cache_path = 'cache-optimized'
 
 [profile.optimized-build-standalone]
-deny_warnings = true
+deny = 'warnings'
 via_ir = true
 test = 'src'
 optimizer_runs = 10000000
@@ -41,7 +44,7 @@ out = 'out-optimized-standalone'
 cache_path = 'cache-optimized-standalone'
 
 [profile.optimized-build-sma-storage]
-deny_warnings = true
+deny = 'warnings'
 via_ir = true
 test = 'src'
 optimizer_runs = 15000
@@ -49,11 +52,11 @@ out = 'out-optimized-sma-storage'
 cache_path = 'cache-optimized-sma-storage'
 
 [profile.optimized-test]
-deny_warnings = true
+deny = 'warnings'
 src = 'test'
 
 [profile.optimized-test-deep]
-deny_warnings = true
+deny = 'warnings'
 src = 'test'
 
 [profile.optimized-test-deep.fuzz]
@@ -72,7 +75,7 @@ depth = 32
 
 [profile.gas]
 via_ir = true
-deny_warnings = true
+deny = 'warnings'
 test = 'gas'
 optimizer_runs = 50000
 out = 'out-optimized'
