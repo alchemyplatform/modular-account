@@ -83,12 +83,13 @@ contract AccountFactory is Ownable2Step {
         if (!alreadyDeployed) {
             bytes memory moduleInstallData = abi.encode(entityId, owner);
             // point proxy to actual implementation and init plugins
-            ModularAccount(payable(instance)).initializeWithValidation(
-                ValidationConfigLib.pack(SINGLE_SIGNER_VALIDATION_MODULE, entityId, true, true, true),
-                new bytes4[](0),
-                moduleInstallData,
-                new bytes[](0)
-            );
+            ModularAccount(payable(instance))
+                .initializeWithValidation(
+                    ValidationConfigLib.pack(SINGLE_SIGNER_VALIDATION_MODULE, entityId, true, true, true),
+                    new bytes4[](0),
+                    moduleInstallData,
+                    new bytes[](0)
+                );
             emit ModularAccountDeployed(instance, owner, salt);
         }
 
@@ -142,12 +143,13 @@ contract AccountFactory is Ownable2Step {
         if (!alreadyDeployed) {
             bytes memory moduleInstallData = abi.encode(entityId, ownerX, ownerY);
             // point proxy to actual implementation and init plugins
-            ModularAccount(payable(instance)).initializeWithValidation(
-                ValidationConfigLib.pack(WEBAUTHN_VALIDATION_MODULE, entityId, true, true, true),
-                new bytes4[](0),
-                moduleInstallData,
-                new bytes[](0)
-            );
+            ModularAccount(payable(instance))
+                .initializeWithValidation(
+                    ValidationConfigLib.pack(WEBAUTHN_VALIDATION_MODULE, entityId, true, true, true),
+                    new bytes4[](0),
+                    moduleInstallData,
+                    new bytes[](0)
+                );
             emit WebAuthnModularAccountDeployed(instance, ownerX, ownerY, salt);
         }
 

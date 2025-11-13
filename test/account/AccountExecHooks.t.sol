@@ -47,13 +47,12 @@ contract AccountExecHooksTest is AccountTestBase {
         _revertSnapshot = vm.snapshotState();
         _allowTestDirectCalls();
 
-        _m1.executionFunctions.push(
-            ManifestExecutionFunction({
-                executionSelector: _EXEC_SELECTOR,
-                skipRuntimeValidation: true,
-                allowGlobalValidation: false
-            })
-        );
+        _m1.executionFunctions
+            .push(
+                ManifestExecutionFunction({
+                    executionSelector: _EXEC_SELECTOR, skipRuntimeValidation: true, allowGlobalValidation: false
+                })
+            );
     }
 
     function test_preExecHook_install() public withSMATest {
@@ -185,9 +184,7 @@ contract AccountExecHooksTest is AccountTestBase {
 
         // vm.startPrank(owner1);
         account1.installExecution({
-            module: address(mockModule1),
-            manifest: mockModule1.executionManifest(),
-            moduleInstallData: bytes("a")
+            module: address(mockModule1), manifest: mockModule1.executionManifest(), moduleInstallData: bytes("a")
         });
         // vm.stopPrank();
     }

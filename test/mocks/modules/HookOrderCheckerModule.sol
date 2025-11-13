@@ -50,9 +50,7 @@ contract HookOrderCheckerModule is
         return 0;
     }
 
-    function validateRuntime(address, uint32 entityId, address, uint256, bytes calldata, bytes calldata)
-        external
-    {
+    function validateRuntime(address, uint32 entityId, address, uint256, bytes calldata, bytes calldata) external {
         recordedFunctionCalls.push(uint256(entityId));
     }
 
@@ -75,9 +73,7 @@ contract HookOrderCheckerModule is
         return 0;
     }
 
-    function preRuntimeValidationHook(uint32 entityId, address, uint256, bytes calldata, bytes calldata)
-        external
-    {
+    function preRuntimeValidationHook(uint32 entityId, address, uint256, bytes calldata, bytes calldata) external {
         recordedFunctionCalls.push(uint256(entityId));
     }
 
@@ -116,9 +112,7 @@ contract HookOrderCheckerModule is
     function executionManifest() external pure returns (ExecutionManifest memory) {
         ManifestExecutionFunction[] memory executionFunctions = new ManifestExecutionFunction[](1);
         executionFunctions[0] = ManifestExecutionFunction({
-            executionSelector: this.foo.selector,
-            skipRuntimeValidation: false,
-            allowGlobalValidation: false
+            executionSelector: this.foo.selector, skipRuntimeValidation: false, allowGlobalValidation: false
         });
 
         return ExecutionManifest({

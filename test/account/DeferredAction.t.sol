@@ -127,9 +127,7 @@ contract DeferredActionTest is AccountTestBase {
         ExecutionManifest memory m;
         m.executionFunctions = new ManifestExecutionFunction[](1);
         m.executionFunctions[0] = ManifestExecutionFunction({
-            executionSelector: newFunctionSelector,
-            skipRuntimeValidation: false,
-            allowGlobalValidation: false
+            executionSelector: newFunctionSelector, skipRuntimeValidation: false, allowGlobalValidation: false
         });
 
         vm.prank(address(account1));
@@ -246,9 +244,7 @@ contract DeferredActionTest is AccountTestBase {
 
         Call[] memory outerCalls = new Call[](1);
         outerCalls[0] = Call({
-            target: address(account1),
-            value: 0,
-            data: abi.encodeCall(IModularAccount.executeBatch, (innerCalls))
+            target: address(account1), value: 0, data: abi.encodeCall(IModularAccount.executeBatch, (innerCalls))
         });
 
         bytes memory deferredAction = abi.encodeCall(IModularAccount.executeBatch, (outerCalls));

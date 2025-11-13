@@ -316,7 +316,9 @@ contract DeferredValidationTest is AccountTestBase {
         // Install a validation-associated execution hook to the outer validation.
         bytes[] memory hooks = new bytes[](1);
         hooks[0] = abi.encodePacked(
-            HookConfigLib.packExecHook({_module: address(hookModule), _entityId: 0, _hasPre: true, _hasPost: true}),
+            HookConfigLib.packExecHook({
+                _module: address(hookModule), _entityId: 0, _hasPre: true, _hasPost: true
+            }),
             "" // onInstall data
         );
         vm.prank(address(entryPoint));

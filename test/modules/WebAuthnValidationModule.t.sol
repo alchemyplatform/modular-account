@@ -51,12 +51,13 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
         module = new WebAuthnValidationModule();
         account = payable(account1);
         vm.prank(address(entryPoint));
-        ModularAccount(account).installValidation(
-            ValidationConfigLib.pack(address(module), entityId, true, true, true),
-            new bytes4[](0),
-            abi.encode(entityId, x, y),
-            new bytes[](0)
-        );
+        ModularAccount(account)
+            .installValidation(
+                ValidationConfigLib.pack(address(module), entityId, true, true, true),
+                new bytes4[](0),
+                abi.encode(entityId, x, y),
+                new bytes[](0)
+            );
     }
 
     function test_isValidSignature() external view {

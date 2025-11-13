@@ -86,10 +86,7 @@ contract ExecutionInstallDelegate {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
             LinkedListSet storage executionHooks = _storage.executionStorage[mh.executionSelector].executionHooks;
             HookConfig hookConfig = HookConfigLib.packExecHook({
-                _module: module,
-                _entityId: mh.entityId,
-                _hasPre: mh.isPreHook,
-                _hasPost: mh.isPostHook
+                _module: module, _entityId: mh.entityId, _hasPre: mh.isPreHook, _hasPost: mh.isPostHook
             });
             ModuleInstallCommonsLib.addExecHooks(executionHooks, hookConfig);
         }
@@ -121,10 +118,7 @@ contract ExecutionInstallDelegate {
             ManifestExecutionHook memory mh = manifest.executionHooks[i];
             LinkedListSet storage executionHooks = _storage.executionStorage[mh.executionSelector].executionHooks;
             HookConfig hookConfig = HookConfigLib.packExecHook({
-                _module: module,
-                _entityId: mh.entityId,
-                _hasPre: mh.isPreHook,
-                _hasPost: mh.isPostHook
+                _module: module, _entityId: mh.entityId, _hasPre: mh.isPreHook, _hasPost: mh.isPostHook
             });
             _removeExecHooks(executionHooks, hookConfig);
         }

@@ -60,9 +60,10 @@ contract DeploySmaStorageScript is ScriptBase, Artifacts {
     // without affecting the expected signature from _safeDeploy.
 
     function _wrappedDeploySemiModularAccountStorageOnly(bytes32 salt) internal returns (address) {
-        return _deploySemiModularAccountStorageOnly(
-            salt, entryPoint, ExecutionInstallDelegate(executionInstallDelegate)
-        );
+        return
+            _deploySemiModularAccountStorageOnly(
+                salt, entryPoint, ExecutionInstallDelegate(executionInstallDelegate)
+            );
     }
 
     function _ensureNonzeroArgs() internal view {

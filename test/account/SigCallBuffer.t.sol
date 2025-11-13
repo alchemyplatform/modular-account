@@ -103,7 +103,7 @@ contract SigCallBufferTest is AccountTestBase {
         fuzzConfig.preValidationHookData[1] = hex"";
         fuzzConfig.preValidationHookData[2] = hex"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         fuzzConfig.preValidationHookData[3] =
-            hex"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffabcd";
+        hex"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffabcd";
 
         _setUp4ValidationHooks();
 
@@ -193,8 +193,8 @@ contract SigCallBufferTest is AccountTestBase {
             // validation hooks at different addresses
             validationHooks[i] = new MockModule{salt: keccak256(abi.encode(i, _isSMATest))}(m);
             // These modules emit events, but signature validation happens as a staticcall, so we can't expect the
-            // events. Instead, we mock all of the calls coming into these contracts, and expect calls to them. They
-            // are also re-deployed for the SMA test, so the tests should be distinct.
+            // events. Instead, we mock all of the calls coming into these contracts, and expect calls to them.
+            // They are also re-deployed for the SMA test, so the tests should be distinct.
             vm.mockCall(address(validationHooks[i]), "", "");
 
             hooks[i] =

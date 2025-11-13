@@ -77,8 +77,8 @@ abstract contract ModularAccountView is IModularAccountView {
         override
         returns (ValidationDataView memory data)
     {
-        ValidationStorage storage validationStorage =
-            getAccountStorage().validationStorage[ValidationLocatorLib.moduleEntityToLookupKey(validationFunction)];
+        ValidationStorage storage validationStorage = getAccountStorage()
+        .validationStorage[ValidationLocatorLib.moduleEntityToLookupKey(validationFunction)];
         data.validationFlags = validationStorage.validationFlags;
         data.validationHooks = MemManagementLib.loadValidationHooks(validationStorage);
         MemManagementLib.reverseArr(data.validationHooks);
@@ -93,8 +93,7 @@ abstract contract ModularAccountView is IModularAccountView {
     }
 
     function _isNativeFunction(uint32 selector) internal pure virtual returns (bool) {
-        return (
-            _isGlobalValidationAllowedNativeFunction(selector)
+        return (_isGlobalValidationAllowedNativeFunction(selector)
                 || selector == uint32(AccountBase.entryPoint.selector)
                 || selector == uint32(AccountBase.validateUserOp.selector)
                 || selector == uint32(IERC1155Receiver.onERC1155BatchReceived.selector)
@@ -105,30 +104,25 @@ abstract contract ModularAccountView is IModularAccountView {
                 || selector == uint32(IModularAccount.accountId.selector)
                 || selector == uint32(IModularAccountView.getExecutionData.selector)
                 || selector == uint32(IModularAccountView.getValidationData.selector)
-                || selector == uint32(UUPSUpgradeable.proxiableUUID.selector)
-        );
+                || selector == uint32(UUPSUpgradeable.proxiableUUID.selector));
     }
 
     /// @dev Check whether a function is a native function that allows global validation.
     function _isGlobalValidationAllowedNativeFunction(uint32 selector) internal pure virtual returns (bool) {
-        return (
-            _isWrappedNativeFunction(selector) || selector == uint32(IAccountExecute.executeUserOp.selector)
-                || selector == uint32(IModularAccount.executeWithRuntimeValidation.selector)
-        );
+        return (_isWrappedNativeFunction(selector) || selector == uint32(IAccountExecute.executeUserOp.selector)
+                || selector == uint32(IModularAccount.executeWithRuntimeValidation.selector));
     }
 
     /// @dev Check whether a function is a native function that has the `wrapNativeFunction` modifier applied,
     /// which means it runs execution hooks associated with its selector.
     function _isWrappedNativeFunction(uint32 selector) internal pure virtual returns (bool) {
-        return (
-            selector == uint32(IModularAccount.execute.selector)
+        return (selector == uint32(IModularAccount.execute.selector)
                 || selector == uint32(IModularAccount.executeBatch.selector)
                 || selector == uint32(IModularAccount.installExecution.selector)
                 || selector == uint32(IModularAccount.installValidation.selector)
                 || selector == uint32(IModularAccount.uninstallExecution.selector)
                 || selector == uint32(IModularAccount.uninstallValidation.selector)
                 || selector == uint32(IModularAccountBase.performCreate.selector)
-                || selector == uint32(UUPSUpgradeable.upgradeToAndCall.selector)
-        );
+                || selector == uint32(UUPSUpgradeable.upgradeToAndCall.selector));
     }
 }

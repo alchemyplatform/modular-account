@@ -19,7 +19,9 @@ pragma solidity ^0.8.26;
 
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {
-    Call, IModularAccount, ModuleEntity
+    Call,
+    IModularAccount,
+    ModuleEntity
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
@@ -61,10 +63,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
 
         hooks[1] = abi.encodePacked(
             HookConfigLib.packExecHook({
-                _module: address(module),
-                _entityId: entityId,
-                _hasPre: true,
-                _hasPost: false
+                _module: address(module), _entityId: entityId, _hasPre: true, _hasPost: false
             }),
             abi.encode(entityId, spendLimit)
         );
@@ -91,9 +90,10 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
     }
 
     function _getPerformCreate2Calldata(uint256 value, bytes32 salt) internal pure returns (bytes memory) {
-        return abi.encodeCall(
-            ModularAccountBase.performCreate, (value, type(MockDeployment).creationCode, true, salt)
-        );
+        return
+            abi.encodeCall(
+                ModularAccountBase.performCreate, (value, type(MockDeployment).creationCode, true, salt)
+            );
     }
 
     function _getPackedUO(uint256 gas1, uint256 gas2, uint256 gas3, uint256 gasPrice, bytes memory callData)
@@ -384,10 +384,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
 
         hooks[1] = abi.encodePacked(
             HookConfigLib.packExecHook({
-                _module: address(module),
-                _entityId: entityId,
-                _hasPre: true,
-                _hasPost: false
+                _module: address(module), _entityId: entityId, _hasPre: true, _hasPost: false
             }),
             abi.encode(newEntityId, spendLimit)
         );

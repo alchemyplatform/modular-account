@@ -76,9 +76,7 @@ contract TimeRangeModule is IValidationHookModule, ModuleBase {
     {
         TimeRange memory timeRange = timeRanges[entityId][msg.sender];
         return _packValidationData({
-            sigFailed: false,
-            validUntil: timeRange.validUntil,
-            validAfter: timeRange.validAfter
+            sigFailed: false, validUntil: timeRange.validUntil, validAfter: timeRange.validAfter
         });
     }
 

@@ -254,7 +254,8 @@ contract HookOrderingTest is AccountTestBase {
             nonce: _encodeNonce(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_V, 0),
             initCode: hex"",
             callData: abi.encodeCall(
-                account1.execute, (address(hookOrderChecker), 0 wei, abi.encodeCall(HookOrderCheckerModule.foo, (17)))
+                account1.execute,
+                (address(hookOrderChecker), 0 wei, abi.encodeCall(HookOrderCheckerModule.foo, (17)))
             ),
             accountGasLimits: _encodeGas(1_000_000, 1_000_000),
             preVerificationGas: 0,
@@ -381,50 +382,32 @@ contract HookOrderingTest is AccountTestBase {
         // Validation-associated exec hooks
         hooks[3] = abi.encodePacked(
             HookConfigLib.packExecHook({
-                _module: address(hookOrderChecker),
-                _entityId: 5,
-                _hasPre: true,
-                _hasPost: false
+                _module: address(hookOrderChecker), _entityId: 5, _hasPre: true, _hasPost: false
             })
         );
         hooks[4] = abi.encodePacked(
             HookConfigLib.packExecHook({
-                _module: address(hookOrderChecker),
-                _entityId: 6,
-                _hasPre: false,
-                _hasPost: true
+                _module: address(hookOrderChecker), _entityId: 6, _hasPre: false, _hasPost: true
             })
         );
         hooks[5] = abi.encodePacked(
             HookConfigLib.packExecHook({
-                _module: address(hookOrderChecker),
-                _entityId: 7,
-                _hasPre: true,
-                _hasPost: true
+                _module: address(hookOrderChecker), _entityId: 7, _hasPre: true, _hasPost: true
             })
         );
         hooks[6] = abi.encodePacked(
             HookConfigLib.packExecHook({
-                _module: address(hookOrderChecker),
-                _entityId: 8,
-                _hasPre: true,
-                _hasPost: true
+                _module: address(hookOrderChecker), _entityId: 8, _hasPre: true, _hasPost: true
             })
         );
         hooks[7] = abi.encodePacked(
             HookConfigLib.packExecHook({
-                _module: address(hookOrderChecker),
-                _entityId: 9,
-                _hasPre: true,
-                _hasPost: false
+                _module: address(hookOrderChecker), _entityId: 9, _hasPre: true, _hasPost: false
             })
         );
         hooks[8] = abi.encodePacked(
             HookConfigLib.packExecHook({
-                _module: address(hookOrderChecker),
-                _entityId: 10,
-                _hasPre: false,
-                _hasPost: true
+                _module: address(hookOrderChecker), _entityId: 10, _hasPre: false, _hasPost: true
             })
         );
 
@@ -467,16 +450,10 @@ contract HookOrderingTest is AccountTestBase {
             isPostHook: true
         });
         execHooks[2] = ManifestExecutionHook({
-            executionSelector: HookOrderCheckerModule.foo.selector,
-            entityId: 13,
-            isPreHook: true,
-            isPostHook: true
+            executionSelector: HookOrderCheckerModule.foo.selector, entityId: 13, isPreHook: true, isPostHook: true
         });
         execHooks[3] = ManifestExecutionHook({
-            executionSelector: HookOrderCheckerModule.foo.selector,
-            entityId: 14,
-            isPreHook: true,
-            isPostHook: true
+            executionSelector: HookOrderCheckerModule.foo.selector, entityId: 14, isPreHook: true, isPostHook: true
         });
         execHooks[4] = ManifestExecutionHook({
             executionSelector: HookOrderCheckerModule.foo.selector,
@@ -493,40 +470,22 @@ contract HookOrderingTest is AccountTestBase {
 
         // Apply hooks to the `execute` function
         execHooks[6] = ManifestExecutionHook({
-            executionSelector: account1.execute.selector,
-            entityId: 11,
-            isPreHook: true,
-            isPostHook: false
+            executionSelector: account1.execute.selector, entityId: 11, isPreHook: true, isPostHook: false
         });
         execHooks[7] = ManifestExecutionHook({
-            executionSelector: account1.execute.selector,
-            entityId: 12,
-            isPreHook: false,
-            isPostHook: true
+            executionSelector: account1.execute.selector, entityId: 12, isPreHook: false, isPostHook: true
         });
         execHooks[8] = ManifestExecutionHook({
-            executionSelector: account1.execute.selector,
-            entityId: 13,
-            isPreHook: true,
-            isPostHook: true
+            executionSelector: account1.execute.selector, entityId: 13, isPreHook: true, isPostHook: true
         });
         execHooks[9] = ManifestExecutionHook({
-            executionSelector: account1.execute.selector,
-            entityId: 14,
-            isPreHook: true,
-            isPostHook: true
+            executionSelector: account1.execute.selector, entityId: 14, isPreHook: true, isPostHook: true
         });
         execHooks[10] = ManifestExecutionHook({
-            executionSelector: account1.execute.selector,
-            entityId: 15,
-            isPreHook: true,
-            isPostHook: false
+            executionSelector: account1.execute.selector, entityId: 15, isPreHook: true, isPostHook: false
         });
         execHooks[11] = ManifestExecutionHook({
-            executionSelector: account1.execute.selector,
-            entityId: 16,
-            isPreHook: false,
-            isPostHook: true
+            executionSelector: account1.execute.selector, entityId: 16, isPreHook: false, isPostHook: true
         });
 
         manifest.executionHooks = execHooks;

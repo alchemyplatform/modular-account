@@ -497,10 +497,7 @@ contract PHCallBufferTest is AccountTestBase {
         for (uint256 i = 0; i < 3; i++) {
             hooks[i] = abi.encodePacked(
                 HookConfigLib.packExecHook({
-                    _module: address(execHooks[i]),
-                    _entityId: uint32(i),
-                    _hasPre: true,
-                    _hasPost: false
+                    _module: address(execHooks[i]), _entityId: uint32(i), _hasPre: true, _hasPost: false
                 })
             );
         }
@@ -527,10 +524,7 @@ contract PHCallBufferTest is AccountTestBase {
         }
 
         account1.installValidation({
-            validationConfig: validationConfig,
-            selectors: new bytes4[](0),
-            installData: "",
-            hooks: hooks
+            validationConfig: validationConfig, selectors: new bytes4[](0), installData: "", hooks: hooks
         });
 
         _validationFunction = ValidationConfigLib.moduleEntity(validationConfig);
@@ -562,8 +556,9 @@ contract PHCallBufferTest is AccountTestBase {
         preValidationHook = new MockModule(m);
 
         bytes[] memory hooks = new bytes[](1);
-        hooks[0] =
-            abi.encodePacked(HookConfigLib.packValidationHook({_module: address(preValidationHook), _entityId: 1}));
+        hooks[0] = abi.encodePacked(
+            HookConfigLib.packValidationHook({_module: address(preValidationHook), _entityId: 1})
+        );
 
         account1.installValidation({
             validationConfig: ValidationConfigLib.pack({

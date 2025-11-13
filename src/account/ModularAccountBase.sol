@@ -54,9 +54,7 @@ import {
 } from "../libraries/ExecutionLib.sol";
 import {LinkedListSet, LinkedListSetLib} from "../libraries/LinkedListSetLib.sol";
 import {MemManagementLib, MemSnapshot} from "../libraries/MemManagementLib.sol";
-import {
-    ValidationLocator, ValidationLocatorLib, ValidationLookupKey
-} from "../libraries/ValidationLocatorLib.sol";
+import {ValidationLocator, ValidationLocatorLib, ValidationLookupKey} from "../libraries/ValidationLocatorLib.sol";
 import {AccountBase} from "./AccountBase.sol";
 import {AccountStorage, ValidationStorage, getAccountStorage, toSetValue} from "./AccountStorage.sol";
 import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
@@ -994,7 +992,9 @@ abstract contract ModularAccountBase is
                 if gt(structRelOffset, 0xffffffffffffffff) { revert(0, 0) }
                 // Validate struct offset. If the offset points to a location with < 3 words of space before the
                 // end of data, revert.
-                if iszero(slt(structRelOffset, sub(sub(dataEnd, arrayPos), sub(0x60, 1)))) { revert(0, 0) }
+                if iszero(slt(structRelOffset, sub(sub(dataEnd, arrayPos), sub(0x60, 1)))) {
+                    revert(0, 0)
+                }
 
                 structAbsOffset := add(arrayPos, structRelOffset)
 

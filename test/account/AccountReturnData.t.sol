@@ -96,14 +96,10 @@ contract AccountReturnDataTest is AccountTestBase {
     function test_returnData_executeBatch() public withSMATest {
         Call[] memory calls = new Call[](2);
         calls[0] = Call({
-            target: address(regularResultContract),
-            value: 0,
-            data: abi.encodeCall(RegularResultContract.foo, ())
+            target: address(regularResultContract), value: 0, data: abi.encodeCall(RegularResultContract.foo, ())
         });
         calls[1] = Call({
-            target: address(regularResultContract),
-            value: 0,
-            data: abi.encodeCall(RegularResultContract.bar, ())
+            target: address(regularResultContract), value: 0, data: abi.encodeCall(RegularResultContract.bar, ())
         });
 
         bytes memory retData = account1.executeWithRuntimeValidation(
@@ -129,9 +125,8 @@ contract AccountReturnDataTest is AccountTestBase {
 
     // Tests the ability to read data via executeWithAuthorization
     function test_returnData_authorized_exec() public withSMATest {
-        bool result = ResultConsumerModule(address(account1)).checkResultExecuteWithRuntimeValidation(
-            address(regularResultContract), keccak256("bar")
-        );
+        bool result = ResultConsumerModule(address(account1))
+            .checkResultExecuteWithRuntimeValidation(address(regularResultContract), keccak256("bar"));
 
         assertTrue(result);
     }

@@ -224,8 +224,7 @@ contract ModuleSignatureUtils {
 
     function _getSMAReplaySafeHash(address account, bytes32 digest) internal view returns (bytes32) {
         return MessageHashUtils.toTypedDataHash({
-            domainSeparator: _computeDomainSeparator(account),
-            structHash: _hashStruct(digest)
+            domainSeparator: _computeDomainSeparator(account), structHash: _hashStruct(digest)
         });
     }
 

@@ -59,7 +59,8 @@ contract GlobalValidationTest is AccountTestBase {
             sender: address(account2),
             nonce: _encodeNonce(_signerValidation, GLOBAL_V, 0),
             initCode: abi.encodePacked(
-                address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
+                address(factory),
+                abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
             ),
             callData: abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -120,7 +121,8 @@ contract GlobalValidationTest is AccountTestBase {
             sender: address(account2),
             nonce: _encodeNonce(_signerValidation, SELECTOR_ASSOCIATED_V, 0),
             initCode: abi.encodePacked(
-                address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
+                address(factory),
+                abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
             ),
             callData: abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),

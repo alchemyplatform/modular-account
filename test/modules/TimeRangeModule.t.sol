@@ -19,7 +19,8 @@ pragma solidity ^0.8.26;
 
 import {ModuleEntity, ValidationFlags} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {
-    HookConfig, ValidationDataView
+    HookConfig,
+    ValidationDataView
 } from "@erc6900/reference-implementation/interfaces/IModularAccountView.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";

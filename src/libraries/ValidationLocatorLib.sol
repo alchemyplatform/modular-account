@@ -229,11 +229,7 @@ library ValidationLocatorLib {
         }
     }
 
-    function directCallLookupKey(address directCallValidation)
-        internal
-        pure
-        returns (ValidationLookupKey result)
-    {
+    function directCallLookupKey(address directCallValidation) internal pure returns (ValidationLookupKey result) {
         result = ValidationLookupKey.wrap(uint168(uint160(directCallValidation)) << 8 | _IS_DIRECT_CALL_VALIDATION);
     }
 

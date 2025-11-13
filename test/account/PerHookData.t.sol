@@ -83,8 +83,7 @@ contract PerHookDataTest is CustomValidationTestBase {
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({
-            index: 0,
-            validationData: abi.encodePacked(address(0x1234123412341234123412341234123412341234))
+            index: 0, validationData: abi.encodePacked(address(0x1234123412341234123412341234123412341234))
         });
 
         userOp.signature = _encodeSignature(
@@ -288,8 +287,7 @@ contract PerHookDataTest is CustomValidationTestBase {
     function test_failAccessControl_badSigData_runtime() public withSMATest {
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({
-            index: 0,
-            validationData: abi.encodePacked(address(0x1234123412341234123412341234123412341234))
+            index: 0, validationData: abi.encodePacked(address(0x1234123412341234123412341234123412341234))
         });
 
         vm.prank(owner1);
@@ -443,8 +441,7 @@ contract PerHookDataTest is CustomValidationTestBase {
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({
-            index: 0,
-            validationData: abi.encodePacked(address(0x1234123412341234123412341234123412341234))
+            index: 0, validationData: abi.encodePacked(address(0x1234123412341234123412341234123412341234))
         });
 
         vm.expectRevert(
@@ -527,8 +524,15 @@ contract PerHookDataTest is CustomValidationTestBase {
         );
         // patched to work during SMA tests by enforcing that the new validation is not the fallback validation.
         _signerValidation = ModuleEntityLib.pack(address(singleSignerValidationModule), _VALIDATION_ENTITY_ID);
-        return (
-            _signerValidation, true, true, true, new bytes4[](0), abi.encode(_VALIDATION_ENTITY_ID, owner1), hooks
-        );
+        return
+            (
+                _signerValidation,
+                true,
+                true,
+                true,
+                new bytes4[](0),
+                abi.encode(_VALIDATION_ENTITY_ID, owner1),
+                hooks
+            );
     }
 }

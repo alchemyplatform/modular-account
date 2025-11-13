@@ -58,7 +58,7 @@ contract UOCallBufferTest is AccountTestBase {
             gasFees: _encodeGas(1, 2),
             paymasterAndData: "",
             signature: "" // keep the signature empty for now, because each individual hook receives no data in
-                // this test.
+            // this test.
         });
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
@@ -101,7 +101,7 @@ contract UOCallBufferTest is AccountTestBase {
             gasFees: _encodeGas(1, 2),
             paymasterAndData: "",
             signature: "" // keep the signature empty for now, because each individual hook receives no data in
-                // this test.
+            // this test.
         });
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
 
@@ -186,7 +186,7 @@ contract UOCallBufferTest is AccountTestBase {
             gasFees: _encodeGas(1, 2),
             paymasterAndData: "",
             signature: "" // keep the signature empty for now, because each individual hook receives separate data
-                // in this test.
+            // in this test.
         });
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);

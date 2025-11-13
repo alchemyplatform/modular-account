@@ -17,9 +17,7 @@
 
 pragma solidity ^0.8.26;
 
-import {
-    IModularAccount, ValidationConfig
-} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IModularAccount, ValidationConfig} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";

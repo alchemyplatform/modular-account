@@ -22,7 +22,8 @@ import {
     ManifestExecutionFunction
 } from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {
-    ExecutionManifest, IExecutionModule
+    ExecutionManifest,
+    IExecutionModule
 } from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 

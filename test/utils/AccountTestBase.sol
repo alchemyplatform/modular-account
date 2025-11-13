@@ -19,7 +19,9 @@ pragma solidity ^0.8.26;
 
 import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {
-    Call, IModularAccount, ModuleEntity
+    Call,
+    IModularAccount,
+    ModuleEntity
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {
@@ -43,8 +45,9 @@ import {WebAuthnValidationModule} from "../../src/modules/validation/WebAuthnVal
 
 import {ModuleSignatureUtils} from "./ModuleSignatureUtils.sol";
 import {OptimizedTest} from "./OptimizedTest.sol";
-import {TEST_DEFAULT_VALIDATION_ENTITY_ID as EXT_CONST_TEST_DEFAULT_VALIDATION_ENTITY_ID} from
-    "./TestConstants.sol";
+import {
+    TEST_DEFAULT_VALIDATION_ENTITY_ID as EXT_CONST_TEST_DEFAULT_VALIDATION_ENTITY_ID
+} from "./TestConstants.sol";
 
 /// @dev This contract handles common boilerplate setup for tests using ModularAccount with
 /// SingleSignerValidationModule.
@@ -247,9 +250,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         _runtimeCall(abi.encodeCall(IModularAccount.execute, (target, 0, callData)), expectedRevertData);
     }
 
-    function _runtimeExecExpFail(address target, bytes memory callData, bytes memory expectedRevertData)
-        internal
-    {
+    function _runtimeExecExpFail(address target, bytes memory callData, bytes memory expectedRevertData) internal {
         _runtimeCallExpFail(abi.encodeCall(IModularAccount.execute, (target, 0, callData)), expectedRevertData);
     }
 

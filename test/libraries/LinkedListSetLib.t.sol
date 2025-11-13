@@ -19,9 +19,7 @@ pragma solidity ^0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 
-import {
-    LinkedListSet, LinkedListSetLib, SENTINEL_VALUE, SetValue
-} from "../../src/libraries/LinkedListSetLib.sol";
+import {LinkedListSet, LinkedListSetLib, SENTINEL_VALUE, SetValue} from "../../src/libraries/LinkedListSetLib.sol";
 
 // Ported over from test/AssociatedLinkedListSetLib.t.sol, dropping test_no_address_collision
 contract LinkedListSetLibTest is Test {

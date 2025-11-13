@@ -204,7 +204,7 @@ contract ValidationIntersectionTest is AccountTestBase {
         oneHookModule.setValidationData(
             0, // returns OK
             uint256(uint160(badAuthorizer)) // returns an aggregator, which preValidation hooks are not allowed to
-                // do.
+            // do.
         );
 
         PackedUserOperation memory userOp;

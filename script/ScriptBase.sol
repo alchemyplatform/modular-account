@@ -74,7 +74,7 @@ abstract contract ScriptBase is Script {
         address expectedAddress,
         uint256 salt,
         bytes memory creationCode,
-        function (bytes32) internal returns (address) deployFunction
+        function(bytes32) internal returns (address) deployFunction
     ) internal {
         console.log(string.concat("Deploying ", contractName, " with salt: ", vm.toString(salt)));
 

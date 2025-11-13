@@ -272,27 +272,26 @@ library ExecutionLib {
 
             // Perform the call, reverting on failure or insufficient return data.
 
-            success :=
-                and(
-                    // Yul evaluates expressions from right to left, so `returndatasize` will evaluate after `call`.
-                    gt(returndatasize(), 0x1f),
-                    call(
-                        // If gas is the leftmost item before the call, it *should* be placed immediately before the
-                        // call opcode and be allowed in validation.
-                        gas(),
-                        moduleAddress,
-                        /*value*/
-                        0,
-                        /*argOffset*/
-                        add(buffer, 0x20), // jump over 32 bytes for length
-                        /*argSize*/
-                        actualCallLength,
-                        /*retOffset*/
-                        0,
-                        /*retSize*/
-                        0x20
-                    )
+            success := and(
+                // Yul evaluates expressions from right to left, so `returndatasize` will evaluate after `call`.
+                gt(returndatasize(), 0x1f),
+                call(
+                    // If gas is the leftmost item before the call, it *should* be placed immediately before the
+                    // call opcode and be allowed in validation.
+                    gas(),
+                    moduleAddress,
+                    /*value*/
+                    0,
+                    /*argOffset*/
+                    add(buffer, 0x20), // jump over 32 bytes for length
+                    /*argSize*/
+                    actualCallLength,
+                    /*retOffset*/
+                    0,
+                    /*retSize*/
+                    0x20
                 )
+            )
         }
 
         if (success) {
@@ -386,7 +385,9 @@ library ExecutionLib {
                 mstore(add(authorizationAbsOffset, add(roundedDownAuthorizationLength, 0x20)), 0)
                 // Copy the authorization segment from calldata into the correct location in the buffer.
                 calldatacopy(
-                    add(authorizationAbsOffset, 0x20), authorizationSegment.offset, authorizationSegment.length
+                    add(authorizationAbsOffset, 0x20),
+                    authorizationSegment.offset,
+                    authorizationSegment.length
                 )
             }
 
@@ -405,21 +406,20 @@ library ExecutionLib {
             actualCallLength := add(actualCallLength, and(add(authorizationSegment.length, 0x1f), not(0x1f)))
 
             // Perform the call
-            success :=
-                call(
-                    gas(),
-                    moduleAddress,
-                    /*value*/
-                    0,
-                    /*argOffset*/
-                    add(buffer, 0x40), // jump over 32 bytes for length, and another 32 bytes for the account
-                    /*argSize*/
-                    actualCallLength,
-                    /*retOffset*/
-                    codesize(),
-                    /*retSize*/
-                    0
-                )
+            success := call(
+                gas(),
+                moduleAddress,
+                /*value*/
+                0,
+                /*argOffset*/
+                add(buffer, 0x40), // jump over 32 bytes for length, and another 32 bytes for the account
+                /*argSize*/
+                actualCallLength,
+                /*retOffset*/
+                codesize(),
+                /*retSize*/
+                0
+            )
         }
 
         if (!success) {
@@ -481,7 +481,9 @@ library ExecutionLib {
                 mstore(add(authorizationAbsOffset, add(roundedDownAuthorizationLength, 0x20)), 0)
                 // Copy the authorization segment from calldata into the correct location in the buffer.
                 calldatacopy(
-                    add(authorizationAbsOffset, 0x20), authorizationSegment.offset, authorizationSegment.length
+                    add(authorizationAbsOffset, 0x20),
+                    authorizationSegment.offset,
+                    authorizationSegment.length
                 )
             }
 
@@ -506,21 +508,20 @@ library ExecutionLib {
             if iszero(extcodesize(moduleAddress)) { revert(0, 0) }
 
             // Perform the call
-            success :=
-                call(
-                    gas(),
-                    moduleAddress,
-                    /*value*/
-                    0,
-                    /*argOffset*/
-                    add(buffer, 0x20), // jump over 32 bytes for length
-                    /*argSize*/
-                    actualCallLength,
-                    /*retOffset*/
-                    codesize(),
-                    /*retSize*/
-                    0
-                )
+            success := call(
+                gas(),
+                moduleAddress,
+                /*value*/
+                0,
+                /*argOffset*/
+                add(buffer, 0x20), // jump over 32 bytes for length
+                /*argSize*/
+                actualCallLength,
+                /*retOffset*/
+                codesize(),
+                /*retSize*/
+                0
+            )
         }
 
         if (!success) {
@@ -678,21 +679,20 @@ library ExecutionLib {
             mstore(add(buffer, 0x24), entityId)
 
             // Perform the call, storing the first two words of return data into scratch space.
-            success :=
-                call(
-                    gas(),
-                    moduleAddress,
-                    /*value*/
-                    0,
-                    /*argOffset*/
-                    add(buffer, 0x20), // jump over 32 bytes for length
-                    /*argSize*/
-                    mload(buffer),
-                    /*retOffset*/
-                    0,
-                    /*retSize*/
-                    0x40
-                )
+            success := call(
+                gas(),
+                moduleAddress,
+                /*value*/
+                0,
+                /*argOffset*/
+                add(buffer, 0x20), // jump over 32 bytes for length
+                /*argSize*/
+                mload(buffer),
+                /*retOffset*/
+                0,
+                /*retSize*/
+                0x40
+            )
 
             // Need at least 64 bytes of return data to be considered successful.
             success := and(success, gt(returndatasize(), 0x3f))
@@ -880,21 +880,20 @@ library ExecutionLib {
                 let callLength := sub(segmentLength, 0x1c)
 
                 // Perform the call
-                success :=
-                    call(
-                        gas(),
-                        moduleAddress,
-                        /*value*/
-                        0,
-                        /*argOffset*/
-                        workingMemPtr,
-                        /*argSize*/
-                        callLength,
-                        /*retOffset*/
-                        codesize(),
-                        /*retSize*/
-                        0
-                    )
+                success := call(
+                    gas(),
+                    moduleAddress,
+                    /*value*/
+                    0,
+                    /*argOffset*/
+                    workingMemPtr,
+                    /*argSize*/
+                    callLength,
+                    /*retOffset*/
+                    codesize(),
+                    /*retSize*/
+                    0
+                )
 
                 // Step the working mem pointer back to the previous segment
                 workingMemPtr := sub(segmentStart, 0x20)
@@ -970,19 +969,18 @@ library ExecutionLib {
             let actualCallLength := add(0xa4, and(add(signatureSegment.length, 0x1f), not(0x1f)))
 
             // Perform the call
-            success :=
-                staticcall(
-                    gas(),
-                    moduleAddress,
-                    /*argOffset*/
-                    add(buffer, 0x40), // jump over 32 bytes for length, and another 32 bytes for the account
-                    /*argSize*/
-                    actualCallLength,
-                    /*retOffset*/
-                    0,
-                    /*retSize*/
-                    0x20
-                )
+            success := staticcall(
+                gas(),
+                moduleAddress,
+                /*argOffset*/
+                add(buffer, 0x40), // jump over 32 bytes for length, and another 32 bytes for the account
+                /*argSize*/
+                actualCallLength,
+                /*retOffset*/
+                0,
+                /*retSize*/
+                0x20
+            )
         }
 
         if (!success) {
@@ -1035,24 +1033,23 @@ library ExecutionLib {
             let actualCallLength := add(0xc4, and(add(signatureSegment.length, 0x1f), not(0x1f)))
 
             // Perform the call
-            success :=
-                and(
-                    // Yul evaluates expressions from right to left, so `returndatasize` will evaluate after
-                    // `staticcall`.
-                    gt(returndatasize(), 0x1f),
-                    staticcall(
-                        gas(),
-                        moduleAddress,
-                        /*argOffset*/
-                        add(buffer, 0x20), // jump over 32 bytes for length, and another 32 bytes for the account
-                        /*argSize*/
-                        actualCallLength,
-                        /*retOffset*/
-                        0,
-                        /*retSize*/
-                        0x20
-                    )
+            success := and(
+                // Yul evaluates expressions from right to left, so `returndatasize` will evaluate after
+                // `staticcall`.
+                gt(returndatasize(), 0x1f),
+                staticcall(
+                    gas(),
+                    moduleAddress,
+                    /*argOffset*/
+                    add(buffer, 0x20), // jump over 32 bytes for length, and another 32 bytes for the account
+                    /*argSize*/
+                    actualCallLength,
+                    /*retOffset*/
+                    0,
+                    /*retSize*/
+                    0x20
                 )
+            )
         }
 
         if (success) {

@@ -190,8 +190,9 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         calls[0] = Call(address(account1), 0, abi.encodeCall(ComprehensiveModule.foo, ()));
         calls[1] = Call(address(account1), 0, abi.encodeCall(ComprehensiveModule.foo, ()));
 
-        PackedUserOperation memory userOp =
-            _generateUserOpWithComprehensiveModuleValidation(abi.encodeCall(IModularAccount.executeBatch, (calls)));
+        PackedUserOperation memory userOp = _generateUserOpWithComprehensiveModuleValidation(
+            abi.encodeCall(IModularAccount.executeBatch, (calls))
+        );
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;

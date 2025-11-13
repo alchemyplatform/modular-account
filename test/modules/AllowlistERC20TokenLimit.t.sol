@@ -67,10 +67,7 @@ contract AllowlistERC20TokenLimitTest is AccountTestBase {
         bytes[] memory hooks = new bytes[](1);
         hooks[0] = abi.encodePacked(
             HookConfigLib.packExecHook({
-                _module: address(module),
-                _entityId: ENTITY_ID,
-                _hasPre: true,
-                _hasPost: false
+                _module: address(module), _entityId: ENTITY_ID, _hasPre: true, _hasPost: false
             }),
             abi.encode(ENTITY_ID, inputs)
         );
@@ -131,9 +128,7 @@ contract AllowlistERC20TokenLimitTest is AccountTestBase {
         calls[1] =
             Call({target: address(erc20), value: 0, data: abi.encodeCall(IERC20.transfer, (recipient, 1 ether))});
         calls[2] = Call({
-            target: address(erc20),
-            value: 0,
-            data: abi.encodeCall(IERC20.transfer, (recipient, 5 ether + 100_000))
+            target: address(erc20), value: 0, data: abi.encodeCall(IERC20.transfer, (recipient, 5 ether + 100_000))
         });
 
         vm.startPrank(address(entryPoint));
@@ -151,9 +146,7 @@ contract AllowlistERC20TokenLimitTest is AccountTestBase {
         calls[1] =
             Call({target: address(erc20), value: 0, data: abi.encodeCall(IERC20.transfer, (recipient, 1 ether))});
         calls[2] = Call({
-            target: address(erc20),
-            value: 0,
-            data: abi.encodeCall(IERC20.approve, (recipient, 5 ether + 100_000))
+            target: address(erc20), value: 0, data: abi.encodeCall(IERC20.approve, (recipient, 5 ether + 100_000))
         });
 
         vm.startPrank(address(entryPoint));
@@ -171,9 +164,7 @@ contract AllowlistERC20TokenLimitTest is AccountTestBase {
         calls[1] =
             Call({target: address(erc20), value: 0, data: abi.encodeCall(IERC20.transfer, (recipient, 1 ether))});
         calls[2] = Call({
-            target: address(erc20),
-            value: 0,
-            data: abi.encodeCall(IERC20.approve, (recipient, 9 ether + 100_000))
+            target: address(erc20), value: 0, data: abi.encodeCall(IERC20.approve, (recipient, 9 ether + 100_000))
         });
 
         vm.startPrank(address(entryPoint));
@@ -203,9 +194,7 @@ contract AllowlistERC20TokenLimitTest is AccountTestBase {
         calls[1] =
             Call({target: address(erc20), value: 0, data: abi.encodeCall(IERC20.transfer, (recipient, 1 ether))});
         calls[2] = Call({
-            target: address(erc20),
-            value: 0,
-            data: abi.encodeCall(IERC20.approve, (recipient, 5 ether + 100_000))
+            target: address(erc20), value: 0, data: abi.encodeCall(IERC20.approve, (recipient, 5 ether + 100_000))
         });
         account1.executeWithRuntimeValidation(
             abi.encodeCall(IModularAccount.executeBatch, (calls)), _encodeSignature(validationFunction, 1, "")

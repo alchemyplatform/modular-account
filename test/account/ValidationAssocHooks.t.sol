@@ -74,10 +74,7 @@ contract ValidationAssocHooksTest is AccountTestBase {
         for (uint256 i = 0; i < 257; i++) {
             hookInstalls[i] = abi.encodePacked(
                 HookConfigLib.packExecHook({
-                    _module: address(hooks[i]),
-                    _entityId: uint32(i),
-                    _hasPre: false,
-                    _hasPost: false
+                    _module: address(hooks[i]), _entityId: uint32(i), _hasPre: false, _hasPost: false
                 })
             );
         }

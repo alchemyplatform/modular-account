@@ -124,7 +124,9 @@ contract ModularAccountTest is AccountTestBase {
 
     function test_basicUserOp_withInitCode() public withSMATest {
         bytes memory callData = _isSMATest
-            ? abi.encodeCall(SemiModularAccountBytecode(payable(account1)).updateFallbackSignerData, (owner2, false))
+            ? abi.encodeCall(
+                SemiModularAccountBytecode(payable(account1)).updateFallbackSignerData, (owner2, false)
+            )
             : abi.encodeCall(
                 ModularAccountBase.execute,
                 (
@@ -139,7 +141,8 @@ contract ModularAccountTest is AccountTestBase {
         bytes memory initCode = _isSMATest
             ? abi.encodePacked(address(factory), abi.encodeCall(factory.createSemiModularAccount, (owner2, 0)))
             : abi.encodePacked(
-                address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
+                address(factory),
+                abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
             );
 
         PackedUserOperation memory userOp = PackedUserOperation({
@@ -169,7 +172,8 @@ contract ModularAccountTest is AccountTestBase {
         bytes memory initCode = _isSMATest
             ? abi.encodePacked(address(factory), abi.encodeCall(factory.createSemiModularAccount, (owner2, 0)))
             : abi.encodePacked(
-                address(factory), abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
+                address(factory),
+                abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
             );
 
         address payable recipient = payable(makeAddr("recipient"));
@@ -367,17 +371,13 @@ contract ModularAccountTest is AccountTestBase {
 
         ComprehensiveModule module = new ComprehensiveModule();
         account1.installExecution({
-            module: address(module),
-            manifest: module.executionManifest(),
-            moduleInstallData: ""
+            module: address(module), manifest: module.executionManifest(), moduleInstallData: ""
         });
 
         vm.expectEmit(true, true, true, true);
         emit ExecutionUninstalled(address(module), true, module.executionManifest());
         account1.uninstallExecution({
-            module: address(module),
-            manifest: module.executionManifest(),
-            moduleUninstallData: ""
+            module: address(module), manifest: module.executionManifest(), moduleUninstallData: ""
         });
 
         ExecutionDataView memory data = account1.getExecutionData(module.foo.selector);
@@ -391,9 +391,7 @@ contract ModularAccountTest is AccountTestBase {
         module = new MockModule(_manifest);
 
         account1.installExecution({
-            module: address(module),
-            manifest: module.executionManifest(),
-            moduleInstallData: ""
+            module: address(module), manifest: module.executionManifest(), moduleInstallData: ""
         });
 
         vm.stopPrank();
@@ -510,7 +508,9 @@ contract ModularAccountTest is AccountTestBase {
 
         PackedUserOperation memory userOp = PackedUserOperation({
             sender: address(account1),
-            nonce: _encodeNonce(ModuleEntityLib.pack(address(singleSignerValidationModule), newEntityId), GLOBAL_V, 0),
+            nonce: _encodeNonce(
+                ModuleEntityLib.pack(address(singleSignerValidationModule), newEntityId), GLOBAL_V, 0
+            ),
             initCode: "",
             callData: abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
@@ -685,10 +685,7 @@ contract ModularAccountTest is AccountTestBase {
         ExecutionManifest memory m;
         m.executionHooks = new ManifestExecutionHook[](1);
         m.executionHooks[0] = ManifestExecutionHook({
-            executionSelector: account1.execute.selector,
-            entityId: 0,
-            isPreHook: true,
-            isPostHook: false
+            executionSelector: account1.execute.selector, entityId: 0, isPreHook: true, isPostHook: false
         });
 
         vm.prank(address(entryPoint));

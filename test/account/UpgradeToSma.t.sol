@@ -115,9 +115,8 @@ contract UpgradeToSmaTest is AccountTestBase {
 
         // Upgrade the LightAccount to an SMA-Storage and call the initializer.
         vm.prank(address(entryPoint));
-        ModularAccount(newAccount).upgradeToAndCall(
-            smaStorageImpl, abi.encodeCall(SemiModularAccountStorageOnly.initialize, owner2)
-        );
+        ModularAccount(newAccount)
+            .upgradeToAndCall(smaStorageImpl, abi.encodeCall(SemiModularAccountStorageOnly.initialize, owner2));
 
         // Build expected revert data for a UO with the original signer.
         bytes memory expectedRevertdata =

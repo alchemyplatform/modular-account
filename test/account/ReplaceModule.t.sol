@@ -24,7 +24,9 @@ import {
     ManifestExecutionHook
 } from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {
-    Call, IModularAccount, ModuleEntity
+    Call,
+    IModularAccount,
+    ModuleEntity
 } from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
@@ -185,7 +187,8 @@ contract UpgradeModuleTest is AccountTestBase {
             target: address(account1),
             value: 0,
             data: abi.encodeCall(
-                IModularAccount.uninstallValidation, (currModuleEntity, abi.encode(validationEntityId1), emptyBytesArr)
+                IModularAccount.uninstallValidation,
+                (currModuleEntity, abi.encode(validationEntityId1), emptyBytesArr)
             )
         });
         calls[1] = Call({

@@ -79,7 +79,8 @@ contract PaymasterGuardModule is ModuleBase, IValidationHookModule {
         external
         view
         override
-    // solhint-disable-next-line no-empty-blocks
+        // solhint-disable-next-line no-empty-blocks
+
     {}
 
     // solhint-disable-next-line no-empty-blocks

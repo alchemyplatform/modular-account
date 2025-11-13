@@ -53,12 +53,10 @@ abstract contract OptimizedTest is Test {
     {
         return _isOptimizedTest()
             ? ModularAccount(
-                payable(
-                    deployCode(
+                payable(deployCode(
                         "out-optimized/ModularAccount.sol/ModularAccount.json",
                         abi.encode(entryPoint, executionInstallDelegate)
-                    )
-                )
+                    ))
             )
             : new ModularAccount(entryPoint, executionInstallDelegate);
     }
@@ -69,12 +67,10 @@ abstract contract OptimizedTest is Test {
     ) internal returns (SemiModularAccountBytecode) {
         return _isOptimizedTest()
             ? SemiModularAccountBytecode(
-                payable(
-                    deployCode(
+                payable(deployCode(
                         "out-optimized/SemiModularAccountBytecode.sol/SemiModularAccountBytecode.json",
                         abi.encode(entryPoint, executionInstallDelegate)
-                    )
-                )
+                    ))
             )
             : new SemiModularAccountBytecode(entryPoint, executionInstallDelegate);
     }

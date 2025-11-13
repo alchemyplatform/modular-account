@@ -152,7 +152,9 @@ contract PaymasterGuardModuleTest is AccountTestBase {
     {
         return PackedUserOperation({
             sender: accountAddr,
-            nonce: _encodeNonce(ModuleEntityLib.pack(address(singleSignerValidationModule), ENTITY_ID), GLOBAL_V, 0),
+            nonce: _encodeNonce(
+                ModuleEntityLib.pack(address(singleSignerValidationModule), ENTITY_ID), GLOBAL_V, 0
+            ),
             initCode: "",
             callData: abi.encodePacked(
                 ModularAccountBase.executeUserOp.selector, abi.encodeCall(account1.execute, (owner1, 0, hex""))

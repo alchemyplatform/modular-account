@@ -59,14 +59,10 @@ contract ResultCreatorModule is IExecutionModule, ModuleBase {
 
         manifest.executionFunctions = new ManifestExecutionFunction[](2);
         manifest.executionFunctions[0] = ManifestExecutionFunction({
-            executionSelector: this.foo.selector,
-            skipRuntimeValidation: true,
-            allowGlobalValidation: false
+            executionSelector: this.foo.selector, skipRuntimeValidation: true, allowGlobalValidation: false
         });
         manifest.executionFunctions[1] = ManifestExecutionFunction({
-            executionSelector: this.bar.selector,
-            skipRuntimeValidation: false,
-            allowGlobalValidation: false
+            executionSelector: this.bar.selector, skipRuntimeValidation: false, allowGlobalValidation: false
         });
 
         return manifest;
@@ -119,10 +115,15 @@ contract ResultConsumerModule is IExecutionModule, ModuleBase, IValidationModule
     // Check the return data through the execute with authorization case
     function checkResultExecuteWithRuntimeValidation(address target, bytes32 expected) external returns (bool) {
         // This result should be allowed based on the manifest permission request
-        bytes memory returnData = IModularAccount(msg.sender).executeWithRuntimeValidation(
-            abi.encodeCall(IModularAccount.execute, (target, 0, abi.encodeCall(RegularResultContract.foo, ()))),
-            _encodeSignature(ModuleEntityLib.pack(address(this), DIRECT_CALL_VALIDATION_ENTITY_ID), uint8(0), "")
-        );
+        bytes memory returnData = IModularAccount(msg.sender)
+            .executeWithRuntimeValidation(
+                abi.encodeCall(
+                    IModularAccount.execute, (target, 0, abi.encodeCall(RegularResultContract.foo, ()))
+                ),
+                _encodeSignature(
+                        ModuleEntityLib.pack(address(this), DIRECT_CALL_VALIDATION_ENTITY_ID), uint8(0), ""
+                    )
+            );
 
         bytes32 actual = abi.decode(abi.decode(returnData, (bytes)), (bytes32));
 
