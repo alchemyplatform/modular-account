@@ -75,12 +75,11 @@ contract PaymasterGuardModule is ModuleBase, IValidationHookModule {
     }
 
     /// @inheritdoc IValidationHookModule
+    // solhint-disable no-empty-blocks
     function preRuntimeValidationHook(uint32, address, uint256, bytes calldata, bytes calldata)
         external
         view
         override
-        // solhint-disable-next-line no-empty-blocks
-
     {}
 
     // solhint-disable-next-line no-empty-blocks
