@@ -146,10 +146,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
         // ERC-20 spend limit hook
         hooks[2] = abi.encodePacked(
             HookConfigLib.packExecHook({
-                _module: address(allowlistModule),
-                _entityId: 0,
-                _hasPre: true,
-                _hasPost: false
+                _module: address(allowlistModule), _entityId: 0, _hasPre: true, _hasPost: false
             }),
             ""
         );
@@ -194,10 +191,7 @@ abstract contract ModularAccountBenchmarkBase is BenchmarkBase, ModuleSignatureU
             HookConfig.unwrap(validationData.executionHooks[0]),
             HookConfig.unwrap(
                 HookConfigLib.packExecHook({
-                    _module: address(allowlistModule),
-                    _entityId: 0,
-                    _hasPre: true,
-                    _hasPost: false
+                    _module: address(allowlistModule), _entityId: 0, _hasPre: true, _hasPost: false
                 })
             )
         );

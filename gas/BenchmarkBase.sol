@@ -82,11 +82,7 @@ abstract contract BenchmarkBase is OptimizedTest {
         return bType == BenchmarkType.RUNTIME ? "Runtime" : "UserOp";
     }
 
-    function _encodeGasLimits(uint128 callGasLimit, uint128 verificationGasLimit)
-        internal
-        pure
-        returns (bytes32)
-    {
+    function _encodeGasLimits(uint128 callGasLimit, uint128 verificationGasLimit) internal pure returns (bytes32) {
         return bytes32(uint256(verificationGasLimit) << 128 | uint256(callGasLimit));
     }
 

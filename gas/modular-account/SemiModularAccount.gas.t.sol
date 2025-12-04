@@ -167,9 +167,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
         Call[] memory calls = new Call[](2);
         calls[0] = Call({target: recipient, value: 0.1 ether, data: ""});
         calls[1] = Call({
-            target: address(mockErc20),
-            value: 0,
-            data: abi.encodeCall(mockErc20.transfer, (recipient, 10 ether))
+            target: address(mockErc20), value: 0, data: abi.encodeCall(mockErc20.transfer, (recipient, 10 ether))
         });
 
         uint256 gasUsed = _runtimeBenchmark(
@@ -199,9 +197,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
         Call[] memory calls = new Call[](2);
         calls[0] = Call({target: recipient, value: 0.1 ether, data: ""});
         calls[1] = Call({
-            target: address(mockErc20),
-            value: 0,
-            data: abi.encodeCall(mockErc20.transfer, (recipient, 10 ether))
+            target: address(mockErc20), value: 0, data: abi.encodeCall(mockErc20.transfer, (recipient, 10 ether))
         });
 
         PackedUserOperation memory userOp = PackedUserOperation({
