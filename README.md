@@ -178,6 +178,12 @@ In order for a deferred action to be run at validation, in addition to special e
 
 The `isSignatureValidation` flag meant to allow a validation function to validate ERC-1271 signatures. Developer should note that for Modular Account this is a very powerful capability to grant as it allows validation functions to approve deferred actions on the account.
 
+## Technical Docs
+
+- [Architecture.md](./doc/Architecture.md)
+- [Data-Encoding.md](./doc/Data-Encoding.md)
+- [Optimizations.md](./doc/Optimizations.md)
+
 ## Acknowledgements
 
 The contracts in this repository adhere to the ERC-6900 specification, and are heavily influenced by the design of the ERC-6900 reference implementation.
