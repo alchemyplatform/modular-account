@@ -8,7 +8,7 @@
 [tg_badge]: https://img.shields.io/endpoint?color=neon&logo=telegram&label=chat&url=https://mogyo.ro/quart-apis/tgmembercount?chat_id=modular_account_standards
 [tg_link]: https://t.me/modular_account_standards
 
-![](./img/ma.png)
+![](./doc/img/ma.png)
 
 Alchemy's Modular Account is a maximally modular, upgradeable smart contract account that is compatible with [ERC-4337](https://eips.ethereum.org/EIPS/eip-4337) and [ERC-6900](https://eips.ethereum.org/EIPS/eip-6900).
 
@@ -88,7 +88,7 @@ Modular Account can:
 3. Use applications that depend on ERC-1271 contract signatures.
 4. Use applications that use the ERC-165 introspection standard.
 5. Be upgradeable to or from most other smart contract account implementations.
-6. Be customized in many ways. All customization options can be found [here](./2-customizing-your-modular-account.md).
+6. Be customized in many ways. All customization options can be found [here](#customizing-your-modular-account).
 
 #### ERC-1271 contract signatures support
 
@@ -110,11 +110,11 @@ Modular Account can be customized by:
 
 #### Lifecycle of a user operation
 
-![](./img/userop-flow.png)
+![](./doc/img/userop-flow.png)
 
 #### Lifecycle of a runtime call
 
-![](./img/runtime-flow.png)
+![](./doc/img/runtime-flow.png)
 
 #### Pre-validation hooks
 
