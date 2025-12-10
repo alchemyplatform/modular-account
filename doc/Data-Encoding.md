@@ -8,7 +8,7 @@ Specific to Alchemy Modular account, we choose to use the user operation nonce t
 
 ### User Operation Nonce
 
-ERC-4337 defines a multi-dimensional nonce system for smart accounts. In this system, each nonce is composed of two parts: a nonce key and a sequential nonce. The EntryPoint contract maintains nonce state for each account as a mapping of nonce sequence to nonce key, with each nonce sequence starting at zero. For a user operation to be valid under this system, it's nonce sequence must be the next number in the sequence associated with the nonce key used.
+ERC-4337 defines a multi-dimensional nonce system for smart accounts. In this system, each nonce is composed of two parts: a nonce key and a sequential nonce. The EntryPoint contract maintains nonce state for each account as a mapping of nonce sequence to nonce key, with each nonce sequence starting at zero. For a user operation to be valid under this system, its nonce sequence must be the next number in the sequence associated with the nonce key used.
 
 This system gives flexibility to accounts, allowing for transactions to be pending in the mempool in parallel if desired, or for a specific ordering to be enforced.
 
@@ -20,7 +20,9 @@ ERC-4337 defines this as a 256-bit nonce, with the upper 192 bits used as the pa
 0x________________________________________________BBBBBBBBBBBBBBBB // Sequential Nonce
 ```
 
-For Modular Account, we overload the contents of the parallel nonce key to also hold information about which validation function is being used to validate this user operation (which implies which key is expected to sign), and an optional flag to indicate that the signature includes a [deferred action](./Architecture.md#deferred-actions) Note that we still want to allow the end user define some portion of the parallel nonce key, to allow for user operation parallelism even when using a single validation function.
+For Modular Account, we overload the contents of the parallel nonce key to also hold information about which validation function is being used to validate this user operation (which implies which key is expected to sign), and an optional flag to indicate that the signature includes a [deferred action](./Architecture.md#deferred-actions).
+
+Note that we still want to allow the end user to define some portion of the parallel nonce key, to allow for user operation parallelism even when using a single validation function.
 
 To fully identify a module function typically requires 24 bytes: 20 bytes for the module address, and 4 bytes for the entity ID. However, if we would use this for the validation selection, there would not be any space for a user-facing parallel nonce key, as 24 bytes = 192 bits and it would occupy the entire parallel nonce key. To address this, Modular Account places a restriction that the entity ID of validation functions must be unique over the entire account - this way, a 4-byte validation entity ID also uniquely identifies the module address.
 
@@ -156,7 +158,7 @@ concat([
 
 #### Signature Structure With Deferred Actions
 
-When a user operation includes a deferred action (indicated by bit 1 in the options byte of the nonce), the signature encoding becomes more complex. The deferred action allows taking an arbitrary action during the user operation validation phase itself. This allows atomically installing a new validation function and using it to authorize the user operation, useful for installing session keys. See [deferred actions](./Architecture.md#deferred-actions) for more information.
+When a user operation includes a deferred action (indicated by bit 2 in the options byte of the nonce), the signature encoding becomes more complex. The deferred action allows taking an arbitrary action during the user operation validation phase itself. This allows atomically installing a new validation function and using it to authorize the user operation, useful for installing session keys. See [deferred actions](./Architecture.md#deferred-actions) for more information.
 
 The signature structure with deferred actions follows this layout (from [ModularAccountBase.sol:411-456](../src/account/ModularAccountBase.sol#L411-L456)):
 
@@ -185,7 +187,7 @@ concat([
 
 The `ValidationLocator` is a 21-byte packed type used to identify a validation function and specify flags used in deferred actions. It is right-aligned (options byte at the end) because it is stored as a `uint168` and used in EIP-712 hashing for deferred actions.
 
-When encoded in bytes (as in signatures or deferred action data), the format depends on whether it's a regular validation or a direct call validation:
+When encoded in bytes (as in signatures or deferred action data), the format depends on whether it is a regular validation or a direct call validation:
 
 ```
 // ValidationLocator with regular validation function (5 bytes used, 16 bytes padding):
@@ -247,6 +249,12 @@ The `packedValidationLocator` is the same concept as the `ValidationLocator` des
 0xAA______________________________________________ // Validation Type
 0x__BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB______ // Caller address of direct-call validation
 0x__________________________________________CCC... // Remainder
+
+// Validation Options layout:
+0b00000___ // Unused
+0b_____A__ // is direct call validation (union tag)
+0b______B_ // has deferred action (should be zero, not implemented for signature validation)
+0b_______C // is global validation
 ```
 
 This format is shared between ERC-1271 signatures and runtime validation.
@@ -390,6 +398,12 @@ This structure is identical to the ERC-1271 signature encoding. The `packedValid
 0xAA______________________________________________ // Validation Type
 0x__BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB______ // Caller address of direct-call validation
 0x__________________________________________CCC... // Remainder
+
+// Validation Options layout:
+0b00000___ // Unused
+0b_____A__ // is direct call validation (union tag)
+0b______B_ // has deferred action (unused for runtime validation)
+0b_______C // is global validation
 ```
 
 The remaining data uses the same sparse calldata segment format:
@@ -442,8 +456,6 @@ These details aren't needed for integrating with the account or using it, but pr
 ### Validation Lookup Keys
 
 The `ValidationLookupKey` is an internal type used as a mapping key to store and retrieve validation configuration data in the account's storage. It solves a key design constraint: fully identifying a validation function normally requires 24 bytes (20-byte module address + 4-byte entity ID), but encoding this in the user operation nonce would consume the entire parallel nonce key, leaving no space for user-defined parallel nonces.
-
-The solution involves three key design decisions:
 
 Modular Account requires that validation entity IDs be globally unique within an account. This means a 4-byte entity ID alone can uniquely identify both the module address and the entity ID, reducing the lookup key size from 24 bytes to just 5 bytes for most validations. However, direct call validations all use the magic entity ID `0xFFFFFFFF` (`type(uint32).max`), so they cannot rely on entity ID uniqueness. Instead, they are identified by the module's address (20 bytes), requiring a different encoding.
 
