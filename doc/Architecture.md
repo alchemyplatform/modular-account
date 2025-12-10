@@ -2,20 +2,30 @@
 
 ## Goals
 
-- represent multiple key types using validation functions
-    - Limit scope of validation functions - defense in depth.
-- Use hooks to layer permissions over keys, subtractively
-    - Philosophy of "only pay gas for what you use"
-- Allow the Smart Account to conform to arbitrary external interfaces
-- Allow composition of validation functions
-- Allow deferred initialization steps
-   - For keys
-   - For setup (approving ERC-20 paymaster)
-- Allow using the account outside of user op context
-   - For nested ownership logic - can't re-enter the entrypoint
-   - Outside of ERC-4337 context
+Modular Account aims to support the ability to:
+
+- represent different key types using validation functions
+    - limit the scope of what each validation function may authorize, to enforce defense-in-depth
+- use hooks to apply permissions over keys
+    - apply these permissions subtractively, to only pay gas for what you use
+- conform to arbitrary external function interfaces for smart contract composability
+- defer initialization steps until the account is actually used, including steps like provisioning keys and approving tokens
+- send transactions outside of the ERC-4337 user op context
+   - Supported nested smart account ownership logic, where calls cannot re-enter the entrypoint
 
 ## Architecture Overview
+
+The Modular Account contract suite consists of:
+
+- Account factories:
+    - These allow for deterministic crosschain deployments of accounts as [ERC-1967](https://eips.ethereum.org/EIPS/eip-1967) proxies
+    - `AccountFactory`: supports deploying the standard, flagship account `SemiModularAccountBytecode`
+    - `WebAuthnFactory`: supports deploying WebAuthn (passkey) owned accounts.
+- Account implementation contracts:
+    = These manage module installation state and scope.
+    - `SemiModularAccountBytecode`: The most efficient account to deploy, holds the initial owner in proxy bytecode.
+    - `SemiModularAccountStorageOnly`: 
+    - `ModularAccount`: Account that only manages module state, all ownership 
 
 - Account contract: manages module installation state and scope. Deployed via ERC-1967 proxy.
 - Module contracts hold implementation logic and state.
@@ -175,3 +185,5 @@ Concept: state is stored on modules themselves. account state manages only which
 ## Direct call validation
 
 ## Usage of runtime validation for nested account ownership
+
+- EP's functions for running user operations (`handleOps` and `handleAggregatedOps`) do not support 
