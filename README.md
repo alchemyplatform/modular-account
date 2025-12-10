@@ -182,7 +182,6 @@ The `isSignatureValidation` flag meant to allow a validation function to validat
 
 - [Architecture.md](./doc/Architecture.md)
 - [Data-Encoding.md](./doc/Data-Encoding.md)
-- [Optimizations.md](./doc/Optimizations.md)
 
 ## Acknowledgements
 
