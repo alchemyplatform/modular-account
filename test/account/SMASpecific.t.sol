@@ -22,7 +22,6 @@ import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookCon
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
@@ -33,7 +32,6 @@ import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
 
 contract SMASpecificTest is AccountTestBase {
     using ModuleEntityLib for ModuleEntity;
-    using MessageHashUtils for bytes32;
 
     address public mockCountModule;
     uint256 public transferAmount;
@@ -133,7 +131,7 @@ contract SMASpecificTest is AccountTestBase {
         });
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
 
         userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 

@@ -27,8 +27,6 @@ contract ValidateSetupTest is OptimizedTest {
         address senderCreator = 0x0A630a99Df908A81115A3022927Be82f9299987e;
 
         assertEq(entryPoint.codehash, 0x14ee3fe0191de027aecf20ffd7dbd985f5023b898fa429485d2dfe2286b42750);
-        // update
         assertEq(senderCreator.codehash, 0xa7d4dd260bca9c96da49f7c0682fdda7f0074694d935815a336d3e60ee3ec6ad);
-        // update
     }
 }

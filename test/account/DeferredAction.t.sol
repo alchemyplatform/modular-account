@@ -29,7 +29,6 @@ import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/V
 import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
@@ -96,7 +95,7 @@ contract DeferredActionTest is AccountTestBase {
         });
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint48 deferredInstallDeadline = 0;
@@ -146,7 +145,7 @@ contract DeferredActionTest is AccountTestBase {
         });
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint48 deferredInstallDeadline = 0;
@@ -187,7 +186,7 @@ contract DeferredActionTest is AccountTestBase {
         });
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint48 deferredInstallDeadline = 0;
@@ -230,7 +229,7 @@ contract DeferredActionTest is AccountTestBase {
         });
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint48 deferredInstallDeadline = 0;
@@ -309,7 +308,7 @@ contract DeferredActionTest is AccountTestBase {
         });
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, userOpHash);
         bytes memory uoSig = _packFinalSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         uint48 deferredInstallDeadline = 0;

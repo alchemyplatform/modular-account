@@ -24,7 +24,6 @@ import {SparseCalldataSegmentLib} from "@erc6900/reference-implementation/librar
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
@@ -34,8 +33,6 @@ import {MockAccessControlHookModule} from "../mocks/modules/MockAccessControlHoo
 import {CustomValidationTestBase} from "../utils/CustomValidationTestBase.sol";
 
 contract PerHookDataTest is CustomValidationTestBase {
-    using MessageHashUtils for bytes32;
-
     MockAccessControlHookModule internal _accessControlHookModule;
 
     Counter internal _counter;
@@ -61,7 +58,7 @@ contract PerHookDataTest is CustomValidationTestBase {
 
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(_counter)});
@@ -79,7 +76,7 @@ contract PerHookDataTest is CustomValidationTestBase {
     function test_failAccessControl_badSigData_userOp() public withSMATest {
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({
@@ -110,7 +107,7 @@ contract PerHookDataTest is CustomValidationTestBase {
 
     function test_failAccessControl_noSigData_userOp() public withSMATest {
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
 
         userOp.signature = _encodeSignature(abi.encodePacked(r, s, v));
 
@@ -134,7 +131,7 @@ contract PerHookDataTest is CustomValidationTestBase {
 
     function test_failAccessControl_badIndexProvided_userOp() public withSMATest {
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](2);
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(_counter)});
@@ -163,7 +160,7 @@ contract PerHookDataTest is CustomValidationTestBase {
 
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](2);
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(_counter)});
@@ -183,7 +180,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         _installSecondPreHook();
 
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](3);
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(_counter)});
@@ -219,7 +216,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         });
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: abi.encodePacked(beneficiary)});
@@ -246,7 +243,7 @@ contract PerHookDataTest is CustomValidationTestBase {
 
     function test_failPerHookData_nonCanonicalEncoding_userOp() public withSMATest {
         (PackedUserOperation memory userOp, bytes32 userOpHash) = _getCounterUserOP();
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: ""});

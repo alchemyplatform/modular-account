@@ -22,7 +22,6 @@ import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/Modul
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
@@ -33,7 +32,6 @@ import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
 contract PaymasterGuardModuleTest is AccountTestBase {
     using ECDSA for bytes32;
-    using MessageHashUtils for bytes32;
 
     PaymasterGuardModule public module = new PaymasterGuardModule();
 
@@ -178,7 +176,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
     function test_userOp_success_i() public withSMATest {
         PackedUserOperation memory userOp = _packUO(address(account1), abi.encodePacked(paymaster1, ""));
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
         userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
         vm.prank(address(entryPoint));
         account1.validateUserOp(userOp, userOpHash, 0);
@@ -187,7 +185,7 @@ contract PaymasterGuardModuleTest is AccountTestBase {
     function test_userOp_fail_i() public withSMATest {
         PackedUserOperation memory userOp = _packUO(address(account1), abi.encodePacked(paymaster2, ""));
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
         userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         vm.expectRevert(

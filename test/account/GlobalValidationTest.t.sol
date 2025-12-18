@@ -20,7 +20,6 @@ pragma solidity ^0.8.28;
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
@@ -30,8 +29,6 @@ import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBy
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
 contract GlobalValidationTest is AccountTestBase {
-    using MessageHashUtils for bytes32;
-
     address public ethRecipient;
 
     // A separate account and owner that isn't deployed yet, used to test initcode
@@ -72,7 +69,7 @@ contract GlobalValidationTest is AccountTestBase {
 
         // Generate signature
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, userOpHash);
         userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -133,7 +130,7 @@ contract GlobalValidationTest is AccountTestBase {
         });
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, userOpHash);
         // Use the wrong checking mode - SELECTOR_ASSOCIATED_VALIDATION
         userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 

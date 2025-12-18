@@ -23,7 +23,6 @@ import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/V
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
@@ -34,7 +33,6 @@ import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
 
 contract MultiValidationTest is AccountTestBase {
     using ECDSA for bytes32;
-    using MessageHashUtils for bytes32;
 
     SingleSignerValidationModule public validator2;
 
@@ -114,7 +112,7 @@ contract MultiValidationTest is AccountTestBase {
 
         // Generate signature
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner2Key, userOpHash);
         userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
@@ -126,7 +124,7 @@ contract MultiValidationTest is AccountTestBase {
 
         userOp.nonce = _encodeNonce(ModuleEntityLib.pack(address(validator2), ENTITY_ID_1), GLOBAL_V, 1);
         userOpHash = entryPoint.getUserOpHash(userOp);
-        (v, r, s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        (v, r, s) = vm.sign(owner1Key, userOpHash);
         userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 
         userOps[0] = userOp;

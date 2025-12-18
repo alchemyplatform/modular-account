@@ -33,7 +33,6 @@ import {
 } from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IAccountExecute} from "@eth-infinitism/account-abstraction/interfaces/IAccountExecute.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
 
@@ -467,8 +466,7 @@ contract PHCallBufferTest is AccountTestBase {
 
     function _encodeUOSignature(bytes32 userOpHash) internal view returns (bytes memory) {
         if (_isSMATest) {
-            (uint8 v, bytes32 r, bytes32 s) =
-                vm.sign(owner1Key, MessageHashUtils.toEthSignedMessageHash(userOpHash));
+            (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash);
             bytes memory smaSig = abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
 
             return _encodeSignature(smaSig);

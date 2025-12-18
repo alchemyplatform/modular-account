@@ -22,7 +22,6 @@ import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/Modul
 import {SimpleAccount} from "@eth-infinitism/account-abstraction/accounts/SimpleAccount.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
 
 import {AccountStorageInitializable} from "../../src/account/AccountStorageInitializable.sol";
@@ -36,7 +35,6 @@ import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
 
 contract UpgradeToSmaTest is AccountTestBase {
     using ModuleEntityLib for ModuleEntity;
-    using MessageHashUtils for bytes32;
 
     address public smaStorageImpl;
     address public owner2;
@@ -179,7 +177,7 @@ contract UpgradeToSmaTest is AccountTestBase {
         });
 
         bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerKey, userOpHash.toEthSignedMessageHash());
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerKey, userOpHash);
 
         userOp.signature = _encodeSignature(abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
 

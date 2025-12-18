@@ -22,7 +22,6 @@ import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IV
 import {ReplaySafeWrapper} from "@erc6900/reference-implementation/modules/ReplaySafeWrapper.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {WebAuthn} from "webauthn-sol/src/WebAuthn.sol";
 
 import {ModuleBase} from "../ModuleBase.sol";
@@ -40,7 +39,6 @@ import {ModuleBase} from "../ModuleBase.sol";
 /// - This validation supports composition that other validation can relay on entities in this validation to
 ///   validate partially or fully.
 contract WebAuthnValidationModule is IValidationModule, ReplaySafeWrapper, ModuleBase {
-    using MessageHashUtils for bytes32;
     using WebAuthn for WebAuthn.WebAuthnAuth;
 
     struct PubKey {
@@ -103,7 +101,7 @@ contract WebAuthnValidationModule is IValidationModule, ReplaySafeWrapper, Modul
         override
         returns (uint256)
     {
-        if (_validateSignature(entityId, userOp.sender, userOpHash.toEthSignedMessageHash(), userOp.signature)) {
+        if (_validateSignature(entityId, userOp.sender, userOpHash, userOp.signature)) {
             return _SIG_VALIDATION_PASSED;
         }
 

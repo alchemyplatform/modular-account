@@ -23,7 +23,6 @@ import {ReplaySafeWrapper} from "@erc6900/reference-implementation/modules/Repla
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 import {SignatureType} from "../../helpers/SignatureType.sol";
@@ -43,8 +42,6 @@ import {ModuleBase} from "../ModuleBase.sol";
 /// - This validation supports composition that other validation can relay on entities in this validation to
 ///   validate partially or fully.
 contract SingleSignerValidationModule is IValidationModule, ReplaySafeWrapper, ModuleBase {
-    using MessageHashUtils for bytes32;
-
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
     uint256 internal constant _SIG_VALIDATION_FAILED = 1;
 
@@ -93,7 +90,7 @@ contract SingleSignerValidationModule is IValidationModule, ReplaySafeWrapper, M
         returns (uint256)
     {
         // Validate the user op signature against the owner.
-        if (_checkSig(signers[entityId][userOp.sender], userOpHash.toEthSignedMessageHash(), userOp.signature)) {
+        if (_checkSig(signers[entityId][userOp.sender], userOpHash, userOp.signature)) {
             return _SIG_VALIDATION_PASSED;
         }
         return _SIG_VALIDATION_FAILED;

@@ -117,7 +117,7 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         if (validationLookupKey.eq(FALLBACK_VALIDATION_LOOKUP_KEY)) {
             address fallbackSigner = _getFallbackSigner();
 
-            if (_checkSignature(fallbackSigner, userOpHash.toEthSignedMessageHash(), signatureSegment)) {
+            if (_checkSignature(fallbackSigner, userOpHash, signatureSegment)) {
                 return _SIG_VALIDATION_PASSED;
             }
             return _SIG_VALIDATION_FAILED;

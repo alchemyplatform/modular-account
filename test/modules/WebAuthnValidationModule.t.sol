@@ -20,7 +20,6 @@ pragma solidity ^0.8.28;
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
-import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {WebAuthn} from "webauthn-sol/src/WebAuthn.sol";
 import {Utils, WebAuthnInfo} from "webauthn-sol/test/Utils.sol";
 
@@ -31,8 +30,6 @@ import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
 
 contract WebAuthnValidationModuleTest is AccountTestBase {
-    using MessageHashUtils for bytes32;
-
     WebAuthnValidationModule public module;
     address payable public account;
     uint32 public entityId = 1;
@@ -127,7 +124,7 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
         uo.nonce = _encodeNextNonce(account, ModuleEntityLib.pack(address(module), entityId), true);
         uo.callData = abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, new bytes(0)));
         bytes32 uoHash = entryPoint.getUserOpHash(uo);
-        uo.signature = _getUOSigForChallenge(uoHash.toEthSignedMessageHash(), 0, 0);
+        uo.signature = _getUOSigForChallenge(uoHash, 0, 0);
 
         vm.prank(address(entryPoint));
         assertEq(ModularAccountBase(account).validateUserOp(uo, uoHash, 0), _SIG_VALIDATION_PASSED);
@@ -141,13 +138,13 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
         bytes32 uoHash = entryPoint.getUserOpHash(uo);
 
         // make sure r, s values isn't the right one by accident. checking 1 should be enough
-        WebAuthnInfo memory webAuthn = Utils.getWebAuthnStruct(uoHash.toEthSignedMessageHash());
+        WebAuthnInfo memory webAuthn = Utils.getWebAuthnStruct(uoHash);
         (bytes32 r,) = vm.signP256(passkeyPrivateKey, webAuthn.messageHash);
         vm.assume(r != bytes32(sigR));
 
         // build a correctly formatted sig and test it
         vm.assume(sigR != 0); // because we special case r=0 and s=0 in the helper function
-        uo.signature = _getUOSigForChallenge(uoHash.toEthSignedMessageHash(), sigR, sigS);
+        uo.signature = _getUOSigForChallenge(uoHash, sigR, sigS);
 
         vm.prank(address(entryPoint));
         assertEq(ModularAccountBase(account).validateUserOp(uo, uoHash, 0), _SIG_VALIDATION_FAILED);
