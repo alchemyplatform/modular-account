@@ -29,8 +29,6 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 import {SignatureType} from "../../helpers/SignatureType.sol";
 import {ModuleBase} from "../ModuleBase.sol";
 
-import {console} from "forge-std/console.sol";
-
 /// @title Single Signer Validation Module
 /// @author Alchemy
 /// @notice This validation enables any ECDSA (secp256k1 curve) signature validation or Contract Owner signature
@@ -129,9 +127,6 @@ contract SingleSignerValidationModule is IValidationModule, ModuleBase {
         override
         returns (bytes4)
     {
-        console.log("digest");
-        console.logBytes32(digest);
-
         if (_checkSig(signers[entityId][account], digest, signature)) {
             return _1271_MAGIC_VALUE;
         }
