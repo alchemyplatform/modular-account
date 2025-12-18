@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {ExecutionInstallDelegate} from "../../src/helpers/ExecutionInstallDelegate.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";

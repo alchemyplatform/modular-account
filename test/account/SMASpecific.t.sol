@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
@@ -140,7 +140,7 @@ contract SMASpecificTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function _installPreValidationHooks(uint32 count) internal {

@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
@@ -120,7 +120,7 @@ contract MultiValidationTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         // Sign with owner 1, expect fail
 
@@ -131,6 +131,6 @@ contract MultiValidationTest is AccountTestBase {
 
         userOps[0] = userOp;
         vm.expectRevert(abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error"));
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 }

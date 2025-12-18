@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 // solhint-disable-next-line private-vars-leading-underscore
 function _coalescePreValidation(uint256 validationRes1, uint256 validationRes2)

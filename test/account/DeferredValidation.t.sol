@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {
     IModularAccount,
@@ -408,6 +408,6 @@ contract DeferredValidationTest is AccountTestBase {
         if (expectedRevertData.length > 0) {
             vm.expectRevert(expectedRevertData);
         }
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 }

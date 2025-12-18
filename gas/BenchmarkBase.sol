@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {console} from "forge-std/console.sol";
 
@@ -40,7 +40,7 @@ abstract contract BenchmarkBase is OptimizedTest {
         vm.deal(recipient, 1 wei);
         vm.deal(beneficiary, 1 wei);
 
-        entryPoint = _deployEntryPoint070();
+        entryPoint = _deployEntryPoint090();
 
         mockErc20 = new MockERC20();
     }
@@ -61,7 +61,8 @@ abstract contract BenchmarkBase is OptimizedTest {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        vm.prank(beneficiary);
+        // solhint-disable avoid-tx-origin
+        vm.prank(tx.origin);
         entryPoint.handleOps(userOps, beneficiary);
 
         gasUsed = vm.lastCallGas().gasTotalUsed;

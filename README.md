@@ -34,7 +34,7 @@ This repository contains:
 
 The contracts conform to these ERC versions:
 
-- ERC-4337: [v0.7.0](https://github.com/eth-infinitism/account-abstraction/blob/releases/v0.7/erc/ERCS/erc-4337.md)
+- ERC-4337: [v0.9.0](https://github.com/eth-infinitism/account-abstraction/blob/releases/v0.9/erc/ERCS/erc-4337.md)
 - ERC-6900: [v0.8.0](https://github.com/ethereum/ERCs/blob/c081c445424505d549e0236650917a2aaf3c5743/ERCS/erc-6900.md)
 
 ## Development

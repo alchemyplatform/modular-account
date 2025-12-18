@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {MockERC20} from "../mocks/MockERC20.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
@@ -167,15 +167,13 @@ contract AllowlistERC20TokenLimitTest is AccountTestBase {
             target: address(erc20), value: 0, data: abi.encodeCall(IERC20.approve, (recipient, 9 ether + 100_000))
         });
 
-        vm.startPrank(address(entryPoint));
         PackedUserOperation[] memory uos = new PackedUserOperation[](1);
         uos[0] = _getPackedUO(abi.encodeCall(IModularAccount.executeBatch, (calls)));
-        entryPoint.handleOps(uos, beneficiary);
+        _handleOps(uos);
         // no spend consumed
 
         uint256 limit = module.erc20SpendLimits(ENTITY_ID, address(erc20), address(account1));
         assertEq(limit, 10 ether);
-        vm.stopPrank();
     }
 
     function test_runtime_executeLimit() public withSMATest {

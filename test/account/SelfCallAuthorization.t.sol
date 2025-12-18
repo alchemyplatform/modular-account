@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {Call, IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
@@ -198,7 +198,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         userOps[0] = userOp;
 
         vm.expectCall(address(comprehensiveModule), abi.encodeCall(ComprehensiveModule.foo, ()));
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_batchAction_allowed_execUserOp() public withSMATest {
@@ -218,7 +218,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         userOps[0] = userOp;
 
         vm.expectCall(address(comprehensiveModule), abi.encodeCall(ComprehensiveModule.foo, ()));
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_batchAction_allowed_runtime() public withSMATest {
@@ -259,7 +259,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
                 abi.encodeWithSelector(ModularAccountBase.SelfCallRecursionDepthExceeded.selector)
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_recursiveDepthCapped_execUserOp() public withSMATest {
@@ -288,7 +288,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
                 abi.encodeWithSelector(ModularAccountBase.SelfCallRecursionDepthExceeded.selector)
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_recursiveDepthCapped_runtime() public withSMATest {

@@ -15,12 +15,11 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
-
-import {LightAccount} from "@alchemy/light-account/src/LightAccount.sol";
+pragma solidity ^0.8.28;
 
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {SimpleAccount} from "@eth-infinitism/account-abstraction/accounts/SimpleAccount.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -104,17 +103,17 @@ contract UpgradeToSmaTest is AccountTestBase {
     }
 
     function test_upgradeToAndCall_LaToSmaStorage() external {
-        address lightAccountImpl = address(new LightAccount(entryPoint));
+        address simpleAccountImpl = address(new SimpleAccount(entryPoint));
 
         // We use deploy rather than create because we want to revert if the light account is already deployed, if
         // it does revert the error is `DeploymentFailed()`.
-        address payable newAccount = payable(LibClone.deployDeterministicERC1967(lightAccountImpl, 0x00));
+        address payable newAccount = payable(LibClone.deployDeterministicERC1967(simpleAccountImpl, 0x00));
 
-        // Initialize the LightAccount (which has its own storage namespacing) with the original signer.
-        LightAccount(newAccount).initialize(owner1);
+        // Initialize the SimpleAccount (which has its own storage namespacing) with the original signer.
+        SimpleAccount(newAccount).initialize(owner1);
 
-        // Upgrade the LightAccount to an SMA-Storage and call the initializer.
-        vm.prank(address(entryPoint));
+        // Upgrade the SimpleAccount to an SMA-Storage and call the initializer.
+        vm.prank(owner1);
         ModularAccount(newAccount)
             .upgradeToAndCall(smaStorageImpl, abi.encodeCall(SemiModularAccountStorageOnly.initialize, owner2));
 
@@ -190,6 +189,6 @@ contract UpgradeToSmaTest is AccountTestBase {
         if (expectedRevertData.length > 0) {
             vm.expectRevert(expectedRevertData);
         }
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 }

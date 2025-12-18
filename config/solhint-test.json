@@ -4,7 +4,7 @@
     "func-name-mixedcase": "off",
     "immutable-vars-naming": ["error"],
     "no-unused-import": ["error"],
-    "compiler-version": ["error", ">=0.8.26"],
+    "compiler-version": ["error", ">=0.8.28"],
     "custom-errors": "off",
     "func-visibility": ["error", { "ignoreConstructors": true }],
     "max-line-length": ["error", 120],

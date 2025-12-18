@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 
@@ -25,7 +25,7 @@ contract DeployFactoryTest is OptimizedTest {
 
         bytes32 zeroSalt = bytes32(0);
 
-        entryPoint = address(_deployEntryPoint070());
+        entryPoint = address(_deployEntryPoint090());
         modularAccountImpl = makeAddr("Modular Account Impl");
         semiModularAccountBytecodeImpl = makeAddr("Semi Modular Account Bytecode Impl");
         singleSignerValidationModule = makeAddr("Single Signer Validation Module");

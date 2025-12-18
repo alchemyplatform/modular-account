@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {
@@ -113,8 +113,7 @@ contract DeferredActionTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        vm.prank(beneficiary);
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         assertEq(10 ether, erc20.balanceOf(address(paymaster)));
     }
@@ -161,7 +160,6 @@ contract DeferredActionTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        vm.prank(beneficiary);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IEntryPoint.FailedOpWithRevert.selector,
@@ -170,7 +168,7 @@ contract DeferredActionTest is AccountTestBase {
                 abi.encodeWithSelector(ModularAccountBase.ValidationFunctionMissing.selector, bytes4(0xabcdabcd))
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_deferredAction_privilegeEscalationPrevented_executeSingle() public {
@@ -205,7 +203,6 @@ contract DeferredActionTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        vm.prank(beneficiary);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IEntryPoint.FailedOpWithRevert.selector,
@@ -214,7 +211,7 @@ contract DeferredActionTest is AccountTestBase {
                 abi.encodeWithSelector(ModularAccountBase.SelfCallRecursionDepthExceeded.selector)
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_deferredAction_privilegeEscalationPrevented_executeBatch() public {
@@ -256,7 +253,6 @@ contract DeferredActionTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        vm.prank(beneficiary);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IEntryPoint.FailedOpWithRevert.selector,
@@ -265,7 +261,7 @@ contract DeferredActionTest is AccountTestBase {
                 abi.encodeWithSelector(ModularAccountBase.SelfCallRecursionDepthExceeded.selector)
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_deferredAction_validationAssociatedExecHooks() public withSMATest {
@@ -330,7 +326,6 @@ contract DeferredActionTest is AccountTestBase {
         vm.expectCall(
             address(mockModule), abi.encodeWithSelector(IExecutionHookModule.preExecutionHook.selector), 1
         );
-        vm.prank(beneficiary);
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 }

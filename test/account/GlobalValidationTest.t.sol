@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
@@ -78,7 +78,7 @@ contract GlobalValidationTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         assertEq(ethRecipient.balance, 2 wei);
     }
@@ -150,6 +150,6 @@ contract GlobalValidationTest is AccountTestBase {
                 )
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 }

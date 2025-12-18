@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
@@ -106,8 +106,7 @@ contract PHCallBufferTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        vm.prank(beneficiary);
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     // pre hooks in `executeWithRuntimeValidation` (freshly allocated buffer from SMA)

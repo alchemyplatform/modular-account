@@ -15,18 +15,20 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {OptimizedTest} from "./OptimizedTest.sol";
 
 contract ValidateSetupTest is OptimizedTest {
     function test_deployedEntryPoint() public {
-        _deployEntryPoint070();
+        _deployEntryPoint090();
 
-        address entryPoint = 0x0000000071727De22E5E9d8BAf0edAc6f37da032;
-        address senderCreator = 0xEFC2c1444eBCC4Db75e7613d20C6a62fF67A167C;
+        address entryPoint = 0x433709009B8330FDa32311DF1C2AFA402eD8D009;
+        address senderCreator = 0x0A630a99Df908A81115A3022927Be82f9299987e;
 
-        assertEq(entryPoint.codehash, 0x8db5ff695839d655407cc8490bb7a5d82337a86a6b39c3f0258aa6c3b582fc58);
-        assertEq(senderCreator.codehash, 0x283c9d14378f5f4c4e24045b87d621d48443fa5b4af7dd7180a599b3756a7689);
+        assertEq(entryPoint.codehash, 0x14ee3fe0191de027aecf20ffd7dbd985f5023b898fa429485d2dfe2286b42750);
+        // update
+        assertEq(senderCreator.codehash, 0xa7d4dd260bca9c96da49f7c0682fdda7f0074694d935815a336d3e60ee3ec6ad);
+        // update
     }
 }

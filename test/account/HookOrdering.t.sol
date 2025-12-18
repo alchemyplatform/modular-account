@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {
@@ -124,7 +124,7 @@ contract HookOrderingTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         _checkInvokeOrderWithValidationAssocExec();
     }
@@ -147,7 +147,7 @@ contract HookOrderingTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         _checkInvokeOrderNoValidationAssocExec();
     }
@@ -172,7 +172,7 @@ contract HookOrderingTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         _checkInvokeOrderNoValidationAssocExec();
     }
@@ -241,7 +241,7 @@ contract HookOrderingTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         _checkInvokeOrderWithValidationAssocExec();
     }
@@ -267,7 +267,7 @@ contract HookOrderingTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         _checkInvokeOrderNoValidationAssocExec();
     }
@@ -296,7 +296,7 @@ contract HookOrderingTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         _checkInvokeOrderNoValidationAssocExec();
     }

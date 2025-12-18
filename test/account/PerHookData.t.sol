@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
@@ -71,7 +71,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         assertEq(_counter.number(), 1);
     }
@@ -105,7 +105,7 @@ contract PerHookDataTest is CustomValidationTestBase {
                 )
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_failAccessControl_noSigData_userOp() public withSMATest {
@@ -129,7 +129,7 @@ contract PerHookDataTest is CustomValidationTestBase {
                 )
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_failAccessControl_badIndexProvided_userOp() public withSMATest {
@@ -153,7 +153,7 @@ contract PerHookDataTest is CustomValidationTestBase {
                 abi.encodeWithSelector(SparseCalldataSegmentLib.ValidationSignatureSegmentMissing.selector)
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_passAccessControl_twoHooks_userOp() public withSMATest {
@@ -174,7 +174,7 @@ contract PerHookDataTest is CustomValidationTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         assertEq(_counter.number(), 1);
     }
@@ -202,7 +202,7 @@ contract PerHookDataTest is CustomValidationTestBase {
                 abi.encodeWithSelector(SparseCalldataSegmentLib.SegmentOutOfOrder.selector)
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_failAccessControl_badTarget_userOp() public withSMATest {
@@ -241,7 +241,7 @@ contract PerHookDataTest is CustomValidationTestBase {
                 )
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_failPerHookData_nonCanonicalEncoding_userOp() public withSMATest {
@@ -264,7 +264,7 @@ contract PerHookDataTest is CustomValidationTestBase {
                 abi.encodeWithSelector(SparseCalldataSegmentLib.NonCanonicalEncoding.selector)
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_passAccessControl_runtime() public withSMATest {

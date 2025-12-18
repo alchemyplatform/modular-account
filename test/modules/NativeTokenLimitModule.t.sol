@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {
@@ -167,19 +167,9 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         PackedUserOperation[] memory uos = new PackedUserOperation[](1);
         uos[0] = _getPackedUO(200_000, 200_000, 200_000, 1, _getExecuteWithValue(5 ether));
         uos[0].paymasterAndData = new bytes(52);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IEntryPoint.FailedOpWithRevert.selector,
-                0,
-                "AA23 reverted",
-                abi.encodeWithSelector(
-                    ExecutionLib.PreUserOpValidationHookReverted.selector,
-                    ModuleEntityLib.pack(address(module), entityId),
-                    abi.encodeWithSelector(NativeTokenLimitModule.InvalidPaymaster.selector)
-                )
-            )
-        );
-        entryPoint.handleOps(uos, beneficiary);
+        // paymaster zero address check is done by entrypoint v0.8+
+        vm.expectRevert(abi.encodeWithSelector(IEntryPoint.InvalidPaymaster.selector, address(0)));
+        _handleOps(uos);
     }
 
     function test_userOp_executeBatchLimit() public withSMATest {
@@ -225,7 +215,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         assertEq(module.limits(entityId, address(account1)), 10 ether);
         PackedUserOperation[] memory uos = new PackedUserOperation[](1);
         uos[0] = _getPackedUO(200_000, 200_000, 200_000, 1, _getExecuteWithValue(5 ether));
-        entryPoint.handleOps(uos, beneficiary);
+        _handleOps(uos);
 
         assertEq(module.limits(entityId, address(account1)), 5 ether - 600_000);
         assertEq(recipient.balance, 5 ether);
@@ -237,23 +227,20 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
         calls[1] = Call({target: recipient, value: 1 ether, data: ""});
         calls[2] = Call({target: recipient, value: 5 ether + 100_000, data: ""});
 
-        vm.startPrank(address(entryPoint));
         assertEq(module.limits(entityId, address(account1)), 10 ether);
         PackedUserOperation[] memory uos = new PackedUserOperation[](1);
         uos[0] = _getPackedUO(200_000, 200_000, 200_000, 1, abi.encodeCall(IModularAccount.executeBatch, (calls)));
-        entryPoint.handleOps(uos, beneficiary);
+        _handleOps(uos);
 
         assertEq(module.limits(entityId, address(account1)), 10 ether - 6 ether - 700_001);
         assertEq(recipient.balance, 6 ether + 100_001);
-
-        vm.stopPrank();
     }
 
     function test_userOp_combinedExecLimit_failExec() public withSMATest {
         assertEq(module.limits(entityId, address(account1)), 10 ether);
         PackedUserOperation[] memory uos = new PackedUserOperation[](1);
         uos[0] = _getPackedUO(200_000, 200_000, 200_000, 1, _getExecuteWithValue(10 ether));
-        entryPoint.handleOps(uos, beneficiary);
+        _handleOps(uos);
 
         assertEq(module.limits(entityId, address(account1)), 10 ether - 600_000);
         assertEq(recipient.balance, 0);
@@ -342,8 +329,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
 
         // Assert that this would pass
         uint256 stateSnapshot = vm.snapshotState();
-        vm.prank(beneficiary);
-        entryPoint.handleOps(uos, beneficiary);
+        _handleOps(uos);
 
         vm.revertToState(stateSnapshot);
 
@@ -355,7 +341,6 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
 
         uos[0].signature = _encodeSignature(preValidationHookData, "");
 
-        vm.prank(beneficiary);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IEntryPoint.FailedOpWithRevert.selector,
@@ -368,7 +353,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
                 )
             )
         );
-        entryPoint.handleOps(uos, beneficiary);
+        _handleOps(uos);
     }
 
     function test_deleteSingleSessionKey() public withSMATest {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
@@ -22,10 +22,10 @@ abstract contract ScriptBase is Script {
         IEntryPoint entryPoint = IEntryPoint(payable(vm.envOr("ENTRYPOINT", address(0))));
         if (address(entryPoint) == address(0)) {
             console.log(
-                "Env Variable 'ENTRYPOINT' not found or invalid, defaulting to v0.7 EntryPoint at "
-                "0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+                "Env Variable 'ENTRYPOINT' not found or invalid, defaulting to v0.9 EntryPoint at "
+                "0x433709009B8330FDa32311DF1C2AFA402eD8D009"
             );
-            entryPoint = IEntryPoint(0x0000000071727De22E5E9d8BAf0edAc6f37da032);
+            entryPoint = IEntryPoint(0x433709009B8330FDa32311DF1C2AFA402eD8D009);
         } else {
             console.log("Using user-defined EntryPoint at: %x", address(entryPoint));
         }

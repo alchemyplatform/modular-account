@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {Test} from "forge-std/Test.sol";
 
@@ -91,12 +91,12 @@ abstract contract OptimizedTest is Test {
             : new ExecutionInstallDelegate();
     }
 
-    function _deployEntryPoint070() internal returns (EntryPoint) {
-        address deployedEntryPointAddr = 0x0000000071727De22E5E9d8BAf0edAc6f37da032;
-        address deployedSenderCreatorAddr = 0xEFC2c1444eBCC4Db75e7613d20C6a62fF67A167C;
-        bytes memory bytecode = vm.readFileBinary("test/bin/EntryPoint070.bytecode");
+    function _deployEntryPoint090() internal returns (EntryPoint) {
+        address deployedEntryPointAddr = 0x433709009B8330FDa32311DF1C2AFA402eD8D009;
+        address deployedSenderCreatorAddr = 0x0A630a99Df908A81115A3022927Be82f9299987e;
+        bytes memory bytecode = vm.readFileBinary("test/bin/EntryPoint090.bytecode");
         vm.etch(deployedEntryPointAddr, bytecode);
-        bytecode = vm.readFileBinary("test/bin/SenderCreator070.bytecode");
+        bytecode = vm.readFileBinary("test/bin/SenderCreator090.bytecode");
         vm.etch(deployedSenderCreatorAddr, bytecode);
         return EntryPoint(payable(deployedEntryPointAddr));
     }

@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
@@ -300,8 +300,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
 
         uint256 stateSnapshot = vm.snapshotState();
 
-        vm.prank(beneficiary);
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         assertEq(counters[0].number(), 1);
 
@@ -317,7 +316,6 @@ contract AllowlistModuleTest is CustomValidationTestBase {
 
         userOps[0] = userOp;
 
-        vm.prank(beneficiary);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IEntryPoint.FailedOpWithRevert.selector,
@@ -330,7 +328,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
                 )
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function _beforeInstallStep(address accountImpl) internal override {

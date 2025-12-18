@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
@@ -76,8 +76,7 @@ contract PostHookDataTest is AccountTestBase {
         _expectAndMockExecHooks(
             fuzzConfig, address(entryPoint), 0, abi.encodeCall(IAccountExecute.executeUserOp, (userOp, userOpHash))
         );
-        vm.prank(beneficiary);
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_valAssocExecHooks_passDataCorrectly_userOp_example() public {

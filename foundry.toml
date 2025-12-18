@@ -1,7 +1,7 @@
 [profile.default]
-solc = '0.8.26'
+solc = '0.8.28'
 via_ir = false
-evm_version = 'paris'
+evm_version = 'cancun'
 src = 'src'
 test = 'test'
 libs = ['lib', 'node_modules']

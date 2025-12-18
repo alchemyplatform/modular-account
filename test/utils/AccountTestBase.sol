@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {
@@ -136,7 +136,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     }
 
     constructor() {
-        entryPoint = _deployEntryPoint070();
+        entryPoint = _deployEntryPoint090();
         (owner1, owner1Key) = makeAddrAndKey("owner1");
         factoryOwner = makeAddr("factoryOwner");
         beneficiary = payable(makeAddr("beneficiary"));
@@ -239,7 +239,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         if (expectedRevertData.length > 0) {
             vm.expectRevert(expectedRevertData);
         }
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function _runtimeExec(address target, bytes memory callData) internal {
@@ -405,5 +405,11 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     // helper function to compress 2 gas values into a single bytes32
     function _encodeGas(uint256 g1, uint256 g2) internal pure returns (bytes32) {
         return bytes32(uint256((g1 << 128) + uint128(g2)));
+    }
+
+    function _handleOps(PackedUserOperation[] memory userOps) internal {
+        // solhint-disable avoid-tx-origin
+        vm.prank(tx.origin);
+        entryPoint.handleOps(userOps, beneficiary);
     }
 }

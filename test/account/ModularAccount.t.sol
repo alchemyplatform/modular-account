@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License along with this program. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {console} from "forge-std/Test.sol";
 
@@ -117,7 +117,7 @@ contract ModularAccountTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         assertEq(ethRecipient.balance, 2 wei);
     }
@@ -165,7 +165,7 @@ contract ModularAccountTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_standardExecuteEthSend_withInitcode() public withSMATest {
@@ -198,7 +198,7 @@ contract ModularAccountTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         assertEq(recipient.balance, 1 wei);
     }
@@ -225,7 +225,7 @@ contract ModularAccountTest is AccountTestBase {
         userOps[0] = userOp;
 
         vm.record();
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
         _printStorageReadsAndWrites(address(account2));
     }
 
@@ -257,7 +257,7 @@ contract ModularAccountTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         assertEq(counter.number(), 2);
     }
@@ -288,7 +288,7 @@ contract ModularAccountTest is AccountTestBase {
         PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
         userOps[0] = userOp;
 
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         assertEq(counter.number(), 2);
         assertEq(ethRecipient.balance, 2 wei);
@@ -539,7 +539,7 @@ contract ModularAccountTest is AccountTestBase {
                 )
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
 
         //show working rt validation
         vm.startPrank(address(owner1));
@@ -669,7 +669,7 @@ contract ModularAccountTest is AccountTestBase {
                 )
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        _handleOps(userOps);
     }
 
     function test_rtValidationWithValue() public withSMATest {

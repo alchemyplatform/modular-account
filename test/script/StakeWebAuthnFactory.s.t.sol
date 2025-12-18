@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.28;
 
 import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
@@ -24,7 +24,7 @@ contract StakeWebAuthnFactoryTest is OptimizedTest {
     function setUp() public {
         _stakeFactoryScript = new StakeWebAuthnFactoryScript();
 
-        _entryPoint = _deployEntryPoint070();
+        _entryPoint = _deployEntryPoint090();
 
         ExecutionInstallDelegate executionInstallDelegate = _deployExecutionInstallDelegate();
 
