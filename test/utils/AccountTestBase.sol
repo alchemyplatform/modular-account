@@ -49,6 +49,8 @@ import {
     TEST_DEFAULT_VALIDATION_ENTITY_ID as EXT_CONST_TEST_DEFAULT_VALIDATION_ENTITY_ID
 } from "./TestConstants.sol";
 
+import {console} from "forge-std/console.sol";
+
 /// @dev This contract handles common boilerplate setup for tests using ModularAccount with
 /// SingleSignerValidationModule.
 abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
@@ -377,11 +379,15 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
             _hasDeferredAction: false // The inner deferred action can't recursively have deferred actions.
         });
 
+        (address validationModule,) = _signerValidation.unpack();
+        console.log("validationModule");
+        console.logAddress(validationModule);
+
         bytes memory deferredValidationSig;
         bytes memory deferredValidationDatas;
         {
             bytes32 digest = _getDeferredInstallStruct(
-                account, userOpNonce, deferredInstallDeadline, deferredValidationInstallCall
+                account, userOpNonce, validationModule, deferredInstallDeadline, deferredValidationInstallCall
             );
 
             deferredValidationSig = _signRawHash(vm, signingKey, digest);

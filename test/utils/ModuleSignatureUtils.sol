@@ -30,6 +30,8 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ValidationLocator, ValidationLocatorLib} from "../../src/libraries/ValidationLocatorLib.sol";
 
+import {console} from "forge-std/console.sol";
+
 /// @dev Utilities for encoding signatures for modular account validation. Used for encoding user op, runtime, and
 /// 1271 signatures.
 contract ModuleSignatureUtils {
@@ -60,9 +62,7 @@ contract ModuleSignatureUtils {
 
     bytes32 internal constant _REPLAY_SAFE_HASH_TYPEHASH = keccak256("ReplaySafeHash(bytes32 hash)");
 
-    bytes32 internal constant _ACCOUNT_DOMAIN_SEPARATOR =
-        keccak256("EIP712Domain(uint256 chainId,address verifyingContract)");
-    bytes32 internal constant _MODULE_DOMAIN_SEPARATOR =
+    bytes32 internal constant _DOMAIN_SEPARATOR =
         keccak256("EIP712Domain(uint256 chainId,address verifyingContract,bytes32 salt)");
 
     constructor() {
@@ -210,9 +210,13 @@ contract ModuleSignatureUtils {
         return abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
     }
 
-    function _getReplaySafeHash(address account, bytes32 digest) internal view returns (bytes32) {
+    function _getReplaySafeHash(address account, address validationModule, bytes32 digest)
+        internal
+        view
+        returns (bytes32)
+    {
         return MessageHashUtils.toTypedDataHash({
-            domainSeparator: _computeDomainSeparator(account), structHash: _hashStruct(digest)
+            domainSeparator: _computeDomainSeparator(account, validationModule), structHash: _hashStruct(digest)
         });
     }
 
@@ -286,10 +290,11 @@ contract ModuleSignatureUtils {
     function _getDeferredInstallStruct(
         ModularAccount account,
         uint256 userOpNonce,
+        address validationModule,
         uint48 deadline,
         bytes memory selfCall
     ) internal view returns (bytes32) {
-        bytes32 domainSeparator = _computeDomainSeparator(address(account));
+        bytes32 domainSeparator = _computeDomainSeparator(address(account), validationModule);
 
         bytes32 selfCallHash = keccak256(selfCall);
 
@@ -300,8 +305,13 @@ contract ModuleSignatureUtils {
     }
 
     // EIP-712 helpers for acount
-    function _computeDomainSeparator(address account) internal view returns (bytes32) {
-        return keccak256(abi.encode(_ACCOUNT_DOMAIN_SEPARATOR, block.chainid, account));
+    function _computeDomainSeparator(address account, address validationModule) internal view returns (bytes32) {
+        console.log("computeDomainSeparator validationModule");
+        console.logAddress(validationModule);
+        bytes32 ret = keccak256(abi.encode(_DOMAIN_SEPARATOR, block.chainid, account, validationModule));
+        console.log("computeDomainSeparator");
+        console.logBytes32(ret);
+        return ret;
     }
 
     // EIP-712 helpers for acount

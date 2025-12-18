@@ -264,7 +264,7 @@ contract ModularAccountGasTest is ModularAccountBenchmarkBase("SemiModularAccoun
         uint48 deferredInstallDeadline = 0;
 
         bytes32 digest = _getDeferredInstallStruct(
-            account1, userOp.nonce, deferredInstallDeadline, deferredValidationInstallCall
+            account1, userOp.nonce, address(0), deferredInstallDeadline, deferredValidationInstallCall
         );
 
         bytes memory deferredValidationSig = _signRawHash(vm, owner1Key, digest);

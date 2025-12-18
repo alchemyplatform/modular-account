@@ -61,6 +61,7 @@ import {AccountStorageInitializable} from "./AccountStorageInitializable.sol";
 import {ModularAccountView} from "./ModularAccountView.sol";
 import {ModuleManagerInternals} from "./ModuleManagerInternals.sol";
 import {TokenReceiver} from "./TokenReceiver.sol";
+import {console} from "forge-std/console.sol";
 
 /// @title Modular Account Base
 /// @author Alchemy
@@ -91,9 +92,9 @@ abstract contract ModularAccountBase is
         EITHER
     }
 
-    // keccak256("EIP712Domain(uint256 chainId,address verifyingContract)")
+    // keccak256("EIP712Domain(uint256 chainId,address verifyingContract,bytes32 salt)")
     bytes32 internal constant _DOMAIN_SEPARATOR_TYPEHASH =
-        0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
+        0x71062c282d40422f744945d587dbf4ecfd4f9cfad1d35d62c944373009d96162;
 
     // keccak256("DeferredAction(uint256 nonce,uint48 deadline,bytes call)")
     bytes32 internal constant _DEFERRED_ACTION_TYPEHASH =
@@ -503,7 +504,8 @@ abstract contract ModularAccountBase is
 
         uint48 deadline = uint48(bytes6(encodedData[21:27]));
 
-        bytes32 typedDataHash = _computeDeferredActionHash(userOpNonce, deadline, encodedData[27:]);
+        bytes32 typedDataHash =
+            _computeDeferredActionHash(userOpNonce, _validationStorage.module, deadline, encodedData[27:]);
 
         // Check if the outer validation applies to the function call
         _checkIfValidationAppliesCallData(
@@ -734,11 +736,12 @@ abstract contract ModularAccountBase is
         ExecutionLib.invokeRuntimeCallBufferValidation(callBuffer, runtimeValidationFunction, authorization);
     }
 
-    function _computeDeferredActionHash(uint256 userOpNonce, uint48 deadline, bytes calldata selfCall)
-        internal
-        view
-        returns (bytes32)
-    {
+    function _computeDeferredActionHash(
+        uint256 userOpNonce,
+        address validationModule,
+        uint48 deadline,
+        bytes calldata selfCall
+    ) internal view returns (bytes32) {
         // Note:
         // - A zero deadline translates to "no deadline"
         // - The user op nonce also includes the data for:
@@ -781,7 +784,7 @@ abstract contract ModularAccountBase is
             structHash := keccak256(fmp, 0x80)
         }
 
-        bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(_domainSeparator(), structHash);
+        bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(_domainSeparator(validationModule), structHash);
 
         return typedDataHash;
     }
@@ -817,9 +820,9 @@ abstract contract ModularAccountBase is
     /// enforcing the domain separator, which includes this contract's address and the chainId. This is only
     /// relevant for 1271 validation because UserOp validation relies on the UO hash and the Entrypoint has
     /// safeguards.
-    function replaySafeHash(bytes32 hash) public view returns (bytes32) {
+    function replaySafeHash(bytes32 hash, address validationModule) public view returns (bytes32) {
         return MessageHashUtils.toTypedDataHash({
-            domainSeparator: _domainSeparator(), structHash: _hashStructReplaySafeHash(hash)
+            domainSeparator: _domainSeparator(validationModule), structHash: _hashStructReplaySafeHash(hash)
         });
     }
 
@@ -842,12 +845,14 @@ abstract contract ModularAccountBase is
         returns (bytes4)
     {
         ValidationLookupKey validationLookupKey = validationLocator.lookupKey();
+        console.log("isValidSignature validationLocator entity ID");
+        console.logUint(ValidationLocatorLib.entityId(validationLookupKey));
         ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[validationLookupKey];
 
         HookConfig[] memory preSignatureValidationHooks = MemManagementLib.loadValidationHooks(_validationStorage);
 
         if (!validationLocator.isSkipReplayProtection()) {
-            hash = replaySafeHash(hash);
+            hash = replaySafeHash(hash, _validationStorage.module);
         }
 
         SigCallBuffer sigCallBuffer;
@@ -1140,8 +1145,11 @@ abstract contract ModularAccountBase is
         return getAccountStorage().validationStorage[validationFunction].selectors.contains(toSetValue(selector));
     }
 
-    function _domainSeparator() internal view returns (bytes32) {
+    function _domainSeparator(address validationModule) internal view returns (bytes32) {
         bytes32 result;
+
+        console.log("domainSeparator validationModule");
+        console.logAddress(validationModule);
 
         // Compute the hash without permanently allocating memory
         assembly ("memory-safe") {
@@ -1149,8 +1157,12 @@ abstract contract ModularAccountBase is
             mstore(fmp, _DOMAIN_SEPARATOR_TYPEHASH)
             mstore(add(fmp, 0x20), chainid())
             mstore(add(fmp, 0x40), address())
-            result := keccak256(fmp, 0x60)
+            mstore(add(fmp, 0x60), validationModule) // TODO does this store the bytes32 salt correctly?
+            result := keccak256(fmp, 0x80)
         }
+
+        console.log("domainSeparator result");
+        console.logBytes32(result);
 
         return result;
     }

@@ -35,6 +35,8 @@ import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
 import {MockModule} from "../mocks/modules/MockModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 
+import {console} from "forge-std/console.sol";
+
 contract SigCallBufferTest is AccountTestBase {
     using ValidationConfigLib for ValidationConfig;
     // installed entity id is their index
@@ -59,9 +61,14 @@ contract SigCallBufferTest is AccountTestBase {
 
     function test_sigCallBuffer_noData() public withSMATest {
         bytes32 hash = keccak256("test");
-        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), hash);
 
         _setUp4ValidationHooks();
+
+        address _validationModule = address(0);
+        if (!_isSMATest) {
+            _validationModule = address(validationModule);
+        }
+        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), address(_validationModule), hash);
 
         for (uint256 i = 0; i < 3; i++) {
             vm.expectCall(
@@ -96,7 +103,6 @@ contract SigCallBufferTest is AccountTestBase {
 
     function test_sigCallBuffer_withData() public withSMATest {
         bytes32 hash = keccak256("test");
-        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), hash);
 
         FuzzConfig memory fuzzConfig;
         fuzzConfig.validationHookCount = 4;
@@ -109,6 +115,17 @@ contract SigCallBufferTest is AccountTestBase {
         hex"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffabcd";
 
         _setUp4ValidationHooks();
+
+        address _validationModule = address(0);
+        if (!_isSMATest) {
+            console.log("validationModule");
+            console.logAddress(address(validationModule));
+            _validationModule = address(validationModule);
+        }
+
+        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), address(_validationModule), hash);
+        console.log("replaySafeHash");
+        console.logBytes32(replaySafeHash);
 
         _expectCalls(fuzzConfig, replaySafeHash);
 
@@ -130,7 +147,11 @@ contract SigCallBufferTest is AccountTestBase {
     function testFuzz_sigCallBuffer(bytes32 hash, FuzzConfig memory fuzzConfig) public withSMATest {
         _installValidationAndAssocHook(fuzzConfig);
 
-        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), hash);
+        address _validationModule = address(0);
+        if (!_isSMATest) {
+            _validationModule = address(validationModule);
+        }
+        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), address(_validationModule), hash);
         _expectCalls(fuzzConfig, replaySafeHash);
 
         PreValidationHookData[] memory preValidationHookDatasToSend = _generatePreHooksDatasArray(fuzzConfig);

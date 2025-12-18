@@ -62,7 +62,7 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
 
     function test_isValidSignature() external view {
         bytes32 message = keccak256("message");
-        bytes32 challenge = ModularAccountBase(account).replaySafeHash(message);
+        bytes32 challenge = ModularAccountBase(account).replaySafeHash(message, address(module));
 
         assertTrue(
             ModularAccountBase(account).isValidSignature(message, _get1271SigForChallenge(challenge, 0, 0))
@@ -72,7 +72,7 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
 
     // fuzz message
     function testFuzz_pass_isValidSignature(bytes32 message) public view {
-        bytes32 challenge = ModularAccountBase(account).replaySafeHash(message);
+        bytes32 challenge = ModularAccountBase(account).replaySafeHash(message, address(module));
 
         assertTrue(
             ModularAccountBase(account).isValidSignature(message, _get1271SigForChallenge(challenge, 0, 0))
@@ -82,7 +82,7 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
 
     // Fuzz sig
     function testFuzz_fail_isValidSignature(bytes32 message, uint256 sigR, uint256 sigS) external view {
-        bytes32 challenge = ModularAccountBase(account).replaySafeHash(message);
+        bytes32 challenge = ModularAccountBase(account).replaySafeHash(message, address(module));
 
         // make sure r, s values isn't the right one by accident. checking 1 should be enough
         WebAuthnInfo memory webAuthn = Utils.getWebAuthnStruct(challenge);
