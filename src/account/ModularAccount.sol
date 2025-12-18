@@ -45,7 +45,7 @@ contract ModularAccount is ModularAccountBase {
 
     /// @inheritdoc IModularAccount
     function accountId() external pure override returns (string memory) {
-        return "alchemy.modular-account.2.0.0";
+        return "alchemy.modular-account.2.1.0";
     }
 
     /// @dev Overrides ModularAccountView.

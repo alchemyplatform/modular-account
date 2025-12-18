@@ -38,7 +38,7 @@ contract SemiModularAccountBytecode is SemiModularAccountBase {
 
     /// @inheritdoc IModularAccount
     function accountId() external pure override returns (string memory) {
-        return "alchemy.sma-bytecode.1.0.0";
+        return "alchemy.sma-bytecode.1.1.0";
     }
 
     /// @dev If the fallback signer is set in storage, we ignore the bytecode signer.

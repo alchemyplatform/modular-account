@@ -77,13 +77,13 @@ contract DeployAccountsTest is OptimizedTest {
 
         _deployAccountsScript.run();
 
-        assertEq(ModularAccount(payable(modularAccountImpl)).accountId(), "alchemy.modular-account.2.0.0");
+        assertEq(ModularAccount(payable(modularAccountImpl)).accountId(), "alchemy.modular-account.2.1.0");
 
         assertEq(
             SemiModularAccountBytecode(payable(semiModularAccountBytecodeImpl)).accountId(),
-            "alchemy.sma-bytecode.1.0.0"
+            "alchemy.sma-bytecode.1.1.0"
         );
 
-        assertEq(SemiModularAccount7702(payable(semiModularAccount7702Impl)).accountId(), "alchemy.sma-7702.1.0.0");
+        assertEq(SemiModularAccount7702(payable(semiModularAccount7702Impl)).accountId(), "alchemy.sma-7702.1.1.0");
     }
 }

@@ -37,7 +37,7 @@ contract SemiModularAccount7702 is SemiModularAccountBase {
 
     /// @inheritdoc IModularAccount
     function accountId() external pure override returns (string memory) {
-        return "alchemy.sma-7702.1.0.0";
+        return "alchemy.sma-7702.1.1.0";
     }
 
     function upgradeToAndCall(address, bytes calldata) public payable override {
