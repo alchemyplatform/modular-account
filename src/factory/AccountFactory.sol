@@ -47,6 +47,10 @@ contract AccountFactory is Ownable2Step {
 
     error InvalidAction();
     error TransferFailed();
+    error NoCodeAccountImpl();
+    error NoCodeSemiModularImpl();
+    error NoCodeSingleSignerValidationModule();
+    error NoCodeWebAuthnModule();
 
     constructor(
         IEntryPoint _entryPoint,
@@ -61,6 +65,19 @@ contract AccountFactory is Ownable2Step {
         SEMI_MODULAR_ACCOUNT_IMPL = _semiModularImpl;
         SINGLE_SIGNER_VALIDATION_MODULE = _singleSignerValidationModule;
         WEBAUTHN_VALIDATION_MODULE = _webAuthnValidationModule;
+
+        if (address(_accountImpl).code.length == 0) {
+            revert NoCodeAccountImpl();
+        }
+        if (address(_semiModularImpl).code.length == 0) {
+            revert NoCodeSemiModularImpl();
+        }
+        if (address(_singleSignerValidationModule).code.length == 0) {
+            revert NoCodeSingleSignerValidationModule();
+        }
+        if (address(_webAuthnValidationModule).code.length == 0) {
+            revert NoCodeWebAuthnModule();
+        }
     }
 
     /// @notice Create an account with the single singer validation module installed, and return its address.

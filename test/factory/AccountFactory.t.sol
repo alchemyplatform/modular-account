@@ -18,9 +18,8 @@
 pragma solidity ^0.8.28;
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
-
-import {WebAuthnFactory} from "../../src/factory/WebAuthnFactory.sol";
-import {WebAuthnValidationModule} from "../../src/modules/validation/WebAuthnValidationModule.sol";
+import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
+import {AccountFactory} from "../../src/factory/AccountFactory.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {TEST_DEFAULT_VALIDATION_ENTITY_ID} from "../utils/TestConstants.sol";
 
@@ -31,14 +30,6 @@ contract AccountFactoryTest is AccountTestBase {
     uint256 internal _ownerX = 1;
     uint256 internal _ownerY = 2;
 
-    WebAuthnFactory public webAuthnFactory;
-
-    function setUp() public override {
-        address webAuthnModule = address(new WebAuthnValidationModule());
-
-        webAuthnFactory = new WebAuthnFactory(entryPoint, accountImplementation, webAuthnModule, factoryOwner);
-    }
-
     function test_createAccount() public withSMATest {
         ModularAccount account = factory.createAccount(address(this), 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
@@ -47,7 +38,7 @@ contract AccountFactoryTest is AccountTestBase {
 
     function test_createWebAuthnAccount() public {
         ModularAccount account =
-            webAuthnFactory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
+            factory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         assertEq(address(account.entryPoint()), address(entryPoint));
     }
@@ -66,18 +57,16 @@ contract AccountFactoryTest is AccountTestBase {
 
     function test_createWebAuthnAccountAndGetAddress() public {
         ModularAccount account =
-            webAuthnFactory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
+            factory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         assertEq(
             address(account),
-            address(
-                webAuthnFactory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID)
-            )
+            address(factory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID))
         );
 
         assertEq(
             address(account),
-            address(webAuthnFactory.getAddressWebAuthn(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID))
+            address(factory.getAddressWebAuthn(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID))
         );
     }
 
@@ -123,15 +112,51 @@ contract AccountFactoryTest is AccountTestBase {
         assertEq(address(factory).balance, 0);
     }
 
-    function test_fail_createWebAuthnAccountWithoutAccountImpl() public {
-        address webAuthnModule = address(new WebAuthnValidationModule());
-
-        vm.expectRevert(WebAuthnFactory.NoCodeAccountImpl.selector);
-        new WebAuthnFactory(entryPoint, ModularAccount(payable(0)), webAuthnModule, factoryOwner);
+    function test_fail_createAccountWithoutAccountImpl() public {
+        vm.expectRevert(AccountFactory.NoCodeAccountImpl.selector);
+        new AccountFactory(
+            entryPoint,
+            ModularAccount(payable(0)),
+            semiModularAccountImplementation,
+            address(singleSignerValidationModule),
+            address(webAuthnModule),
+            factoryOwner
+        );
     }
 
-    function test_fail_createWebAuthnAccountWithoutModuleImpl() public {
-        vm.expectRevert(WebAuthnFactory.NoCodeWebAuthnModule.selector);
-        new WebAuthnFactory(entryPoint, accountImplementation, address(0), factoryOwner);
+    function test_fail_createAccountWithoutSemiModularImpl() public {
+        vm.expectRevert(AccountFactory.NoCodeSemiModularImpl.selector);
+        new AccountFactory(
+            entryPoint,
+            accountImplementation,
+            SemiModularAccountBytecode(payable(0)),
+            address(singleSignerValidationModule),
+            address(webAuthnModule),
+            factoryOwner
+        );
+    }
+
+    function test_fail_createAccountWithoutSingleSignerValidationModule() public {
+        vm.expectRevert(AccountFactory.NoCodeSingleSignerValidationModule.selector);
+        new AccountFactory(
+            entryPoint,
+            accountImplementation,
+            semiModularAccountImplementation,
+            address(0),
+            address(webAuthnModule),
+            factoryOwner
+        );
+    }
+
+    function test_fail_createAccountWithoutWebAuthnModule() public {
+        vm.expectRevert(AccountFactory.NoCodeWebAuthnModule.selector);
+        new AccountFactory(
+            entryPoint,
+            accountImplementation,
+            semiModularAccountImplementation,
+            address(singleSignerValidationModule),
+            address(0),
+            factoryOwner
+        );
     }
 }

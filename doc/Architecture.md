@@ -5,36 +5,36 @@
 Modular Account aims to support the ability to:
 
 - represent different key types using validation functions
-    - limit the scope of what each validation function may authorize, to enforce defense-in-depth
+  - limit the scope of what each validation function may authorize, to enforce defense-in-depth
 - use hooks to apply permissions over keys
-    - apply these permissions subtractively, to only pay gas for what you use
+  - apply these permissions subtractively, to only pay gas for what you use
 - conform to arbitrary external function interfaces for smart contract composability
 - defer initialization steps until the account is actually used, including steps like provisioning keys and approving tokens
 - send transactions outside of the ERC-4337 user op context
-   - Support nested smart account ownership logic, where calls cannot re-enter the entrypoint
+  - Support nested smart account ownership logic, where calls cannot re-enter the entrypoint
 
 ## Architecture Overview
 
 The Modular Account contract suite consists of:
 
 - Account factories:
-    - These allow for deterministic crosschain deployments of accounts as [ERC-1967](https://eips.ethereum.org/EIPS/eip-1967) proxies
-    - `AccountFactory`: supports deploying the standard, flagship account `SemiModularAccountBytecode`
-    - `WebAuthnFactory`: supports deploying WebAuthn (passkey) owned accounts.
+  - These allow for deterministic crosschain deployments of accounts as [ERC-1967](https://eips.ethereum.org/EIPS/eip-1967) proxies
+  - `AccountFactory`: supports deploying each account type SemiModular, SingleSigner, WebAuthn
 - Account implementation contracts:
-    - These manage module installation state and scope.
-    - `SemiModularAccountBytecode` (SMA-B): The most efficient account to deploy, holds the initial owner in proxy bytecode. Only compatible with using `AccountFactory` for deployment, cannot upgrade from other proxies to this.
-    - `SemiModularAccountStorageOnly` (SMA-S): Similar to SMA-B, but works for upgrading other account types into this account.
-    - `ModularAccount`: Account that only manages module state, all ownership logic exists in modules.
+  - These manage module installation state and scope.
+  - `SemiModularAccountBytecode` (SMA-B): The most efficient account to deploy, holds the initial owner in proxy bytecode. Only compatible with using `AccountFactory` for deployment, cannot upgrade from other proxies to this.
+  - `SemiModularAccountStorageOnly` (SMA-S): Similar to SMA-B, but works for upgrading other account types into this account.
+  - `ModularAccount`: Account that only manages module state, all ownership logic exists in modules.
 - Module Contracts
-    - Validation Modules
-        - `SingleSignerValidationModule`: supports secp256k1 ECDSA owners or ERC-1271 contract owners.
-        - `WebAuthnValidationModule`: supports WebAuthn (passkey) owners by validating secp256r1 signatures.
-    - Permission modules
-        - `AllowlistModule`: Enforces ERC-20 spend limits and address/selector allowlists.
-        - `NativeTokenLimitModule`: Enforces native token spend limits.
-        - `PaymasterGuardModule`: Enforces use of a specific paymaster.
-        - `TimeRangeModule`: Enforces time ranges for a given entity.
+  - Validation Modules
+    - `SingleSignerValidationModule`: supports secp256k1 ECDSA owners or ERC-1271 contract owners.
+    - `WebAuthnValidationModule`: supports WebAuthn (passkey) owners by validating secp256r1 signatures.
+  - Permission modules
+    - `AllowlistModule`: Enforces ERC-20 spend limits and address/selector allowlists.
+    - `NativeTokenLimitModule`: Enforces native token spend limits.
+    - `PaymasterGuardModule`: Enforces use of a specific paymaster.
+    - `TimeRangeModule`: Enforces time ranges for a given entity.
+
 ## Concepts
 
 ## Entity IDs
@@ -44,7 +44,6 @@ Because the module contracts hold state, each module must distinguish between ac
 An entity ID uniquely identifies the "instance" of state per module in a `uint32`. The combination of module address and an entity ID is referred to as a "module function".
 
 For Modular Account specifically, entity IDs for validation functions must be globally unique. This is not a requirement of the ERC-6900 standard, but is used here to allow for more compact packing of validation selection. See [Data-Encoding.md](./Data-Encoding.md) for more details.
-
 
 ## Validation functions
 
@@ -93,60 +92,69 @@ The account state generally only manages which modules are installed, what type 
 There are four functions for managing module installation state on the account: `installValidation`, `uninstallValidation`, `installExecution`, and `uninstallExecution`.
 
 #### `installValidation`
+
 **Parameters:**
+
 - Packed into `ValidationConfig`:
-    - Module address
-    - Entity ID
-    - Validation options: 
-        - `isGlobal`: has permission to validate any global account function.
-        - `isSignatureValidation`: has permission to validate ERC-1271 signatures.
-        - `isUserOpValidation`: has permission to validate user operation signatures.
-        - (Ability to validate runtime calls is implicit and cannot be disabled.)
+  - Module address
+  - Entity ID
+  - Validation options:
+    - `isGlobal`: has permission to validate any global account function.
+    - `isSignatureValidation`: has permission to validate ERC-1271 signatures.
+    - `isUserOpValidation`: has permission to validate user operation signatures.
+    - (Ability to validate runtime calls is implicit and cannot be disabled.)
 - List of selectors to be allowed to validate, outside of the global pool.
 - Installation initialization data. If provided, the account will call out to the newly installed validation module's `onInstall` function with the provided data.
 - Hooks. Provided as a list of `bytes`, with a packed encoding containing:
-    - HookConfig: packed data containing
-        - Hook Module address
-        - hook entity ID
-        - hook options:
-            - Enum option for either Validation Hook or Execution hook
-            - (If an execution hook) individual flags for being a pre execution hook, post execution hook, or both.
-    - Hook `onInstall` data
-        - If provided, the account will call out to the hook module's `onInstall` function with this data after installation.
-    - Hooks will be installed in the order they are provided, added to the installation state for each hook type.
+  - HookConfig: packed data containing
+    - Hook Module address
+    - hook entity ID
+    - hook options:
+      - Enum option for either Validation Hook or Execution hook
+      - (If an execution hook) individual flags for being a pre execution hook, post execution hook, or both.
+  - Hook `onInstall` data
+    - If provided, the account will call out to the hook module's `onInstall` function with this data after installation.
+  - Hooks will be installed in the order they are provided, added to the installation state for each hook type.
 
 #### `uninstallValidation`
+
 **Parameters:**
+
 - Packed into `ModuleEntity`:
-    - Validation module address
-        - (due to account-specific optimization, this is actually not checked, because validation entity ID uniquely identifies validation function)
-    - Validation Entity ID
+  - Validation module address
+    - (due to account-specific optimization, this is actually not checked, because validation entity ID uniquely identifies validation function)
+  - Validation Entity ID
 - Uninstall data
-    - If provided, account will make call to module's `onUninstall` function using this data.
+  - If provided, account will make call to module's `onUninstall` function using this data.
 - Hook uninstall data list
-    - Optional - can either be provided, or not.
-    - If not provided, hooks are uninstalled without ever calling `onUninstall` - only account state is updated. This will usually retain state on the hook modules for this account address and the previously used entity ID.
-    - If provided:
-        - the list must be exactly as long as the number of validation hooks + the number of execution hooks.
-        - The list will be interpreted as the hook uninstall data for the validation hooks first, in order, then the execution hooks, in order.
-        - If any piece of data is empty, the call to `onUninstall` is skipped for that hook.
+  - Optional - can either be provided, or not.
+  - If not provided, hooks are uninstalled without ever calling `onUninstall` - only account state is updated. This will usually retain state on the hook modules for this account address and the previously used entity ID.
+  - If provided:
+    - the list must be exactly as long as the number of validation hooks + the number of execution hooks.
+    - The list will be interpreted as the hook uninstall data for the validation hooks first, in order, then the execution hooks, in order.
+    - If any piece of data is empty, the call to `onUninstall` is skipped for that hook.
 
 #### `installExecution`
+
 **Parameters:**
+
 - Module address
 - List of functions to install. Each function contains
-    - Function Selector
-    - Flags:
-        - Skip runtime validation: to disable validation functions from running if called directly on the account. Useful for view functions or permissionless functions.
-        - Allow global validation: whether this function on the account should be considered part of the global validation pool.
+  - Function Selector
+  - Flags:
+    - Skip runtime validation: to disable validation functions from running if called directly on the account. Useful for view functions or permissionless functions.
+    - Allow global validation: whether this function on the account should be considered part of the global validation pool.
 - Execution hooks
-    - Function selector to attach to.
-    - Hook entity ID.
-    - Flags to indicate pre execution hook, post execution hook, or both.
+  - Function selector to attach to.
+  - Hook entity ID.
+  - Flags to indicate pre execution hook, post execution hook, or both.
 - List of interface IDs to report as supported by the account.
 - Module install data: If provided, the account will call `onInstall` on the execution module with the provided data.
+
 #### `uninstallExecution`
+
 **Parameters:**
+
 - Module address
 - List of function selectors to remove
 - List of execution hooks to remove
@@ -226,6 +234,7 @@ When a deferred action is executed, the validation time bounds returned by the d
 **No Validation Hooks**: If a validation function has any validation hooks attached, it may not authorize deferred actions. This is a technical restriction that exists because the deferred action authorization flow does not fit the shape of a standard user operation, runtime, or signature validation call, and thus cannot properly invoke validation hooks.
 
 **User Operation Hash Independence**: Because the entire deferred action is encoded within the user operation signature field, it does not affect the user operation hash beyond the `hasDeferredAction` flag in the nonce. This means that a malicious man-in-the-middle (such as a bundler) could potentially swap deferred action contents if it knows of multiple valid, signed deferred actions for the same nonce. This can be mitigated by:
+
 - Only providing deferred actions that are necessary for the user operation to validate. Both examples described above (installing a session key and approving an ERC-20 token paymaster) satisfy this criteria, as the user operation would fail validation without the deferred action executing successfully.
 - Only publicly broadcasting one unmined deferred action at a time to avoid giving potential attackers access to multiple valid alternatives.
 

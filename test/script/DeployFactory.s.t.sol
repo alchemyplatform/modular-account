@@ -27,9 +27,13 @@ contract DeployFactoryTest is OptimizedTest {
 
         entryPoint = address(_deployEntryPoint090());
         modularAccountImpl = makeAddr("Modular Account Impl");
+        vm.etch(modularAccountImpl, "0x01");
         semiModularAccountBytecodeImpl = makeAddr("Semi Modular Account Bytecode Impl");
+        vm.etch(semiModularAccountBytecodeImpl, "0x02");
         singleSignerValidationModule = makeAddr("Single Signer Validation Module");
+        vm.etch(singleSignerValidationModule, "0x03");
         webAuthnValidationModule = makeAddr("Webauthn Validation Module");
+        vm.etch(webAuthnValidationModule, "0x04");
         factoryOwner = makeAddr("Factory Owner");
 
         vm.setEnv("ENTRYPOINT", vm.toString(entryPoint));

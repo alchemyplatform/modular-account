@@ -61,6 +61,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
     ModularAccount public accountImplementation;
     SemiModularAccountBytecode public semiModularAccountImplementation;
     ExecutionInstallDelegate public executionInstallDelegate;
+    WebAuthnValidationModule public webAuthnModule;
     AccountFactory public factory;
 
     address public factoryOwner;
@@ -154,14 +155,14 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
             payable(_deploySemiModularAccountBytecode(entryPoint, executionInstallDelegate))
         );
 
-        address webAuthnModule = address(new WebAuthnValidationModule());
+        webAuthnModule = new WebAuthnValidationModule();
 
         factory = new AccountFactory(
             entryPoint,
             accountImplementation,
             semiModularAccountImplementation,
             address(singleSignerValidationModule),
-            webAuthnModule,
+            address(webAuthnModule),
             factoryOwner
         );
 
