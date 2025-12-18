@@ -28,6 +28,7 @@ import {
 } from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
 import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
 
@@ -58,6 +59,7 @@ contract SigCallBufferTest is AccountTestBase {
 
     function test_sigCallBuffer_noData() public withSMATest {
         bytes32 hash = keccak256("test");
+        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), hash);
 
         _setUp4ValidationHooks();
 
@@ -65,7 +67,7 @@ contract SigCallBufferTest is AccountTestBase {
             vm.expectCall(
                 address(validationHooks[i]),
                 abi.encodeCall(
-                    IValidationHookModule.preSignatureValidationHook, (uint32(i), beneficiary, hash, "")
+                    IValidationHookModule.preSignatureValidationHook, (uint32(i), beneficiary, replaySafeHash, "")
                 )
             );
         }
@@ -79,7 +81,7 @@ contract SigCallBufferTest is AccountTestBase {
                         address(account1),
                         NEW_VALIDATION_ENTITY_ID,
                         beneficiary,
-                        hash,
+                        replaySafeHash,
                         abi.encodePacked(EOA_TYPE_SIGNATURE)
                     )
                 )
@@ -94,6 +96,7 @@ contract SigCallBufferTest is AccountTestBase {
 
     function test_sigCallBuffer_withData() public withSMATest {
         bytes32 hash = keccak256("test");
+        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), hash);
 
         FuzzConfig memory fuzzConfig;
         fuzzConfig.validationHookCount = 4;
@@ -107,7 +110,7 @@ contract SigCallBufferTest is AccountTestBase {
 
         _setUp4ValidationHooks();
 
-        _expectCalls(fuzzConfig, hash);
+        _expectCalls(fuzzConfig, replaySafeHash);
 
         PreValidationHookData[] memory preValidationHookDatasToSend = _generatePreHooksDatasArray(fuzzConfig);
 
@@ -127,7 +130,8 @@ contract SigCallBufferTest is AccountTestBase {
     function testFuzz_sigCallBuffer(bytes32 hash, FuzzConfig memory fuzzConfig) public withSMATest {
         _installValidationAndAssocHook(fuzzConfig);
 
-        _expectCalls(fuzzConfig, hash);
+        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), hash);
+        _expectCalls(fuzzConfig, replaySafeHash);
 
         PreValidationHookData[] memory preValidationHookDatasToSend = _generatePreHooksDatasArray(fuzzConfig);
 

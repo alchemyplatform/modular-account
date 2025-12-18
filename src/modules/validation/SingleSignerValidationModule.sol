@@ -29,6 +29,8 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 import {SignatureType} from "../../helpers/SignatureType.sol";
 import {ModuleBase} from "../ModuleBase.sol";
 
+import {console} from "forge-std/console.sol";
+
 /// @title Single Signer Validation Module
 /// @author Alchemy
 /// @notice This validation enables any ECDSA (secp256k1 curve) signature validation or Contract Owner signature
@@ -42,7 +44,7 @@ import {ModuleBase} from "../ModuleBase.sol";
 /// - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
 /// - This validation supports composition that other validation can relay on entities in this validation to
 ///   validate partially or fully.
-contract SingleSignerValidationModule is IValidationModule, ReplaySafeWrapper, ModuleBase {
+contract SingleSignerValidationModule is IValidationModule, ModuleBase {
     using MessageHashUtils for bytes32;
 
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
@@ -127,8 +129,10 @@ contract SingleSignerValidationModule is IValidationModule, ReplaySafeWrapper, M
         override
         returns (bytes4)
     {
-        bytes32 _replaySafeHash = replaySafeHash(account, digest);
-        if (_checkSig(signers[entityId][account], _replaySafeHash, signature)) {
+        console.log("digest");
+        console.logBytes32(digest);
+
+        if (_checkSig(signers[entityId][account], digest, signature)) {
             return _1271_MAGIC_VALUE;
         }
         return _1271_INVALID;

@@ -1,0 +1,14 @@
+{
+  "lib/forge-std": {
+    "rev": "1eea5bae12ae557d589f9f0f0edae2faa47cb262"
+  },
+  "lib/light-account": {
+    "rev": "dd4187d1d50751cd2b7a6d6079d87c3114b32f98"
+  },
+  "lib/openzeppelin-contracts": {
+    "rev": "dbb6104ce834628e473d2173bbc9d47f81a9eec3"
+  },
+  "lib/webauthn-sol": {
+    "rev": "619f20ab0f074fef41066ee4ab24849a913263b2"
+  }
+}

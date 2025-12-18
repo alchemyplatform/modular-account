@@ -48,10 +48,6 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         bool fallbackSignerDisabled;
     }
 
-    // keccak256("ReplaySafeHash(bytes32 hash)")
-    bytes32 private constant _REPLAY_SAFE_HASH_TYPEHASH =
-        0x294a8735843d4afb4f017c76faf3b7731def145ed0025fc9b1d5ce30adf113ff;
-
     // keccak256("ERC6900.SemiModularAccount.Storage")
     uint256 internal constant _SEMI_MODULAR_ACCOUNT_STORAGE_SLOT =
         0x5b9dc9aa943f8fa2653ceceda5e3798f0686455280432166ba472eca0bc17a32;
@@ -151,12 +147,6 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         if (validationLookupKey.eq(FALLBACK_VALIDATION_LOOKUP_KEY)) {
             address fallbackSigner = _getFallbackSigner();
 
-            // If called during validateUserOp, this implies that we're doing a deferred validation installation.
-            // In this case, as the hash is already replay-safe, we don't need to wrap it.
-            if (msg.sig != this.validateUserOp.selector) {
-                hash = _replaySafeHash(hash);
-            }
-
             if (_checkSignature(fallbackSigner, hash, signature)) {
                 return _1271_MAGIC_VALUE;
             }
@@ -233,23 +223,6 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         return _storage.fallbackSigner;
     }
 
-    /// @notice Returns the replay-safe hash generated from the passed typed data hash for 1271 validation.
-    /// @param hash The typed data hash to wrap in a replay-safe hash.
-    /// @return The replay-safe hash, to be used for 1271 signature generation.
-    ///
-    /// @dev Generates a replay-safe hash to wrap a standard typed data hash. This prevents replay attacks by
-    /// enforcing the domain separator, which includes this contract's address and the chainId. This is only
-    /// relevant for 1271 validation because UserOp validation relies on the UO hash and the Entrypoint has
-    /// safeguards.
-    ///
-    /// NOTE: Like in signature-based validation modules, the returned hash should be used to generate signatures,
-    /// but the original hash should be passed to the external-facing function for 1271 validation.
-    function _replaySafeHash(bytes32 hash) internal view returns (bytes32) {
-        return MessageHashUtils.toTypedDataHash({
-            domainSeparator: _domainSeparator(), structHash: _hashStructReplaySafeHash(hash)
-        });
-    }
-
     function _getSemiModularAccountStorage() internal pure returns (SemiModularAccountStorage storage) {
         SemiModularAccountStorage storage _storage;
         assembly ("memory-safe") {
@@ -267,19 +240,6 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         returns (bool)
     {
         return validationLookupKey.eq(FALLBACK_VALIDATION_LOOKUP_KEY);
-    }
-
-    /// @notice Adds a EIP-712 replay safe hash wrapper to the digest
-    /// @param hash The hash to wrap in a replay-safe hash
-    /// @return The replay-safe hash
-    function _hashStructReplaySafeHash(bytes32 hash) internal pure virtual returns (bytes32) {
-        bytes32 res;
-        assembly ("memory-safe") {
-            mstore(0x00, _REPLAY_SAFE_HASH_TYPEHASH)
-            mstore(0x20, hash)
-            res := keccak256(0, 0x40)
-        }
-        return res;
     }
 
     /// @dev Overrides ModularAccountView.

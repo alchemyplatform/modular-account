@@ -448,9 +448,7 @@ contract ModularAccountTest is AccountTestBase {
     function test_isValidSignature() public withSMATest {
         bytes32 message = keccak256("hello world");
 
-        bytes32 replaySafeHash = _isSMATest
-            ? _getSMAReplaySafeHash(address(account1), message)
-            : _getModuleReplaySafeHash(address(account1), address(singleSignerValidationModule), message);
+        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), message);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
 
@@ -475,9 +473,7 @@ contract ModularAccountTest is AccountTestBase {
         );
 
         bytes32 message = keccak256("hello world");
-        bytes32 replaySafeHash = _isSMATest
-            ? _getSMAReplaySafeHash(address(account1), message)
-            : _getModuleReplaySafeHash(address(account1), address(singleSignerValidationModule), message);
+        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), message);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
 

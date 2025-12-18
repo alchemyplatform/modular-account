@@ -358,7 +358,7 @@ abstract contract ModularAccountBase is
         (ValidationLocator locator, bytes calldata signatureRemainder) =
             ValidationLocatorLib.loadFromSignature(signature);
 
-        return _isValidSignature(locator.lookupKey(), hash, signatureRemainder);
+        return _isValidSignature(locator, hash, signatureRemainder);
     }
 
     /// @inheritdoc IERC165
@@ -805,14 +805,50 @@ abstract contract ModularAccountBase is
         }
     }
 
-    function _isValidSignature(ValidationLookupKey validationLookupKey, bytes32 hash, bytes calldata signature)
+    // keccak256("ReplaySafeHash(bytes32 hash)")
+    bytes32 private constant _REPLAY_SAFE_HASH_TYPEHASH =
+        0x294a8735843d4afb4f017c76faf3b7731def145ed0025fc9b1d5ce30adf113ff;
+
+    /// @notice Returns the replay-safe hash generated from the passed typed data hash for 1271 validation.
+    /// @param hash The typed data hash to wrap in a replay-safe hash.
+    /// @return The replay-safe hash, to be used for 1271 signature generation.
+    ///
+    /// @dev Generates a replay-safe hash to wrap a standard typed data hash. This prevents replay attacks by
+    /// enforcing the domain separator, which includes this contract's address and the chainId. This is only
+    /// relevant for 1271 validation because UserOp validation relies on the UO hash and the Entrypoint has
+    /// safeguards.
+    function replaySafeHash(bytes32 hash) public view returns (bytes32) {
+        return MessageHashUtils.toTypedDataHash({
+            domainSeparator: _domainSeparator(), structHash: _hashStructReplaySafeHash(hash)
+        });
+    }
+
+    /// @notice Adds a EIP-712 replay safe hash wrapper to the digest
+    /// @param hash The hash to wrap in a replay-safe hash
+    /// @return The replay-safe hash
+    function _hashStructReplaySafeHash(bytes32 hash) internal pure virtual returns (bytes32) {
+        bytes32 res;
+        assembly ("memory-safe") {
+            mstore(0x00, _REPLAY_SAFE_HASH_TYPEHASH)
+            mstore(0x20, hash)
+            res := keccak256(0, 0x40)
+        }
+        return res;
+    }
+
+    function _isValidSignature(ValidationLocator validationLocator, bytes32 hash, bytes calldata signature)
         internal
         view
         returns (bytes4)
     {
+        ValidationLookupKey validationLookupKey = validationLocator.lookupKey();
         ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[validationLookupKey];
 
         HookConfig[] memory preSignatureValidationHooks = MemManagementLib.loadValidationHooks(_validationStorage);
+
+        if (!validationLocator.isSkipReplayProtection()) {
+            hash = replaySafeHash(hash);
+        }
 
         SigCallBuffer sigCallBuffer;
         if (!_validationIsNative(validationLookupKey) || preSignatureValidationHooks.length > 0) {

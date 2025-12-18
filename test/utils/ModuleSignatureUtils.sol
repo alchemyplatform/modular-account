@@ -210,19 +210,7 @@ contract ModuleSignatureUtils {
         return abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
     }
 
-    function _getModuleReplaySafeHash(address account, address validationModule, bytes32 digest)
-        internal
-        view
-        returns (bytes32)
-    {
-        bytes32 domainSeparator =
-            keccak256(abi.encode(_MODULE_DOMAIN_SEPARATOR, block.chainid, validationModule, account));
-
-        return
-            MessageHashUtils.toTypedDataHash({domainSeparator: domainSeparator, structHash: _hashStruct(digest)});
-    }
-
-    function _getSMAReplaySafeHash(address account, bytes32 digest) internal view returns (bytes32) {
+    function _getReplaySafeHash(address account, bytes32 digest) internal view returns (bytes32) {
         return MessageHashUtils.toTypedDataHash({
             domainSeparator: _computeDomainSeparator(account), structHash: _hashStruct(digest)
         });

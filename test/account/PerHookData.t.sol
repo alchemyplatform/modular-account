@@ -28,6 +28,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
+import {ValidationLocatorLib} from "../../src/libraries/ValidationLocatorLib.sol";
 
 import {Counter} from "../mocks/Counter.sol";
 import {MockAccessControlHookModule} from "../mocks/modules/MockAccessControlHookModule.sol";
@@ -413,21 +414,17 @@ contract PerHookDataTest is CustomValidationTestBase {
         bytes memory message = "Hello, world!";
         bytes32 messageHash = keccak256(message);
 
-        // we use module validation for both cases
-        bytes32 replaySafeHash =
-            _getModuleReplaySafeHash(address(account1), address(singleSignerValidationModule), messageHash);
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, messageHash);
 
         PreValidationHookData[] memory preValidationHookData = new PreValidationHookData[](1);
         preValidationHookData[0] = PreValidationHookData({index: 0, validationData: message});
 
-        bytes4 result = account1.isValidSignature(
-            messageHash,
-            _encode1271Signature(
-                _signerValidation, preValidationHookData, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
-            )
+        bytes memory sig = _encode1271Signature(
+            _signerValidation, preValidationHookData, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v)
         );
+        sig = ValidationLocatorLib.setSkipReplayProtection(sig);
+
+        bytes4 result = account1.isValidSignature(messageHash, sig);
 
         assertEq(result, bytes4(0x1626ba7e));
     }
