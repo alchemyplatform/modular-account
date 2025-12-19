@@ -7,7 +7,7 @@
     "solady": "github:Vectorized/solady#v0.0.237"
   },
   "devDependencies": {
-    "pnpm": "^9.15.0",
+    "pnpm": "^10.0.0",
     "solhint": "^3.6.2"
   },
   "scripts": {
