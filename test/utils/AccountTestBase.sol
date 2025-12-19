@@ -380,18 +380,10 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
         bytes memory deferredValidationDatas;
         {
             bytes32 digest = _getDeferredInstallStruct(
-                account, userOpNonce, deferredInstallDeadline, deferredValidationInstallCall
+                account, userOpNonce, _signerValidation, deferredInstallDeadline, deferredValidationInstallCall
             );
 
-            bytes32 replaySafeHash;
-            if (_isSMATest) {
-                replaySafeHash = digest;
-            } else {
-                replaySafeHash =
-                    _getModuleReplaySafeHash(address(account), address(singleSignerValidationModule), digest);
-            }
-
-            deferredValidationSig = _signRawHash(vm, signingKey, replaySafeHash);
+            deferredValidationSig = _signRawHash(vm, signingKey, digest);
 
             deferredValidationDatas = _packDeferredInstallData(
                 deferredInstallDeadline, defActionValidation, deferredValidationInstallCall

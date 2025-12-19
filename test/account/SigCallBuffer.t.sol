@@ -61,11 +61,13 @@ contract SigCallBufferTest is AccountTestBase {
 
         _setUp4ValidationHooks();
 
+        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), _validationFunction, hash);
+
         for (uint256 i = 0; i < 3; i++) {
             vm.expectCall(
                 address(validationHooks[i]),
                 abi.encodeCall(
-                    IValidationHookModule.preSignatureValidationHook, (uint32(i), beneficiary, hash, "")
+                    IValidationHookModule.preSignatureValidationHook, (uint32(i), beneficiary, replaySafeHash, "")
                 )
             );
         }
@@ -79,7 +81,7 @@ contract SigCallBufferTest is AccountTestBase {
                         address(account1),
                         NEW_VALIDATION_ENTITY_ID,
                         beneficiary,
-                        hash,
+                        replaySafeHash,
                         abi.encodePacked(EOA_TYPE_SIGNATURE)
                     )
                 )
@@ -107,7 +109,9 @@ contract SigCallBufferTest is AccountTestBase {
 
         _setUp4ValidationHooks();
 
-        _expectCalls(fuzzConfig, hash);
+        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), _validationFunction, hash);
+
+        _expectCalls(fuzzConfig, replaySafeHash);
 
         PreValidationHookData[] memory preValidationHookDatasToSend = _generatePreHooksDatasArray(fuzzConfig);
 
@@ -127,7 +131,8 @@ contract SigCallBufferTest is AccountTestBase {
     function testFuzz_sigCallBuffer(bytes32 hash, FuzzConfig memory fuzzConfig) public withSMATest {
         _installValidationAndAssocHook(fuzzConfig);
 
-        _expectCalls(fuzzConfig, hash);
+        bytes32 replaySafeHash = _getReplaySafeHash(address(account1), _validationFunction, hash);
+        _expectCalls(fuzzConfig, replaySafeHash);
 
         PreValidationHookData[] memory preValidationHookDatasToSend = _generatePreHooksDatasArray(fuzzConfig);
 

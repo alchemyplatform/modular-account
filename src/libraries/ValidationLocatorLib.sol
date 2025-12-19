@@ -56,6 +56,7 @@ library ValidationLocatorLib {
     uint8 internal constant _VALIDATION_TYPE_GLOBAL = 1;
     uint8 internal constant _HAS_DEFERRED_ACTION = 2;
     uint8 internal constant _IS_DIRECT_CALL_VALIDATION = 4;
+    uint8 internal constant _IS_SKIP_REPLAY_PROTECTION = 8;
 
     function moduleEntity(ValidationLookupKey _lookupKey, ValidationStorage storage validationStorage)
         internal
@@ -198,6 +199,10 @@ library ValidationLocatorLib {
         return (ValidationLocator.unwrap(locator) & _HAS_DEFERRED_ACTION) != 0;
     }
 
+    function isSkipReplayProtection(ValidationLocator locator) internal pure returns (bool) {
+        return (ValidationLocator.unwrap(locator) & _IS_SKIP_REPLAY_PROTECTION) != 0;
+    }
+
     function isDirectCallValidation(ValidationLookupKey _lookupKey) internal pure returns (bool) {
         return (ValidationLookupKey.unwrap(_lookupKey) & _IS_DIRECT_CALL_VALIDATION) != 0;
     }
@@ -316,6 +321,11 @@ library ValidationLocatorLib {
         }
 
         return bytes.concat(abi.encodePacked(options, uint32(validationEntityId)), signature);
+    }
+
+    function setSkipReplayProtection(bytes memory signature) internal pure returns (bytes memory result) {
+        signature[0] = bytes1(uint8(signature[0]) | _IS_SKIP_REPLAY_PROTECTION);
+        return signature;
     }
 
     function packSignatureDirectCall(

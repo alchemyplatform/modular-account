@@ -25,6 +25,7 @@ import {Utils, WebAuthnInfo} from "webauthn-sol/test/Utils.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+import {ValidationLocatorLib} from "../../src/libraries/ValidationLocatorLib.sol";
 import {WebAuthnValidationModule} from "../../src/modules/validation/WebAuthnValidationModule.sol";
 import {AccountTestBase} from "../utils/AccountTestBase.sol";
 import {CODELESS_ADDRESS} from "../utils/TestConstants.sol";
@@ -59,7 +60,8 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
 
     function test_isValidSignature() external view {
         bytes32 message = keccak256("message");
-        bytes32 challenge = module.replaySafeHash(account, message);
+        bytes32 challenge =
+            ModularAccountBase(account).replaySafeHash(message, ModuleEntityLib.pack(address(module), entityId));
 
         assertTrue(
             ModularAccountBase(account).isValidSignature(message, _get1271SigForChallenge(challenge, 0, 0))
@@ -67,9 +69,18 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
         );
     }
 
+    function test_isValidSignature_withoutReplaySafeHash() public view {
+        bytes32 message = keccak256("message");
+        bytes memory signature = _get1271SigForChallenge(message, 0, 0);
+        ValidationLocatorLib.setSkipReplayProtection(signature);
+
+        assertTrue(ModularAccountBase(account).isValidSignature(message, signature) == 0x1626ba7e);
+    }
+
     // fuzz message
     function testFuzz_pass_isValidSignature(bytes32 message) public view {
-        bytes32 challenge = module.replaySafeHash(account, message);
+        bytes32 challenge =
+            ModularAccountBase(account).replaySafeHash(message, ModuleEntityLib.pack(address(module), entityId));
 
         assertTrue(
             ModularAccountBase(account).isValidSignature(message, _get1271SigForChallenge(challenge, 0, 0))
@@ -79,7 +90,8 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
 
     // Fuzz sig
     function testFuzz_fail_isValidSignature(bytes32 message, uint256 sigR, uint256 sigS) external view {
-        bytes32 challenge = module.replaySafeHash(account, message);
+        bytes32 challenge =
+            ModularAccountBase(account).replaySafeHash(message, ModuleEntityLib.pack(address(module), entityId));
 
         // make sure r, s values isn't the right one by accident. checking 1 should be enough
         WebAuthnInfo memory webAuthn = Utils.getWebAuthnStruct(challenge);

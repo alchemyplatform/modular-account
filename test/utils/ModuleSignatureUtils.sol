@@ -60,9 +60,7 @@ contract ModuleSignatureUtils {
 
     bytes32 internal constant _REPLAY_SAFE_HASH_TYPEHASH = keccak256("ReplaySafeHash(bytes32 hash)");
 
-    bytes32 internal constant _ACCOUNT_DOMAIN_SEPARATOR =
-        keccak256("EIP712Domain(uint256 chainId,address verifyingContract)");
-    bytes32 internal constant _MODULE_DOMAIN_SEPARATOR =
+    bytes32 internal constant _DOMAIN_SEPARATOR =
         keccak256("EIP712Domain(uint256 chainId,address verifyingContract,bytes32 salt)");
 
     constructor() {
@@ -210,21 +208,14 @@ contract ModuleSignatureUtils {
         return abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v);
     }
 
-    function _getModuleReplaySafeHash(address account, address validationModule, bytes32 digest)
+    function _getReplaySafeHash(address account, ModuleEntity validationModuleEntity, bytes32 digest)
         internal
         view
         returns (bytes32)
     {
-        bytes32 domainSeparator =
-            keccak256(abi.encode(_MODULE_DOMAIN_SEPARATOR, block.chainid, validationModule, account));
-
-        return
-            MessageHashUtils.toTypedDataHash({domainSeparator: domainSeparator, structHash: _hashStruct(digest)});
-    }
-
-    function _getSMAReplaySafeHash(address account, bytes32 digest) internal view returns (bytes32) {
         return MessageHashUtils.toTypedDataHash({
-            domainSeparator: _computeDomainSeparator(account), structHash: _hashStruct(digest)
+            domainSeparator: _computeDomainSeparator(account, validationModuleEntity),
+            structHash: _hashStruct(digest)
         });
     }
 
@@ -298,10 +289,11 @@ contract ModuleSignatureUtils {
     function _getDeferredInstallStruct(
         ModularAccount account,
         uint256 userOpNonce,
+        ModuleEntity validationModuleEntity,
         uint48 deadline,
         bytes memory selfCall
     ) internal view returns (bytes32) {
-        bytes32 domainSeparator = _computeDomainSeparator(address(account));
+        bytes32 domainSeparator = _computeDomainSeparator(address(account), validationModuleEntity);
 
         bytes32 selfCallHash = keccak256(selfCall);
 
@@ -311,9 +303,14 @@ contract ModuleSignatureUtils {
         });
     }
 
-    // EIP-712 helpers for acount
-    function _computeDomainSeparator(address account) internal view returns (bytes32) {
-        return keccak256(abi.encode(_ACCOUNT_DOMAIN_SEPARATOR, block.chainid, account));
+    // EIP-712 helpers for account
+    function _computeDomainSeparator(address account, ModuleEntity validationModuleEntity)
+        internal
+        view
+        returns (bytes32)
+    {
+        bytes32 ret = keccak256(abi.encode(_DOMAIN_SEPARATOR, block.chainid, account, validationModuleEntity));
+        return ret;
     }
 
     // EIP-712 helpers for acount

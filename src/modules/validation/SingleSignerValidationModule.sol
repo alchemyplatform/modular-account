@@ -19,7 +19,6 @@ pragma solidity ^0.8.28;
 
 import {IModule} from "@erc6900/reference-implementation/interfaces/IModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
-import {ReplaySafeWrapper} from "@erc6900/reference-implementation/modules/ReplaySafeWrapper.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -41,7 +40,7 @@ import {ModuleBase} from "../ModuleBase.sol";
 /// - This validation supports ERC-1271. The signature is valid if it is signed by the owner's private key.
 /// - This validation supports composition that other validation can relay on entities in this validation to
 ///   validate partially or fully.
-contract SingleSignerValidationModule is IValidationModule, ReplaySafeWrapper, ModuleBase {
+contract SingleSignerValidationModule is IValidationModule, ModuleBase {
     uint256 internal constant _SIG_VALIDATION_PASSED = 0;
     uint256 internal constant _SIG_VALIDATION_FAILED = 1;
 
@@ -124,8 +123,7 @@ contract SingleSignerValidationModule is IValidationModule, ReplaySafeWrapper, M
         override
         returns (bytes4)
     {
-        bytes32 _replaySafeHash = replaySafeHash(account, digest);
-        if (_checkSig(signers[entityId][account], _replaySafeHash, signature)) {
+        if (_checkSig(signers[entityId][account], digest, signature)) {
             return _1271_MAGIC_VALUE;
         }
         return _1271_INVALID;

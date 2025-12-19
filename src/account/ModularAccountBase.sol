@@ -91,9 +91,13 @@ abstract contract ModularAccountBase is
         EITHER
     }
 
-    // keccak256("EIP712Domain(uint256 chainId,address verifyingContract)")
+    // keccak256("EIP712Domain(uint256 chainId,address verifyingContract,bytes32 salt)")
     bytes32 internal constant _DOMAIN_SEPARATOR_TYPEHASH =
-        0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
+        0x71062c282d40422f744945d587dbf4ecfd4f9cfad1d35d62c944373009d96162;
+
+    // keccak256("ReplaySafeHash(bytes32 hash)")
+    bytes32 private constant _REPLAY_SAFE_HASH_TYPEHASH =
+        0x294a8735843d4afb4f017c76faf3b7731def145ed0025fc9b1d5ce30adf113ff;
 
     // keccak256("DeferredAction(uint256 nonce,uint48 deadline,bytes call)")
     bytes32 internal constant _DEFERRED_ACTION_TYPEHASH =
@@ -358,7 +362,7 @@ abstract contract ModularAccountBase is
         (ValidationLocator locator, bytes calldata signatureRemainder) =
             ValidationLocatorLib.loadFromSignature(signature);
 
-        return _isValidSignature(locator.lookupKey(), hash, signatureRemainder);
+        return _isValidSignature(locator, hash, signatureRemainder);
     }
 
     /// @inheritdoc IERC165
@@ -394,6 +398,20 @@ abstract contract ModularAccountBase is
         wrapNativeFunction
     {
         super.upgradeToAndCall(newImplementation, data);
+    }
+
+    /// @notice Returns the replay-safe hash generated from the passed typed data hash for 1271 validation.
+    /// @param hash The typed data hash to wrap in a replay-safe hash.
+    /// @return The replay-safe hash, to be used for 1271 signature generation.
+    ///
+    /// @dev Generates a replay-safe hash to wrap a standard typed data hash. This prevents replay attacks by
+    /// enforcing the domain separator, which includes this contract's address, the chainId, and the validation
+    /// module & entity id. This is only relevant for 1271 validation because UserOp validation relies on the UO
+    /// hash and the Entrypoint has safeguards.
+    function replaySafeHash(bytes32 hash, ModuleEntity validationModuleEntity) public view returns (bytes32) {
+        return MessageHashUtils.toTypedDataHash({
+            domainSeparator: _domainSeparator(validationModuleEntity), structHash: _hashStructReplaySafeHash(hash)
+        });
     }
 
     // INTERNAL FUNCTIONS
@@ -503,7 +521,12 @@ abstract contract ModularAccountBase is
 
         uint48 deadline = uint48(bytes6(encodedData[21:27]));
 
-        bytes32 typedDataHash = _computeDeferredActionHash(userOpNonce, deadline, encodedData[27:]);
+        bytes32 typedDataHash = _computeDeferredActionHash(
+            userOpNonce,
+            defActionValidationLocator.lookupKey().moduleEntity(_validationStorage),
+            deadline,
+            encodedData[27:]
+        );
 
         // Check if the outer validation applies to the function call
         _checkIfValidationAppliesCallData(
@@ -734,11 +757,12 @@ abstract contract ModularAccountBase is
         ExecutionLib.invokeRuntimeCallBufferValidation(callBuffer, runtimeValidationFunction, authorization);
     }
 
-    function _computeDeferredActionHash(uint256 userOpNonce, uint48 deadline, bytes calldata selfCall)
-        internal
-        view
-        returns (bytes32)
-    {
+    function _computeDeferredActionHash(
+        uint256 userOpNonce,
+        ModuleEntity validationModuleEntity,
+        uint48 deadline,
+        bytes calldata selfCall
+    ) internal view returns (bytes32) {
         // Note:
         // - A zero deadline translates to "no deadline"
         // - The user op nonce also includes the data for:
@@ -781,7 +805,8 @@ abstract contract ModularAccountBase is
             structHash := keccak256(fmp, 0x80)
         }
 
-        bytes32 typedDataHash = MessageHashUtils.toTypedDataHash(_domainSeparator(), structHash);
+        bytes32 typedDataHash =
+            MessageHashUtils.toTypedDataHash(_domainSeparator(validationModuleEntity), structHash);
 
         return typedDataHash;
     }
@@ -805,14 +830,20 @@ abstract contract ModularAccountBase is
         }
     }
 
-    function _isValidSignature(ValidationLookupKey validationLookupKey, bytes32 hash, bytes calldata signature)
+    function _isValidSignature(ValidationLocator validationLocator, bytes32 hash, bytes calldata signature)
         internal
         view
         returns (bytes4)
     {
+        ValidationLookupKey validationLookupKey = validationLocator.lookupKey();
         ValidationStorage storage _validationStorage = getAccountStorage().validationStorage[validationLookupKey];
 
         HookConfig[] memory preSignatureValidationHooks = MemManagementLib.loadValidationHooks(_validationStorage);
+
+        if (!validationLocator.isSkipReplayProtection()) {
+            ModuleEntity validationModuleEntity = validationLookupKey.moduleEntity(_validationStorage);
+            hash = replaySafeHash(hash, validationModuleEntity);
+        }
 
         SigCallBuffer sigCallBuffer;
         if (!_validationIsNative(validationLookupKey) || preSignatureValidationHooks.length > 0) {
@@ -1104,7 +1135,7 @@ abstract contract ModularAccountBase is
         return getAccountStorage().validationStorage[validationFunction].selectors.contains(toSetValue(selector));
     }
 
-    function _domainSeparator() internal view returns (bytes32) {
+    function _domainSeparator(ModuleEntity validationModuleEntity) internal view returns (bytes32) {
         bytes32 result;
 
         // Compute the hash without permanently allocating memory
@@ -1113,10 +1144,24 @@ abstract contract ModularAccountBase is
             mstore(fmp, _DOMAIN_SEPARATOR_TYPEHASH)
             mstore(add(fmp, 0x20), chainid())
             mstore(add(fmp, 0x40), address())
-            result := keccak256(fmp, 0x60)
+            mstore(add(fmp, 0x60), validationModuleEntity)
+            result := keccak256(fmp, 0x80)
         }
 
         return result;
+    }
+
+    /// @notice Adds a EIP-712 replay safe hash wrapper to the digest
+    /// @param hash The hash to wrap in a replay-safe hash
+    /// @return The replay-safe hash
+    function _hashStructReplaySafeHash(bytes32 hash) internal pure virtual returns (bytes32) {
+        bytes32 res;
+        assembly ("memory-safe") {
+            mstore(0x00, _REPLAY_SAFE_HASH_TYPEHASH)
+            mstore(0x20, hash)
+            res := keccak256(0, 0x40)
+        }
+        return res;
     }
 
     // A virtual function to detect if a validation function is natively implemented. Used for determining call

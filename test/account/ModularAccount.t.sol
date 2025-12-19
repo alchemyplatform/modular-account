@@ -40,6 +40,7 @@ import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 import {ExecutionInstallDelegate} from "../../src/helpers/ExecutionInstallDelegate.sol";
 import {ModuleInstallCommonsLib} from "../../src/libraries/ModuleInstallCommonsLib.sol";
+import {ValidationLocatorLib} from "../../src/libraries/ValidationLocatorLib.sol";
 import {SingleSignerValidationModule} from "../../src/modules/validation/SingleSignerValidationModule.sol";
 
 import {Counter} from "../mocks/Counter.sol";
@@ -446,14 +447,38 @@ contract ModularAccountTest is AccountTestBase {
     function test_isValidSignature() public withSMATest {
         bytes32 message = keccak256("hello world");
 
-        bytes32 replaySafeHash = _isSMATest
-            ? _getSMAReplaySafeHash(address(account1), message)
-            : _getModuleReplaySafeHash(address(account1), address(singleSignerValidationModule), message);
+        address validationModule = address(0);
+        if (!_isSMATest) {
+            validationModule = address(singleSignerValidationModule);
+        }
+
+        bytes32 replaySafeHash = _getReplaySafeHash(
+            address(account1), ModuleEntityLib.pack(validationModule, TEST_DEFAULT_VALIDATION_ENTITY_ID), message
+        );
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
 
         bytes memory signature =
             _encode1271Signature(_signerValidation, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+
+        bytes4 validationResult = IERC1271(address(account1)).isValidSignature(message, signature);
+
+        assertEq(validationResult, bytes4(0x1626ba7e));
+    }
+
+    function test_isValidSignature_withoutReplaySafeHash() public withSMATest {
+        bytes32 message = keccak256("hello world");
+
+        address validationModule = address(0);
+        if (!_isSMATest) {
+            validationModule = address(singleSignerValidationModule);
+        }
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, message);
+
+        bytes memory signature =
+            _encode1271Signature(_signerValidation, abi.encodePacked(EOA_TYPE_SIGNATURE, r, s, v));
+        ValidationLocatorLib.setSkipReplayProtection(signature);
 
         bytes4 validationResult = IERC1271(address(account1)).isValidSignature(message, signature);
 
@@ -473,9 +498,10 @@ contract ModularAccountTest is AccountTestBase {
         );
 
         bytes32 message = keccak256("hello world");
-        bytes32 replaySafeHash = _isSMATest
-            ? _getSMAReplaySafeHash(address(account1), message)
-            : _getModuleReplaySafeHash(address(account1), address(singleSignerValidationModule), message);
+
+        bytes32 replaySafeHash = _getReplaySafeHash(
+            address(account1), ModuleEntityLib.pack(address(singleSignerValidationModule), newEntityId), message
+        );
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, replaySafeHash);
 
