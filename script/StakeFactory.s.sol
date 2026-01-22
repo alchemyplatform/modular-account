@@ -36,6 +36,11 @@ contract StakeFactoryScript is ScriptBase {
 
         uint256 stakeNeeded = _checkCurrentStake(stakeAmountWei);
 
+        if (stakeNeeded < 0) {
+            console.log("Factory already has enough stake");
+            return;
+        }
+
         vm.startBroadcast();
 
         _accountFactory.addStake{value: stakeNeeded}(uint32(unstakeDelay));
