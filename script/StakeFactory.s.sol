@@ -36,7 +36,7 @@ contract StakeFactoryScript is ScriptBase {
 
         uint256 stakeNeeded = _checkCurrentStake(stakeAmountWei);
 
-        if (stakeNeeded < 0) {
+        if (stakeNeeded == 0) {
             console.log("Factory already has enough stake");
             return;
         }
@@ -75,7 +75,7 @@ contract StakeFactoryScript is ScriptBase {
 
         uint256 currentStake = factoryDepositInfo.stake;
 
-        if (currentStake > requiredStakeAmountWei) {
+        if (currentStake >= requiredStakeAmountWei) {
             console.log("Factory already has enough stake: ", currentStake);
             stakeNeeded = 0;
         } else {
