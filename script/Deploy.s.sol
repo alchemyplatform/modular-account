@@ -155,6 +155,13 @@ contract Deploy is Script {
     function _addStakeForFactory(address factoryAddr, IEntryPoint anEntryPoint, uint32 unstakeDelay, uint256 stakeAmount) internal {
         uint256 currentStakedAmount = I4337EntryPoint(address(anEntryPoint)).getDepositInfo(factoryAddr).stake;
         console.log("Current Stake: ", currentStakedAmount);
+
+
+        if (currentStakedAmount >= stakeAmount) {
+            console.log("Current stake is greater than or equal to the required stake. Skipping");
+            return;
+        }
+
         uint256 stakeToAdd = stakeAmount - currentStakedAmount;
 
         if (stakeToAdd > 0) {
