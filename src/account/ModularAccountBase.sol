@@ -408,7 +408,7 @@ abstract contract ModularAccountBase is
     /// enforcing the domain separator, which includes this contract's address, the chainId, and the validation
     /// module & entity id. This is only relevant for 1271 validation because UserOp validation relies on the UO
     /// hash and the Entrypoint has safeguards.
-    function replaySafeHash(bytes32 hash, ModuleEntity validationModuleEntity) public view returns (bytes32) {
+    function replaySafeHash(bytes32 hash, ModuleEntity validationModuleEntity) internal view returns (bytes32) {
         return MessageHashUtils.toTypedDataHash({
             domainSeparator: _domainSeparator(validationModuleEntity), structHash: _hashStructReplaySafeHash(hash)
         });

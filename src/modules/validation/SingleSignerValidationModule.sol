@@ -115,8 +115,8 @@ contract SingleSignerValidationModule is IValidationModule, ModuleBase {
     /// @dev The signature is valid if it is signed by the owner's private key
     /// (if the owner is an EOA) or if it is a valid ERC-1271 signature from the
     /// owner (if the owner is a contract).
-    /// Note that the digest is wrapped in an EIP-712 struct to prevent cross-account replay attacks. The
-    /// replay-safe hash may be retrieved by calling the public function `replaySafeHash`.
+    /// Note that the digest is wrapped in an EIP-712 struct by the account to prevent cross-account replay
+    /// attacks.
     function validateSignature(address account, uint32 entityId, address, bytes32 digest, bytes calldata signature)
         external
         view
