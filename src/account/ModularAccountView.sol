@@ -118,6 +118,7 @@ abstract contract ModularAccountView is IModularAccountView {
     function _isWrappedNativeFunction(uint32 selector) internal pure virtual returns (bool) {
         return (selector == uint32(IModularAccount.execute.selector)
                 || selector == uint32(IModularAccount.executeBatch.selector)
+                || selector == uint32(IModularAccountBase.executeWithPreCalls.selector)
                 || selector == uint32(IModularAccount.installExecution.selector)
                 || selector == uint32(IModularAccount.installValidation.selector)
                 || selector == uint32(IModularAccount.uninstallExecution.selector)

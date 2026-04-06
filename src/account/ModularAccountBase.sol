@@ -120,8 +120,8 @@ abstract contract ModularAccountBase is
     error DeferredValidationHasValidationHooks();
 
     // Wraps execution of a native function with runtime validation and hooks
-    // Used for performCreate, execute, executeBatch, installExecution, uninstallExecution, installValidation,
-    // uninstallValidation, upgradeToAndCall, updateFallbackSignerData.
+    // Used for performCreate, execute, executeBatch, executeWithPreCalls, installExecution, uninstallExecution,
+    // installValidation, uninstallValidation, upgradeToAndCall, updateFallbackSignerData.
     modifier wrapNativeFunction() {
         DensePostHookData postHookData = _checkPermittedCallerAndAssociatedHooks();
 
@@ -261,6 +261,44 @@ abstract contract ModularAccountBase is
                 ExecutionLib.callBubbleOnRevertTransient(calls[i].target, calls[i].value, calls[i].data);
             }
         }
+    }
+
+    /// @inheritdoc IModularAccountBase
+    /// @notice May be validated by a global validation.
+    function executeWithPreCalls(Call[] calldata preCalls, Call[] calldata calls)
+        external
+        payable
+        override
+        wrapNativeFunction
+        returns (bool success, bytes[] memory results)
+    {
+        // Phase 1: PreCalls — revert on any failure (same as executeBatch)
+        uint256 preCallsLength = preCalls.length;
+        for (uint256 i = 0; i < preCallsLength; ++i) {
+            ExecutionLib.callBubbleOnRevertTransient(preCalls[i].target, preCalls[i].value, preCalls[i].data);
+        }
+
+        // Phase 2: Calls — catch failures atomically via self-call
+        uint256 callsLength = calls.length;
+        if (callsLength > 0) {
+            // Self-call executeBatch to get an atomic revert boundary.
+            // Because this comes from address(this), executeBatch's wrapNativeFunction will skip
+            // runtime validation and only run selector-associated execution hooks.
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool callSuccess, bytes memory returnData) =
+                address(this).call(abi.encodeCall(this.executeBatch, (calls)));
+
+            if (callSuccess) {
+                success = true;
+                results = abi.decode(returnData, (bytes[]));
+            }
+            // else: success = false (default), results = empty (default)
+        } else {
+            success = true;
+            results = new bytes[](0);
+        }
+
+        emit ExecuteWithPreCallsResult(success, results);
     }
 
     /// @inheritdoc IModularAccount
@@ -895,6 +933,10 @@ abstract contract ModularAccountBase is
             // If this is done, we must ensure all of the inner calls are allowed by the provided validation
             // function.
             _checkExecuteBatchValidationApplicability(callData[4:], validationFunction, checkingType);
+        } else if (outerSelector == IModularAccountBase.executeWithPreCalls.selector) {
+            // executeWithPreCalls has two Call[] arrays: preCalls and calls.
+            // Both need the same self-call validation checks as executeBatch.
+            _checkExecuteWithPreCallsValidationApplicability(callData[4:], validationFunction, checkingType);
         }
     }
 
@@ -1042,7 +1084,10 @@ abstract contract ModularAccountBase is
                     selector := shr(224, calldataload(dataOffset))
                 }
 
-                if (selector == uint32(this.execute.selector) || selector == uint32(this.executeBatch.selector)) {
+                if (
+                    selector == uint32(this.execute.selector) || selector == uint32(this.executeBatch.selector)
+                        || selector == uint32(this.executeWithPreCalls.selector)
+                ) {
                     // To prevent arbitrarily-deep recursive checking, we limit the depth of self-calls to one
                     // for the purposes of batching.
                     // This means that all self-calls must occur at the top level of the batch.
@@ -1054,6 +1099,53 @@ abstract contract ModularAccountBase is
                 }
 
                 _checkIfValidationAppliesSelector(bytes4(selector), validationFunction, checkingType);
+            }
+        }
+    }
+
+    /// @notice Checks if the validation function is allowed to perform this call to `executeWithPreCalls`.
+    /// @dev Decodes two Call[] arrays (preCalls and calls) and validates both using the same rules as
+    /// executeBatch.
+    /// @param callData The calldata to check, excluding the `executeWithPreCalls` selector.
+    /// @param validationFunction The validation function to check against.
+    /// @param checkingType The type of validation checking to perform.
+    function _checkExecuteWithPreCallsValidationApplicability(
+        bytes calldata callData,
+        ValidationLookupKey validationFunction,
+        ValidationCheckingType checkingType
+    ) internal view {
+        // The calldata encodes two Call[] arrays: (Call[] preCalls, Call[] calls).
+        // We decode and validate both arrays using the same logic as executeBatch.
+        // solhint-disable-next-line no-inline-assembly
+        (Call[] memory preCalls, Call[] memory calls) = abi.decode(callData, (Call[], Call[]));
+
+        _checkCallArrayValidation(preCalls, validationFunction, checkingType);
+        _checkCallArrayValidation(calls, validationFunction, checkingType);
+    }
+
+    /// @notice Shared helper to validate a Call[] array for self-call restrictions.
+    function _checkCallArrayValidation(
+        Call[] memory calls,
+        ValidationLookupKey validationFunction,
+        ValidationCheckingType checkingType
+    ) internal view {
+        for (uint256 i = 0; i < calls.length; ++i) {
+            if (calls[i].target == address(this)) {
+                if (calls[i].data.length < 4) {
+                    revert UnrecognizedFunction(bytes4(calls[i].data));
+                }
+
+                bytes4 selector = bytes4(calls[i].data);
+
+                if (
+                    selector == IModularAccount.execute.selector
+                        || selector == IModularAccount.executeBatch.selector
+                        || selector == IModularAccountBase.executeWithPreCalls.selector
+                ) {
+                    revert SelfCallRecursionDepthExceeded();
+                }
+
+                _checkIfValidationAppliesSelector(selector, validationFunction, checkingType);
             }
         }
     }
