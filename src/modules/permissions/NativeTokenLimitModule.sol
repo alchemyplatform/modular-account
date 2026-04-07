@@ -32,7 +32,8 @@ import {IERC165, ModuleBase} from "../ModuleBase.sol";
 /// @notice This module supports a total native token spend limit across User Operation gas and native transfers.
 /// - None of the functions are installed on the account. Account states are to be retrieved from this global
 ///   singleton directly.
-/// - This module only tracks native transfers for the 3 functions `execute`, `executeBatch`, `performCreate`.
+/// - This module only tracks native transfers for the 4 functions `execute`, `executeBatch`,
+///   `executeWithPreCalls`, `performCreate`.
 /// - By default, using a paymaster in a UO would cause the limit to not decrease. If an account uses a special
 ///   paymaster that converts non-native tokens in the account to pay for gas, this paymaster should be added to
 ///   the `specialPaymasters` list to enable the correct accounting of spend limits. When these paymasters are used
@@ -103,6 +104,14 @@ contract NativeTokenLimitModule is ModuleBase, IExecutionHookModule, IValidation
             (, value) = abi.decode(callData, (address, uint256));
         } else if (selector == IModularAccount.executeBatch.selector) {
             Call[] memory calls = abi.decode(callData, (Call[]));
+            for (uint256 i = 0; i < calls.length; ++i) {
+                value += calls[i].value;
+            }
+        } else if (selector == ModularAccountBase.executeWithPreCalls.selector) {
+            (Call[] memory preCalls, Call[] memory calls) = abi.decode(callData, (Call[], Call[]));
+            for (uint256 i = 0; i < preCalls.length; ++i) {
+                value += preCalls[i].value;
+            }
             for (uint256 i = 0; i < calls.length; ++i) {
                 value += calls[i].value;
             }

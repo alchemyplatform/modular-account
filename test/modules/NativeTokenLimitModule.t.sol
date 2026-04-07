@@ -31,6 +31,7 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+import {IModularAccountBase} from "../../src/interfaces/IModularAccountBase.sol";
 import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
 import {ModuleBase} from "../../src/modules/ModuleBase.sol";
 import {NativeTokenLimitModule} from "../../src/modules/permissions/NativeTokenLimitModule.sol";
@@ -354,6 +355,64 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
             )
         );
         _handleOps(uos);
+    }
+
+    function test_userOp_executeWithPreCallsLimit() public withSMATest {
+        Call[] memory preCalls = new Call[](1);
+        preCalls[0] = Call({target: recipient, value: 3 ether, data: ""});
+
+        Call[] memory calls = new Call[](2);
+        calls[0] = Call({target: recipient, value: 1 ether, data: ""});
+        calls[1] = Call({target: recipient, value: 2 ether, data: ""});
+
+        vm.startPrank(address(entryPoint));
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
+        account1.executeUserOp(
+            _getPackedUO(0, 0, 0, 0, abi.encodeCall(IModularAccountBase.executeWithPreCalls, (preCalls, calls))),
+            bytes32(0)
+        );
+        // 3 + 1 + 2 = 6 ether spent
+        assertEq(module.limits(entityId, address(account1)), 4 ether);
+        assertEq(recipient.balance, 6 ether);
+
+        vm.stopPrank();
+    }
+
+    function test_userOp_executeWithPreCallsLimit_exceeds() public withSMATest {
+        Call[] memory preCalls = new Call[](1);
+        preCalls[0] = Call({target: recipient, value: 5 ether, data: ""});
+
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({target: recipient, value: 5 ether + 1, data: ""});
+
+        vm.startPrank(address(entryPoint));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ExecutionLib.PreExecHookReverted.selector,
+                ModuleEntityLib.pack(address(module), entityId),
+                abi.encodePacked(NativeTokenLimitModule.ExceededNativeTokenLimit.selector)
+            )
+        );
+        account1.executeUserOp(
+            _getPackedUO(0, 0, 0, 0, abi.encodeCall(IModularAccountBase.executeWithPreCalls, (preCalls, calls))),
+            bytes32(0)
+        );
+        vm.stopPrank();
+    }
+
+    function test_runtime_executeWithPreCallsLimit() public withSMATest {
+        Call[] memory preCalls = new Call[](1);
+        preCalls[0] = Call({target: recipient, value: 2 ether, data: ""});
+
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({target: recipient, value: 3 ether, data: ""});
+
+        assertEq(module.limits(entityId, address(account1)), 10 ether);
+        account1.executeWithRuntimeValidation(
+            abi.encodeCall(IModularAccountBase.executeWithPreCalls, (preCalls, calls)),
+            _encodeSignature(validationFunction, 1, "")
+        );
+        assertEq(module.limits(entityId, address(account1)), 5 ether);
     }
 
     function test_deleteSingleSessionKey() public withSMATest {

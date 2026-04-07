@@ -25,6 +25,7 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
+import {IModularAccountBase} from "../../src/interfaces/IModularAccountBase.sol";
 import {ExecutionLib} from "../../src/libraries/ExecutionLib.sol";
 import {ModuleBase} from "../../src/modules/ModuleBase.sol";
 import {AllowlistModule} from "../../src/modules/permissions/AllowlistModule.sol";
@@ -192,6 +193,40 @@ contract AllowlistModuleTest is CustomValidationTestBase {
             )
         );
         allowlistModule.preRuntimeValidationHook(HOOK_ENTITY_ID, address(0), 0, data3, "");
+
+        vm.stopPrank();
+    }
+
+    function test_checkAllowlistCalldata_executeWithPreCalls() public {
+        vm.startPrank(address(account1));
+        allowlistModule.onInstall(abi.encode(HOOK_ENTITY_ID, _getInputsForTests()));
+
+        // Case: allowed target in both preCalls and calls — should pass
+        Call[] memory preCalls = new Call[](1);
+        preCalls[0] = Call({target: address(counters[0]), value: 0, data: abi.encodeCall(Counter.setNumber, (10))});
+
+        Call[] memory calls = new Call[](1);
+        calls[0] = Call({target: address(counters[1]), value: 0, data: abi.encodeCall(Counter.increment, ())});
+
+        bytes memory data = abi.encodeCall(IModularAccountBase.executeWithPreCalls, (preCalls, calls));
+        allowlistModule.preRuntimeValidationHook(HOOK_ENTITY_ID, address(0), 0, data, "");
+
+        // Case: disallowed target+selector in preCalls — counters[5] only allows increment (wildcard),
+        // not setNumber
+        Call[] memory badPreCalls = new Call[](1);
+        badPreCalls[0] = Call({target: address(counters[5]), value: 0, data: abi.encodeCall(Counter.setNumber, (1))});
+
+        bytes memory badData = abi.encodeCall(IModularAccountBase.executeWithPreCalls, (badPreCalls, calls));
+        vm.expectRevert(abi.encodeWithSelector(AllowlistModule.AddressNotAllowed.selector));
+        allowlistModule.preRuntimeValidationHook(HOOK_ENTITY_ID, address(0), 0, badData, "");
+
+        // Case: disallowed target+selector in calls
+        Call[] memory badCalls = new Call[](1);
+        badCalls[0] = Call({target: address(counters[5]), value: 0, data: abi.encodeCall(Counter.setNumber, (1))});
+
+        bytes memory badData2 = abi.encodeCall(IModularAccountBase.executeWithPreCalls, (preCalls, badCalls));
+        vm.expectRevert(abi.encodeWithSelector(AllowlistModule.AddressNotAllowed.selector));
+        allowlistModule.preRuntimeValidationHook(HOOK_ENTITY_ID, address(0), 0, badData2, "");
 
         vm.stopPrank();
     }

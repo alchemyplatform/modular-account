@@ -25,6 +25,7 @@ import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interface
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {ModularAccountBase} from "../../account/ModularAccountBase.sol";
 import {ModuleBase} from "../../modules/ModuleBase.sol";
 
 /// @title Allowlist with ERC-20 Spend Limit Module
@@ -136,6 +137,14 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
             _decrementLimitIfApplies(entityId, token, innerCalldata);
         } else if (selector == IModularAccount.executeBatch.selector) {
             Call[] memory calls = abi.decode(callData, (Call[]));
+            for (uint256 i = 0; i < calls.length; ++i) {
+                _decrementLimitIfApplies(entityId, calls[i].target, calls[i].data);
+            }
+        } else if (selector == ModularAccountBase.executeWithPreCalls.selector) {
+            (Call[] memory preCalls, Call[] memory calls) = abi.decode(callData, (Call[], Call[]));
+            for (uint256 i = 0; i < preCalls.length; ++i) {
+                _decrementLimitIfApplies(entityId, preCalls[i].target, preCalls[i].data);
+            }
             for (uint256 i = 0; i < calls.length; ++i) {
                 _decrementLimitIfApplies(entityId, calls[i].target, calls[i].data);
             }
@@ -286,8 +295,8 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
     /// revert.
     /// @param entityId The entity ID to check the allowlist status for.
     /// @param callDataWithoutSelector The call payload to check the allowlist status for. This should be a call to
-    /// either
-    /// `IModularAccount.execute`, or `IModularAccount.executeBatch` without selector.
+    /// `IModularAccount.execute`, `IModularAccount.executeBatch`, or
+    /// `IModularAccountBase.executeWithPreCalls` without selector.
     function checkAllowlistCalldata(bytes4 selector, uint32 entityId, bytes memory callDataWithoutSelector)
         public
         view
@@ -298,6 +307,16 @@ contract AllowlistModule is IExecutionHookModule, IValidationHookModule, ModuleB
         } else if (selector == IModularAccount.executeBatch.selector) {
             Call[] memory calls = abi.decode(callDataWithoutSelector, (Call[]));
 
+            for (uint256 i = 0; i < calls.length; ++i) {
+                _checkCallPermission(entityId, msg.sender, calls[i].target, calls[i].data);
+            }
+        } else if (selector == ModularAccountBase.executeWithPreCalls.selector) {
+            (Call[] memory preCalls, Call[] memory calls) =
+                abi.decode(callDataWithoutSelector, (Call[], Call[]));
+
+            for (uint256 i = 0; i < preCalls.length; ++i) {
+                _checkCallPermission(entityId, msg.sender, preCalls[i].target, preCalls[i].data);
+            }
             for (uint256 i = 0; i < calls.length; ++i) {
                 _checkCallPermission(entityId, msg.sender, calls[i].target, calls[i].data);
             }
