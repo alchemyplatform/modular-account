@@ -17,6 +17,7 @@
 
 pragma solidity ^0.8.28;
 
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
@@ -155,7 +156,8 @@ contract PaymasterGuardModuleTest is AccountTestBase {
             ),
             initCode: "",
             callData: abi.encodePacked(
-                ModularAccountBase.executeUserOp.selector, abi.encodeCall(account1.execute, (owner1, 0, hex""))
+                ModularAccountBase.executeUserOp.selector,
+                abi.encodeCall(IModularAccount.execute, (owner1, 0, hex""))
             ),
             accountGasLimits: bytes32(bytes16(uint128(200_000))) | bytes32(uint256(200_000)),
             preVerificationGas: 200_000,

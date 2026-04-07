@@ -43,6 +43,7 @@ import {UUPSUpgradeable} from "solady/utils/UUPSUpgradeable.sol";
 
 import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
 import {_coalescePreValidation, _coalesceValidation} from "../helpers/ValidationResHelpers.sol";
+import {IERC7821} from "../interfaces/IERC7821.sol";
 import {IModularAccountBase} from "../interfaces/IModularAccountBase.sol";
 import {
     DensePostHookData,
@@ -69,6 +70,7 @@ import {TokenReceiver} from "./TokenReceiver.sol";
 abstract contract ModularAccountBase is
     IModularAccount,
     IModularAccountBase,
+    IERC7821,
     ModularAccountView,
     AccountStorageInitializable,
     AccountBase,
@@ -111,6 +113,7 @@ abstract contract ModularAccountBase is
     error CreateFailed();
     error DeferredActionSignatureInvalid();
     error RequireUserOperationContext();
+    error UnsupportedExecutionMode();
     error SelfCallRecursionDepthExceeded();
     error SignatureValidationInvalid(ModuleEntity validationFunction);
     error UserOpValidationInvalid(ModuleEntity validationFunction);
@@ -263,6 +266,35 @@ abstract contract ModularAccountBase is
         }
     }
 
+    /// @inheritdoc IERC7821
+    /// @notice May be validated by a global validation.
+    function execute(bytes32 mode, bytes calldata executionData) external payable override wrapNativeFunction {
+        uint256 id = _executionModeId(mode);
+        if (id == 0) {
+            revert UnsupportedExecutionMode();
+        }
+
+        // Both mode 1 (no opData) and mode 2 (optional opData) encode Call[] as the first ABI parameter.
+        // abi.decode handles both abi.encode(Call[]) and abi.encode(Call[], bytes) correctly because
+        // decoding a single parameter follows the offset to the array data regardless of trailing data.
+        Call[] memory calls = abi.decode(executionData, (Call[]));
+
+        uint256 callsLength = calls.length;
+        for (uint256 i = 0; i < callsLength; ++i) {
+            address target = calls[i].target;
+            // Per ERC-7821: address(0) is replaced with address(this).
+            if (target == address(0)) {
+                target = address(this);
+            }
+            ExecutionLib.callBubbleOnRevert(target, calls[i].value, calls[i].data);
+        }
+    }
+
+    /// @inheritdoc IERC7821
+    function supportsExecutionMode(bytes32 mode) external pure override returns (bool) {
+        return _executionModeId(mode) != 0;
+    }
+
     /// @inheritdoc IModularAccount
     function executeWithRuntimeValidation(bytes calldata data, bytes calldata authorization)
         external
@@ -372,7 +404,7 @@ abstract contract ModularAccountBase is
         }
         if (
             interfaceId == type(IERC721Receiver).interfaceId || interfaceId == type(IERC1155Receiver).interfaceId
-                || interfaceId == type(IERC165).interfaceId
+                || interfaceId == type(IERC165).interfaceId || interfaceId == type(IERC7821).interfaceId
         ) {
             return true;
         }
@@ -397,6 +429,19 @@ abstract contract ModularAccountBase is
     }
 
     // INTERNAL FUNCTIONS
+
+    /// @dev Returns the execution mode id for the given mode, or 0 if unsupported.
+    /// Mode byte layout: [0] call type, [1] revert behavior, [2..5] reserved, [6..9] mode selector, [10..31] free.
+    function _executionModeId(bytes32 mode) internal pure returns (uint256 id) {
+        assembly ("memory-safe") {
+            // Extract bytes [0..1] and [6..9], masking out [2..5] (reserved) and [10..31] (free).
+            let m := and(shr(176, mode), 0xffff00000000ffffffff)
+            switch m
+            case 0x01000000000000000000 { id := 1 } // Batch call, no opData.
+            case 0x01000000000078210001 { id := 2 } // Batch call, optional opData.
+            default { id := 0 }
+        }
+    }
 
     // Parent function validateUserOp enforces that this call can only be made by the EntryPoint
     function _validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash)
@@ -1042,7 +1087,11 @@ abstract contract ModularAccountBase is
                     selector := shr(224, calldataload(dataOffset))
                 }
 
-                if (selector == uint32(this.execute.selector) || selector == uint32(this.executeBatch.selector)) {
+                if (
+                    selector == uint32(IModularAccount.execute.selector)
+                        || selector == uint32(IModularAccount.executeBatch.selector)
+                        || selector == uint32(IERC7821.execute.selector)
+                ) {
                     // To prevent arbitrarily-deep recursive checking, we limit the depth of self-calls to one
                     // for the purposes of batching.
                     // This means that all self-calls must occur at the top level of the batch.

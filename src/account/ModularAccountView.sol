@@ -34,6 +34,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeab
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
+import {IERC7821} from "../interfaces/IERC7821.sol";
 import {IModularAccountBase} from "../interfaces/IModularAccountBase.sol";
 import {MemManagementLib} from "../libraries/MemManagementLib.sol";
 import {ValidationLocatorLib} from "../libraries/ValidationLocatorLib.sol";
@@ -101,6 +102,7 @@ abstract contract ModularAccountView is IModularAccountView {
                 || selector == uint32(IERC1271.isValidSignature.selector)
                 || selector == uint32(IERC165.supportsInterface.selector)
                 || selector == uint32(IERC721Receiver.onERC721Received.selector)
+                || selector == uint32(IERC7821.supportsExecutionMode.selector)
                 || selector == uint32(IModularAccount.accountId.selector)
                 || selector == uint32(IModularAccountView.getExecutionData.selector)
                 || selector == uint32(IModularAccountView.getValidationData.selector)
@@ -118,6 +120,7 @@ abstract contract ModularAccountView is IModularAccountView {
     function _isWrappedNativeFunction(uint32 selector) internal pure virtual returns (bool) {
         return (selector == uint32(IModularAccount.execute.selector)
                 || selector == uint32(IModularAccount.executeBatch.selector)
+                || selector == uint32(IERC7821.execute.selector)
                 || selector == uint32(IModularAccount.installExecution.selector)
                 || selector == uint32(IModularAccount.installValidation.selector)
                 || selector == uint32(IModularAccount.uninstallExecution.selector)

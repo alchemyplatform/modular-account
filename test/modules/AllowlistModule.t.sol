@@ -17,8 +17,11 @@
 
 pragma solidity ^0.8.28;
 
-import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
-import {Call} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {
+    Call,
+    IModularAccount,
+    ModuleEntity
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
@@ -138,7 +141,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
             HOOK_ENTITY_ID,
             address(0),
             0,
-            abi.encodeCall(ModularAccountBase.execute, (address(counters[1]), 1 wei, "")),
+            abi.encodeCall(IModularAccount.execute, (address(counters[1]), 1 wei, "")),
             ""
         );
     }
@@ -150,7 +153,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
 
         // verify case 1 - a selector (Counter.setNumber) + address (counters[0]) should match
         bytes memory data1 = abi.encodeCall(
-            ModularAccountBase.execute, (address(counters[0]), 0, abi.encodeCall(Counter.setNumber, (10)))
+            IModularAccount.execute, (address(counters[0]), 0, abi.encodeCall(Counter.setNumber, (10)))
         );
         allowlistModule.preRuntimeValidationHook(HOOK_ENTITY_ID, address(0), 0, data1, "");
         vm.expectRevert(abi.encodeWithSelector(AllowlistModule.AddressNotAllowed.selector));
@@ -160,7 +163,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
             address(0),
             0,
             abi.encodeCall(
-                ModularAccountBase.execute, (address(counters[5]), 0, abi.encodeCall(Counter.setNumber, (10)))
+                IModularAccount.execute, (address(counters[5]), 0, abi.encodeCall(Counter.setNumber, (10)))
             ),
             ""
         );
@@ -171,20 +174,20 @@ contract AllowlistModuleTest is CustomValidationTestBase {
             address(0),
             0,
             abi.encodeCall(
-                ModularAccountBase.execute, (address(counters[0]), 0, abi.encodeCall(Counter.decrement, ()))
+                IModularAccount.execute, (address(counters[0]), 0, abi.encodeCall(Counter.decrement, ()))
             ),
             ""
         );
 
         // verify case 2 - wildcard selector (Counter.increment), any address works
         bytes memory data2 = abi.encodeCall(
-            ModularAccountBase.execute, (address(allowlistModule), 0, abi.encodeCall(Counter.increment, ()))
+            IModularAccount.execute, (address(allowlistModule), 0, abi.encodeCall(Counter.increment, ()))
         );
         allowlistModule.preRuntimeValidationHook(HOOK_ENTITY_ID, address(0), 0, data2, "");
 
         // verify case 3 - wildcard address (counters[1]), any selector works
         bytes memory data3 = abi.encodeCall(
-            ModularAccountBase.execute,
+            IModularAccount.execute,
             (
                 address(counters[1]),
                 0,
@@ -278,7 +281,7 @@ contract AllowlistModuleTest is CustomValidationTestBase {
             nonce: _encodeNextNonce(address(account1), _signerValidation, true),
             initCode: hex"",
             callData: abi.encodeCall(
-                account1.execute, (address(counters[0]), 0, abi.encodeCall(Counter.increment, ()))
+                IModularAccount.execute, (address(counters[0]), 0, abi.encodeCall(Counter.increment, ()))
             ),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,

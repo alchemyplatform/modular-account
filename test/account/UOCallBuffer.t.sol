@@ -18,6 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
@@ -52,7 +53,7 @@ contract UOCallBufferTest is AccountTestBase {
             sender: address(account1),
             nonce: _encodeNonce(_validationFunction, GLOBAL_V, 0),
             initCode: "",
-            callData: abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")),
+            callData: abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 2),
@@ -95,7 +96,7 @@ contract UOCallBufferTest is AccountTestBase {
             sender: address(account1),
             nonce: _encodeNonce(_validationFunction, GLOBAL_V, 0),
             initCode: "",
-            callData: abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")),
+            callData: abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 2),
@@ -180,7 +181,7 @@ contract UOCallBufferTest is AccountTestBase {
             sender: address(account1),
             nonce: _encodeNonce(_validationFunction, GLOBAL_V, 0),
             initCode: "",
-            callData: abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")),
+            callData: abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 2),
@@ -230,7 +231,7 @@ contract UOCallBufferTest is AccountTestBase {
             sender: address(account1),
             nonce: _encodeNonce(_validationFunction, GLOBAL_V, 0),
             initCode: "",
-            callData: abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")),
+            callData: abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 2),
@@ -265,7 +266,7 @@ contract UOCallBufferTest is AccountTestBase {
             sender: address(account1),
             nonce: _encodeNonce(_signerValidation, GLOBAL_V, 0),
             initCode: "",
-            callData: abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")),
+            callData: abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 2),

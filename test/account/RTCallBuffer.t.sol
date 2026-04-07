@@ -18,7 +18,7 @@
 pragma solidity ^0.8.28;
 
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
-
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
@@ -47,7 +47,7 @@ contract RTCallBufferTest is AccountTestBase {
     function test_multipleRTCalls() public withSMATest {
         _setup5ValidationHooks();
 
-        bytes memory callData = abi.encodeCall(account1.execute, (beneficiary, 0 wei, ""));
+        bytes memory callData = abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, ""));
         bytes memory authorization =
             _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "abcdefghijklmnopqrstuvwxyz");
 
@@ -89,7 +89,7 @@ contract RTCallBufferTest is AccountTestBase {
     {
         _setup5ValidationHooks();
 
-        bytes memory callData = abi.encodeCall(account1.execute, (beneficiary, 0 wei, ""));
+        bytes memory callData = abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, ""));
 
         bytes[] memory hookDataDynamicArray = new bytes[](5);
         for (uint256 i = 0; i < 5; i++) {
@@ -167,7 +167,7 @@ contract RTCallBufferTest is AccountTestBase {
 
         _validationFunction = ModuleEntityLib.pack(address(validationModule), NEW_VALIDATION_ENTITY_ID);
 
-        bytes memory callData = abi.encodeCall(account1.execute, (beneficiary, 0 wei, ""));
+        bytes memory callData = abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, ""));
 
         // Set up the pre-validation hook data
         bytes[] memory hookDataDynamicArray = new bytes[](preValidationHookCount);

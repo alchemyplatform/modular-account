@@ -19,6 +19,7 @@ pragma solidity ^0.8.28;
 
 import {IExecutionHookModule} from "@erc6900/reference-implementation/interfaces/IExecutionHookModule.sol";
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {HookConfig, HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntity, ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
@@ -60,7 +61,8 @@ contract PostHookDataTest is AccountTestBase {
             nonce: _encodeNonce(_validationFunction, GLOBAL_V, 0),
             initCode: hex"",
             callData: abi.encodePacked(
-                IAccountExecute.executeUserOp.selector, abi.encodeCall(account1.execute, (beneficiary, 0, hex""))
+                IAccountExecute.executeUserOp.selector,
+                abi.encodeCall(IModularAccount.execute, (beneficiary, 0, hex""))
             ),
             accountGasLimits: _encodeGas(type(uint40).max, type(uint24).max),
             preVerificationGas: 0,
@@ -97,7 +99,7 @@ contract PostHookDataTest is AccountTestBase {
 
         _installValidationAndAssocHooks(fuzzConfig);
 
-        bytes memory callData = abi.encodeCall(account1.execute, (beneficiary, 0, hex""));
+        bytes memory callData = abi.encodeCall(IModularAccount.execute, (beneficiary, 0, hex""));
         bytes memory authorization = _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "");
 
         _expectAndMockExecHooks(fuzzConfig, address(beneficiary), 0, callData);

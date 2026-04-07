@@ -81,7 +81,7 @@ contract AccountReturnDataTest is AccountTestBase {
     function test_returnData_singular_execute() public withSMATest {
         bytes memory returnData = account1.executeWithRuntimeValidation(
             abi.encodeCall(
-                account1.execute,
+                IModularAccount.execute,
                 (address(regularResultContract), 0, abi.encodeCall(RegularResultContract.foo, ()))
             ),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")

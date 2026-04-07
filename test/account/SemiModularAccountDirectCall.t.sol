@@ -18,7 +18,11 @@
 pragma solidity ^0.8.28;
 
 import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
-import {ModuleEntity, ValidationConfig} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {
+    IModularAccount,
+    ModuleEntity,
+    ValidationConfig
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
@@ -55,7 +59,7 @@ contract SemiModularAccountDirectCallTest is AccountTestBase {
         SemiModularAccountBase(payable(account1)).updateFallbackSignerData(address(0), true);
 
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            ModularAccountBase.ValidationFunctionMissing.selector, ModularAccountBase.execute.selector
+            ModularAccountBase.ValidationFunctionMissing.selector, IModularAccount.execute.selector
         );
 
         vm.prank(owner1);
@@ -65,7 +69,7 @@ contract SemiModularAccountDirectCallTest is AccountTestBase {
 
     function test_fail_smaDirectCall_notFallbackSigner() external {
         bytes memory expectedRevertData = abi.encodeWithSelector(
-            ModularAccountBase.ValidationFunctionMissing.selector, ModularAccountBase.execute.selector
+            ModularAccountBase.ValidationFunctionMissing.selector, IModularAccount.execute.selector
         );
 
         vm.prank(makeAddr("4546b"));

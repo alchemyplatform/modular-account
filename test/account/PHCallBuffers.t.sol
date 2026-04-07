@@ -23,6 +23,7 @@ import {
     ExecutionManifest,
     ManifestExecutionHook
 } from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IValidationHookModule} from "@erc6900/reference-implementation/interfaces/IValidationHookModule.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
@@ -74,7 +75,8 @@ contract PHCallBufferTest is AccountTestBase {
             nonce: _encodeNonce(_validationFunction, GLOBAL_V, 0),
             initCode: "",
             callData: abi.encodePacked(
-                IAccountExecute.executeUserOp.selector, abi.encodeCall(account1.execute, (beneficiary, 0 wei, ""))
+                IAccountExecute.executeUserOp.selector,
+                abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, ""))
             ),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
@@ -115,7 +117,7 @@ contract PHCallBufferTest is AccountTestBase {
         _allowTestDirectCalls();
         _install3ValAssocExecHooks();
 
-        bytes memory callData = abi.encodeCall(account1.execute, (beneficiary, 0 wei, ""));
+        bytes memory callData = abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, ""));
         bytes memory authorization = _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "");
 
         // Line up the "expect emit" calls
@@ -143,7 +145,7 @@ contract PHCallBufferTest is AccountTestBase {
         _install3ValAssocExecHooks();
 
         bytes memory callData =
-            abi.encodePacked(abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")), "abcdefghijk");
+            abi.encodePacked(abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, "")), "abcdefghijk");
         bytes memory authorization = _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "");
 
         // Line up the "expect emit" calls
@@ -167,7 +169,7 @@ contract PHCallBufferTest is AccountTestBase {
         _install3ValAssocExecHooks();
         _addPreRuntimeValidationHook();
 
-        bytes memory callData = abi.encodeCall(account1.execute, (beneficiary, 0 wei, ""));
+        bytes memory callData = abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, ""));
         bytes memory authorization = _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "");
 
         // pre RT validation expect emit
@@ -201,7 +203,7 @@ contract PHCallBufferTest is AccountTestBase {
         _addPreRuntimeValidationHook();
 
         bytes memory callData =
-            abi.encodePacked(abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")), "abcdefghijk");
+            abi.encodePacked(abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, "")), "abcdefghijk");
         bytes memory authorization = _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "");
 
         // pre RT validation expect emit
@@ -232,7 +234,7 @@ contract PHCallBufferTest is AccountTestBase {
     function test_preExecHooksWithRtValidation_reuseRTOnlyBuffer_regularCallData() public withSMATest {
         _install3ValAssocExecHooks();
 
-        bytes memory callData = abi.encodeCall(account1.execute, (beneficiary, 0 wei, ""));
+        bytes memory callData = abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, ""));
         bytes memory authorization = _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "");
 
         // RT validation emit, only if not SMA
@@ -266,7 +268,7 @@ contract PHCallBufferTest is AccountTestBase {
         _install3ValAssocExecHooks();
 
         bytes memory callData =
-            abi.encodePacked(abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")), "abcdefghijk");
+            abi.encodePacked(abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, "")), "abcdefghijk");
         bytes memory authorization = _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "");
 
         // RT validation emit, only if not SMA
@@ -300,7 +302,7 @@ contract PHCallBufferTest is AccountTestBase {
         _install3ValAssocExecHooks();
         _addPreRuntimeValidationHook();
 
-        bytes memory callData = abi.encodeCall(account1.execute, (beneficiary, 0 wei, ""));
+        bytes memory callData = abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, ""));
         bytes memory authorization = _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "");
 
         // pre RT validation emit
@@ -344,7 +346,7 @@ contract PHCallBufferTest is AccountTestBase {
         _addPreRuntimeValidationHook();
 
         bytes memory callData =
-            abi.encodePacked(abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")), "abcdefghijk");
+            abi.encodePacked(abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, "")), "abcdefghijk");
         bytes memory authorization = _encodeSignature(_validationFunction, GLOBAL_VALIDATION, "");
 
         // pre RT validation emit
@@ -388,7 +390,7 @@ contract PHCallBufferTest is AccountTestBase {
     function test_preExecHooks_EPCall_regularCallData() public withSMATest {
         _install3SelAssocExecHooks();
 
-        bytes memory callData = abi.encodeCall(account1.execute, (beneficiary, 0 wei, ""));
+        bytes memory callData = abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, ""));
 
         // Line up the "expect emit" calls
         for (uint256 i = 0; i < 3; i++) {
@@ -411,7 +413,7 @@ contract PHCallBufferTest is AccountTestBase {
         _install3SelAssocExecHooks();
 
         bytes memory callData =
-            abi.encodePacked(abi.encodeCall(account1.execute, (beneficiary, 0 wei, "")), "abcdefghijk");
+            abi.encodePacked(abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, "")), "abcdefghijk");
 
         // Line up the "expect emit" calls
         for (uint256 i = 0; i < 3; i++) {
@@ -435,7 +437,7 @@ contract PHCallBufferTest is AccountTestBase {
         _install3ValAssocExecHooks(DIRECT_CALL_VALIDATION_ENTITY_ID, true);
         _addPreRuntimeValidationHook();
 
-        bytes memory callData = abi.encodeCall(account1.execute, (beneficiary, 0 wei, ""));
+        bytes memory callData = abi.encodeCall(IModularAccount.execute, (beneficiary, 0 wei, ""));
 
         // pre RT validation emit
         vm.expectEmit(address(preValidationHook));
@@ -537,7 +539,7 @@ contract PHCallBufferTest is AccountTestBase {
 
             m.executionHooks = new ManifestExecutionHook[](1);
             m.executionHooks[0] = ManifestExecutionHook({
-                executionSelector: account1.execute.selector,
+                executionSelector: IModularAccount.execute.selector,
                 entityId: uint32(i),
                 isPreHook: true,
                 isPostHook: false

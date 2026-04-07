@@ -17,6 +17,7 @@
 
 pragma solidity ^0.8.28;
 
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
@@ -122,7 +123,7 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
         PackedUserOperation memory uo;
         uo.sender = account;
         uo.nonce = _encodeNextNonce(account, ModuleEntityLib.pack(address(module), entityId), true);
-        uo.callData = abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, new bytes(0)));
+        uo.callData = abi.encodeCall(IModularAccount.execute, (CODELESS_ADDRESS, 0, new bytes(0)));
         bytes32 uoHash = entryPoint.getUserOpHash(uo);
         uo.signature = _getUOSigForChallenge(uoHash, 0, 0);
 
@@ -134,7 +135,7 @@ contract WebAuthnValidationModuleTest is AccountTestBase {
         PackedUserOperation memory uo;
         uo.sender = account;
         uo.nonce = _encodeNextNonce(account, ModuleEntityLib.pack(address(module), entityId), true);
-        uo.callData = abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, new bytes(0)));
+        uo.callData = abi.encodeCall(IModularAccount.execute, (CODELESS_ADDRESS, 0, new bytes(0)));
         bytes32 uoHash = entryPoint.getUserOpHash(uo);
 
         // make sure r, s values isn't the right one by accident. checking 1 should be enough

@@ -302,7 +302,7 @@ abstract contract AccountTestBase is OptimizedTest, ModuleSignatureUtils {
 
         account1.executeWithRuntimeValidation(
             abi.encodeCall(
-                account1.execute,
+                IModularAccount.execute,
                 (
                     address(singleSignerValidationModule),
                     0,

@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.28;
 
-import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
@@ -90,7 +90,7 @@ contract SMASpecificTest is AccountTestBase {
         address target = CODELESS_ADDRESS;
         vm.prank(owner1);
         account1.executeWithRuntimeValidation(
-            abi.encodeCall(ModularAccountBase.execute, (target, transferAmount, "")),
+            abi.encodeCall(IModularAccount.execute, (target, transferAmount, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
         assertEq(target.balance, transferAmount + initialBalance, "Target missing balance from runtime transfer");
@@ -105,10 +105,10 @@ contract SMASpecificTest is AccountTestBase {
         assertEq(target.balance, initialBalance, "Target has balance when it shouldn't");
 
         // Encode a transfer to the target.
-        // bytes memory encodedCall = abi.encodeCall(ModularAccountBase.execute, (target, transferAmount, ""));
+        // bytes memory encodedCall = abi.encodeCall(IModularAccount.execute, (target, transferAmount, ""));
         bytes memory encodedCall = abi.encodePacked(
             ModularAccountBase.executeUserOp.selector,
-            abi.encodeCall(ModularAccountBase.execute, (target, transferAmount, ""))
+            abi.encodeCall(IModularAccount.execute, (target, transferAmount, ""))
         );
 
         // Run a UO with the encoded call.

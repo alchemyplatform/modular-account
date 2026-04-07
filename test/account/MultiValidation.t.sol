@@ -102,7 +102,7 @@ contract MultiValidationTest is AccountTestBase {
             sender: address(account1),
             nonce: _encodeNonce(ModuleEntityLib.pack(address(validator2), ENTITY_ID_1), GLOBAL_V, 0),
             initCode: "",
-            callData: abi.encodeCall(ModularAccountBase.execute, (CODELESS_ADDRESS, 0, "")),
+            callData: abi.encodeCall(IModularAccount.execute, (CODELESS_ADDRESS, 0, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),

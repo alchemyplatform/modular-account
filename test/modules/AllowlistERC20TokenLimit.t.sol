@@ -104,7 +104,7 @@ contract AllowlistERC20TokenLimitTest is AccountTestBase {
 
     function _getExecuteWithSpend(uint256 value) internal view returns (bytes memory) {
         return abi.encodeCall(
-            ModularAccountBase.execute, (address(erc20), 0, abi.encodeCall(IERC20.transfer, (recipient, value)))
+            IModularAccount.execute, (address(erc20), 0, abi.encodeCall(IERC20.transfer, (recipient, value)))
         );
     }
 

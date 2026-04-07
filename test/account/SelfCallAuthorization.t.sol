@@ -102,7 +102,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         // Using global validation, self-call bypasses custom validation needed for ComprehensiveModule.foo
         _runUserOp(
             abi.encodeCall(
-                ModularAccountBase.execute, (address(account1), 0, abi.encodeCall(ComprehensiveModule.foo, ()))
+                IModularAccount.execute, (address(account1), 0, abi.encodeCall(ComprehensiveModule.foo, ()))
             ),
             abi.encodeWithSelector(
                 IEntryPoint.FailedOpWithRevert.selector,
@@ -134,7 +134,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
             abi.encodePacked(
                 IAccountExecute.executeUserOp.selector,
                 abi.encodeCall(
-                    ModularAccountBase.execute, (address(account1), 0, abi.encodeCall(ComprehensiveModule.foo, ()))
+                    IModularAccount.execute, (address(account1), 0, abi.encodeCall(ComprehensiveModule.foo, ()))
                 )
             ),
             abi.encodeWithSelector(
@@ -167,7 +167,7 @@ contract SelfCallAuthorizationTest is AccountTestBase {
         // Using global validation, self-call bypasses custom validation needed for ComprehensiveModule.foo
         _runtimeCall(
             abi.encodeCall(
-                ModularAccountBase.execute, (address(account1), 0, abi.encodeCall(ComprehensiveModule.foo, ()))
+                IModularAccount.execute, (address(account1), 0, abi.encodeCall(ComprehensiveModule.foo, ()))
             ),
             abi.encodeWithSelector(ModularAccountBase.SelfCallRecursionDepthExceeded.selector)
         );

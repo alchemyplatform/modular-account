@@ -17,7 +17,7 @@
 
 pragma solidity ^0.8.28;
 
-import {ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {SimpleAccount} from "@eth-infinitism/account-abstraction/accounts/SimpleAccount.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
@@ -143,7 +143,7 @@ contract UpgradeToSmaTest is AccountTestBase {
         assertEq(target.balance, initialBalance, "Target has balance when it shouldn't");
 
         // Encode a transfer to the target.
-        bytes memory encodedCall = abi.encodeCall(ModularAccountBase.execute, (target, transferAmount, ""));
+        bytes memory encodedCall = abi.encodeCall(IModularAccount.execute, (target, transferAmount, ""));
 
         // Run a UO with the encoded call.
         if (withFallbackValidation) {

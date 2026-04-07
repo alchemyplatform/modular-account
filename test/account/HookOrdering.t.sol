@@ -22,7 +22,11 @@ import {
     ExecutionManifest,
     ManifestExecutionHook
 } from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
-import {ModuleEntity, ValidationConfig} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {
+    IModularAccount,
+    ModuleEntity,
+    ValidationConfig
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
@@ -227,7 +231,7 @@ contract HookOrderingTest is AccountTestBase {
             callData: abi.encodePacked(
                 account1.executeUserOp.selector,
                 abi.encodeCall(
-                    account1.execute,
+                    IModularAccount.execute,
                     (address(hookOrderChecker), 0 wei, abi.encodeCall(HookOrderCheckerModule.foo, (17)))
                 )
             ),
@@ -254,7 +258,7 @@ contract HookOrderingTest is AccountTestBase {
             nonce: _encodeNonce(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_V, 0),
             initCode: hex"",
             callData: abi.encodeCall(
-                account1.execute,
+                IModularAccount.execute,
                 (address(hookOrderChecker), 0 wei, abi.encodeCall(HookOrderCheckerModule.foo, (17)))
             ),
             accountGasLimits: _encodeGas(1_000_000, 1_000_000),
@@ -282,7 +286,7 @@ contract HookOrderingTest is AccountTestBase {
             callData: abi.encodePacked(
                 account1.executeUserOp.selector,
                 abi.encodeCall(
-                    account1.execute,
+                    IModularAccount.execute,
                     (address(hookOrderChecker), 0 wei, abi.encodeCall(HookOrderCheckerModule.foo, (17)))
                 )
             ),
@@ -306,7 +310,7 @@ contract HookOrderingTest is AccountTestBase {
 
         account1.executeWithRuntimeValidation(
             abi.encodeCall(
-                account1.execute,
+                IModularAccount.execute,
                 (address(hookOrderChecker), 0 wei, abi.encodeCall(HookOrderCheckerModule.foo, (17)))
             ),
             _encodeSignature(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_VALIDATION, "")
@@ -320,7 +324,7 @@ contract HookOrderingTest is AccountTestBase {
 
         account1.executeWithRuntimeValidation(
             abi.encodeCall(
-                account1.execute,
+                IModularAccount.execute,
                 (address(hookOrderChecker), 0 wei, abi.encodeCall(HookOrderCheckerModule.foo, (17)))
             ),
             _encodeSignature(orderCheckerValidationEntity, SELECTOR_ASSOCIATED_VALIDATION, "")
@@ -470,22 +474,22 @@ contract HookOrderingTest is AccountTestBase {
 
         // Apply hooks to the `execute` function
         execHooks[6] = ManifestExecutionHook({
-            executionSelector: account1.execute.selector, entityId: 11, isPreHook: true, isPostHook: false
+            executionSelector: IModularAccount.execute.selector, entityId: 11, isPreHook: true, isPostHook: false
         });
         execHooks[7] = ManifestExecutionHook({
-            executionSelector: account1.execute.selector, entityId: 12, isPreHook: false, isPostHook: true
+            executionSelector: IModularAccount.execute.selector, entityId: 12, isPreHook: false, isPostHook: true
         });
         execHooks[8] = ManifestExecutionHook({
-            executionSelector: account1.execute.selector, entityId: 13, isPreHook: true, isPostHook: true
+            executionSelector: IModularAccount.execute.selector, entityId: 13, isPreHook: true, isPostHook: true
         });
         execHooks[9] = ManifestExecutionHook({
-            executionSelector: account1.execute.selector, entityId: 14, isPreHook: true, isPostHook: true
+            executionSelector: IModularAccount.execute.selector, entityId: 14, isPreHook: true, isPostHook: true
         });
         execHooks[10] = ManifestExecutionHook({
-            executionSelector: account1.execute.selector, entityId: 15, isPreHook: true, isPostHook: false
+            executionSelector: IModularAccount.execute.selector, entityId: 15, isPreHook: true, isPostHook: false
         });
         execHooks[11] = ManifestExecutionHook({
-            executionSelector: account1.execute.selector, entityId: 16, isPreHook: false, isPostHook: true
+            executionSelector: IModularAccount.execute.selector, entityId: 16, isPreHook: false, isPostHook: true
         });
 
         manifest.executionHooks = execHooks;
@@ -510,7 +514,7 @@ contract HookOrderingTest is AccountTestBase {
 
         bytes4[] memory selectors = new bytes4[](2);
         selectors[0] = HookOrderCheckerModule.foo.selector;
-        selectors[1] = account1.execute.selector;
+        selectors[1] = IModularAccount.execute.selector;
 
         bytes[] memory hooks = new bytes[](3);
 

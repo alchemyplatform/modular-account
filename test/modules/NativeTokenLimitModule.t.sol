@@ -80,7 +80,7 @@ contract NativeTokenLimitModuleTest is AccountTestBase {
     }
 
     function _getExecuteWithValue(uint256 value) internal view returns (bytes memory) {
-        return abi.encodeCall(ModularAccountBase.execute, (recipient, value, ""));
+        return abi.encodeCall(IModularAccount.execute, (recipient, value, ""));
     }
 
     function _getPerformCreateCalldata(uint256 value) internal pure returns (bytes memory) {

@@ -17,7 +17,11 @@
 
 pragma solidity ^0.8.28;
 
-import {ModuleEntity, ValidationFlags} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
+import {
+    IModularAccount,
+    ModuleEntity,
+    ValidationFlags
+} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {
     HookConfig,
     ValidationDataView
@@ -157,7 +161,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
             sender: address(account1),
             nonce: _encodeNonce(_signerValidation, GLOBAL_V, 0),
             initCode: hex"",
-            callData: abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
+            callData: abi.encodeCall(IModularAccount.execute, (makeAddr("recipient"), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -192,7 +196,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
             sender: address(account1),
             nonce: _encodeNonce(_signerValidation, GLOBAL_V, 0),
             initCode: hex"",
-            callData: abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
+            callData: abi.encodeCall(IModularAccount.execute, (makeAddr("recipient"), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -227,7 +231,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
             sender: address(account1),
             nonce: _encodeNonce(_signerValidation, GLOBAL_V, 0),
             initCode: hex"",
-            callData: abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
+            callData: abi.encodeCall(IModularAccount.execute, (makeAddr("recipient"), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -268,7 +272,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         );
         vm.prank(owner1);
         account1.executeWithRuntimeValidation(
-            abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
+            abi.encodeCall(IModularAccount.execute, (makeAddr("recipient"), 0 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
     }
@@ -285,7 +289,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         vm.expectCall({callee: makeAddr("recipient"), msgValue: 0 wei, data: ""});
         vm.prank(owner1);
         account1.executeWithRuntimeValidation(
-            abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
+            abi.encodeCall(IModularAccount.execute, (makeAddr("recipient"), 0 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
     }
@@ -302,7 +306,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         vm.expectCall({callee: makeAddr("recipient"), msgValue: 0 wei, data: ""});
         vm.prank(owner1);
         account1.executeWithRuntimeValidation(
-            abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
+            abi.encodeCall(IModularAccount.execute, (makeAddr("recipient"), 0 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
     }
@@ -325,7 +329,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
         );
         vm.prank(owner1);
         account1.executeWithRuntimeValidation(
-            abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
+            abi.encodeCall(IModularAccount.execute, (makeAddr("recipient"), 0 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
     }
@@ -340,7 +344,7 @@ contract TimeRangeModuleTest is CustomValidationTestBase {
             sender: address(account1),
             nonce: _encodeNonce(_signerValidation, GLOBAL_V, 0),
             initCode: hex"",
-            callData: abi.encodeCall(ModularAccountBase.execute, (makeAddr("recipient"), 0 wei, "")),
+            callData: abi.encodeCall(IModularAccount.execute, (makeAddr("recipient"), 0 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),

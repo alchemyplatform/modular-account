@@ -17,6 +17,7 @@
 
 pragma solidity ^0.8.28;
 
+import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
@@ -59,7 +60,7 @@ contract GlobalValidationTest is AccountTestBase {
                 address(factory),
                 abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
             ),
-            callData: abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
+            callData: abi.encodeCall(IModularAccount.execute, (ethRecipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -86,7 +87,7 @@ contract GlobalValidationTest is AccountTestBase {
 
         vm.prank(owner2);
         account2.executeWithRuntimeValidation(
-            abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
+            abi.encodeCall(IModularAccount.execute, (ethRecipient, 1 wei, "")),
             _encodeSignature(_signerValidation, GLOBAL_VALIDATION, "")
         );
 
@@ -121,7 +122,7 @@ contract GlobalValidationTest is AccountTestBase {
                 address(factory),
                 abi.encodeCall(factory.createAccount, (owner2, 0, TEST_DEFAULT_VALIDATION_ENTITY_ID))
             ),
-            callData: abi.encodeCall(ModularAccountBase.execute, (ethRecipient, 1 wei, "")),
+            callData: abi.encodeCall(IModularAccount.execute, (ethRecipient, 1 wei, "")),
             accountGasLimits: _encodeGas(VERIFICATION_GAS_LIMIT, CALL_GAS_LIMIT),
             preVerificationGas: 0,
             gasFees: _encodeGas(1, 1),
@@ -143,7 +144,7 @@ contract GlobalValidationTest is AccountTestBase {
                 0,
                 "AA23 reverted",
                 abi.encodeWithSelector(
-                    ModularAccountBase.ValidationFunctionMissing.selector, ModularAccountBase.execute.selector
+                    ModularAccountBase.ValidationFunctionMissing.selector, IModularAccount.execute.selector
                 )
             )
         );
