@@ -104,6 +104,7 @@ abstract contract ModularAccountView is IModularAccountView {
                 || selector == uint32(IModularAccount.accountId.selector)
                 || selector == uint32(IModularAccountView.getExecutionData.selector)
                 || selector == uint32(IModularAccountView.getValidationData.selector)
+                || selector == uint32(IModularAccountBase.performBatchCall.selector)
                 || selector == uint32(UUPSUpgradeable.proxiableUUID.selector));
     }
 

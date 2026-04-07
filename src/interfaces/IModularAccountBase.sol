@@ -47,4 +47,11 @@ interface IModularAccountBase {
         external
         payable
         returns (bool success, bytes[] memory results);
+
+    /// @notice Internal batch execution helper, only callable by the account itself.
+    /// @dev Used by executeWithPreCalls to create an atomic revert boundary without triggering
+    /// executeBatch's selector-associated hooks.
+    /// @param calls The array of calls to execute.
+    /// @return results The return data from the calls.
+    function performBatchCall(Call[] calldata calls) external payable returns (bytes[] memory results);
 }

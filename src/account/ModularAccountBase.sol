@@ -281,12 +281,12 @@ abstract contract ModularAccountBase is
         // Phase 2: Calls — catch failures atomically via self-call
         uint256 callsLength = calls.length;
         if (callsLength > 0) {
-            // Self-call executeBatch to get an atomic revert boundary.
-            // Because this comes from address(this), executeBatch's wrapNativeFunction will skip
-            // runtime validation and only run selector-associated execution hooks.
+            // Self-call performBatchCall to get an atomic revert boundary.
+            // performBatchCall is a dedicated helper that only allows self-calls and runs no hooks,
+            // avoiding double-execution of hooks that would occur if we self-called executeBatch.
             // solhint-disable-next-line avoid-low-level-calls
             (bool callSuccess, bytes memory returnData) =
-                address(this).call(abi.encodeCall(this.executeBatch, (calls)));
+                address(this).call(abi.encodeCall(this.performBatchCall, (calls)));
 
             if (callSuccess) {
                 success = true;
@@ -299,6 +299,27 @@ abstract contract ModularAccountBase is
         }
 
         emit ExecuteWithPreCallsResult(success, results);
+    }
+
+    /// @inheritdoc IModularAccountBase
+    /// @dev Only callable by the account itself. Executes calls without any hooks or validation,
+    /// providing a clean revert boundary for executeWithPreCalls.
+    function performBatchCall(Call[] calldata calls)
+        external
+        payable
+        override
+        returns (bytes[] memory results)
+    {
+        if (msg.sender != address(this)) {
+            revert UnrecognizedFunction(msg.sig);
+        }
+
+        uint256 callsLength = calls.length;
+        results = new bytes[](callsLength);
+        for (uint256 i = 0; i < callsLength; ++i) {
+            ExecutionLib.callBubbleOnRevertTransient(calls[i].target, calls[i].value, calls[i].data);
+            results[i] = ExecutionLib.collectReturnData();
+        }
     }
 
     /// @inheritdoc IModularAccount
