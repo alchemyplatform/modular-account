@@ -84,6 +84,6 @@ contract DeployAccountsTest is OptimizedTest {
             "alchemy.sma-bytecode.1.0.0"
         );
 
-        assertEq(SemiModularAccount7702(payable(semiModularAccount7702Impl)).accountId(), "alchemy.sma-7702.1.0.0");
+        assertEq(SemiModularAccount7702(payable(semiModularAccount7702Impl)).accountId(), "alchemy.sma-7702.1.1.0");
     }
 }

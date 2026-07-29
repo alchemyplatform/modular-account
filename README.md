@@ -94,6 +94,8 @@ Modular Account can:
 
 Certain applications such as Permit2 or Cowswap use the ERC-1271 contract signatures standard to determine if a smart contract has approved a certain action. Modular Account implements ERC-1271 to allow smart accounts to use these applications.
 
+These applications typically treat any address with code as a contract signer, and so route the check through ERC-1271 rather than `ecrecover` even when the address is an EIP-7702 delegated EOA that still holds its own key. Because such a wallet has no way to know it is delegated, it signs as a plain EOA. `SemiModularAccount7702` therefore accepts a bare 64- or 65-byte ECDSA signature over the unwrapped digest, validated against the delegating EOA, in addition to the account's own signature encoding. The other account variants do not: their signer is an independent key that may sign for several accounts, so replay-safe hashing is what binds a signature to one account, and it remains required.
+
 #### Upgradeability
 
 When modular accounts are created from the factory, an ERC-1967 proxy contract is deployed. Users can update the implementation their proxy points to to choose which smart account implementations to use. Modular Account adheres to the ERC-7201 namespaced storage standard to prevent storage collisions when updating between different implementations.
