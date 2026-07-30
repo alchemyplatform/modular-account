@@ -31,12 +31,12 @@ contract AccountFactoryTest is AccountTestBase {
     uint256 internal _ownerX = 1;
     uint256 internal _ownerY = 2;
 
-    WebAuthnFactory webAuthnFactory;
+    WebAuthnFactory internal _webAuthnFactory;
 
     function setUp() public override {
         address webAuthnModule = address(new WebAuthnValidationModule());
 
-        webAuthnFactory = new WebAuthnFactory(entryPoint, accountImplementation, webAuthnModule, factoryOwner);
+        _webAuthnFactory = new WebAuthnFactory(entryPoint, accountImplementation, webAuthnModule, factoryOwner);
     }
 
     function test_createAccount() public withSMATest {
@@ -47,7 +47,7 @@ contract AccountFactoryTest is AccountTestBase {
 
     function test_createWebAuthnAccount() public {
         ModularAccount account =
-            webAuthnFactory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
+            _webAuthnFactory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         assertEq(address(account.entryPoint()), address(entryPoint));
     }
@@ -66,18 +66,18 @@ contract AccountFactoryTest is AccountTestBase {
 
     function test_createWebAuthnAccountAndGetAddress() public {
         ModularAccount account =
-            webAuthnFactory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
+            _webAuthnFactory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID);
 
         assertEq(
             address(account),
             address(
-                webAuthnFactory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID)
+                _webAuthnFactory.createWebAuthnAccount(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID)
             )
         );
 
         assertEq(
             address(account),
-            address(webAuthnFactory.getAddressWebAuthn(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID))
+            address(_webAuthnFactory.getAddressWebAuthn(_ownerX, _ownerY, 100, TEST_DEFAULT_VALIDATION_ENTITY_ID))
         );
     }
 
