@@ -178,6 +178,10 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
             }
             return false;
         } else if (sigType == SignatureType.CONTRACT_OWNER) {
+            // Prevent a signature-only validation from inheriting fallback-global authority through self-ERC-1271.
+            if (owner == address(this)) {
+                return false;
+            }
             return SignatureChecker.isValidERC1271SignatureNow(owner, digest, sig);
         }
         revert InvalidSignatureType();

@@ -25,6 +25,7 @@ import {HookConfig, HookConfigLib} from "@erc6900/reference-implementation/libra
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IAccount} from "@eth-infinitism/account-abstraction/interfaces/IAccount.sol";
+import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@eth-infinitism/account-abstraction/interfaces/PackedUserOperation.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -32,6 +33,7 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
 import {SemiModularAccount7702} from "../../src/account/SemiModularAccount7702.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
 import {SignatureType} from "../../src/helpers/SignatureType.sol";
@@ -56,6 +58,19 @@ contract MockPermit2SignatureVerification {
         if (IERC1271(claimedSigner).isValidSignature(hash, signature) != bytes4(0x1626ba7e)) {
             revert InvalidContractSignature();
         }
+    }
+}
+
+contract MockERC1271ContractSigner is IERC1271 {
+    address internal immutable _SIGNER;
+
+    constructor(address signer) {
+        _SIGNER = signer;
+    }
+
+    function isValidSignature(bytes32 hash, bytes memory signature) external view returns (bytes4) {
+        (address recovered, ECDSA.RecoverError err,) = ECDSA.tryRecover(hash, signature);
+        return err == ECDSA.RecoverError.NoError && recovered == _SIGNER ? bytes4(0x1626ba7e) : bytes4(0xffffffff);
     }
 }
 
@@ -593,37 +608,151 @@ contract SemiModularAccount7702Test is AccountTestBase {
         );
     }
 
-    /// @dev UserOperation validation does not parse a bare outer signature, but its existing CONTRACT_OWNER type
-    /// deliberately delegates the final proof to ERC-1271. With the account itself as fallback signer, both bare
-    /// ECDSA forms can therefore be used as the inner proof. The standard UserOperation framing, digest, and raw
-    /// activation predicates still apply, so a fallback validation hook prevents this composition.
-    function test_userOp_contractOwnerEncodingCanUseBareERC1271Signature() public {
+    /// @dev UserOperation validation does not parse a bare outer signature. Its fallback `CONTRACT_OWNER` type
+    /// must also reject the account itself as owner to prevent recursive ERC-1271 validation.
+    function test_userOp_contractOwnerEncodingRejectedWhenFallbackSignerIsSelf() public {
         address recipient = makeAddr("contractOwnerUserOpRecipient");
 
-        _runContractOwnerUserOp(recipient, false);
-        _runContractOwnerUserOp(recipient, true);
-        assertEq(recipient.balance, 2 wei);
+        for (uint256 i = 0; i < 2; ++i) {
+            PackedUserOperation memory userOp = _buildUserOp();
+            userOp.callData = abi.encodeCall(IModularAccount.execute, (recipient, 1 wei, ""));
 
-        _installNoOpFallbackValidationHook(new MockCountModule());
+            bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+            bytes32 digest = userOpHash.toEthSignedMessageHash();
+            bytes memory bareSignature = i == 0 ? _signBare(digest) : _signBareCompact(digest);
+            bytes memory wrappedBareSignature =
+                _encodeSignature(abi.encodePacked(uint8(SignatureType.CONTRACT_OWNER), bareSignature));
 
-        PackedUserOperation memory userOp = _buildUserOp();
-        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        bytes32 digest = userOpHash.toEthSignedMessageHash();
-        bytes memory wrappedBareSignature =
-            _encodeSignature(abi.encodePacked(uint8(SignatureType.CONTRACT_OWNER), _signBare(digest)));
+            userOp.signature = wrappedBareSignature;
+            PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
+            userOps[0] = userOp;
 
-        _assertUserOpSignatureRejected(userOp, userOpHash, wrappedBareSignature);
+            vm.expectRevert(abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error"));
+            entryPoint.handleOps(userOps, beneficiary);
+        }
+
+        assertEq(recipient.balance, 0);
     }
 
-    /// @dev Deferred actions likewise keep their existing envelope and account-scoped EIP-712 digest. Their
-    /// CONTRACT_OWNER type may call ERC-1271 for its inner proof, which is equivalent to selecting the EOA type
-    /// over the same digest rather than a new bare deferred-action format.
-    function test_deferredAction_contractOwnerEncodingCanUseBareERC1271Signature() public {
+    /// @dev Deferred actions retain their existing envelope and account-scoped EIP-712 digest, but cannot use
+    /// `CONTRACT_OWNER` to recurse through the account's own ERC-1271 entry point.
+    function test_deferredAction_contractOwnerEncodingRejectedWhenFallbackSignerIsSelf() public {
         address recipient = makeAddr("contractOwnerDeferredActionRecipient");
 
-        _runContractOwnerDeferredAction(recipient, false);
-        _runContractOwnerDeferredAction(recipient, true);
-        assertEq(recipient.balance, 2 wei);
+        for (uint256 i = 0; i < 2; ++i) {
+            PackedUserOperation memory userOp = _buildContractOwnerDeferredAction(recipient, i == 1);
+            PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
+            userOps[0] = userOp;
+
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    IEntryPoint.FailedOpWithRevert.selector,
+                    0,
+                    "AA23 reverted",
+                    abi.encodeWithSelector(ModularAccountBase.DeferredActionSignatureInvalid.selector)
+                )
+            );
+            entryPoint.handleOps(userOps, beneficiary);
+        }
+
+        assertEq(recipient.balance, 0);
+    }
+
+    /// @dev A signature-only, non-global validation with no selector access cannot turn its ERC-1271 capability
+    /// into the native fallback's global UserOperation authority by nesting itself inside a self-referencing
+    /// `CONTRACT_OWNER` signature.
+    function test_userOp_selfContractOwnerCannotPromoteSignatureOnlyValidation() public {
+        uint32 entityId = 42;
+        (address sessionSigner, uint256 sessionSignerKey) = makeAddrAndKey("signatureOnlySessionSigner");
+        ModuleEntity sessionValidation = ModuleEntityLib.pack(address(singleSignerValidationModule), entityId);
+
+        vm.prank(_eoa);
+        _account.installValidation(
+            ValidationConfigLib.pack({
+                _validationFunction: sessionValidation,
+                _isGlobal: false,
+                _isSignatureValidation: true,
+                _isUserOpValidation: false
+            }),
+            new bytes4[](0),
+            abi.encode(entityId, sessionSigner),
+            new bytes[](0)
+        );
+
+        address recipient = makeAddr("contractOwnerEscalationRecipient");
+        bytes memory drainCall = abi.encodeCall(IModularAccount.execute, (recipient, 99 ether, ""));
+
+        // The validation is intentionally inapplicable to this UserOperation when selected directly.
+        PackedUserOperation memory directUserOp = _buildUserOp();
+        directUserOp.nonce = _encodeNextNonce(_eoa, sessionValidation, false);
+        directUserOp.callData = drainCall;
+        bytes32 directUserOpHash = entryPoint.getUserOpHash(directUserOp);
+        bytes memory directSignature =
+            _encodeSignature(_signRawHash(vm, sessionSignerKey, directUserOpHash.toEthSignedMessageHash()));
+        directUserOp.signature = directSignature;
+        PackedUserOperation[] memory directUserOps = new PackedUserOperation[](1);
+        directUserOps[0] = directUserOp;
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IEntryPoint.FailedOpWithRevert.selector,
+                0,
+                "AA23 reverted",
+                abi.encodeWithSelector(
+                    ModularAccountBase.ValidationFunctionMissing.selector, IModularAccount.execute.selector
+                )
+            )
+        );
+        entryPoint.handleOps(directUserOps, beneficiary);
+
+        // The same key is valid for ERC-1271, but self-CONTRACT_OWNER must not let that proof inherit the
+        // fallback validation's global authority.
+        PackedUserOperation memory wrappedUserOp = _buildUserOp();
+        wrappedUserOp.callData = drainCall;
+        bytes32 wrappedUserOpHash = entryPoint.getUserOpHash(wrappedUserOp);
+        bytes32 outerDigest = wrappedUserOpHash.toEthSignedMessageHash();
+        bytes memory innerSignature = _encode1271Signature(
+            sessionValidation,
+            _signRawHash(
+                vm,
+                sessionSignerKey,
+                _getModuleReplaySafeHash(_eoa, address(singleSignerValidationModule), outerDigest)
+            )
+        );
+        assertEq(_account.isValidSignature(outerDigest, innerSignature), _1271_MAGIC_VALUE);
+
+        wrappedUserOp.signature =
+            _encodeSignature(abi.encodePacked(uint8(SignatureType.CONTRACT_OWNER), innerSignature));
+        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
+        userOps[0] = wrappedUserOp;
+
+        vm.expectRevert(abi.encodeWithSelector(IEntryPoint.FailedOp.selector, 0, "AA24 signature error"));
+        entryPoint.handleOps(userOps, beneficiary);
+
+        assertEq(recipient.balance, 0);
+        assertEq(address(_account).balance, 100 ether);
+    }
+
+    /// @dev Rejecting self-reference does not change `CONTRACT_OWNER` support for a distinct contract fallback
+    /// signer.
+    function test_userOp_contractOwnerEncodingSupportsDistinctContractFallbackSigner() public {
+        MockERC1271ContractSigner contractSigner = new MockERC1271ContractSigner(owner1);
+        vm.prank(_eoa);
+        _account.updateFallbackSignerData(address(contractSigner), false);
+
+        address recipient = makeAddr("distinctContractOwnerRecipient");
+        PackedUserOperation memory userOp = _buildUserOp();
+        userOp.callData = abi.encodeCall(IModularAccount.execute, (recipient, 1 wei, ""));
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner1Key, userOpHash.toEthSignedMessageHash());
+        userOp.signature = _encodeSignature(abi.encodePacked(uint8(SignatureType.CONTRACT_OWNER), r, s, v));
+
+        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
+        userOps[0] = userOp;
+        entryPoint.handleOps(userOps, beneficiary);
+
+        assertEq(recipient.balance, 1 wei);
     }
 
     function test_userOp_standardEncoding() public {
@@ -647,22 +776,12 @@ contract SemiModularAccount7702Test is AccountTestBase {
         return abi.encodePacked(r, bytes32(uint256(s) | (uint256(v - 27) << 255)));
     }
 
-    function _runContractOwnerUserOp(address recipient, bool compact) internal {
-        PackedUserOperation memory userOp = _buildUserOp();
-        userOp.callData = abi.encodeCall(IModularAccount.execute, (recipient, 1 wei, ""));
-
-        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
-        bytes32 digest = userOpHash.toEthSignedMessageHash();
-        bytes memory bareSignature = compact ? _signBareCompact(digest) : _signBare(digest);
-        userOp.signature = _encodeSignature(abi.encodePacked(uint8(SignatureType.CONTRACT_OWNER), bareSignature));
-
-        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
-        userOps[0] = userOp;
-        entryPoint.handleOps(userOps, beneficiary);
-    }
-
-    function _runContractOwnerDeferredAction(address recipient, bool compact) internal {
-        PackedUserOperation memory userOp = _buildUserOp();
+    function _buildContractOwnerDeferredAction(address recipient, bool compact)
+        internal
+        view
+        returns (PackedUserOperation memory userOp)
+    {
+        userOp = _buildUserOp();
         userOp.nonce = _encodeNextNonce(_eoa, FALLBACK_VALIDATION, true, true);
 
         bytes memory deferredAction = abi.encodeCall(IModularAccount.execute, (recipient, 1 wei, ""));
@@ -686,10 +805,6 @@ contract SemiModularAccount7702Test is AccountTestBase {
             _encodeSignature(_signRawHash(vm, _eoaKey, userOpHash.toEthSignedMessageHash()));
         userOp.signature =
             _encodeDeferredInstallUOSignature(deferredActionData, deferredActionSignature, userOpSignature);
-
-        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
-        userOps[0] = userOp;
-        entryPoint.handleOps(userOps, beneficiary);
     }
 
     function _buildUserOp() internal view returns (PackedUserOperation memory) {

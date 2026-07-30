@@ -66,12 +66,13 @@ contract SemiModularAccount7702 is SemiModularAccountBase {
     ///
     /// Only this public ERC-1271 function adds length-based bare-signature dispatch. Runtime validation has no
     /// bare-signature form. UserOperation and deferred-action validation retain their existing outer framing and
-    /// digest rules. When either path selects native `FALLBACK_VALIDATION`, its existing `CONTRACT_OWNER`
-    /// signature
-    /// type calls ERC-1271 on the resolved fallback signer. If that signer is `address(this)`, those paths can use
-    /// a bare inner ECDSA signature transitively. UserOperations retain selector checks and pre-validation hooks;
-    /// deferred actions retain selector checks and reject validations with pre-validation hooks. The fallback
-    /// enabled/signer checks and each path's original digest still apply.
+    /// digest rules. When native `FALLBACK_VALIDATION` resolves to `address(this)`, its `CONTRACT_OWNER`
+    /// signature type is rejected; those paths must use the `EOA` type for the delegated key. This prevents a
+    /// recursive call into the account's own ERC-1271 entry point from promoting a signature-only validation to
+    /// fallback-global authority. `CONTRACT_OWNER` remains supported when the fallback signer is a distinct
+    /// contract. UserOperations retain selector checks and pre-validation hooks; deferred actions retain selector
+    /// checks and reject validations with pre-validation hooks. The fallback enabled/signer checks and each
+    /// path's original digest still apply.
     ///
     /// The raw path is active only while the EOA is the enabled fallback signer and the reserved native
     /// `FALLBACK_VALIDATION` has no associated pre-validation hooks. Such a hook is therefore the composable
