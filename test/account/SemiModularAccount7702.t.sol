@@ -147,13 +147,29 @@ contract SemiModularAccount7702Test is AccountTestBase {
         _permit2.verify(hash, _signBareCompact(hash), _eoa);
     }
 
-    /// @dev The same check as reached through OpenZeppelin's `SignatureChecker`, which many contracts use in
-    /// place of hand-rolling the code-length branch.
-    function test_isValidSignature_signatureCheckerCompatibility() public view {
+    /// @dev OpenZeppelin exposes an explicit ERC-1271-only helper in addition to its ECDSA-first
+    /// `isValidSignatureNow` function. The explicit helper reaches this compatibility path directly.
+    function test_isValidSignature_signatureCheckerERC1271HelperCompatibility() public view {
         bytes32 hash = keccak256("hello world");
 
         assertTrue(SignatureChecker.isValidERC1271SignatureNow(_eoa, hash, _signBare(hash)));
         assertTrue(SignatureChecker.isValidERC1271SignatureNow(_eoa, hash, _signBareCompact(hash)));
+    }
+
+    /// @dev The commonly used `isValidSignatureNow` helper recovers 65-byte ECDSA signatures before ERC-1271, so
+    /// that form is independent of raw mode. Its bytes-based recovery does not accept 64-byte ERC-2098
+    /// signatures, which therefore still depend on this account's raw path.
+    function test_isValidSignature_signatureCheckerECDSAFirstBehaviorBySignatureFormat() public {
+        bytes32 hash = keccak256("ECDSA-first signature checker");
+        bytes memory signature = _signBare(hash);
+        bytes memory compactSignature = _signBareCompact(hash);
+
+        assertTrue(SignatureChecker.isValidSignatureNow(_eoa, hash, signature));
+        assertTrue(SignatureChecker.isValidSignatureNow(_eoa, hash, compactSignature));
+
+        _installNoOpFallbackValidationHook(new MockCountModule());
+        assertTrue(SignatureChecker.isValidSignatureNow(_eoa, hash, signature));
+        assertFalse(SignatureChecker.isValidSignatureNow(_eoa, hash, compactSignature));
     }
 
     // For this compatibility path, rejected bare signatures return the failure value rather than reverting. Gas
@@ -567,6 +583,85 @@ contract SemiModularAccount7702Test is AccountTestBase {
         _account.updateFallbackSignerData(owner1, false);
         assertEq(_account.isValidSignature(hash, signature64), _1271_MAGIC_VALUE);
         assertEq(_account.isValidSignature(hash, signature65), _1271_MAGIC_VALUE);
+    }
+
+    /// @dev A direct-call locator has 21 bytes of locator overhead rather than 5. Module signatures from 41
+    /// through 45 bytes therefore produce total lengths 63 through 67. Standard decoding handles the outside
+    /// lengths, while 42- and 43-byte module signatures collide with raw mode at total lengths 64 and 65.
+    function test_isValidSignature_standardEncoding_directCallReservedLengthsFollowRawModeState() public {
+        ExecutionManifest memory manifest;
+        MockModule validationModule = new MockModule(manifest);
+        ModuleEntity validationFunction =
+            ModuleEntityLib.pack(address(validationModule), DIRECT_CALL_VALIDATION_ENTITY_ID);
+
+        vm.prank(_eoa);
+        _account.installValidation(
+            ValidationConfigLib.pack({
+                _validationFunction: validationFunction,
+                _isGlobal: false,
+                _isSignatureValidation: true,
+                _isUserOpValidation: false
+            }),
+            new bytes4[](0),
+            "",
+            new bytes[](0)
+        );
+
+        vm.mockCall(
+            address(validationModule),
+            abi.encodeWithSelector(IValidationModule.validateSignature.selector),
+            abi.encode(_1271_MAGIC_VALUE)
+        );
+
+        bytes32 hash = keccak256("direct-call reserved lengths");
+        bytes memory signature63 = _encode1271Signature(validationFunction, new bytes(41));
+        bytes memory signature64 = _encode1271Signature(validationFunction, new bytes(42));
+        bytes memory signature65 = _encode1271Signature(validationFunction, new bytes(43));
+        bytes memory signature66 = _encode1271Signature(validationFunction, new bytes(44));
+        bytes memory signature67 = _encode1271Signature(validationFunction, new bytes(45));
+        assertEq(signature63.length, 63);
+        assertEq(signature64.length, 64);
+        assertEq(signature65.length, 65);
+        assertEq(signature66.length, 66);
+        assertEq(signature67.length, 67);
+
+        // Only the reserved pair is intercepted; valid modular encodings immediately outside it still route.
+        assertEq(_account.isValidSignature(hash, signature63), _1271_MAGIC_VALUE);
+        assertEq(_account.isValidSignature(hash, signature64), _1271_INVALID);
+        assertEq(_account.isValidSignature(hash, signature65), _1271_INVALID);
+        assertEq(_account.isValidSignature(hash, signature66), _1271_MAGIC_VALUE);
+        assertEq(_account.isValidSignature(hash, signature67), _1271_MAGIC_VALUE);
+
+        _installNoOpFallbackValidationHook(new MockCountModule());
+        assertEq(_account.isValidSignature(hash, signature63), _1271_MAGIC_VALUE);
+        assertEq(_account.isValidSignature(hash, signature64), _1271_MAGIC_VALUE);
+        assertEq(_account.isValidSignature(hash, signature65), _1271_MAGIC_VALUE);
+        assertEq(_account.isValidSignature(hash, signature66), _1271_MAGIC_VALUE);
+        assertEq(_account.isValidSignature(hash, signature67), _1271_MAGIC_VALUE);
+    }
+
+    /// @dev Inputs immediately outside the reserved 64/65-byte pair must continue into standard modular decoding.
+    /// The 66- and 67-byte cases begin with a valid compact signature, so this test fails if either length is
+    /// accidentally added to raw dispatch.
+    function test_isValidSignature_bareSignature_outsideReservedLengthsUseStandardDecoder() public {
+        bytes32 hash = keccak256("raw signature length boundary");
+        uint256[5] memory shortLengths = [uint256(0), 1, 4, 5, 63];
+
+        for (uint256 i = 0; i < shortLengths.length; ++i) {
+            vm.expectRevert();
+            _account.isValidSignature(hash, new bytes(shortLengths[i]));
+        }
+
+        bytes memory compactSignature = _signBareCompact(hash);
+        bytes memory signature66 = abi.encodePacked(compactSignature, hex"0000");
+        bytes memory signature67 = abi.encodePacked(compactSignature, hex"000000");
+        assertEq(signature66.length, 66);
+        assertEq(signature67.length, 67);
+
+        vm.expectRevert();
+        _account.isValidSignature(hash, signature66);
+        vm.expectRevert();
+        _account.isValidSignature(hash, signature67);
     }
 
     /// @dev Lengths outside the reserved pair are routed to the standard encoding, which a bare ECDSA signature
