@@ -7,7 +7,8 @@ runs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          # v1.4.0 introduced formatter changes that are not applied to v2.0.x.
+          # v1.4.0 introduced formatter and build-time lint changes that are not applied to v2.0.x.
+          # The repository's existing Solhint jobs continue to enforce source linting.
           version: "v1.3.6"
 
       - name: "Install Pnpm"
