@@ -17,6 +17,7 @@
 
 pragma solidity ^0.8.26;
 
+import {DIRECT_CALL_VALIDATION_ENTITY_ID} from "@erc6900/reference-implementation/helpers/Constants.sol";
 import {ExecutionManifest} from "@erc6900/reference-implementation/interfaces/IExecutionModule.sol";
 import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
@@ -33,6 +34,8 @@ import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/Signa
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {SemiModularAccount7702} from "../../src/account/SemiModularAccount7702.sol";
 import {FALLBACK_VALIDATION} from "../../src/helpers/Constants.sol";
+import {SignatureType} from "../../src/helpers/SignatureType.sol";
+import {ValidationLocator, ValidationLocatorLib} from "../../src/libraries/ValidationLocatorLib.sol";
 
 import {MockAccessControlHookModule} from "../mocks/modules/MockAccessControlHookModule.sol";
 import {MockCountModule} from "../mocks/modules/MockCountModule.sol";
@@ -253,6 +256,10 @@ contract SemiModularAccount7702Test is AccountTestBase {
         bytes32 hash = keccak256("hello world");
         _assertDoesNotValidate(address(_account), hash, _signBare(hash));
         _assertDoesNotValidate(address(_account), hash, _signBareCompact(hash));
+
+        bytes memory standardSignature =
+            _encode1271Signature(FALLBACK_VALIDATION, _signRawHash(vm, _eoaKey, _getSMAReplaySafeHash(_eoa, hash)));
+        _assertDoesNotValidate(address(_account), hash, standardSignature);
     }
 
     function test_isValidSignature_bareSignature_fallbackSignerRotated() public {
@@ -268,6 +275,42 @@ contract SemiModularAccount7702Test is AccountTestBase {
             FALLBACK_VALIDATION, _signRawHash(vm, owner1Key, _getSMAReplaySafeHash(_eoa, hash))
         );
         assertEq(_account.isValidSignature(hash, signature), _1271_MAGIC_VALUE);
+    }
+
+    /// @dev The zero storage value resolves to the delegated EOA, while storing the EOA explicitly has the same
+    /// effect. Raw mode requires every activation predicate; none of signer state, the disabled flag, or the
+    /// fallback validation hook state can override another.
+    function test_isValidSignature_bareSignature_fallbackStateMatrix() public {
+        uint256 cleanState = vm.snapshotState();
+        bytes32 hash = keccak256("fallback state matrix");
+        for (uint8 storedSignerState = 0; storedSignerState < 3; ++storedSignerState) {
+            for (uint8 disabledState = 0; disabledState < 2; ++disabledState) {
+                for (uint8 hookState = 0; hookState < 2; ++hookState) {
+                    bool validationHookInstalled = hookState == 1;
+                    if (validationHookInstalled) {
+                        _installNoOpFallbackValidationHook(new MockCountModule());
+                    }
+
+                    address storedSigner =
+                        storedSignerState == 0 ? address(0) : storedSignerState == 1 ? _eoa : owner1;
+                    bool fallbackDisabled = disabledState == 1;
+                    vm.prank(_eoa);
+                    _account.updateFallbackSignerData(storedSigner, fallbackDisabled);
+
+                    bool rawModeExpected = !fallbackDisabled
+                        && (storedSigner == address(0) || storedSigner == _eoa) && !validationHookInstalled;
+                    if (rawModeExpected) {
+                        assertEq(_account.isValidSignature(hash, _signBare(hash)), _1271_MAGIC_VALUE);
+                        assertEq(_account.isValidSignature(hash, _signBareCompact(hash)), _1271_MAGIC_VALUE);
+                    } else {
+                        _assertDoesNotValidate(address(_account), hash, _signBare(hash));
+                        _assertDoesNotValidate(address(_account), hash, _signBareCompact(hash));
+                    }
+
+                    assertTrue(vm.revertToState(cleanState));
+                }
+            }
+        }
     }
 
     /// @dev A bare signature cannot carry the per-hook data used by the standard encoding. It must not bypass a
@@ -305,14 +348,91 @@ contract SemiModularAccount7702Test is AccountTestBase {
         assertEq(_account.isValidSignature(hash, standardSignature), _1271_MAGIC_VALUE);
     }
 
-    /// @dev A fallback pre-signature hook is the composable opt-out for raw validation. Even a hook with an empty
-    /// policy disables raw mode and standard signatures still run the hook. Uninstalling fallback validation
-    /// clears its associated hooks and restores raw mode when the other activation predicates still hold.
-    function test_isValidSignature_bareSignature_noOpFallbackHookOptOutLifecycle() public {
-        MockCountModule hookModule = new MockCountModule();
-        _installNoOpFallbackValidationHook(hookModule);
+    /// @dev Only pre-validation hooks attached to the reserved fallback validation are raw-mode opt-outs.
+    /// Validation flags, an execution-only hook, and validation hooks stored under the fallback direct-call key
+    /// or another validation do not affect raw ERC-1271. Removing the fallback configuration clears its hook types
+    /// but reactivates raw mode only after the other predicates are also restored; reinstalling the validation
+    /// hook opts out again.
+    function test_isValidSignature_bareSignature_fallbackHookTypeAndOptOutLifecycle() public {
+        MockCountModule executionHookModule = new MockCountModule();
+        HookConfig executionHookConfig = HookConfigLib.packExecHook({
+            _module: address(executionHookModule),
+            _entityId: uint32(1),
+            _hasPre: true,
+            _hasPost: false
+        });
+        bytes[] memory executionHooks = new bytes[](1);
+        executionHooks[0] = abi.encodePacked(executionHookConfig, hex"00");
+
+        vm.prank(_eoa);
+        _account.installValidation(
+            ValidationConfigLib.pack({
+                _validationFunction: FALLBACK_VALIDATION,
+                _isGlobal: true,
+                _isSignatureValidation: true,
+                _isUserOpValidation: true
+            }),
+            new bytes4[](0),
+            "",
+            executionHooks
+        );
 
         bytes32 hash = keccak256("hello world");
+        assertEq(_account.isValidSignature(hash, _signBare(hash)), _1271_MAGIC_VALUE);
+        assertEq(_account.isValidSignature(hash, _signBareCompact(hash)), _1271_MAGIC_VALUE);
+
+        {
+            MockCountModule directCallHookModule = new MockCountModule();
+            HookConfig directCallHookConfig =
+                HookConfigLib.packValidationHook({_module: address(directCallHookModule), _entityId: uint32(1)});
+            bytes[] memory directCallHooks = new bytes[](1);
+            directCallHooks[0] = abi.encodePacked(directCallHookConfig, hex"00");
+            ModuleEntity fallbackDirectCallValidation =
+                ModuleEntityLib.pack(_eoa, DIRECT_CALL_VALIDATION_ENTITY_ID);
+
+            vm.prank(_eoa);
+            _account.installValidation(
+                ValidationConfigLib.pack({
+                    _validationFunction: fallbackDirectCallValidation,
+                    _isGlobal: false,
+                    _isSignatureValidation: false,
+                    _isUserOpValidation: false
+                }),
+                new bytes4[](0),
+                "",
+                directCallHooks
+            );
+        }
+        assertEq(_account.isValidSignature(hash, _signBare(hash)), _1271_MAGIC_VALUE);
+        assertEq(_account.isValidSignature(hash, _signBareCompact(hash)), _1271_MAGIC_VALUE);
+
+        {
+            ExecutionManifest memory manifest;
+            MockModule unrelatedValidationModule = new MockModule(manifest);
+            MockCountModule unrelatedHookModule = new MockCountModule();
+            HookConfig unrelatedHookConfig =
+                HookConfigLib.packValidationHook({_module: address(unrelatedHookModule), _entityId: uint32(1)});
+            bytes[] memory unrelatedHooks = new bytes[](1);
+            unrelatedHooks[0] = abi.encodePacked(unrelatedHookConfig, hex"00");
+
+            vm.prank(_eoa);
+            _account.installValidation(
+                ValidationConfigLib.pack({
+                    _validationFunction: ModuleEntityLib.pack(address(unrelatedValidationModule), uint32(2)),
+                    _isGlobal: true,
+                    _isSignatureValidation: true,
+                    _isUserOpValidation: true
+                }),
+                new bytes4[](0),
+                "",
+                unrelatedHooks
+            );
+        }
+        assertEq(_account.isValidSignature(hash, _signBare(hash)), _1271_MAGIC_VALUE);
+        assertEq(_account.isValidSignature(hash, _signBareCompact(hash)), _1271_MAGIC_VALUE);
+
+        MockCountModule validationHookModule = new MockCountModule();
+        _installNoOpFallbackValidationHook(validationHookModule);
         _assertDoesNotValidate(address(_account), hash, _signBare(hash));
         _assertDoesNotValidate(address(_account), hash, _signBareCompact(hash));
 
@@ -320,13 +440,32 @@ contract SemiModularAccount7702Test is AccountTestBase {
             _encode1271Signature(FALLBACK_VALIDATION, _signRawHash(vm, _eoaKey, _getSMAReplaySafeHash(_eoa, hash)));
         assertEq(_account.isValidSignature(hash, standardSignature), _1271_MAGIC_VALUE);
 
-        bytes[] memory hookUninstallData = new bytes[](1);
+        vm.prank(_eoa);
+        _account.updateFallbackSignerData(address(0), true);
+        _assertDoesNotValidate(address(_account), hash, _signBare(hash));
+
+        vm.prank(_eoa);
+        _account.updateFallbackSignerData(address(0), false);
+        _assertDoesNotValidate(address(_account), hash, _signBare(hash));
+
+        vm.prank(_eoa);
+        _account.updateFallbackSignerData(address(0), true);
+
+        bytes[] memory hookUninstallData = new bytes[](2);
         hookUninstallData[0] = hex"00";
+        hookUninstallData[1] = hex"00";
         vm.prank(_eoa);
         _account.uninstallValidation(FALLBACK_VALIDATION, "", hookUninstallData);
+        _assertDoesNotValidate(address(_account), hash, _signBare(hash));
 
+        vm.prank(_eoa);
+        _account.updateFallbackSignerData(address(0), false);
         assertEq(_account.isValidSignature(hash, _signBare(hash)), _1271_MAGIC_VALUE);
         assertEq(_account.isValidSignature(hash, _signBareCompact(hash)), _1271_MAGIC_VALUE);
+
+        _installNoOpFallbackValidationHook(validationHookModule);
+        _assertDoesNotValidate(address(_account), hash, _signBare(hash));
+        _assertDoesNotValidate(address(_account), hash, _signBareCompact(hash));
     }
 
     // The standard signature encoding is unchanged.
@@ -454,6 +593,39 @@ contract SemiModularAccount7702Test is AccountTestBase {
         );
     }
 
+    /// @dev UserOperation validation does not parse a bare outer signature, but its existing CONTRACT_OWNER type
+    /// deliberately delegates the final proof to ERC-1271. With the account itself as fallback signer, both bare
+    /// ECDSA forms can therefore be used as the inner proof. The standard UserOperation framing, digest, and raw
+    /// activation predicates still apply, so a fallback validation hook prevents this composition.
+    function test_userOp_contractOwnerEncodingCanUseBareERC1271Signature() public {
+        address recipient = makeAddr("contractOwnerUserOpRecipient");
+
+        _runContractOwnerUserOp(recipient, false);
+        _runContractOwnerUserOp(recipient, true);
+        assertEq(recipient.balance, 2 wei);
+
+        _installNoOpFallbackValidationHook(new MockCountModule());
+
+        PackedUserOperation memory userOp = _buildUserOp();
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        bytes32 digest = userOpHash.toEthSignedMessageHash();
+        bytes memory wrappedBareSignature =
+            _encodeSignature(abi.encodePacked(uint8(SignatureType.CONTRACT_OWNER), _signBare(digest)));
+
+        _assertUserOpSignatureRejected(userOp, userOpHash, wrappedBareSignature);
+    }
+
+    /// @dev Deferred actions likewise keep their existing envelope and account-scoped EIP-712 digest. Their
+    /// CONTRACT_OWNER type may call ERC-1271 for its inner proof, which is equivalent to selecting the EOA type
+    /// over the same digest rather than a new bare deferred-action format.
+    function test_deferredAction_contractOwnerEncodingCanUseBareERC1271Signature() public {
+        address recipient = makeAddr("contractOwnerDeferredActionRecipient");
+
+        _runContractOwnerDeferredAction(recipient, false);
+        _runContractOwnerDeferredAction(recipient, true);
+        assertEq(recipient.balance, 2 wei);
+    }
+
     function test_userOp_standardEncoding() public {
         address recipient = makeAddr("recipient");
 
@@ -473,6 +645,51 @@ contract SemiModularAccount7702Test is AccountTestBase {
     function _signBareCompact(bytes32 hash) internal view returns (bytes memory) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(_eoaKey, hash);
         return abi.encodePacked(r, bytes32(uint256(s) | (uint256(v - 27) << 255)));
+    }
+
+    function _runContractOwnerUserOp(address recipient, bool compact) internal {
+        PackedUserOperation memory userOp = _buildUserOp();
+        userOp.callData = abi.encodeCall(IModularAccount.execute, (recipient, 1 wei, ""));
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        bytes32 digest = userOpHash.toEthSignedMessageHash();
+        bytes memory bareSignature = compact ? _signBareCompact(digest) : _signBare(digest);
+        userOp.signature = _encodeSignature(abi.encodePacked(uint8(SignatureType.CONTRACT_OWNER), bareSignature));
+
+        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
+        userOps[0] = userOp;
+        entryPoint.handleOps(userOps, beneficiary);
+    }
+
+    function _runContractOwnerDeferredAction(address recipient, bool compact) internal {
+        PackedUserOperation memory userOp = _buildUserOp();
+        userOp.nonce = _encodeNextNonce(_eoa, FALLBACK_VALIDATION, true, true);
+
+        bytes memory deferredAction = abi.encodeCall(IModularAccount.execute, (recipient, 1 wei, ""));
+        uint48 deferredActionDeadline = 0;
+        bytes32 deferredActionDigest =
+            _getDeferredInstallStruct(account1, userOp.nonce, deferredActionDeadline, deferredAction);
+        bytes memory bareSignature =
+            compact ? _signBareCompact(deferredActionDigest) : _signBare(deferredActionDigest);
+        bytes memory deferredActionSignature = abi.encodePacked(uint8(SignatureType.CONTRACT_OWNER), bareSignature);
+
+        ValidationLocator deferredActionValidation = ValidationLocatorLib.packFromModuleEntity({
+            _moduleEntity: FALLBACK_VALIDATION,
+            _isGlobal: true,
+            _hasDeferredAction: false
+        });
+        bytes memory deferredActionData =
+            _packDeferredInstallData(deferredActionDeadline, deferredActionValidation, deferredAction);
+
+        bytes32 userOpHash = entryPoint.getUserOpHash(userOp);
+        bytes memory userOpSignature =
+            _encodeSignature(_signRawHash(vm, _eoaKey, userOpHash.toEthSignedMessageHash()));
+        userOp.signature =
+            _encodeDeferredInstallUOSignature(deferredActionData, deferredActionSignature, userOpSignature);
+
+        PackedUserOperation[] memory userOps = new PackedUserOperation[](1);
+        userOps[0] = userOp;
+        entryPoint.handleOps(userOps, beneficiary);
     }
 
     function _buildUserOp() internal view returns (PackedUserOperation memory) {
@@ -520,10 +737,11 @@ contract SemiModularAccount7702Test is AccountTestBase {
         (bool success, bytes memory returnData) =
             address(_account).call(abi.encodeCall(IAccount.validateUserOp, (userOp, userOpHash, 0)));
 
-        // Either validation reverts while decoding, or it reports failure. It must not report success.
+        // Either validation reverts while decoding, or its low 160 bits report SIG_VALIDATION_FAILED. A nonzero
+        // time range alone is not a signature failure.
         if (success) {
             assertEq(returnData.length, 32);
-            assertTrue(abi.decode(returnData, (uint256)) != 0);
+            assertEq(uint160(abi.decode(returnData, (uint256))), uint160(1));
         }
     }
 
