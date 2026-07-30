@@ -64,16 +64,31 @@ contract SemiModularAccount7702 is SemiModularAccountBase {
     /// signatures are accepted here directly over the unwrapped digest, so that delegating does not break flows
     /// which treat the address as the EOA it still is.
     ///
-    /// The raw path is active only while the EOA is the enabled fallback signer and fallback validation has no
-    /// pre-signature-validation hooks. A fallback validation hook is therefore the composable opt-out when the
-    /// account should retain its EOA fallback but require the standard signature pipeline. There is no
-    /// independent latch: uninstalling fallback validation clears its hooks and re-enables raw mode if the other
-    /// two predicates still hold.
+    /// Only this public ERC-1271 function adds length-based bare-signature dispatch. Runtime validation has no
+    /// bare-signature form. UserOperation and deferred-action validation retain their existing outer framing and
+    /// digest rules. When either path selects native `FALLBACK_VALIDATION`, its existing `CONTRACT_OWNER`
+    /// signature
+    /// type calls ERC-1271 on the resolved fallback signer. If that signer is `address(this)`, those paths can use
+    /// a bare inner ECDSA signature transitively. UserOperations retain selector checks and pre-validation hooks;
+    /// deferred actions retain selector checks and reject validations with pre-validation hooks. The fallback
+    /// enabled/signer checks and each path's original digest still apply.
     ///
-    /// Other signatures use the standard encoding, which selects a validation function and runs its configured
-    /// hooks. Native fallback validation applies the account replay-safe hash; installed modules define their own
-    /// hashing. A bare ECDSA signature is not self-describing, so while raw mode is active, these two total outer
-    /// lengths are reserved exclusively for this path. Module signatures have variable length, so
+    /// The raw path is active only while the EOA is the enabled fallback signer and the reserved native
+    /// `FALLBACK_VALIDATION` has no associated pre-validation hooks. Such a hook is therefore the composable
+    /// opt-out when the account should retain its EOA fallback but require the standard signature pipeline.
+    /// Calling `uninstallValidation` for `FALLBACK_VALIDATION` does not remove the built-in fallback or alter its
+    /// signer state. It clears the flags, selectors, and all hooks stored under that key. Removing all
+    /// pre-validation hooks makes raw mode eligible again only if the signer is enabled and resolves to
+    /// `address(this)`.
+    ///
+    /// Execution hooks, hooks on a direct-call or different validation key, and the native fallback validation's
+    /// flags do not control raw mode. A zero stored signer resolves to `address(this)` in this implementation; the
+    /// disabled flag is what turns fallback signing off.
+    ///
+    /// Other ERC-1271 signatures use the standard encoding, which selects a validation function and runs its
+    /// configured hooks. Native fallback validation applies the account replay-safe hash; installed modules
+    /// define their own hashing. A bare ECDSA signature is not self-describing, so while raw mode is active, these
+    /// two total outer lengths are reserved exclusively for this path. Module signatures have variable length, so
     /// standard-encoded signatures must avoid totaling 64 or 65 bytes in that configuration. When raw mode is
     /// inactive, signatures of either length fall through to standard signature validation, including its
     /// existing revert behavior for malformed modular encodings.
@@ -114,10 +129,10 @@ contract SemiModularAccount7702 is SemiModularAccountBase {
     /// address(this), which binds the signature to this account. The path otherwise has ordinary EOA signature
     /// semantics and relies on the caller-provided digest for chain and protocol replay protection.
     ///
-    /// The external ERC-1271 entry point only calls this helper while the EOA is still the active fallback signer
-    /// and fallback validation has no pre-signature-validation hooks. A bare signature has no encoding for
-    /// per-hook data, so accepting it while hooks are installed would bypass any additional proof or policy they
-    /// enforce.
+    /// The public ERC-1271 entry point only calls this helper while the EOA is still the active fallback signer
+    /// and the native fallback validation has no associated pre-validation hooks. A bare signature has no
+    /// encoding for per-hook data, so accepting it while hooks are installed would bypass any additional proof or
+    /// policy they enforce.
     function _isValidEOASignature(bytes32 digest, bytes calldata signature) internal view returns (bool) {
         bytes32 r = bytes32(signature[0:32]);
         bytes32 sOrVs = bytes32(signature[32:64]);
