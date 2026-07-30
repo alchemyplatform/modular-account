@@ -92,9 +92,23 @@ Modular Account can:
 
 #### ERC-1271 contract signatures support
 
-Certain applications such as Permit2 or Cowswap use the ERC-1271 contract signatures standard to determine if a smart contract has approved a certain action. Modular Account implements ERC-1271 to allow smart accounts to use these applications.
+Certain applications such as Permit2 or CoW Swap use the ERC-1271 contract signatures standard to determine if a smart contract has approved a certain action. Modular Account implements ERC-1271 to allow smart accounts to use these applications.
 
-These applications typically treat any address with code as a contract signer, and so route the check through ERC-1271 rather than `ecrecover` even when the address is an EIP-7702 delegated EOA that still holds its own key. Because such a wallet has no way to know it is delegated, it signs as a plain EOA. `SemiModularAccount7702` therefore accepts a bare 64- or 65-byte ECDSA signature over the unwrapped digest, validated against the delegating EOA, in addition to the account's own signature encoding. The other account variants do not: their signer is an independent key that may sign for several accounts, so replay-safe hashing is what binds a signature to one account, and it remains required.
+##### `SemiModularAccount7702` bare EOA signatures
+
+Applications commonly route every address with code through ERC-1271. An EIP-7702 delegated EOA has code but still holds its private key, and its wallet may produce a plain EOA signature without knowing that the address is delegated. For compatibility, `SemiModularAccount7702` accepts canonical 65-byte ECDSA and 64-byte ERC-2098 signatures directly over the caller-supplied digest.
+
+Raw mode is active only when all of the following are true:
+
+1. Fallback signing is enabled.
+2. The resolved fallback signer is the delegated EOA itself (`address(this)`).
+3. Fallback validation has no pre-signature-validation hooks.
+
+There is deliberately no separate raw-signature setting: the EOA key can still sign transactions and change its EIP-7702 delegation. Installing any fallback pre-signature-validation hook disables raw mode and restores normal modular signature validation, so a policy hook or purpose-built no-op hook can serve as the opt-out. A no-op opt-out is still a real hook: it runs on the fallback's standard runtime, UserOperation, and ERC-1271 validation paths, adds hook calldata and call gas, and makes fallback validation ineligible for deferred actions under the existing no-validation-hooks rule. Uninstalling fallback validation clears its hooks and can reactivate raw mode; disabling fallback signing or rotating it to another signer also disables raw mode. No account hook can gate actions the EOA key performs outside the account pipeline or prevent it from changing delegation.
+
+While raw mode is active, every 64- or 65-byte signature is interpreted exclusively as bare ECDSA; an invalid value returns the ERC-1271 failure value rather than falling through to modular decoding. Module signatures have variable length, so standard-encoded signatures must avoid those two total lengths in that state. When raw mode is inactive, both lengths use normal modular signature validation, including that path's existing revert behavior for malformed encodings.
+
+The raw digest is not wrapped with the account's replay-safe domain. Chain, protocol, nonce, deadline, and action binding therefore come from the digest supplied by the calling application, matching ordinary EOA signature semantics. A previously issued bare signature can become valid again if raw mode is later reactivated, so any required nonce, deadline, or revocation semantics must be enforced by the calling application. Raw decoding applies only to the external ERC-1271 entry point and does not accept bare UserOperation signatures. The other account variants do not accept bare signatures because their fallback signer may be an independent key shared across accounts.
 
 #### Upgradeability
 

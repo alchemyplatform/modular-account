@@ -22,7 +22,9 @@ import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntry
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
+import {FALLBACK_VALIDATION_LOOKUP_KEY} from "../helpers/Constants.sol";
 import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
+import {getAccountStorage} from "./AccountStorage.sol";
 import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 
 /// @title Semi-Modular Account for EIP-7702 EOAs
@@ -62,13 +64,30 @@ contract SemiModularAccount7702 is SemiModularAccountBase {
     /// signatures are accepted here directly over the unwrapped digest, so that delegating does not break flows
     /// which treat the address as the EOA it still is.
     ///
-    /// Signatures of any other length are handled by the standard encoding, which selects a validation function
-    /// and applies replay-safe hashing. A bare ECDSA signature is not self-describing, so these two lengths are
-    /// reserved for this path. No signature accepted by the standard encoding is 64 or 65 bytes long, as that
-    /// encoding adds at least 6 bytes of overhead on top of the inner signature.
+    /// The raw path is active only while the EOA is the enabled fallback signer and fallback validation has no
+    /// pre-signature-validation hooks. A fallback validation hook is therefore the composable opt-out when the
+    /// account should retain its EOA fallback but require the standard signature pipeline. There is no
+    /// independent latch: uninstalling fallback validation clears its hooks and re-enables raw mode if the other
+    /// two predicates still hold.
+    ///
+    /// Other signatures use the standard encoding, which selects a validation function and runs its configured
+    /// hooks. Native fallback validation applies the account replay-safe hash; installed modules define their own
+    /// hashing. A bare ECDSA signature is not self-describing, so while raw mode is active, these two total outer
+    /// lengths are reserved exclusively for this path. Module signatures have variable length, so
+    /// standard-encoded signatures must avoid totaling 64 or 65 bytes in that configuration. When raw mode is
+    /// inactive, signatures of either length fall through to standard signature validation, including its
+    /// existing revert behavior for malformed modular encodings.
     function isValidSignature(bytes32 hash, bytes calldata signature) public view override returns (bytes4) {
         if (signature.length == _ECDSA_SIGNATURE_LENGTH || signature.length == _ECDSA_COMPACT_SIGNATURE_LENGTH) {
-            return _isValidEOASignature(hash, signature) ? _1271_MAGIC_VALUE : _1271_INVALID;
+            SemiModularAccountStorage storage _storage = _getSemiModularAccountStorage();
+
+            if (
+                !_storage.fallbackSignerDisabled && _retrieveFallbackSignerUnchecked(_storage) == address(this)
+                    && getAccountStorage().validationStorage[FALLBACK_VALIDATION_LOOKUP_KEY].validationHookCount
+                        == 0
+            ) {
+                return _isValidEOASignature(hash, signature) ? _1271_MAGIC_VALUE : _1271_INVALID;
+            }
         }
 
         return super.isValidSignature(hash, signature);
@@ -92,23 +111,15 @@ contract SemiModularAccount7702 is SemiModularAccountBase {
 
     /// @dev Recovers a bare ECDSA signature over `digest` and checks it against the delegating EOA.
     ///
-    /// No replay-safe wrapping is applied, and none is needed: the recovered address is compared against
-    /// address(this), which binds the signature to this account just as the replay-safe domain separator would.
-    /// Replay across chains is a property of the EOA's key rather than of this account, and is unchanged by
-    /// delegating.
+    /// No account-specific replay-safe wrapping is applied: the recovered address is compared against
+    /// address(this), which binds the signature to this account. The path otherwise has ordinary EOA signature
+    /// semantics and relies on the caller-provided digest for chain and protocol replay protection.
     ///
-    /// The EOA is only honored while it is still the account's active fallback signer, so the signers accepted
-    /// here are a subset of those accepted by fallback validation - only the encoding and the hash wrapping
-    /// differ. This path consequently skips any pre-signature-validation hooks installed on fallback validation.
-    /// Those hooks were never a boundary against this key: an EOA delegated with EIP-7702 keeps the ability to
-    /// sign ordinary transactions from its own address, which no hook can gate.
+    /// The external ERC-1271 entry point only calls this helper while the EOA is still the active fallback signer
+    /// and fallback validation has no pre-signature-validation hooks. A bare signature has no encoding for
+    /// per-hook data, so accepting it while hooks are installed would bypass any additional proof or policy they
+    /// enforce.
     function _isValidEOASignature(bytes32 digest, bytes calldata signature) internal view returns (bool) {
-        SemiModularAccountStorage storage _storage = _getSemiModularAccountStorage();
-
-        if (_storage.fallbackSignerDisabled || _retrieveFallbackSignerUnchecked(_storage) != address(this)) {
-            return false;
-        }
-
         bytes32 r = bytes32(signature[0:32]);
         bytes32 sOrVs = bytes32(signature[32:64]);
 
