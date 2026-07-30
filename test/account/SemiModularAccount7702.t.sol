@@ -316,9 +316,8 @@ contract SemiModularAccount7702Test is AccountTestBase {
         _assertDoesNotValidate(address(_account), hash, _signBare(hash));
         _assertDoesNotValidate(address(_account), hash, _signBareCompact(hash));
 
-        bytes memory standardSignature = _encode1271Signature(
-            FALLBACK_VALIDATION, _signRawHash(vm, _eoaKey, _getSMAReplaySafeHash(_eoa, hash))
-        );
+        bytes memory standardSignature =
+            _encode1271Signature(FALLBACK_VALIDATION, _signRawHash(vm, _eoaKey, _getSMAReplaySafeHash(_eoa, hash)));
         assertEq(_account.isValidSignature(hash, standardSignature), _1271_MAGIC_VALUE);
 
         bytes[] memory hookUninstallData = new bytes[](1);
@@ -334,9 +333,8 @@ contract SemiModularAccount7702Test is AccountTestBase {
 
     function test_isValidSignature_standardEncoding() public view {
         bytes32 hash = keccak256("hello world");
-        bytes memory signature = _encode1271Signature(
-            FALLBACK_VALIDATION, _signRawHash(vm, _eoaKey, _getSMAReplaySafeHash(_eoa, hash))
-        );
+        bytes memory signature =
+            _encode1271Signature(FALLBACK_VALIDATION, _signRawHash(vm, _eoaKey, _getSMAReplaySafeHash(_eoa, hash)));
 
         // The built-in EOA signature is 66 bytes, so with the standard encoding's 6 bytes of overhead it does not
         // collide with the two lengths reserved for bare signatures.
