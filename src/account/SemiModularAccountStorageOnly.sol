@@ -46,7 +46,7 @@ contract SemiModularAccountStorageOnly is SemiModularAccountBase {
 
     /// @inheritdoc IModularAccount
     function accountId() external pure override returns (string memory) {
-        return "alchemy.sma-storage.1.0.0";
+        return "alchemy.sma-storage.1.1.0";
     }
 
     /// @dev Overrides SemiModularAccountBase.

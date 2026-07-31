@@ -54,7 +54,7 @@ contract DeploySmaStorageTest is OptimizedTest {
 
         assertEq(
             SemiModularAccountStorageOnly(payable(semiModularAccountStorageOnlyImpl)).accountId(),
-            "alchemy.sma-storage.1.0.0"
+            "alchemy.sma-storage.1.1.0"
         );
     }
 }

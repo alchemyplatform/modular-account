@@ -194,6 +194,14 @@ In order for a deferred action to be run at validation, in addition to special e
 
 The `isSignatureValidation` flag meant to allow a validation function to validate ERC-1271 signatures. Developer should note that for Modular Account this is a very powerful capability to grant as it allows validation functions to approve deferred actions on the account.
 
+#### Runtime validation selector authority
+
+On `SemiModularAccount7702`, `executeWithRuntimeValidation` is a validation-chaining entry point. A validation that is global, or is explicitly granted selector access to `executeWithRuntimeValidation`, must be treated as having root-equivalent account authority: an account self-call can select the native `FALLBACK_VALIDATION` and then perform an arbitrary inner self-call while fallback signing is enabled and resolves to `address(this)`. Do not grant this selector to a limited validation. Access to `executeBatch` alone does not grant this authority: each nested account self-call is checked against its own selector.
+
+#### Circular contract-owner validation
+
+Do not configure a `SingleSignerValidationModule` entity with `signer == account` and then use the `CONTRACT_OWNER` signature type. That circular configuration can recurse through the account's ERC-1271 validation and satisfy the outer validation through a different signature-capable validation while retaining the outer entity's broader selector scope or global authority. For the delegated key on `SemiModularAccount7702`, use the native fallback and the `EOA` signature type. `CONTRACT_OWNER` remains supported for a distinct contract signer.
+
 ## Acknowledgements
 
 The contracts in this repository adhere to the ERC-6900 specification, and are heavily influenced by the design of the ERC-6900 reference implementation.
