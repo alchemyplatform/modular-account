@@ -57,19 +57,15 @@ contract SemiModularAccount7702 is SemiModularAccountBase {
     /// @notice Validates an ERC-1271 signature, accepting bare ECDSA signatures from the delegating EOA in
     /// addition to the account's regular signature encoding.
     ///
-    /// @dev With zero-valued account storage, raw mode is active by default. It remains active only while fallback
-    /// signing is enabled and the resolved fallback signer is `address(this)`. Native `FALLBACK_VALIDATION` must
-    /// also have no pre-validation hooks.
+    /// @dev Raw mode is active when fallback signing is enabled, the resolved fallback signer is `address(this)`,
+    /// and native `FALLBACK_VALIDATION` has no pre-validation hooks. Zero-valued account storage satisfies all
+    /// three conditions.
     ///
-    /// While active, exact 64- and 65-byte inputs are reserved for bare ECDSA over `hash`; invalid signatures
-    /// return the ERC-1271 failure value without reverting. All other inputs use standard modular validation.
+    /// Exact 64- and 65-byte inputs are then checked directly over `hash` against `address(this)`; invalid
+    /// signatures return the ERC-1271 failure value without reverting. Other inputs use modular validation.
     ///
-    /// This bare dispatcher exists only in public ERC-1271 validation. Runtime, UserOperation, and deferred-action
-    /// validation retain their existing encoding and digest rules. When native fallback resolves to
-    /// `address(this)`, its `CONTRACT_OWNER` signature type is rejected; those paths must use `EOA`.
-    ///
-    /// Bare signatures are not wrapped in the account replay-safe domain. See the README section
-    /// "SemiModularAccount7702 bare EOA signatures" for integration behavior, opt-outs, length collisions, and
+    /// The bare digest is not wrapped in the account replay-safe domain. See
+    /// `doc/SMA7702-Raw-ERC1271-Signatures.md` for integration behavior, opt-outs, length collisions, and
     /// migration guidance.
     function isValidSignature(bytes32 hash, bytes calldata signature) public view override returns (bytes4) {
         if (signature.length == _ECDSA_SIGNATURE_LENGTH || signature.length == _ECDSA_COMPACT_SIGNATURE_LENGTH) {
