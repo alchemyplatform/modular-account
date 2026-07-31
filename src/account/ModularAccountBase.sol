@@ -355,14 +355,6 @@ abstract contract ModularAccountBase is
         _uninstallValidation(validationFunction, uninstallData, hookUninstallData);
     }
 
-    /// @inheritdoc IERC1271
-    function isValidSignature(bytes32 hash, bytes calldata signature) external view override returns (bytes4) {
-        (ValidationLocator locator, bytes calldata signatureRemainder) =
-            ValidationLocatorLib.loadFromSignature(signature);
-
-        return _isValidSignature(locator.lookupKey(), hash, signatureRemainder);
-    }
-
     /// @inheritdoc IERC165
     /// @notice ERC-165 introspection
     /// @dev returns true for `IERC165.interfaceId` and false for `0xFFFFFFFF`
@@ -396,6 +388,22 @@ abstract contract ModularAccountBase is
         wrapNativeFunction
     {
         super.upgradeToAndCall(newImplementation, data);
+    }
+
+    /// @inheritdoc IERC1271
+    /// @dev Declared `public virtual` rather than `external` so that account variants may prepend their own
+    /// signature handling and still fall through to the standard decoding here via `super`.
+    function isValidSignature(bytes32 hash, bytes calldata signature)
+        public
+        view
+        virtual
+        override
+        returns (bytes4)
+    {
+        (ValidationLocator locator, bytes calldata signatureRemainder) =
+            ValidationLocatorLib.loadFromSignature(signature);
+
+        return _isValidSignature(locator.lookupKey(), hash, signatureRemainder);
     }
 
     // INTERNAL FUNCTIONS

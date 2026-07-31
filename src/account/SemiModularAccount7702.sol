@@ -19,8 +19,12 @@ pragma solidity ^0.8.26;
 
 import {IModularAccount} from "@erc6900/reference-implementation/interfaces/IModularAccount.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
+import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
+import {FALLBACK_VALIDATION_LOOKUP_KEY} from "../helpers/Constants.sol";
 import {ExecutionInstallDelegate} from "../helpers/ExecutionInstallDelegate.sol";
+import {getAccountStorage} from "./AccountStorage.sol";
 import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 
 /// @title Semi-Modular Account for EIP-7702 EOAs
@@ -29,6 +33,11 @@ import {SemiModularAccountBase} from "./SemiModularAccountBase.sol";
 /// @dev Inherits SemiModularAccountBase. This account can be used as the delegate contract of an EOA with
 /// EIP-7702, where address(this) (aka the EOA address) is the default fallback signer.
 contract SemiModularAccount7702 is SemiModularAccountBase {
+    // Length of a standard ECDSA signature, encoded as `abi.encodePacked(r, s, v)`.
+    uint256 internal constant _ECDSA_SIGNATURE_LENGTH = 65;
+    // Length of a compact ECDSA signature, encoded as `abi.encodePacked(r, vs)`. See ERC-2098.
+    uint256 internal constant _ECDSA_COMPACT_SIGNATURE_LENGTH = 64;
+
     error UpgradeNotAllowed();
 
     constructor(IEntryPoint entryPoint, ExecutionInstallDelegate executionInstallDelegate)
@@ -37,11 +46,51 @@ contract SemiModularAccount7702 is SemiModularAccountBase {
 
     /// @inheritdoc IModularAccount
     function accountId() external pure override returns (string memory) {
-        return "alchemy.sma-7702.1.0.0";
+        return "alchemy.sma-7702.1.1.0";
     }
 
     function upgradeToAndCall(address, bytes calldata) public payable override {
         revert UpgradeNotAllowed();
+    }
+
+    /// @inheritdoc IERC1271
+    /// @notice Validates an ERC-1271 signature, accepting bare ECDSA signatures from the delegating EOA in
+    /// addition to the account's regular signature encoding.
+    ///
+    /// @dev Unlike the other account variants, this one is delegated to from an EOA that retains its private key.
+    /// Contracts that route signature checks through ERC-1271 whenever the signer address has code - Permit2,
+    /// OpenZeppelin's `SignatureChecker`, Seaport, and others - hand this account the plain 64- or 65-byte ECDSA
+    /// signature that the EOA's wallet produced, with no knowledge that the address is delegated. Those
+    /// signatures are accepted here directly over the unwrapped digest, so that delegating does not break flows
+    /// which treat the address as the EOA it still is.
+    ///
+    /// The raw path is active only while the EOA is the enabled fallback signer and fallback validation has no
+    /// pre-signature-validation hooks. A fallback validation hook is therefore the composable opt-out when the
+    /// account should retain its EOA fallback but require the standard signature pipeline. There is no
+    /// independent latch: uninstalling fallback validation clears its hooks and re-enables raw mode if the other
+    /// two predicates still hold.
+    ///
+    /// Other signatures use the standard encoding, which selects a validation function and runs its configured
+    /// hooks. Native fallback validation applies the account replay-safe hash; installed modules define their own
+    /// hashing. A bare ECDSA signature is not self-describing, so while raw mode is active, these two total outer
+    /// lengths are reserved exclusively for this path. Module signatures have variable length, so
+    /// standard-encoded signatures must avoid totaling 64 or 65 bytes in that configuration. When raw mode is
+    /// inactive, signatures of either length fall through to standard signature validation, including its
+    /// existing revert behavior for malformed modular encodings.
+    function isValidSignature(bytes32 hash, bytes calldata signature) public view override returns (bytes4) {
+        if (signature.length == _ECDSA_SIGNATURE_LENGTH || signature.length == _ECDSA_COMPACT_SIGNATURE_LENGTH) {
+            SemiModularAccountStorage storage _storage = _getSemiModularAccountStorage();
+
+            if (
+                !_storage.fallbackSignerDisabled && _retrieveFallbackSignerUnchecked(_storage) == address(this)
+                    && getAccountStorage().validationStorage[FALLBACK_VALIDATION_LOOKUP_KEY].validationHookCount
+                        == 0
+            ) {
+                return _isValidEOASignature(hash, signature) ? _1271_MAGIC_VALUE : _1271_INVALID;
+            }
+        }
+
+        return super.isValidSignature(hash, signature);
     }
 
     /// @dev If the fallback signer is set in storage, means the fallback signer has been updated. We ignore the
@@ -58,5 +107,31 @@ contract SemiModularAccount7702 is SemiModularAccountBase {
         }
 
         return address(this);
+    }
+
+    /// @dev Recovers a bare ECDSA signature over `digest` and checks it against the delegating EOA.
+    ///
+    /// No account-specific replay-safe wrapping is applied: the recovered address is compared against
+    /// address(this), which binds the signature to this account. The path otherwise has ordinary EOA signature
+    /// semantics and relies on the caller-provided digest for chain and protocol replay protection.
+    ///
+    /// The external ERC-1271 entry point only calls this helper while the EOA is still the active fallback signer
+    /// and fallback validation has no pre-signature-validation hooks. A bare signature has no encoding for
+    /// per-hook data, so accepting it while hooks are installed would bypass any additional proof or policy they
+    /// enforce.
+    function _isValidEOASignature(bytes32 digest, bytes calldata signature) internal view returns (bool) {
+        bytes32 r = bytes32(signature[0:32]);
+        bytes32 sOrVs = bytes32(signature[32:64]);
+
+        address recovered;
+        ECDSA.RecoverError err;
+
+        if (signature.length == _ECDSA_SIGNATURE_LENGTH) {
+            (recovered, err,) = ECDSA.tryRecover(digest, uint8(signature[64]), r, sOrVs);
+        } else {
+            (recovered, err,) = ECDSA.tryRecover(digest, r, sOrVs);
+        }
+
+        return err == ECDSA.RecoverError.NoError && recovered == address(this);
     }
 }
