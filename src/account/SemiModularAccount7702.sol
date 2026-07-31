@@ -83,8 +83,7 @@ contract SemiModularAccount7702 is SemiModularAccountBase {
 
             if (
                 !_storage.fallbackSignerDisabled && _retrieveFallbackSignerUnchecked(_storage) == address(this)
-                    && getAccountStorage().validationStorage[FALLBACK_VALIDATION_LOOKUP_KEY].validationHookCount
-                        == 0
+                    && getAccountStorage().validationStorage[FALLBACK_VALIDATION_LOOKUP_KEY].validationHookCount == 0
             ) {
                 return _isValidEOASignature(hash, signature) ? _1271_MAGIC_VALUE : _1271_INVALID;
             }
