@@ -336,6 +336,11 @@ abstract contract ModularAccountBase is
     /// @dev This function can be used to update (to a certain degree) previously installed validation functions.
     ///      - preValidationHook, executionHooks, and selectors can be added later. Though they won't be deleted.
     ///      - isGlobal and isSignatureValidation can also be updated later.
+    /// @dev The validation module, its flags, and its selectors are stored before any hook `onInstall` runs, and
+    ///      each hook's `onInstall` runs immediately after that hook is inserted. A hook callback therefore
+    ///      observes the validation and all earlier hooks, but not later ones, so a later restrictive hook does
+    ///      not constrain an earlier hook's callback. The validation module's `onInstall` runs last. See
+    ///      `doc/Module-Lifecycle-Callbacks.md`.
     function installValidation(
         ValidationConfig validationConfig,
         bytes4[] calldata selectors,
@@ -347,20 +352,22 @@ abstract contract ModularAccountBase is
 
     /// @inheritdoc IModularAccount
     /// @notice May be validated by a global validation.
+    /// @dev Hook `onUninstall` callbacks run before the hooks, selectors, flags, and validation function are
+    ///      cleared, so they execute under the authority being removed. The validation module's `onUninstall`
+    ///      runs after clearing.
+    /// @dev `onUninstall` is best-effort: results are aggregated with `&&`, so the first failure skips every later
+    ///      hook callback and the validation module callback. Reverts are swallowed and removal always completes;
+    ///      the aggregate result is reported by `ValidationUninstalled`. Modules must not rely on `onUninstall`
+    ///      for security-critical cleanup.
+    /// @dev `hookUninstallData` is ordered pre-validation hooks then execution hooks, and within each group is the
+    ///      reverse of the order `getValidationData` returns. Length is checked, order is not. See
+    ///      `doc/Module-Lifecycle-Callbacks.md`.
     function uninstallValidation(
         ModuleEntity validationFunction,
         bytes calldata uninstallData,
         bytes[] calldata hookUninstallData
     ) external wrapNativeFunction {
         _uninstallValidation(validationFunction, uninstallData, hookUninstallData);
-    }
-
-    /// @inheritdoc IERC1271
-    function isValidSignature(bytes32 hash, bytes calldata signature) external view override returns (bytes4) {
-        (ValidationLocator locator, bytes calldata signatureRemainder) =
-            ValidationLocatorLib.loadFromSignature(signature);
-
-        return _isValidSignature(locator.lookupKey(), hash, signatureRemainder);
     }
 
     /// @inheritdoc IERC165
@@ -396,6 +403,22 @@ abstract contract ModularAccountBase is
         wrapNativeFunction
     {
         super.upgradeToAndCall(newImplementation, data);
+    }
+
+    /// @inheritdoc IERC1271
+    /// @dev Declared `public virtual` rather than `external` so that account variants may prepend their own
+    /// signature handling and still fall through to the standard decoding here via `super`.
+    function isValidSignature(bytes32 hash, bytes calldata signature)
+        public
+        view
+        virtual
+        override
+        returns (bytes4)
+    {
+        (ValidationLocator locator, bytes calldata signatureRemainder) =
+            ValidationLocatorLib.loadFromSignature(signature);
+
+        return _isValidSignature(locator.lookupKey(), hash, signatureRemainder);
     }
 
     // INTERNAL FUNCTIONS

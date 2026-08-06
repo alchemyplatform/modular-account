@@ -92,7 +92,24 @@ Modular Account can:
 
 #### ERC-1271 contract signatures support
 
-Certain applications such as Permit2 or Cowswap use the ERC-1271 contract signatures standard to determine if a smart contract has approved a certain action. Modular Account implements ERC-1271 to allow smart accounts to use these applications.
+Certain applications, including Permit2, use the ERC-1271 contract signatures standard to determine if a smart
+contract has approved an action. Modular Account implements ERC-1271 to allow smart accounts to use these
+applications.
+
+##### `SemiModularAccount7702` bare EOA signatures
+
+Some applications dispatch exclusively on whether the signer has code and therefore route an EIP-7702 delegated
+EOA through ERC-1271. The EOA still holds its private key, and its wallet may produce a plain EOA signature without
+knowing that the address is delegated. For compatibility with these applications, the public
+`SemiModularAccount7702.isValidSignature(bytes32,bytes)` entry point accepts canonical 65-byte ECDSA and 64-byte
+ERC-2098 signatures directly over its caller-supplied digest.
+
+Raw mode is active by default for an otherwise unconfigured SMA7702. This compatibility path affects only the
+public ERC-1271 entry point; it does not add a bare-signature form to runtime, UserOperation, or deferred-action
+validation. Raw ERC-1271 signatures are not wrapped in the account's replay-safe domain.
+
+See [SMA7702 Raw EOA ERC-1271 Signatures](./doc/SMA7702-Raw-ERC1271-Signatures.md) for activation rules,
+configuration opt-outs, encoding collisions, integration behavior, and migration guidance.
 
 #### Upgradeability
 
@@ -177,6 +194,23 @@ In order for a deferred action to be run at validation, in addition to special e
 #### Signature validation flag enablement
 
 The `isSignatureValidation` flag meant to allow a validation function to validate ERC-1271 signatures. Developer should note that for Modular Account this is a very powerful capability to grant as it allows validation functions to approve deferred actions on the account.
+
+#### Runtime validation selector authority
+
+On `SemiModularAccount7702`, granting a limited validation selector access to `executeWithRuntimeValidation` is root-equivalent while fallback signing resolves to `address(this)`. Never grant that selector to a limited validation. `executeBatch` access alone is not equivalent; nested self-calls retain selector checks.
+
+#### Module lifecycle callbacks
+
+Module `onInstall` and `onUninstall` callbacks run while account authorization is in an intermediate state, and
+`onUninstall` is a best-effort notification rather than a guaranteed one. See
+[Module Lifecycle Callbacks](./doc/Module-Lifecycle-Callbacks.md) for callback ordering, the authority visible to
+each callback, and the required ordering of `hookUninstallDatas`.
+
+#### Circular contract-owner validation
+
+Do not configure `SingleSignerValidationModule` with `signer == account`. That circular `CONTRACT_OWNER`
+configuration can re-enter a different signature validation under the outer validation's authority and is not
+covered by the native fallback's direct self-reference check.
 
 ## Acknowledgements
 

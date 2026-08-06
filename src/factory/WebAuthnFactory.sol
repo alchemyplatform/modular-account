@@ -26,7 +26,6 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {LibClone} from "solady/utils/LibClone.sol";
 
 import {ModularAccount} from "../account/ModularAccount.sol";
-import {SemiModularAccountBytecode} from "../account/SemiModularAccountBytecode.sol";
 
 /// @title WebAuthn Account Factory
 /// @author Alchemy

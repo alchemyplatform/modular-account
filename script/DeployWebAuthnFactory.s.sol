@@ -4,7 +4,6 @@ pragma solidity ^0.8.26;
 import {console} from "forge-std/console.sol";
 
 import {ModularAccount} from "../src/account/ModularAccount.sol";
-import {SemiModularAccountBytecode} from "../src/account/SemiModularAccountBytecode.sol";
 import {Artifacts} from "./Artifacts.sol";
 import {ScriptBase} from "./ScriptBase.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";

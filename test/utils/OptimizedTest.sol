@@ -23,6 +23,7 @@ import {EntryPoint} from "@eth-infinitism/account-abstraction/core/EntryPoint.so
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
+import {SemiModularAccount7702} from "../../src/account/SemiModularAccount7702.sol";
 import {SemiModularAccountBytecode} from "../../src/account/SemiModularAccountBytecode.sol";
 
 import {ExecutionInstallDelegate} from "../../src/helpers/ExecutionInstallDelegate.sol";
@@ -77,6 +78,22 @@ abstract contract OptimizedTest is Test {
                 )
             )
             : new SemiModularAccountBytecode(entryPoint, executionInstallDelegate);
+    }
+
+    function _deploySemiModularAccount7702(
+        IEntryPoint entryPoint,
+        ExecutionInstallDelegate executionInstallDelegate
+    ) internal returns (SemiModularAccount7702) {
+        return _isOptimizedTest()
+            ? SemiModularAccount7702(
+                payable(
+                    deployCode(
+                        "out-optimized/SemiModularAccount7702.sol/SemiModularAccount7702.json",
+                        abi.encode(entryPoint, executionInstallDelegate)
+                    )
+                )
+            )
+            : new SemiModularAccount7702(entryPoint, executionInstallDelegate);
     }
 
     function _deploySingleSignerValidationModule() internal returns (SingleSignerValidationModule) {

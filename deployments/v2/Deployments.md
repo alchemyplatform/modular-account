@@ -1,5 +1,21 @@
 # Deployments
 
+## SMA7702 v1.1.0
+
+`accountId()` returns `alchemy.sma-7702.1.1.0`. Adds bare EOA ERC-1271 signature support; see
+[SMA7702 Raw EOA ERC-1271 Signatures](../../doc/SMA7702-Raw-ERC1271-Signatures.md). No other contract changes.
+
+For every other contract, take the V2.0.1 row where one exists and the V2.0.0 row otherwise. V2.0.1 supersedes the
+V2.0.0 `AllowlistModule` row and adds `WebAuthnFactory`; do not read the V2.0.0 `AllowlistModule` address as current.
+
+| Contract Name                 | Address                                      | Salt                                                                 |
+| ----------------------------- | -------------------------------------------- | -------------------------------------------------------------------- |
+| SemiModularAccount7702        | `0x77021100bD87b7008E5E1989d0eB38555d0d0000` | `0x000000000000000000000000000000000000000000cb62bc96787a01bccd3750` |
+
+Built with `FOUNDRY_PROFILE=optimized-build`, constructor args `(EntryPoint v0.7, ExecutionInstallDelegate)` =
+`(0x0000000071727De22E5E9d8BAf0edAc6f37da032, 0x0000000000008e6a39E03C7156e46b238C9E2036)`, giving initcode hash
+`0x9474e750bda053a876e8bd08f17a47e7cf057f046015c1a2d3f5cd88f551f02b`.
+
 ## V2.0.1
 
 | Contract Name                 | Address                                      | Salt                                                                 |
