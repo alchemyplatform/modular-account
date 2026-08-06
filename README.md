@@ -199,6 +199,13 @@ The `isSignatureValidation` flag meant to allow a validation function to validat
 
 On `SemiModularAccount7702`, granting a limited validation selector access to `executeWithRuntimeValidation` is root-equivalent while fallback signing resolves to `address(this)`. Never grant that selector to a limited validation. `executeBatch` access alone is not equivalent; nested self-calls retain selector checks.
 
+#### Module lifecycle callbacks
+
+Module `onInstall` and `onUninstall` callbacks run while account authorization is in an intermediate state, and
+`onUninstall` is a best-effort notification rather than a guaranteed one. See
+[Module Lifecycle Callbacks](./doc/Module-Lifecycle-Callbacks.md) for callback ordering, the authority visible to
+each callback, and the required ordering of `hookUninstallDatas`.
+
 #### Circular contract-owner validation
 
 Do not configure `SingleSignerValidationModule` with `signer == account`. That circular `CONTRACT_OWNER`

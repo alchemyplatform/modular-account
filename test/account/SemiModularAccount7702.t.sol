@@ -23,6 +23,7 @@ import {IModularAccount, ModuleEntity} from "@erc6900/reference-implementation/i
 import {IValidationModule} from "@erc6900/reference-implementation/interfaces/IValidationModule.sol";
 import {HookConfig, HookConfigLib} from "@erc6900/reference-implementation/libraries/HookConfigLib.sol";
 import {ModuleEntityLib} from "@erc6900/reference-implementation/libraries/ModuleEntityLib.sol";
+import {SparseCalldataSegmentLib} from "@erc6900/reference-implementation/libraries/SparseCalldataSegmentLib.sol";
 import {ValidationConfigLib} from "@erc6900/reference-implementation/libraries/ValidationConfigLib.sol";
 import {IAccount} from "@eth-infinitism/account-abstraction/interfaces/IAccount.sol";
 import {IEntryPoint} from "@eth-infinitism/account-abstraction/interfaces/IEntryPoint.sol";
@@ -32,6 +33,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {LibClone} from "solady/utils/LibClone.sol";
+import {SignatureCheckerLib} from "solady/utils/SignatureCheckerLib.sol";
 
 import {ModularAccount} from "../../src/account/ModularAccount.sol";
 import {ModularAccountBase} from "../../src/account/ModularAccountBase.sol";
@@ -174,6 +176,34 @@ contract SemiModularAccount7702Test is AccountTestBase {
         _installNoOpFallbackValidationHook(new MockCountModule());
         assertTrue(SignatureChecker.isValidSignatureNow(_eoa, hash, signature));
         assertFalse(SignatureChecker.isValidSignatureNow(_eoa, hash, compactSignature));
+    }
+
+    /// @dev Solady's checker recovers both the 64- and 65-byte forms before trying ERC-1271, so neither reaches
+    /// this account. Installing a fallback validation hook is therefore invisible to a Solady-based verifier: it
+    /// is an ERC-1271 mode switch, not revocation of the EOA signature. This pins the Solady row of the
+    /// interoperability table in doc/SMA7702-Raw-ERC1271-Signatures.md against a dependency bump.
+    function test_isValidSignature_soladyECDSAFirstIgnoresFallbackHook() public {
+        bytes32 hash = keccak256("solady ECDSA-first signature checker");
+        bytes memory signature = _signBare(hash);
+        bytes memory compactSignature = _signBareCompact(hash);
+
+        assertTrue(SignatureCheckerLib.isValidSignatureNow(_eoa, hash, signature));
+        assertTrue(SignatureCheckerLib.isValidSignatureNow(_eoa, hash, compactSignature));
+
+        _installNoOpFallbackValidationHook(new MockCountModule());
+
+        // Raw mode is now inactive, so both forms enter modular decoding and revert rather than returning the
+        // ERC-1271 failure value. A consumer that maps a failed call to `false` handles this; one that propagates
+        // the revert turns an invalid signature into an application-level failure.
+        vm.expectRevert(SparseCalldataSegmentLib.ValidationSignatureSegmentMissing.selector);
+        _account.isValidSignature(hash, signature);
+
+        vm.expectRevert(SparseCalldataSegmentLib.ValidationSignatureSegmentMissing.selector);
+        _account.isValidSignature(hash, compactSignature);
+
+        // Solady never asks the account, so both remain valid to it.
+        assertTrue(SignatureCheckerLib.isValidSignatureNow(_eoa, hash, signature));
+        assertTrue(SignatureCheckerLib.isValidSignatureNow(_eoa, hash, compactSignature));
     }
 
     // For this compatibility path, rejected bare signatures return the failure value rather than reverting. Gas

@@ -12,10 +12,9 @@ canonical 65-byte ECDSA and 64-byte ERC-2098 signatures directly over its caller
 Raw recovery must equal `address(this)`, the delegating EOA. This is another encoding for the already-root EOA key,
 not a new signer or authority path.
 
-A verifier does not depend on this path for signature formats that it successfully recovers as ECDSA before
-trying ERC-1271. In the OpenZeppelin version used by this repository,
-`SignatureChecker.isValidSignatureNow` recovers 65-byte signatures first, but its bytes-based recovery does not
-accept 64-byte ERC-2098 signatures. The compact form therefore still routes through ERC-1271.
+A verifier does not depend on this path for signature formats that it successfully recovers as ECDSA before trying
+ERC-1271. Which formats those are differs by library and by version, and it determines whether deactivating raw
+mode has any effect on that verifier. See [What deactivation does not reach](#what-deactivation-does-not-reach).
 
 The bare-length dispatcher exists only in the public ERC-1271 function:
 
@@ -82,7 +81,7 @@ Calling `uninstallValidation(FALLBACK_VALIDATION, ...)` does not remove native f
 validation-associated execution hooks stored under that validation key. Removing all pre-validation hooks can
 make raw mode eligible again, but only if fallback signing is enabled and the resolved signer is `address(this)`.
 Reinstalling such a hook disables it again. The hook opt-out is therefore reversible configuration, not signature
-revocation.
+revocation. It is also not universal; see [Why no contract change can fix this](#why-no-contract-change-can-fix-this).
 
 Execution hooks, hooks on the fallback direct-call key or another validation, and the fallback validation's
 `isGlobal`, `isSignatureValidation`, and `isUserOpValidation` flags do not control raw mode. Those flags are inert
@@ -91,6 +90,72 @@ the fallback as global.
 
 On SMA7702, `updateFallbackSignerData(address(0), false)` restores `address(this)` as the effective fallback
 signer; it does not disable anything.
+
+## What deactivation does not reach
+
+This section is only about the deactivated case: what happens to an already-issued bare signature after one of the
+three opt-outs above is applied. While raw mode is active, every consumer that reaches `isValidSignature` accepts a
+canonical bare signature, and there is nothing further to say.
+
+Deactivating raw mode is not universal. It only affects consumers that actually call the account. An ECDSA-first
+verifier recovers the signature and compares the result against the expected signer without calling the account at
+all, so no account configuration changes that outcome, because no account code runs.
+
+The table below shows consumer behavior after a pre-validation hook is installed on native `FALLBACK_VALIDATION`,
+deactivating raw mode while the signing key is unchanged.
+
+| Consumer | 64-byte ERC-2098 | 65-byte ECDSA |
+| --- | --- | --- |
+| OpenZeppelin `SignatureChecker.isValidSignatureNow` (v5.0.2, `lib/openzeppelin-contracts`) | Falls through to ERC-1271, rejected | Recovered directly, remains valid |
+| Solady `SignatureCheckerLib.isValidSignatureNow` (v0.0.237, `node_modules/solady`) | Recovered directly, remains valid | Recovered directly, remains valid |
+| Code-first verifier, dispatching on `signer.code.length` | Sent to ERC-1271, rejected by revert | Sent to ERC-1271, rejected by revert |
+| Direct ERC-1271 caller, including Permit2 | Rejected by revert | Rejected by revert |
+
+"Rejected by revert" is not the same as a clean `0xffffffff`. Once raw mode is off, a bare 64- or 65-byte value is
+parsed as a modular signature and reverts with `ValidationSignatureSegmentMissing`. A verifier that wraps the call
+and maps failure to `false` sees a plain rejection. One that calls the account directly and propagates the
+revert — Permit2 among them — surfaces it to its own caller as a failed transaction or a failed gas estimate.
+
+OpenZeppelin's `isValidSignatureNow` attempts ECDSA recovery before ERC-1271, but its bytes-based
+`ECDSA.tryRecover` handles only 65-byte input and reports `InvalidSignatureLength` for the compact form. That single
+asymmetry produces the split in the first row. Solady's equivalent attempts `ecrecover` for both lengths before
+falling back to ERC-1271, so neither length reaches the account.
+
+This is a property of the deployed verifier, not of the library name. Dispatch order has changed across releases of
+both libraries. Check the version an integration actually deploys rather than assuming every `SignatureChecker`
+behaves alike.
+
+Deactivation also does not reach a result a consumer has already cached. A positive result cached before a hook
+install or signer rotation stays positive, and execution driven only by that cache accepts a decision the account
+would now reject. Validate at the point of use; if caching is unavoidable, bind the entry to an exact block or state
+context.
+
+### Why no contract change can fix this
+
+A hook on native fallback validation is an ERC-1271 mode switch. So is rotating or disabling the fallback signer.
+Neither revokes the EOA signature, and neither can restrict top-level transactions sent by the delegated EOA.
+
+This follows from EIP-7702 rather than from anything specific to this implementation. The delegating key remains
+root authority over the account: it can send top-level transactions that bypass validation entirely, and it can
+sign a new EIP-7702 authorization that replaces the delegation. A signature produced by that key is not revocable
+by account state, and no account bytecode is reachable when a verifier recovers the key directly. No contract-level
+control can change that.
+
+Where a bare signature must actually be revoked, use the consuming application's own controls, such as nonce
+invalidation or deadline expiry. See [Replay and migration](#replay-and-migration).
+
+### Calling convention and failure modes
+
+In raw mode, both `STATICCALL` and `CALL` return a canonical 32-byte ABI-encoded `bytes4`. Prefer `STATICCALL`,
+which enforces that validation cannot write state.
+
+While raw mode is active the bare branch never reverts; a malformed, non-canonical, or non-matching 64- or 65-byte
+value returns `0xffffffff`. When raw mode is inactive the same bytes enter modular decoding and may revert instead.
+Consumers that map a failed ERC-1271 call to `false` handle both cases cleanly. Consumers that propagate the revert
+turn an invalid signature into an application-level revert or a gas-estimation failure.
+
+A caller-imposed gas cap below the cost of validation produces a false negative. Forward enough gas rather than
+relying on a narrow measured threshold.
 
 ## Signature encoding
 
@@ -116,6 +181,13 @@ ECDSA signature is not a valid modular encoding, and this path may revert rather
 depending on the decoded bytes and installed validations. Valid modular signatures of those total lengths
 continue to route normally.
 
+The supported built-in formats do not collide. A `SingleSignerValidationModule` EOA payload produces a 72-byte
+entity-locator ERC-1271 signature, and WebAuthn signatures are larger. A custom variable-length validation module
+can still produce a complete 64- or 65-byte encoding. `ValidationLocatorLib.packSignature` does not reject these
+totals, so avoiding the collision is the module's responsibility: pad or otherwise alter the encoding while raw
+mode is active. Custom validation modules should document the signature lengths they can produce and how they avoid
+these two. SDKs that assemble modular signatures should warn when they generate either total for an SMA7702.
+
 ## Other validation paths
 
 Runtime, UserOperation, and deferred-action validation do not add bare-signature dispatch. Fallback runtime
@@ -131,17 +203,27 @@ The shared `SemiModularAccountBase` guard blocks direct native-fallback self-ref
 
 ## Replay and migration
 
-The raw ERC-1271 digest is not wrapped with the account's replay-safe domain. Chain, protocol, nonce, deadline, and
-action binding therefore come from the digest supplied by the calling application, matching ordinary EOA
-semantics for digest binding.
+The raw ERC-1271 digest is not wrapped with the account's replay-safe domain. The account adds no chain- or
+account-scoped domain of its own, so all binding comes from the digest supplied by the calling application. This
+matches ordinary EOA semantics.
 
-A canonical bare signature created before delegation, or while raw mode was inactive, can validate when raw mode
-is active if the calling application supplies the same digest and its own nonce, deadline, and revocation state
-still permit the action.
+The consuming application must bind the digest to the intended chain, verifying contract, signer, action, amount,
+nonce, deadline, and any protocol-specific context. Where an application separates its digests poorly, the same
+signature may be actionable in another context. That risk is not specific to delegated accounts or to ERC-1271;
+this path accepts the approval that the EOA key already produced.
+
+A canonical bare signature can validate later, once raw mode is active, if the application's own nonce, deadline,
+and revocation state still permit the action. This applies to a signature created:
+
+- before delegation;
+- while raw mode was inactive;
+- before the delegated code was replaced; or
+- under an earlier implementation that did not accept bare ERC-1271 signatures.
 
 Re-delegating an existing SMA7702 v1.0.0 EOA to v1.1.0 activates raw mode if the three gates above are satisfied. A
 still-live bare approval that a codesize-only verifier rejected solely because v1.0.0 lacked this path can then
-validate. Before re-delegating, use the application's nonce or revocation controls, including blanket invalidation
-where supported, or keep raw mode inactive if that is not intended.
+validate. Before any migration that activates bare-signature compatibility, invalidate any live application
+approval that should not survive it, using the application's nonce or revocation controls including blanket
+invalidation where supported. Alternatively, configure the account so that raw mode stays inactive.
 
 The other SMA variants do not implement bare-signature dispatch.

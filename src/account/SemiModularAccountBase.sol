@@ -82,6 +82,14 @@ abstract contract SemiModularAccountBase is ModularAccountBase {
         emit FallbackSignerUpdated(fallbackSigner, isDisabled);
     }
 
+    /// @notice Installs a validation function, its flags, selectors, and hooks. May be validated by a global
+    ///         validation.
+    /// @dev Reverts if a module is installed at the reserved fallback validation entity id.
+    /// @dev The validation module, its flags, and its selectors are stored before any hook `onInstall` runs, and
+    ///      each hook's `onInstall` runs immediately after that hook is inserted. A hook callback therefore
+    ///      observes the validation and all earlier hooks, but not later ones, so a later restrictive hook does
+    ///      not constrain an earlier hook's callback. The validation module's `onInstall` runs last. See
+    ///      `doc/Module-Lifecycle-Callbacks.md`.
     function installValidation(
         ValidationConfig validationConfig,
         bytes4[] calldata selectors,
