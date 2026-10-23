@@ -22,7 +22,7 @@ jobs:
         run: FOUNDRY_PROFILE=optimized-build forge build
 
       - name: Run tests
-        run: FOUNDRY_PROFILE=optimized-test-deep forge test -vvv
+        run: FOUNDRY_PROFILE=optimized-test-deep pnpm test
 
   test-default:
     name: Run Forge Tests (default)
@@ -38,4 +38,4 @@ jobs:
         run: forge build
 
       - name: Run tests
-        run: forge test -vvv
+        run: pnpm test
