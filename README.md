@@ -62,9 +62,8 @@ pnpm lcov
 # Generate gas snapshots
 pnpm gas
 
-# Test
+# Test (deployment-script tests that mutate FOUNDRY_PROFILE run serially)
 pnpm test
-forge test -vvv
 ```
 
 ### Deployment
